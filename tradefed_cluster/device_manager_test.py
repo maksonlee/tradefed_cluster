@@ -388,6 +388,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(self.HOST_EVENT["data"], host.extra_info)
     self.assertEqual(2, host.total_devices)
     self.assertEqual(2, host.available_devices)
+    self._AssertHostSyncTask(self.HOST_EVENT["hostname"])
 
   @mock.patch.object(metric, "SetHostTestRunnerVersion")
   def testHandleDeviceSnapshotWithHostState(self, metric_set_version):
@@ -403,10 +404,6 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
         host.timestamp)
     self.assertEqual(api_messages.HostState(
         self.HOST_EVENT_STATE_INFO["state"]), host.host_state)
-    self.assertEqual(
-        datetime.datetime.utcfromtimestamp(
-            self.HOST_EVENT_STATE_INFO["tf_start_time_seconds"]),
-        host.tf_start_time)
     metric_set_version.assert_not_called()
 
   def testHandleDeviceSnapshot_availableDevice(self):
@@ -619,6 +616,57 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertIsNotNone(host)
     self.assertEqual("new_runner", host.test_runner)
     self.assertEqual("v2", host.test_runner_version)
+
+  @mock.patch.object(device_manager, "_DoUpdateGoneDevicesInNDB")
+  def testUpdateGoneDevicesInNDB_alreadyGone(self, do_update):
+    """Tests that devices are updated."""
+    hostname = "somehost.mtv"
+    cluster = "somecluster"
+    serials = ["serial-001", "serial-002", "serial-003"]
+    host = datastore_entities.HostInfo(
+        id=hostname, hostname=hostname, physical_cluster=cluster)
+    host.put()
+    for s in serials:
+      device = datastore_entities.DeviceInfo(
+          id=s, parent=host.key,
+          device_serial=s,
+          hostname=hostname,
+          state=common.DeviceState.GONE)
+      device.put()
+    timestamp = datetime.datetime.utcnow()
+    device_manager._UpdateGoneDevicesInNDB(hostname, {}, timestamp)
+    self.assertFalse(do_update.called)
+
+  def testHandleDeviceSnapshot_olderTimestamp(self):
+    """Tests that HandleDeviceSnapshot() ignores events if they are older."""
+    new_host_event = host_event.HostEvent(**self.HOST_EVENT_NO_DEVICES_UPDATE)
+    device_manager.HandleDeviceSnapshotWithNDB(new_host_event)
+    host = device_manager.GetHost(self.HOST_EVENT_NO_DEVICES_UPDATE["hostname"])
+    self.assertIsNotNone(host)
+    self.assertEqual("tradefed", host.test_runner)
+    self.assertEqual(self.HOST_EVENT_NO_DEVICES_UPDATE["tf_version"],
+                     host.test_runner_version)
+    self.assertEqual(self.HOST_EVENT_NO_DEVICES_UPDATE["cluster"],
+                     host.physical_cluster)
+    self.assertEqual(
+        datetime.datetime.utcfromtimestamp(
+            self.HOST_EVENT_NO_DEVICES_UPDATE["time"]),
+        host.timestamp)
+    # This event should be ignored
+    old_host_event = host_event.HostEvent(**self.HOST_EVENT_NO_DEVICES)
+    self.assertLess(old_host_event.timestamp, new_host_event.timestamp)
+    device_manager.HandleDeviceSnapshotWithNDB(old_host_event)
+    host = device_manager.GetHost(self.HOST_EVENT_NO_DEVICES_UPDATE["hostname"])
+    self.assertIsNotNone(host)
+    self.assertEqual("tradefed", host.test_runner)
+    self.assertEqual(self.HOST_EVENT_NO_DEVICES_UPDATE["tf_version"],
+                     host.test_runner_version)
+    self.assertEqual(self.HOST_EVENT_NO_DEVICES_UPDATE["cluster"],
+                     host.physical_cluster)
+    self.assertEqual(
+        datetime.datetime.utcfromtimestamp(
+            self.HOST_EVENT_NO_DEVICES_UPDATE["time"]),
+        host.timestamp)
 
   def testTransformDeviceSerial(self):
     """Tests TransformDeviceSerial for regular device serials."""
@@ -862,37 +910,6 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
         cluster="invalid_cluster")
     self.assertEqual(0, len(list(run_targets)))
 
-  def testHandleDeviceSnapshot_olderTimestamp(self):
-    """Tests that HandleDeviceSnapshot() ignores events if they are older."""
-    new_host_event = host_event.HostEvent(**self.HOST_EVENT_NO_DEVICES_UPDATE)
-    device_manager.HandleDeviceSnapshotWithNDB(new_host_event)
-    host = device_manager.GetHost(self.HOST_EVENT_NO_DEVICES_UPDATE["hostname"])
-    self.assertIsNotNone(host)
-    self.assertEqual("tradefed", host.test_runner)
-    self.assertEqual(self.HOST_EVENT_NO_DEVICES_UPDATE["tf_version"],
-                     host.test_runner_version)
-    self.assertEqual(self.HOST_EVENT_NO_DEVICES_UPDATE["cluster"],
-                     host.physical_cluster)
-    self.assertEqual(
-        datetime.datetime.utcfromtimestamp(
-            self.HOST_EVENT_NO_DEVICES_UPDATE["time"]),
-        host.timestamp)
-    # This event should be ignored
-    old_host_event = host_event.HostEvent(**self.HOST_EVENT_NO_DEVICES)
-    self.assertTrue(old_host_event.timestamp < new_host_event.timestamp)
-    device_manager.HandleDeviceSnapshotWithNDB(old_host_event)
-    host = device_manager.GetHost(self.HOST_EVENT_NO_DEVICES_UPDATE["hostname"])
-    self.assertIsNotNone(host)
-    self.assertEqual("tradefed", host.test_runner)
-    self.assertEqual(self.HOST_EVENT_NO_DEVICES_UPDATE["tf_version"],
-                     host.test_runner_version)
-    self.assertEqual(self.HOST_EVENT_NO_DEVICES_UPDATE["cluster"],
-                     host.physical_cluster)
-    self.assertEqual(
-        datetime.datetime.utcfromtimestamp(
-            self.HOST_EVENT_NO_DEVICES_UPDATE["time"]),
-        host.timestamp)
-
   def testCalculateDeviceUtilization_invalidNumberOfDays(self):
     """Tests calculating utilization with invalid number of days."""
     with self.assertRaises(ValueError):
@@ -1021,63 +1038,42 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
         api_messages.DeviceTypeMessage.REMOTE,
         device_manager._GetDeviceType("remote-device-0"))
 
-  @mock.patch.object(device_manager, "_DoUpdateGoneDevicesInNDB")
-  def testUpdateGoneDevicesInNDB_alreadyGone(self, do_update):
-    """Tests that devices are updated."""
-    hostname = "somehost.mtv"
-    cluster = "somecluster"
-    serials = ["serial-001", "serial-002", "serial-003"]
-    host = datastore_entities.HostInfo(
-        id=hostname, hostname=hostname, physical_cluster=cluster)
-    host.put()
-    for s in serials:
-      device = datastore_entities.DeviceInfo(
-          id=s, parent=host.key,
-          device_serial=s,
-          hostname=hostname,
-          state=common.DeviceState.GONE)
-      device.put()
-    timestamp = datetime.datetime.utcnow()
-    device_manager._UpdateGoneDevicesInNDB(hostname, {}, timestamp)
-    self.assertFalse(do_update.called)
-
-  def testUpdateHost_newHost(self):
-    # Test _UpdateHost for a new host
+  def testUpdateHostWithDeviceSnapshotEvent_newHost(self):
+    # Test  _UpdateHostWithDeviceSnapshotEvent for a new host
     event = host_event.HostEvent(**self.HOST_EVENT)
-    device_manager._UpdateHostInNDB(event)
+    device_manager._UpdateHostWithDeviceSnapshotEvent(event)
     ndb_host = device_manager.GetHost(self.HOST_EVENT["hostname"])
     self.assertFalse(ndb_host.hidden)
     self.assertEqual(["test", "cluster1", "cluster2"],
                      ndb_host.clusters)
-    self._AssertHostSyncTask(self.HOST_EVENT["hostname"])
 
-  def testUpdateHost_existingHost(self):
-    # Test _UpdateHost for an existing host
+  def testUpdateHostWithDeviceSnapshotEvent_existingHost(self):
+    # Test _UpdateHostWithHostChangedEvent for an existing host
     event = host_event.HostEvent(**self.HOST_EVENT)
     datastore_entities.HostInfo(
         id=event.hostname,
         hostname=event.hostname,
         physical_cluster="some_other_cluster").put()
-    device_manager._UpdateHostInNDB(event)
+    device_manager._UpdateHostWithDeviceSnapshotEvent(event)
     ndb_host = device_manager.GetHost(self.HOST_EVENT["hostname"])
     self.assertFalse(ndb_host.hidden)
     self.assertEqual(event.cluster_id, ndb_host.physical_cluster)
 
-  def testUpdateHost_removedHost(self):
-    # Test _UpdateHost when the queried host is hidden (removed)
+  def testUpdateHostWithDeviceSnapshotEvent_removedHost(self):
+    # Test _UpdateHostWithHostChangedEvent when the host is hidden (removed)
     event = host_event.HostEvent(**self.HOST_EVENT)
     datastore_entities.HostInfo(
         id=event.hostname,
         hostname=event.hostname,
         physical_cluster="some_other_cluster",
         hidden=True).put()
-    device_manager._UpdateHostInNDB(event)
+    device_manager._UpdateHostWithDeviceSnapshotEvent(event)
     ndb_host = device_manager.GetHost(self.HOST_EVENT["hostname"])
     self.assertEqual(event.cluster_id, ndb_host.physical_cluster)
     self.assertFalse(ndb_host.hidden)
 
-  def testUpdateHost_extraInfo(self):
-    # Test _UpdateHost for changing extra_info (b/35346971)
+  def testUpdateHostWithDeviceSnapshotEvent_extraInfo(self):
+    # Test _UpdateHostWithHostChangedEvent for changing extra_info (b/35346971)
     hostname = "test-1.mtv.corp.example.com"
     data_1 = {
         "prodcertstatus": "LOAS1",
@@ -1106,15 +1102,15 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
         "data": data_2
     }
     event_1 = host_event.HostEvent(**host_event_1)
-    device_manager._UpdateHostInNDB(event_1)
+    device_manager._UpdateHostWithDeviceSnapshotEvent(event_1)
     ndb_host = device_manager.GetHost(hostname)
     self.assertEqual(data_1, ndb_host.extra_info)
     event_2 = host_event.HostEvent(**host_event_2)
-    device_manager._UpdateHostInNDB(event_2)
+    device_manager._UpdateHostWithDeviceSnapshotEvent(event_2)
     ndb_host = device_manager.GetHost(hostname)
     self.assertEqual(data_2, ndb_host.extra_info)
 
-  def testUpdatehost_oldStateGone(self):
+  def testUpdateHostWithDeviceSnapshotEvent_oldStateGone(self):
     # Test update host with RUNNING if the old state is GONE.
     hostname = "test-1.mtv.corp.example.com"
     host = datastore_entities.HostInfo(id=hostname)
@@ -1133,13 +1129,13 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
         "tf_start_time_seconds": 12345,
     }
     event_1 = host_event.HostEvent(**host_event_1)
-    device_manager._UpdateHostInNDB(event_1)
+    device_manager._UpdateHostWithDeviceSnapshotEvent(event_1)
     ndb_host = device_manager.GetHost(hostname)
     self.assertEqual(api_messages.HostState.RUNNING, ndb_host.host_state)
     host_history_list = device_manager.GetHostStateHistory(hostname)
     self.assertEqual(host_history_list[0].state, api_messages.HostState.RUNNING)
 
-  def testUpdateHost_newState(self):
+  def testUpdateHostWithHostChangedEvent_newState(self):
     # Test update host with a new state
     hostname = "test-1.mtv.corp.example.com"
     host_event_1 = {
@@ -1148,7 +1144,6 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
         "event_type": "HOST_STATE_CHANGED",
         "hostname": hostname,
         "state": "RUNNING",
-        "tf_start_time_seconds": 12345,
     }
     host_event_2 = {
         "time": 2,
@@ -1156,7 +1151,6 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
         "event_type": "HOST_STATE_CHANGED",
         "hostname": hostname,
         "state": "RUNNING",
-        "tf_start_time_seconds": 12345,
     }
     host_event_3 = {
         "time": 3,
@@ -1164,24 +1158,20 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
         "event_type": "HOST_STATE_CHANGED",
         "hostname": hostname,
         "state": "QUITTING",
-        "tf_start_time_seconds": 12345,
     }
 
     event_1 = host_event.HostEvent(**host_event_1)
-    device_manager._UpdateHostInNDB(event_1)
+    device_manager._UpdateHostWithHostChangedEvent(event_1)
     ndb_host = device_manager.GetHost(hostname)
     self.assertEqual(api_messages.HostState.RUNNING, ndb_host.host_state)
     event_2 = host_event.HostEvent(**host_event_2)
-    device_manager._UpdateHostInNDB(event_2)
+    device_manager._UpdateHostWithHostChangedEvent(event_2)
     ndb_host = device_manager.GetHost(hostname)
     self.assertEqual(api_messages.HostState.RUNNING, ndb_host.host_state)
     event_3 = host_event.HostEvent(**host_event_3)
-    device_manager._UpdateHostInNDB(event_3)
+    device_manager._UpdateHostWithHostChangedEvent(event_3)
     ndb_host = device_manager.GetHost(hostname)
     self.assertEqual(api_messages.HostState.QUITTING, ndb_host.host_state)
-    self.assertEqual(
-        datetime.datetime.utcfromtimestamp(
-            host_event_1["tf_start_time_seconds"]), event_1.tf_start_time)
     host_history_list = device_manager.GetHostStateHistory(hostname)
     self.assertEqual(2, len(host_history_list))
     self.assertEqual(host_history_list[0].hostname, hostname)

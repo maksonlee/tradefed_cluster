@@ -27,7 +27,7 @@ from protorpc import protojson
 from protorpc import remote
 
 from google.appengine.ext import deferred
-import endpoints
+from google3.third_party.apphosting.python.endpoints.v1_1 import endpoints
 
 from tradefed_cluster import api_common
 from tradefed_cluster import api_messages

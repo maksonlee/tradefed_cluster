@@ -97,28 +97,23 @@ def HandleDeviceSnapshotWithNDB(event):
   logging.debug(
       "Processing snapshot for host [%s] in cluster [%s] at [%s] to NDB.",
       event.hostname, event.cluster_id, event.timestamp)
-  _UpdateDevicesInNDB(event)
-  _UpdateHostInNDB(event)
-  logging.debug("Processed snapshot.")
-
-
-def _UpdateHostInNDB(event):
-  """Update the host entity in ndb with the data from the given host event.
-
-  Args:
-    event: Host event, host_event.HostEvent
-  """
-  logging.debug("Updating host %s in ndb.", event.hostname)
+  host = GetHost(event.hostname)
+  if host and host.timestamp and event.timestamp <= host.timestamp:
+    logging.info(
+        "Ignoring old event (%s) for host [%s] (%s).",
+        event.timestamp, event.hostname, host.timestamp)
+    return
   if event.type == HOST_STATE_CHANGED_EVENT_TYPE:
     _UpdateHostWithHostChangedEvent(event)
   else:
+    _UpdateDevicesInNDB(event)
     host = _UpdateHostWithDeviceSnapshotEvent(event)
     _CountDeviceForHost(event.hostname)
     metric.SetHostTestRunnerVersion(
         host.test_runner, host.test_runner_version,
         host.physical_cluster, host.hostname)
   StartHostSync(event.hostname)
-  logging.debug("Updated host %s in ndb.", event.hostname)
+  logging.debug("Processed snapshot.")
 
 
 @ndb.transactional
@@ -130,22 +125,12 @@ def _UpdateHostWithHostChangedEvent(event):
   """
   host = GetHost(event.hostname)
   if not host:
-    host = datastore_entities.HostInfo(id=event.hostname)
-  if host.timestamp and event.timestamp <= host.timestamp:
-    logging.info(
-        "Ignoring old event (%s) for host [%s] (%s).",
-        event.timestamp, event.hostname, host.timestamp)
-    return
-  host.hostname = event.hostname
-  host.lab_name = event.lab_name
-  # TODO: deprecate physical_cluster, use host_group.
-  host.physical_cluster = event.cluster_id
-  host.host_group = event.host_group
-  logging.debug(
-      "Update %s from %s to %s.",
-      host.hostname, host.host_state, event.host_state)
-  if event.tf_start_time:
-    host.tf_start_time = event.tf_start_time
+    host = datastore_entities.HostInfo(
+        id=event.hostname,
+        hostname=event.hostname,
+        physical_cluster=event.cluster_id,
+        host_group=event.host_group,
+        lab_name=event.lab_name)
   host_state_history_entity = _UpdateHostState(
       host, event.host_state, event.timestamp)
   entities_to_update = [host]
@@ -169,11 +154,6 @@ def _UpdateHostWithDeviceSnapshotEvent(event):
   host = GetHost(event.hostname)
   if not host:
     host = datastore_entities.HostInfo(id=event.hostname)
-  if host.timestamp and event.timestamp <= host.timestamp:
-    logging.info(
-        "Ignoring old event (%s) for host [%s] (%s).",
-        event.timestamp, event.hostname, host.timestamp)
-    return host
   host.hostname = event.hostname
   host.lab_name = event.lab_name
   # TODO: deprecate physical_cluster, use host_group.

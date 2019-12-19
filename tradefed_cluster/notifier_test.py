@@ -1,0 +1,189 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Unit tests for notifier."""
+
+import base64
+import datetime
+import json
+import unittest
+
+import mock
+from protorpc import protojson
+import webtest
+
+from tradefed_cluster import api_messages
+from tradefed_cluster import common
+from tradefed_cluster import datastore_entities
+from tradefed_cluster import notifier
+from tradefed_cluster import request_manager
+from tradefed_cluster import testbed_dependent_test
+
+
+TIMESTAMP = datetime.datetime(2016, 12, 1, 0, 0, 0)
+REQUEST_ID = '1234'
+COMMAND_ID = '100'
+ATTEMPT_ID = '1'
+
+
+class NotifierTest(testbed_dependent_test.TestbedDependentTest):
+
+  def setUp(self):
+    super(NotifierTest, self).setUp()
+    self.patcher = mock.patch('__main__.notifier._PubsubClient')
+    self.mock_pubsub_client = self.patcher.start()
+
+    self._request_id = int(REQUEST_ID)
+    self._command_id = int(COMMAND_ID)
+    self._attempt_id = int(ATTEMPT_ID)
+    self.result_link = ('http://sponge.corp.example.com/invocation?'
+                        'tab=Test+Cases&show=FAILED&id=12345678-abcd')
+    self.testapp = webtest.TestApp(notifier.APP)
+
+  def tearDown(self):
+    self.patcher.stop()
+    super(NotifierTest, self).tearDown()
+
+  @mock.patch.object(common, 'Now')
+  def testObjectStateChangeEventHandler_idOnly(self, now):
+    now.return_value = TIMESTAMP
+
+    request = self._CreateTestRequest(state=common.RequestState.COMPLETED)
+    expected_message = api_messages.RequestEventMessage(
+        type=common.ObjectEventType.REQUEST_STATE_CHANGED,
+        request_id=REQUEST_ID,
+        new_state=common.RequestState.COMPLETED,
+        request=datastore_entities.ToMessage(request),
+        summary='',
+        total_test_count=0,
+        failed_test_count=0,
+        failed_test_run_count=0,
+        result_links=[],
+        total_run_time_sec=0,
+        event_time=TIMESTAMP)
+
+    self.testapp.post(
+        notifier.OBJECT_EVENT_QUEUE_HANDLER_PATH,
+        json.dumps({'id': REQUEST_ID}))
+    self._AssertMessagePublished(expected_message)
+
+  @mock.patch.object(common, 'Now')
+  def testObjectStateChangeEventHandler_requestEvent(self, now):
+    now.return_value = TIMESTAMP
+
+    request = self._CreateTestRequest(state=common.RequestState.COMPLETED)
+    event_message = api_messages.RequestEventMessage(
+        type=common.ObjectEventType.REQUEST_STATE_CHANGED,
+        request_id=REQUEST_ID,
+        new_state=common.RequestState.COMPLETED,
+        request=datastore_entities.ToMessage(request),
+        summary='summary',
+        total_test_count=0,
+        failed_test_count=0,
+        failed_test_run_count=0,
+        result_links=[self.result_link],
+        total_run_time_sec=3,
+        event_time=TIMESTAMP)
+
+    self.testapp.post(
+        notifier.OBJECT_EVENT_QUEUE_HANDLER_PATH,
+        protojson.encode_message(event_message))
+    self._AssertMessagePublished(event_message)
+
+  @mock.patch.object(common, 'Now')
+  def testObjectStateChangeEventHandler_attemptEvent(self, now):
+    now.return_value = TIMESTAMP
+
+    request = self._CreateTestRequest(state=common.RequestState.COMPLETED)
+    command = self._CreateTestCommand(request,
+                                      state=common.CommandState.COMPLETED)
+    attempt = self._CreateTestCommandAttempt(
+        command,
+        state=common.CommandState.COMPLETED,
+        total_test_count=5,
+        failed_test_count=1,
+        failed_test_run_count=1,
+        start_time=datetime.datetime(2016, 12, 1, 0, 0, 0),
+        end_time=datetime.datetime(2016, 12, 1, 0, 0, 1))
+
+    event_message = api_messages.CommandAttemptEventMessage(
+        type=common.ObjectEventType.COMMAND_ATTEMPT_STATE_CHANGED,
+        attempt=datastore_entities.CommandAttemptToMessage(attempt),
+        old_state=common.CommandState.RUNNING,
+        new_state=common.CommandState.COMPLETED,
+        event_time=TIMESTAMP)
+
+    self.testapp.post(
+        notifier.OBJECT_EVENT_QUEUE_HANDLER_PATH,
+        protojson.encode_message(event_message))
+    self._AssertMessagePublished(event_message)
+
+  def _CreateTestRequest(self, state=common.RequestState.UNKNOWN):
+    """Creates a Request for testing purposes."""
+    request = request_manager.CreateRequest(
+        user='user',
+        command_line='command_line --request-id %d' % self._request_id,
+        request_id=str(self._request_id),
+        cluster='cluster',
+        run_target='run_target')
+    request.state = state
+    request.put()
+    self._request_id += 1
+    return request
+
+  def _CreateTestCommand(self, request, state, run_count=1):
+    """Creates a Command associated with a REQUEST."""
+    command = datastore_entities.Command(
+        parent=request.key,
+        id=str(self._command_id),
+        command_line='%s --command-id %d' % (request.command_line,
+                                             self._command_id),
+        cluster='cluster',
+        run_target='run_target',
+        run_count=run_count,
+        state=state)
+    command.put()
+    self._command_id += 1
+    return command
+
+  def _CreateTestCommandAttempt(self, command, state, total_test_count=1,
+                                failed_test_count=1, failed_test_run_count=1,
+                                start_time=None, end_time=None):
+    """Creates a CommandAttempt associated with a Command."""
+    command_attempt = datastore_entities.CommandAttempt(
+        parent=command.key,
+        id=str(self._attempt_id),
+        command_id=command.key.id(),
+        task_id='task_id',
+        attempt_id='attempt_id',
+        state=state,
+        summary='summary: %s\n' % self.result_link,
+        error='error' if state == common.CommandState.ERROR else None,
+        total_test_count=total_test_count,
+        failed_test_count=failed_test_count,
+        failed_test_run_count=failed_test_run_count,
+        start_time=start_time,
+        end_time=end_time)
+    command_attempt.put()
+    self._attempt_id += 1
+    return command_attempt
+
+  def _AssertMessagePublished(self, message):
+    data = base64.urlsafe_b64encode(protojson.encode_message(message))
+    messages = [{'data': data}]
+    self.mock_pubsub_client.PublishMessages.assert_called_once_with(
+        notifier.OBJECT_EVENT_PUBSUB_TOPIC, messages)
+
+if __name__ == '__main__':
+  unittest.main()

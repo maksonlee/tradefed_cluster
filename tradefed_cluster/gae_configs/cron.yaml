@@ -1,0 +1,40 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+cron:
+- description: fetch task queue statistics
+  url: /cron/monitor/task_queue
+  schedule: every 10 minutes
+  target: tfc
+
+- description: fetch device state statistics from NDB
+  url: /cron/monitor/devices/ndb
+  schedule: every 10 minutes
+  target: tfc
+
+- description: update device report
+  url: /cron/report/devices
+  schedule: every day 06:00
+  timezone: US/Pacific
+  target: tfc
+
+- description: cleanup device history
+  url: /cron/cleanup/device_history
+  schedule: every 3 hours
+  target: tfc
+
+- description: sync cluster and host configs from GCS to NDB
+  url: /cron/syncer/sync_gcs_ndb
+  schedule: every 10 minutes
+  target: tfc

@@ -1,0 +1,271 @@
+<!--
+ Copyright 2019 Google LLC
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+{% macro percent(rate) -%}
+  {% if rate > 0.1 %}
+    <!-- Colorblind friendly red-ish -->
+    <td bgcolor="#D55E00">
+  {% elif rate > 0 %}
+    <!-- Colorblind friendly yellow-ish -->
+    <td bgcolor="#F0E442">
+  {% else %}
+    <td>
+  {% endif %}
+  [[ (rate * 100) | round(2) ]]%</td>
+{%- endmacro %}
+
+{% macro host_table(hosts, description) -%}
+  {% if hosts|length > 0 %}
+    <table style="min-width: 300px; border: 1px solid black; font-family: Roboto, Helvetica, Arial, sans-serif; color: #222; font-size: 14px; font-weight: 300; line-height: 24px;"
+           border="1" cellspacing="0" cellpadding="5">
+      <thead>
+        <th colspan="4">[[ description ]]</th>
+      </thead>
+      <thead>
+        <th>Hostname</th>
+        <th width="130px">Last check-in</th>
+      </thead>
+      <tbody style="text-align: center;">
+        {% for host in hosts %}
+        <tr>
+          <td>[[ host.hostname ]]</td>
+          <td>[[ host.timestamp|datetime ]]</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{%- endmacro%}
+
+<html>
+<body style="margin: 0; padding: 0" bgcolor="#FFFFFF">
+  <div style="margin: 0; padding: 0" bgcolor="#FFFFFF">
+    <table width="100%" height="" style="min-width: 600px" border="0" cellspacing="0" cellpadding="0">
+      <tbody>
+        <tr></tr>
+        <tr align="center">
+          <td>
+            <!-- Top section starts here -->
+            <table bgcolor="#f5f5f5" width="100%" border="0" cellspacing="0" cellpadding="0" style="min-width: 332px; text-align: center; margin: 0;">
+              <tbody>
+                <tr>
+                  <td style="font-family: Roboto, Helvetica, Arial, sans-serif; font-size: 32px; color: #111; font-weight: 200">
+                    <br><span style="opacity: 0.7">TFC Device Report ([[ cluster_prefix ]])</span>
+                  </td>
+                </tr>
+                <tr height="18px"> </tr>
+              </tbody>
+            </table>
+            <!-- Top section ends here -->
+            <!-- Body section starts here -->
+            <table cellspacing="0" cellpadding="0" style="min-width: 600px; max-width:800px;">
+              <tbody style="font-family: Roboto, Helvetica, Arial, sans-serif; font-size: 16px; color: #111; font-weight: 200">
+                <tr height="24px"></tr>
+                <tr>
+                  <td><b>Report time:</b> [[ timestamp|datetime ]]</td>
+                </tr>
+                <tr height="24px"></tr>
+                <tr>
+                  <td style="font-weight:bold">Overall Status</td>
+                </tr>
+                <tr height="4px"></tr>
+                <tr>
+                  <!-- Overall offline devices table -->
+                  <td>
+                    <table style="min-width: 300px; border: 1px solid black; font-family: Roboto, Helvetica, Arial, sans-serif; color: #222; font-size: 14px; font-weight: 300; line-height: 24px;" border="1" cellspacing="0" cellpadding="5">
+                      <thead>
+                        <th>Total devices</th>
+                        <th colspan="[[ product_report.state_count_map|length ]]">Offline</th>
+                        <th>% Offline</th>
+                      </thead>
+                      <tbody style="text-align: center;">
+                        <tr>
+                          <td>[[ product_report.total ]]</td>
+                          <td colspan="[[ product_report.state_count_map|length ]]">[[ product_report.state_total ]]</td>
+                          [[ percent(product_report.rate) ]]
+                        </tr>
+                        <tr>
+                          <td></td>
+                          {% for state, count in product_report.state_count_map|dictsort %}
+                            <td>[[ count ]] [[ state ]]</td>
+                          {% endfor %}
+                          <td></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <!-- hosts -->
+                    <tr height="24px"></tr>
+                    <table style="min-width: 300px; border: 1px solid black; font-family: Roboto, Helvetica, Arial, sans-serif; color: #222; font-size: 14px; font-weight: 300; line-height: 24px;" border="1" cellspacing="0" cellpadding="5">
+                      <thead>
+                        <th>Total Hosts</th>
+                        <th>Offline</th>
+                      </thead>
+                      <tbody style="text-align: center;">
+                        <tr>
+                          <td>[[ host_report.hosts|length ]]</td>
+                          <td>[[ host_report.hosts_checkin|length ]]</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <!-- end host -->
+                  </td>
+                  <!-- End of overall offline devices table -->
+                </tr>
+                <tr height="24px"></tr>
+                <tr>
+                  <td style="font-weight:bold">Offline devices by product</td>
+                </tr>
+                <tr height="4px"></tr>
+                <tr>
+                  <!-- Offline devices by product -->
+                  <td>
+                    <table style="min-width: 300px; border: 1px solid black; font-family: Roboto, Helvetica, Arial, sans-serif; color: #222; font-size: 14px; font-weight: 300; line-height: 24px;" border="1" cellspacing="0" cellpadding="5">
+                      <thead>
+                        <th>Product</th>
+                        <th>Total</th>
+                        <th>Offline</th>
+                        <th>% Offline</th>
+                      </thead>
+                      <tbody style="text-align: center;">
+                        {% for product, report in product_report.count_map|dictsort %}
+                        <tr>
+                          <td>[[ product ]]</td>
+                          <td>[[ report.total ]]</td>
+                          <td>[[ report.count ]]</td>
+                          [[ percent(report.rate) ]]
+                        </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </td>
+                  <!-- End offline devices by product -->
+                </tr>
+                <tr height="24px"></tr>
+                <tr>
+                  <td style="font-weight:bold">Offline devices by cluster</td>
+                </tr>
+                <tr height="4px"></tr>
+                <tr>
+                  <!-- Offline devices by cluster -->
+                  <td>
+                    <table style="min-width: 300px; border: 1px solid black; font-family: Roboto, Helvetica, Arial, sans-serif; color: #222; font-size: 14px; font-weight: 300; line-height: 24px;" border="1" cellspacing="0" cellpadding="5">
+                      <thead>
+                        <th>Cluster</th>
+                        <th>Total</th>
+                        <th>Offline</th>
+                        <th>% Offline</th>
+                      </thead>
+                      <tbody style="text-align: center;">
+                        {% for cluster, report in cluster_report.count_map|dictsort %}
+                        <tr>
+                          <td>[[ cluster ]]</td>
+                          <td>[[ report.total ]]</td>
+                          <td>[[ report.count ]]</td>
+                          [[ percent(report.rate) ]]
+                        </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </td>
+                  <!-- End offline devices by cluster -->
+                </tr><tr height="24px"></tr>
+                <tr>
+                  <td style="font-weight:bold">Hosts requiring attention</td>
+                </tr>
+                <tr height="4px"></tr>
+                <tr>
+                  <!-- Hosts requiring attention -->
+                  <td>
+                    <br>[[ host_table(host_report.hosts_checkin, "Offline hosts") ]]
+                  </td>
+                  <!-- End Hosts requiring attention -->
+                </tr>
+                <tr height="24px"></tr>
+                <tr cellspacing="0" cellpadding="0" style="max-width: 600px">
+                  <!-- Notes box starts -->
+                  <td>
+                    <table bgcolor="#FAFAFA" width="100%" border="0" cellspacing="0" cellpadding="0" style="min-width: 332px; max-width: 600px; border: 1px solid #f0f0f0; border-bottom: 1px solid #c0c0c0; border-top: 0; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; margin-top: 24px; margin-bottom: 24px; padding: 24px;">
+                      <tbody>
+                        <tr valign="middle">
+                          <td style="font-family: Roboto, Helvetica, Arial, sans-serif; color: #222; font-size: 16px; font-weight: 400; line-height: 24px; padding-bottom: 8px;">
+                            Historical and current data
+                          </td>
+                        </tr>
+                        <tr height="4px"></tr>
+                        <tr>
+                          <td style="font-family: Roboto, Helvetica, Arial, sans-serif; color: #222; font-size: 14px; font-weight: 300; line-height: 24px;">
+                            Report data using the most up to date date can be viewed and customized in the TFC Dashboard.
+                            Historical data and old device snapshots are also available.
+                          </td>
+                        </tr>
+                        <tr height="24px"></tr>
+                        <tr>
+                          <td>
+                            <a href="[[ REPORT_URL ]]" target="_blank" style="display: inline-block; box-sizing: border-box; height: 32px; line-height: 32px; vertical-align: middle; background-color: #3D5afe; padding: 0px 8px 0px 8px; margin-right: 16px; margin-bottom: 8px; border-radius: 3px; text-decoration: none; text-transform: uppercase; color: #fff; font-size: 13px; font-family: Roboto, Helvetica, Arial, sans-serif; font-weight: 500; min-width: 88px; text-align: center;">
+                              REPORTS
+                            </a>
+                          </td>
+                        </tr>
+                        <tr height="24px"></tr>
+                        <tr>
+                          <td style="font-family: Roboto, Helvetica, Arial, sans-serif; color: #222; font-size: 14px; font-weight: 300; line-height: 24px;">
+                            Current device information may also be monitored through the TFC Dashboard.
+                            Most columns can be sorted and filtered (regular expressions are supported).
+                          </td>
+                        </tr>
+                        <tr height="24px"></tr>
+                        <tr>
+                          <td>
+                            <a href="[[ DEVICES_URL ]]" target="_blank" style="display: inline-block; box-sizing: border-box; height: 32px; line-height: 32px; vertical-align: middle; background-color: #3D5afe; padding: 0px 8px 0px 8px; margin-right: 16px; margin-bottom: 8px; border-radius: 3px; text-decoration: none; text-transform: uppercase; color: #fff; font-size: 13px; font-family: Roboto, Helvetica, Arial, sans-serif; font-weight: 500; min-width: 88px; text-align: center;">
+                              DEVICES
+                            </a>
+                          </td>
+                        </tr>
+                        <tr height="24px"></tr>
+                        <tr>
+                          <td style="font-family: Roboto, Helvetica, Arial, sans-serif; color: #222; font-size: 14px; font-weight: 300; line-height: 24px;">
+                            Current host requiring attention may also be monitored through the TFC Dashboard.
+                            Most columns can be sorted and filtered (regular expressions are supported).
+                          </td>
+                        </tr>
+                        <tr height="24px"></tr>
+                        <tr>
+                          <td>
+                            <a href="[[ HOSTS_URL ]]" target="_blank" style="display: inline-block; box-sizing: border-box; height: 32px; line-height: 32px; vertical-align: middle; background-color: #3D5afe; padding: 0px 8px 0px 8px; margin-right: 16px; margin-bottom: 8px; border-radius: 3px; text-decoration: none; text-transform: uppercase; color: #fff; font-size: 13px; font-family: Roboto, Helvetica, Arial, sans-serif; font-weight: 500; min-width: 88px; text-align: center;">
+                              HOSTS
+                            </a>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </td>
+                  <!-- Notes box ends -->
+                </tr>
+              </tbody>
+            </table>
+          </td>
+        </tr>
+        <tr height="8px"></tr>
+        <tr>
+          <td style="max-width: 600px; font-family: Roboto, Helvetica, Arial, sans-serif; font-size: 12px; color: #bcbcbc; line-height: 1.5; text-align: center; border-top: 1px solid #bdbdbd; padding-top: 32px;">
+            If you encounter any issues with the this email, <a href="[[ BUGANIZER_URL ]]">please file a bug to us.</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

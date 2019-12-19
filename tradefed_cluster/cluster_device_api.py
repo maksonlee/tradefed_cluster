@@ -1,0 +1,386 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""API module to serve cluster device service calls."""
+
+import datetime
+import logging
+import time
+
+from protorpc import message_types
+from protorpc import messages
+from protorpc import remote
+
+from google.appengine.ext import ndb
+import endpoints
+
+from tradefed_cluster import api_common
+from tradefed_cluster import api_messages
+from tradefed_cluster import common
+from tradefed_cluster import datastore_entities
+from tradefed_cluster import datastore_util
+from tradefed_cluster import device_manager
+
+
+_BATCH_SIZE = 200
+_DEFAULT_LIST_NOTES_COUNT = 10
+_DEFAULT_LIST_DEVICE_COUNT = 100
+
+
+@api_common.tradefed_cluster_api.api_class(
+    resource_name="devices", path="devices")
+class ClusterDeviceApi(remote.Service):
+  """A class for cluster device API service."""
+
+  DEVICE_LIST_RESOURCE = endpoints.ResourceContainer(
+      message_types.VoidMessage,
+      lab_name=messages.StringField(1),
+      hostname=messages.StringField(2),
+      cluster_id=messages.StringField(3),
+      device_types=messages.EnumField(
+          api_messages.DeviceTypeMessage, 4, repeated=True),
+      include_hidden=messages.BooleanField(5, default=False),
+      include_offline_devices=messages.BooleanField(6, default=True),
+      cursor=messages.StringField(7),
+      count=messages.IntegerField(8, variant=messages.Variant.INT32,
+                                  default=_DEFAULT_LIST_DEVICE_COUNT),
+      product=messages.StringField(9),
+      serial=messages.StringField(10),
+  )
+
+  @endpoints.method(
+      DEVICE_LIST_RESOURCE,
+      api_messages.DeviceInfoCollection,
+      path="/devices",
+      http_method="GET",
+      name="list"
+  )
+  def ListDevices(self, request):
+    """Fetches a list of devices from NDB.
+
+    Args:
+      request: an API request.
+    Returns:
+      a DeviceInfoCollection object.
+    """
+    logging.info("ClusterDeviceApi.NDBListDevices request: %s", request)
+    query = datastore_entities.DeviceInfo.query(
+        default_options=ndb.QueryOptions(
+            # The default batch size is 20. Change it to a larger number.
+            batch_size=_BATCH_SIZE,
+            # Use EVENTUAL_CONSISTENCY perhaps-quicker results.
+            # https://cloud.google.com/appengine/docs/standard/python/ndb/queryclass
+            read_policy=ndb.EVENTUAL_CONSISTENCY
+        )).order(datastore_entities.DeviceInfo.key)
+    if request.lab_name:
+      query = query.filter(
+          datastore_entities.DeviceInfo.lab_name == request.lab_name)
+    if request.cluster_id:
+      query = query.filter(
+          datastore_entities.DeviceInfo.clusters == request.cluster_id)
+    if request.hostname:
+      query = query.filter(
+          datastore_entities.DeviceInfo.hostname == request.hostname)
+
+    # We only consider device hidden here, since there is no simple way to do
+    # join like operation in datastore. We tried fetching host and use
+    # in(hostnames), but it was not scalable at all.
+    if not request.include_hidden:
+      query = query.filter(
+          datastore_entities.DeviceInfo.hidden == False)  
+    if not request.include_offline_devices:
+      query = query.filter(
+          datastore_entities.DeviceInfo.state.IN(common.DEVICE_ONLINE_STATES))
+
+    if request.product:
+      query = query.filter(
+          datastore_entities.DeviceInfo.product == request.product)
+
+    if request.device_types:
+      query = query.filter(
+          datastore_entities.DeviceInfo.device_type.IN(request.device_types))
+
+    start_time = time.time()
+    devices, prev_cursor, next_cursor = datastore_util.FetchPage(
+        query, request.count, request.cursor)
+
+    logging.debug(
+        "Fetched %d devices in %r seconds.",
+        len(devices), time.time() - start_time)
+    start_time = time.time()
+    device_infos = [datastore_entities.ToMessage(d) for d in devices]
+    logging.debug(
+        "Tranformed devices to messages in %r seconds.",
+        time.time() - start_time)
+    return api_messages.DeviceInfoCollection(
+        device_infos=device_infos,
+        next_cursor=next_cursor,
+        prev_cursor=prev_cursor,
+        more=bool(next_cursor))
+
+  DEVICE_GET_RESOURCE = endpoints.ResourceContainer(
+      message_types.VoidMessage,
+      device_serial=messages.StringField(1, required=True),
+      include_notes=messages.BooleanField(2, default=False),
+      include_history=messages.BooleanField(3, default=False),
+      include_utilization=messages.BooleanField(4, default=False),
+      hostname=messages.StringField(5),
+  )
+
+  @endpoints.method(
+      DEVICE_GET_RESOURCE,
+      api_messages.DeviceInfo,
+      path="{device_serial}",
+      http_method="GET",
+      name="get"
+  )
+  def GetDevice(self, request):
+    """Fetches the information and notes of a given device.
+
+    Args:
+      request: an API request.
+    Returns:
+      a DeviceInfo object.
+    Raises:
+      endpoints.NotFoundException: If the given device does not exist.
+    """
+    device_serial = request.device_serial
+    device = device_manager.GetDevice(
+        hostname=request.hostname,
+        device_serial=device_serial)
+    if not device:
+      raise endpoints.NotFoundException(
+          "Device {0} does not exist.".format(device_serial))
+
+    device_info = datastore_entities.ToMessage(device)
+
+    # TODO: deprecate "include_notes".
+    if request.include_notes:
+      device_notes = datastore_entities.DeviceNote.query()
+      device_notes = device_notes.filter(
+          datastore_entities.DeviceNote.device_serial == device_serial)
+      device_info.notes = self._ExtractDeviceNotes(device_notes)
+    if request.include_history:
+      histories = device_manager.GetDeviceHistory(
+          device.hostname, device_serial)
+      device_info.history = [datastore_entities.ToMessage(h)
+                             for h in histories]
+    if request.include_utilization:
+      utilization = device_manager.CalculateDeviceUtilization(
+          device_serial)
+      device_info.utilization = utilization
+    return device_info
+
+  def _ExtractDeviceNotes(self, device_notes):
+    """Extract and convert notes from DeviceNote datastore entity."""
+    notes = [datastore_entities.ToMessage(n.note)
+             for n in device_notes.iter()]
+    return sorted(notes, key=lambda x: x.timestamp, reverse=True)
+
+  # TODO: deprecate "NewNote" endpoint.
+  NEW_NOTE_RESOURCE = endpoints.ResourceContainer(
+      api_messages.Note,
+      device_serial=messages.StringField(2, required=True),
+  )
+
+  @endpoints.method(
+      NEW_NOTE_RESOURCE,
+      api_messages.Note,
+      path="{device_serial}/note",
+      http_method="POST",
+      name="newNote")
+  def NewNote(self, request):
+    """Submits a note for this device.
+
+    Args:
+      request: an API request.
+    Returns:
+      an api_messages.Note object.
+    """
+    device_serial = request.device_serial
+    timestamp = request.timestamp
+    # Datastore only accepts UTC times. Doing a conversion if necessary.
+    if timestamp.utcoffset() is not None:
+      timestamp = timestamp.replace(tzinfo=None) - timestamp.utcoffset()
+    note = datastore_entities.Note(user=request.user,
+                                   timestamp=timestamp,
+                                   message=request.message,
+                                   offline_reason=request.offline_reason,
+                                   recovery_action=request.recovery_action)
+
+    device_note = datastore_entities.DeviceNote(device_serial=device_serial)
+    device_note.note = note
+    device_note.put()
+    return datastore_entities.ToMessage(note)
+
+  NOTE_ADD_OR_UPDATE_RESOURCE = endpoints.ResourceContainer(
+      device_serial=messages.StringField(1, required=True),
+      id=messages.IntegerField(2),
+      user=messages.StringField(3, required=True),
+      message=messages.StringField(4),
+      offline_reason=messages.StringField(5),
+      recovery_action=messages.StringField(6),
+      offline_reason_id=messages.IntegerField(7),
+      recovery_action_id=messages.IntegerField(8),
+      lab_name=messages.StringField(9),
+  )
+
+  @endpoints.method(
+      NOTE_ADD_OR_UPDATE_RESOURCE,
+      api_messages.DeviceNote,
+      path="{device_serial}/notes",
+      http_method="POST",
+      name="addOrUpdateNote")
+  def AddOrUpdateNote(self, request):
+    """Add or update a device note.
+
+    Args:
+      request: an API request.
+
+    Returns:
+      an api_messages.DeviceNote.
+    """
+    time_now = datetime.datetime.utcnow()
+
+    device_note_entity = datastore_util.GetOrCreateEntity(
+        datastore_entities.DeviceNote,
+        entity_id=request.id,
+        device_serial=request.device_serial,
+        note=datastore_entities.Note())
+    device_note_entity.note.populate(
+        user=request.user, message=request.message, timestamp=time_now)
+    entities_to_update = [device_note_entity]
+
+    if request.offline_reason_id or request.offline_reason:
+      offline_reason_entity = datastore_util.GetOrCreateEntity(
+          datastore_entities.PredefinedMessage,
+          entity_id=request.offline_reason_id,
+          type=common.PredefinedMessageType.DEVICE_OFFLINE_REASON,
+          content=request.offline_reason,
+          lab_name=request.lab_name,
+          create_timestamp=time_now)
+      offline_reason_entity.used_count += 1
+      device_note_entity.note.offline_reason = offline_reason_entity.content
+      entities_to_update.append(offline_reason_entity)
+
+    if request.recovery_action_id or request.recovery_action:
+      recovery_action_entity = datastore_util.GetOrCreateEntity(
+          datastore_entities.PredefinedMessage,
+          entity_id=request.recovery_action_id,
+          type=common.PredefinedMessageType.DEVICE_RECOVERY_ACTION,
+          content=request.recovery_action,
+          lab_name=request.lab_name,
+          create_timestamp=time_now)
+      recovery_action_entity.used_count += 1
+      device_note_entity.note.recovery_action = recovery_action_entity.content
+      entities_to_update.append(recovery_action_entity)
+
+    ndb.put_multi(entities_to_update)
+    device_note_msg = datastore_entities.ToMessage(device_note_entity)
+
+    return device_note_msg
+
+  NOTES_LIST_RESOURCE = endpoints.ResourceContainer(
+      device_serial=messages.StringField(1, required=True),
+      count=messages.IntegerField(2, default=_DEFAULT_LIST_NOTES_COUNT),
+      cursor=messages.StringField(3),
+  )
+
+  @endpoints.method(
+      NOTES_LIST_RESOURCE,
+      api_messages.DeviceNoteCollection,
+      path="{device_serial}/notes",
+      http_method="GET",
+      name="listNotes")
+  def ListNotes(self, request):
+    """List notes of a device.
+
+    Args:
+      request: an API request.
+
+    Returns:
+      an api_messages.DeviceNoteCollection object.
+    """
+    query = (
+        datastore_entities.DeviceNote.query().filter(
+            datastore_entities.DeviceNote.device_serial == request.device_serial
+        ).order(-datastore_entities.DeviceNote.note.timestamp))
+
+    note_entities, prev_cursor, next_cursor = datastore_util.FetchPage(
+        query, request.count, request.cursor)
+
+    note_msgs = [
+        datastore_entities.ToMessage(entity) for entity in note_entities
+    ]
+    return api_messages.DeviceNoteCollection(
+        device_notes=note_msgs,
+        more=bool(next_cursor),
+        next_cursor=next_cursor,
+        prev_cursor=prev_cursor)
+
+  DEVICE_SERIAL_RESOURCE = endpoints.ResourceContainer(
+      device_serial=messages.StringField(1, required=True),
+      hostname=messages.StringField(2),
+  )
+
+  @endpoints.method(
+      DEVICE_SERIAL_RESOURCE,
+      api_messages.DeviceInfo,
+      path="{device_serial}/remove",
+      http_method="POST",
+      name="remove"
+      )
+  def Remove(self, request):
+    """Remove this device .
+
+    Args:
+      request: an API request.
+    Returns:
+      an updated DeviceInfo
+    Raises:
+      endpoints.NotFoundException: If the given device does not exist.
+    """
+    return self._SetHidden(request.hostname, request.device_serial, True)
+
+  @endpoints.method(
+      DEVICE_SERIAL_RESOURCE,
+      api_messages.DeviceInfo,
+      path="{device_serial}/restore",
+      http_method="POST",
+      name="restore"
+      )
+  def Restore(self, request):
+    """Restore this device .
+
+    Args:
+      request: an API request.
+    Returns:
+      an updated DeviceInfo
+    Raises:
+      endpoints.NotFoundException: If the given device does not exist.
+    """
+    return self._SetHidden(request.hostname, request.device_serial, False)
+
+  def _SetHidden(self, hostname, device_serial, hidden):
+    """Helper to set the hidden flag of a device."""
+    device = device_manager.GetDevice(
+        hostname=hostname,
+        device_serial=device_serial)
+    if not device:
+      raise endpoints.NotFoundException("Device {0} {1} does not exist."
+                                        .format(hostname, device_serial))
+    device.hidden = hidden
+    device.put()
+    device_info = datastore_entities.ToMessage(device)
+    return device_info

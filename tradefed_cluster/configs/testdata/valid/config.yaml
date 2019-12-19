@@ -1,0 +1,56 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# a config file used in unittest.
+lab_name: lab1
+host_login_name: lab_user1
+owners:
+  - lab_user1
+  - user1
+master_url: tradefed_cluster
+docker_image: lab_docker_image
+enable_stackdriver: True
+enable_autoupdate: True
+service_account_json_key_path: path/to/key.json
+
+cluster_configs:
+- cluster_name: cluster1
+  host_login_name: user1
+  owners:
+  - user1
+  tf_global_config_path: path/to/config.xml
+  master_url: tradefed_cluster
+  docker_image: gcr.io/dockerized-tradefed/tradefed:golden
+  graceful_shutdown: True
+  enable_stackdriver: True
+  enable_autoupdate: True
+  tmpfs_configs:
+  - path: /atmpfs
+    size: 1000
+  - path: /btmpfs
+  host_configs:
+  - hostname: host1
+    tmpfs_configs:
+    - path: /atmpfs
+      size: 2000
+      mode: '750'
+  - hostname: host2
+  - hostname: host3
+    tf_global_config_path: path/to/new/config.xml
+
+- cluster_name: cluster2
+  tf_global_config_path: path/to/config.xml
+  host_configs:
+  - hostname: host4
+  - hostname: host5

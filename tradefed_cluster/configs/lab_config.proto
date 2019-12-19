@@ -1,0 +1,92 @@
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Schema for config.
+syntax = "proto2";
+
+package tradefed_cluster.configs;
+
+
+// Config for a lab.
+message LabConfig {
+  // Lab's name
+  optional string lab_name = 1;
+  // Default username to use when login hosts in the lab.
+  optional string host_login_name = 2;
+  // Owners of the lab.
+  repeated string owners = 3;
+  // Master server the Tradefed connects to.
+  optional string master_url = 4;
+  // Docker image to use for the hosts.
+  optional string docker_image = 5;
+  // Enable stackdriver monitor.
+  optional bool enable_stackdriver = 6;
+  // Cluster's configs under the cluster.
+  repeated ClusterConfig cluster_configs = 7;
+  // Enable auto-update daemon.
+  optional bool enable_autoupdate = 8;
+  // The file path of the service account json key.
+  optional string service_account_json_key_path = 9;
+}
+
+// Config for a cluster.
+message ClusterConfig {
+  // Cluster's name
+  optional string cluster_name = 1;
+  // Default username to use when login hosts in the cluster.
+  optional string host_login_name = 2;
+  // Owners of the cluster.
+  repeated string owners = 3;
+  // Default tradefed global config path for hosts under the cluster.
+  optional string tf_global_config_path = 4;
+  // Host's configs under the cluster.
+  repeated HostConfig host_configs = 5;
+  // Tmpfs to mount into the container.
+  repeated TmpfsConfig tmpfs_configs = 6;
+  // Master server the Tradefed connects to.
+  optional string master_url = 7;
+  // Docker image to use for the host.
+  optional string docker_image = 8;
+  // Wait all tests finish or not.
+  optional bool graceful_shutdown = 9;
+  // Enable stackdriver monitor.
+  optional bool enable_stackdriver = 10;
+  // Enable auto-update daemon.
+  optional bool enable_autoupdate = 11;
+}
+
+// Config for a host.
+message HostConfig {
+  // Host's name.
+  optional string hostname = 1;
+  // Host's specific tradefed global config path, override the cluster one.
+  optional string tf_global_config_path = 2;
+  // Username to use to login the host.
+  optional string host_login_name = 3;
+  // Tmpfs to mount into the container.
+  repeated TmpfsConfig tmpfs_configs = 4;
+  // Enable auto-update daemon.
+  optional bool enable_autoupdate = 5;
+}
+
+
+// Tmpfs to mount in the dockerized tradefed container.
+message TmpfsConfig {
+  // The mount path inside the container to mount the tmpfs.
+  optional string path = 1;
+  // The size of the tmpfs in bytes.
+  optional int64 size = 2;
+  // Linux file/directory mode for the mounted tmpfs.
+  optional string mode = 3;
+}

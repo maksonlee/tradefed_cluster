@@ -1,0 +1,75 @@
+# Copyright 2019 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Task queue configuration for tradefed-cluster
+
+queue:
+- name: test-request-queue
+  rate: 20/s
+  target: tfc
+
+- name: command-event-queue
+  rate: 200/s
+  max_concurrent_requests: 200
+  bucket_size: 400
+  target: tfc
+
+# A queue for request state notification
+- name: request-state-notification-queue
+  rate: 20/s
+  target: tfc
+
+# A queue for syncing commands attempts
+- name: command-attempt-sync-queue
+  rate: 300/s
+  max_concurrent_requests: 100
+  bucket_size: 400
+  retry_parameters:
+    task_age_limit: 1h
+  target: tfc
+
+# A queue for syncing commands
+- name: command-sync-queue
+  rate: 100/s
+  max_concurrent_requests: 100
+  bucket_size: 400
+  retry_parameters:
+    task_age_limit: 1h
+  target: tfc
+
+# A queue for syncing hosts
+- name: host-sync-queue
+  rate: 100/s
+  max_concurrent_requests: 100
+  bucket_size: 400
+  retry_parameters:
+    task_age_limit: 1h
+  target: tfc
+
+# A queue for host events to update ndb
+- name: host-event-queue-ndb
+  rate: 20/s
+  bucket_size: 30
+  max_concurrent_requests: 50
+  retry_parameters:
+    task_age_limit: 1h
+  target: tfc
+
+# A queue used for resolution of previously failed notification of request state changes
+- name: notification-work-queue
+  rate: 10/s
+  max_concurrent_requests: 100
+  retry_parameters:
+    task_retry_limit: 1
+  target: tfc

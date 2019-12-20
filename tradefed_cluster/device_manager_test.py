@@ -1048,7 +1048,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
                      ndb_host.clusters)
 
   def testUpdateHostWithDeviceSnapshotEvent_existingHost(self):
-    # Test _UpdateHostWithHostChangedEvent for an existing host
+    # Test _UpdateHostWithDeviceSnapshotEvent for an existing host
     event = host_event.HostEvent(**self.HOST_EVENT)
     datastore_entities.HostInfo(
         id=event.hostname,
@@ -1060,7 +1060,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(event.cluster_id, ndb_host.physical_cluster)
 
   def testUpdateHostWithDeviceSnapshotEvent_removedHost(self):
-    # Test _UpdateHostWithHostChangedEvent when the host is hidden (removed)
+    # Test _UpdateHostWithDeviceSnapshotEvent when the host is hidden (removed)
     event = host_event.HostEvent(**self.HOST_EVENT)
     datastore_entities.HostInfo(
         id=event.hostname,
@@ -1172,14 +1172,29 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     device_manager._UpdateHostWithHostChangedEvent(event_3)
     ndb_host = device_manager.GetHost(hostname)
     self.assertEqual(api_messages.HostState.QUITTING, ndb_host.host_state)
-    host_history_list = device_manager.GetHostStateHistory(hostname)
-    self.assertEqual(2, len(host_history_list))
-    self.assertEqual(host_history_list[0].hostname, hostname)
+    host_state_histories = device_manager.GetHostStateHistory(hostname)
+    self.assertEqual(2, len(host_state_histories))
+    self.assertEqual(hostname, host_state_histories[0].hostname)
     self.assertEqual(
-        host_history_list[0].state, api_messages.HostState.QUITTING)
-    self.assertEqual(host_history_list[0].timestamp, event_3.timestamp)
-    self.assertEqual(host_history_list[1].state, api_messages.HostState.RUNNING)
-    self.assertEqual(host_history_list[1].timestamp, event_1.timestamp)
+        api_messages.HostState.QUITTING, host_state_histories[0].state)
+    self.assertEqual(event_3.timestamp, host_state_histories[0].timestamp)
+    self.assertEqual(
+        api_messages.HostState.RUNNING, host_state_histories[1].state)
+    self.assertEqual(event_1.timestamp, host_state_histories[1].timestamp)
+
+    host_histories = (
+        datastore_entities.HostInfoHistory
+        .query(ancestor=ndb.Key(datastore_entities.HostInfo, hostname))
+        .order(-datastore_entities.HostInfoHistory.timestamp)
+        .fetch())
+
+    self.assertEqual(hostname, host_histories[0].hostname)
+    self.assertEqual(
+        api_messages.HostState.QUITTING, host_histories[0].host_state)
+    self.assertEqual(event_3.timestamp, host_histories[0].timestamp)
+    self.assertEqual(
+        api_messages.HostState.RUNNING, host_histories[1].host_state)
+    self.assertEqual(event_1.timestamp, host_histories[1].timestamp)
 
   def _BuildDeviceStateHistory(self, timestamp, serial, state):
     """Helper to build and persist device state history records."""
@@ -1439,7 +1454,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
         "test", hostname,
         host_state=api_messages.HostState.GONE,
         timestamp=timestamp1)
-    state_history = device_manager._UpdateHostState(
+    state_history, history = device_manager._UpdateHostState(
         host, api_messages.HostState.RUNNING,
         timestamp=timestamp2)
     self.assertIsNotNone(state_history)
@@ -1447,6 +1462,8 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(timestamp2, host.timestamp)
     self.assertEqual(hostname, state_history.hostname)
     self.assertEqual(api_messages.HostState.RUNNING, state_history.state)
+    self.assertEqual(api_messages.HostState.RUNNING, history.host_state)
+    self.assertEqual(host.extra_info, history.extra_info)
     self.assertEqual(timestamp2, state_history.timestamp)
 
   def testUpdateHostState_sameState(self):
@@ -1458,12 +1475,28 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
         "test", hostname,
         host_state=api_messages.HostState.RUNNING,
         timestamp=timestamp1)
-    state_history = device_manager._UpdateHostState(
+    state_history, history = device_manager._UpdateHostState(
         host, api_messages.HostState.RUNNING,
         timestamp=timestamp2)
     self.assertIsNone(state_history)
+    self.assertIsNone(history)
     self.assertEqual(api_messages.HostState.RUNNING, host.host_state)
     self.assertEqual(timestamp1, host.timestamp)
+
+  def testCreateHostInfoHistory(self):
+    """Test _CreateHostInfoHistory."""
+    d1_count = datastore_entities.DeviceCountSummary(
+        run_target="d1", total=10, offline=1, available=5, allocated=4)
+    d2_count = datastore_entities.DeviceCountSummary(
+        run_target="d2", total=5, offline=1, available=3, allocated=1)
+    extra_info = {"key1": "value1", "key2": "value2"}
+    host = datastore_test_util.CreateHost(
+        "acluster", "ahost",
+        extra_info=extra_info,
+        device_count_summaries=[d1_count, d2_count])
+    self.assertTrue(host.is_bad)
+    host_history = device_manager._CreateHostInfoHistory(host)
+    self.assertEqual(host.to_dict(), host_history.to_dict())
 
 
 if __name__ == "__main__":

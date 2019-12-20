@@ -858,6 +858,10 @@ def HostInfoToMessage(host_info_entity, devices=None):
       is_bad=host_info_entity.is_bad)
 
 
+class HostInfoHistory(HostInfo):
+  """HostInfo history."""
+
+
 class HostStateHistory(ndb.Model):
   """Host state history, key is (hostname + timestamp).
 

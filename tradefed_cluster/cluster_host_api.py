@@ -112,7 +112,7 @@ class ClusterHostApi(remote.Service):
       include_hidden=messages.BooleanField(3, default=False),
       include_host_state_history=messages.BooleanField(4, default=False),
       host_state_history_limit=messages.IntegerField(
-          5, default=device_manager.DEFAULT_HOST_STATE_HISTORY_SIZE),
+          5, default=device_manager.DEFAULT_HOST_HISTORY_SIZE),
   )
 
   @endpoints.method(

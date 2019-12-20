@@ -13,6 +13,7 @@
 # limitations under the License.
 
 """Module for device management."""
+import copy
 import datetime
 import json
 import logging
@@ -28,8 +29,8 @@ from tradefed_cluster import metric
 
 TF_TEST_RUNNER = "tradefed"
 MAX_DEVICE_HISTORY_SIZE = 100
-MAX_HOST_STATE_HISTORY_SIZE = 100
-DEFAULT_HOST_STATE_HISTORY_SIZE = 10
+MAX_HOST_HISTORY_SIZE = 100
+DEFAULT_HOST_HISTORY_SIZE = 10
 
 TCP_DEVICE_PREFIX = "tcp-device"
 EMULATOR_DEVICE_PREFIX = "emulator"
@@ -131,11 +132,13 @@ def _UpdateHostWithHostChangedEvent(event):
         physical_cluster=event.cluster_id,
         host_group=event.host_group,
         lab_name=event.lab_name)
-  host_state_history_entity = _UpdateHostState(
+  host_state_history, host_history = _UpdateHostState(
       host, event.host_state, event.timestamp)
   entities_to_update = [host]
-  if host_state_history_entity:
-    entities_to_update.append(host_state_history_entity)
+  if host_state_history:
+    entities_to_update.append(host_state_history)
+  if host_history:
+    entities_to_update.append(host_history)
   ndb.put_multi(entities_to_update)
   return
 
@@ -175,10 +178,12 @@ def _UpdateHostWithDeviceSnapshotEvent(event):
   entities_to_update = [host]
   if host.host_state in (None, api_messages.HostState.UNKNOWN,
                          api_messages.HostState.GONE):
-    host_state_history_entity = _UpdateHostState(
+    host_state_history, host_history = _UpdateHostState(
         host, api_messages.HostState.RUNNING, event.timestamp)
-    if host_state_history_entity:
-      entities_to_update.append(host_state_history_entity)
+    if host_state_history:
+      entities_to_update.append(host_state_history)
+    if host_history:
+      entities_to_update.append(host_history)
   ndb.put_multi(entities_to_update)
   return host
 
@@ -459,14 +464,14 @@ def _UpdateHostState(host, host_state, timestamp):
     host_state: new host state.
     timestamp: the timestamp when the host state changed.
   Returns:
-    the new history.
+    the new state history and the host history
   """
   if not host_state:
-    return None
+    return None, None
   host_state = api_messages.HostState(host_state)
   if host.host_state == host_state:
     # Ignore if the state doesn't change
-    return None
+    return None, None
   logging.debug(
       "Updating host %s sate history from state %s to new state %s in ndb.",
       host.hostname, host.host_state, host_state)
@@ -477,7 +482,20 @@ def _UpdateHostState(host, host_state, timestamp):
       hostname=host.hostname,
       timestamp=host.timestamp,
       state=host.host_state)
-  return host_state_history
+  host_history = None
+  if host_state_history:
+    host_history = _CreateHostInfoHistory(host)
+  return host_state_history, host_history
+
+
+def _CreateHostInfoHistory(host_info):
+  """Create HostInfoHistory from HostInfo."""
+  host_info_dict = copy.deepcopy(host_info.to_dict())
+  # is_bad is computed property, can not be assigned.
+  host_info_dict.pop("is_bad")
+  return datastore_entities.HostInfoHistory(
+      parent=host_info.key,
+      **host_info_dict)
 
 
 def _UpdateGoneDevicesInNDB(hostname, reported_devices, timestamp):
@@ -603,11 +621,13 @@ def UpdateGoneHost(hostname):
     return
   entities_to_update = []
   now = _Now()
-  host_state_history_entity = _UpdateHostState(
+  host_state_history, host_history = _UpdateHostState(
       host, api_messages.HostState.GONE, now)
   entities_to_update.append(host)
-  if host_state_history_entity:
-    entities_to_update.append(host_state_history_entity)
+  if host_state_history:
+    entities_to_update.append(host_state_history)
+  if host_history:
+    entities_to_update.append(host_history)
   devices = GetDevicesOnHost(hostname)
   for device in devices or []:
     if device.state == common.DeviceState.GONE:
@@ -739,7 +759,7 @@ def GetDeviceHistory(hostname, device_serial):
           .fetch(limit=MAX_DEVICE_HISTORY_SIZE))
 
 
-def GetHostStateHistory(hostname, limit=DEFAULT_HOST_STATE_HISTORY_SIZE):
+def GetHostStateHistory(hostname, limit=DEFAULT_HOST_HISTORY_SIZE):
   """Function to get host state history from NDB.
 
   Args:
@@ -749,9 +769,9 @@ def GetHostStateHistory(hostname, limit=DEFAULT_HOST_STATE_HISTORY_SIZE):
     a list of host state history.
   """
   host_key = ndb.Key(datastore_entities.HostInfo, hostname)
-  if limit < 0 or limit > MAX_HOST_STATE_HISTORY_SIZE:
+  if limit < 0 or limit > MAX_HOST_HISTORY_SIZE:
     raise ValueError("size of host state history should be in range 0 to %d,"
-                     "but got %d" % MAX_HOST_STATE_HISTORY_SIZE % limit)
+                     "but got %d" % MAX_HOST_HISTORY_SIZE % limit)
   return (datastore_entities.HostStateHistory.query(ancestor=host_key)
           .order(-datastore_entities.HostStateHistory.timestamp)
           .fetch(limit=limit))

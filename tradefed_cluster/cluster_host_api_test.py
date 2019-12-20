@@ -25,6 +25,7 @@ from tradefed_cluster import api_messages
 from tradefed_cluster import api_test
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import datastore_test_util
+from tradefed_cluster import device_manager
 
 
 class ClusterHostApiTest(api_test.ApiTest):
@@ -36,6 +37,8 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.ndb_host_0 = datastore_test_util.CreateHost(
         cluster='free',
         hostname='host_0',
+        timestamp=self.TIMESTAMP,
+        host_state=api_messages.HostState.RUNNING,
         device_count_timestamp=self.TIMESTAMP,
         device_count_summaries=[
             datastore_test_util.CreateDeviceCountSummary(
@@ -737,6 +740,31 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertIsNone(self.ndb_host_0.assignee)
     self.ndb_host_1 = self.ndb_host_1.key.get()
     self.assertIsNone(self.ndb_host_1.assignee)
+
+  def testListHostHistories(self):
+    """Tests ListHistories returns all host histories."""
+    device_manager._CreateHostInfoHistory(self.ndb_host_0).put()
+    self.ndb_host_0.host_state = api_messages.HostState.KILLING
+    self.ndb_host_0.timestamp += datetime.timedelta(hours=1)
+    device_manager._CreateHostInfoHistory(self.ndb_host_0).put()
+    self.ndb_host_0.host_state = api_messages.HostState.GONE
+    self.ndb_host_0.timestamp += datetime.timedelta(hours=1)
+    device_manager._CreateHostInfoHistory(self.ndb_host_0).put()
+    api_request = {
+        'hostname': self.ndb_host_0.hostname
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.ListHistories', api_request)
+    host_history_collection = protojson.decode_message(
+        api_messages.HostInfoHistoryCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(3, len(host_history_collection.histories))
+    self.assertEqual(api_messages.HostState.GONE.name,
+                     host_history_collection.histories[0].host_state)
+    self.assertEqual(api_messages.HostState.KILLING.name,
+                     host_history_collection.histories[1].host_state)
+    self.assertEqual(api_messages.HostState.RUNNING.name,
+                     host_history_collection.histories[2].host_state)
 
 
 if __name__ == '__main__':

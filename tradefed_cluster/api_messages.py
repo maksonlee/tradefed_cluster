@@ -522,6 +522,13 @@ class HostInfoCollection(messages.Message):
   more = messages.BooleanField(4)
 
 
+class HostInfoHistoryCollection(messages.Message):
+  """A class representing a collection of host histories."""
+  histories = messages.MessageField(HostInfo, 1, repeated=True)
+  next_cursor = messages.StringField(2)
+  prev_cursor = messages.StringField(3)
+
+
 class RunTarget(messages.Message):
   """Run target message class."""
   name = messages.StringField(1, required=True)

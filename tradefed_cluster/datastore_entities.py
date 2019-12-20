@@ -862,6 +862,12 @@ class HostInfoHistory(HostInfo):
   """HostInfo history."""
 
 
+@MessageConverter(HostInfoHistory)
+def HostInfoHistoryToMessage(host_info_history):
+  """Convert a HostInfoHistory entity into a HostInfoHistory Message."""
+  return HostInfoToMessage(host_info_history)
+
+
 class HostStateHistory(ndb.Model):
   """Host state history, key is (hostname + timestamp).
 

@@ -847,3 +847,4 @@ def CalculateDeviceUtilization(device_serial, days=7):
   total_seconds = requested_time.total_seconds()
   allocated_seconds = allocated_time.total_seconds()
   return float(allocated_seconds) / float(total_seconds)
+

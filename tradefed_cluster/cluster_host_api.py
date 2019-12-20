@@ -33,6 +33,7 @@ from tradefed_cluster import device_manager
 
 _DEFAULT_LIST_NOTES_COUNT = 10
 _DEFAULT_LIST_HOST_COUNT = 100
+_DEFAULT_LIST_HISTORIES_COUNT = 100
 
 
 @api_common.tradefed_cluster_api.api_class(resource_name="hosts",
@@ -408,3 +409,38 @@ class ClusterHostApi(remote.Service):
     ndb.put_multi(entities_to_update)
     host_info = datastore_entities.ToMessage(host)
     return host_info
+
+  HISTORIES_LIST_RESOURCE = endpoints.ResourceContainer(
+      hostname=messages.StringField(1, required=True),
+      count=messages.IntegerField(2, default=_DEFAULT_LIST_HISTORIES_COUNT),
+      cursor=messages.StringField(3),
+  )
+
+  @endpoints.method(
+      HISTORIES_LIST_RESOURCE,
+      api_messages.HostInfoHistoryCollection,
+      path="{hostname}/histories",
+      http_method="GET",
+      name="listHistories")
+  def ListHistories(self, request):
+    """List histories of a host.
+
+    Args:
+      request: an API request.
+
+    Returns:
+      an api_messages.HostInfoHistoryCollection object.
+    """
+    query = (
+        datastore_entities.HostInfoHistory
+        .query(ancestor=ndb.Key(datastore_entities.HostInfo, request.hostname))
+        .order(-datastore_entities.HostInfoHistory.timestamp))
+    histories, prev_cursor, next_cursor = datastore_util.FetchPage(
+        query, request.count, request.cursor)
+    history_msgs = [
+        datastore_entities.ToMessage(entity) for entity in histories
+    ]
+    return api_messages.HostInfoHistoryCollection(
+        histories=history_msgs,
+        next_cursor=next_cursor,
+        prev_cursor=prev_cursor)

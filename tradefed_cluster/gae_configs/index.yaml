@@ -91,6 +91,12 @@ indexes:
   - name: hidden
   - name: lab_name
 
+- kind: HostInfoHistory
+  ancestor: yes
+  properties:
+  - name: timestamp
+    direction: desc
+
 - kind: HosteNote
   properties:
   - name: hostname

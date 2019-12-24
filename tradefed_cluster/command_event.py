@@ -61,6 +61,8 @@ class CommandEvent(object):
         self.data, CommandEventDataKey.TOTAL_TEST_COUNT, int)
     self.failed_test_count = _GetEventData(
         self.data, CommandEventDataKey.FAILED_TEST_COUNT, int)
+    self.passed_test_count = _GetEventData(
+        self.data, CommandEventDataKey.PASSED_TEST_COUNT, int)
     self.failed_test_run_count = _GetEventData(
         self.data, CommandEventDataKey.FAILED_TEST_RUN_COUNT, int)
     self.invocation_status = _ParseInvocationStatus(
@@ -231,7 +233,6 @@ class CommandEventDataKey(object):
   SUMMARY = "summary"
   TOTAL_TEST_COUNT = "total_test_count"
   FAILED_TEST_COUNT = "failed_test_count"
+  PASSED_TEST_COUNT = "passed_test_count"
   TOTAL_TEST_RUN_COUNT = "total_test_run_count"
   FAILED_TEST_RUN_COUNT = "failed_test_run_count"
-
-

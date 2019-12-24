@@ -323,6 +323,8 @@ def _UpdateCommandAttemptEntity(attempt_entity, event):
     attempt_entity.total_test_count = event.total_test_count
   if event.failed_test_count is not None:
     attempt_entity.failed_test_count = event.failed_test_count
+  if event.passed_test_count is not None:
+    attempt_entity.passed_test_count = event.passed_test_count
   if event.failed_test_run_count is not None:
     attempt_entity.failed_test_run_count = event.failed_test_run_count
   # If we process command events out of order, we should keep the latest

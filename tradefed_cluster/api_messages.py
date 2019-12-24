@@ -181,6 +181,7 @@ class CommandAttemptMessage(messages.Message):
     summary: Summary from command event for attempt. Usually a sponge link.
     total_test_count: Number of total test case.
     failed_test_count: Number of failed test case.
+    passed_test_count: Number of passed test case.
     create_time: Time of the first command event processed for this attempt.
     update_time: Time of the last command event processed for this attempt.
     error_reason: Error reason get from error. Informative message.
@@ -203,12 +204,13 @@ class CommandAttemptMessage(messages.Message):
   summary = messages.StringField(12)
   total_test_count = messages.IntegerField(13)
   failed_test_count = messages.IntegerField(14)
-  create_time = message_types.DateTimeField(15)
-  update_time = message_types.DateTimeField(16)
-  error_reason = messages.StringField(17)
-  error_type = messages.EnumField(common.CommandErrorType, 18)
-  failed_test_run_count = messages.IntegerField(19)
-  device_serials = messages.StringField(20, repeated=True)
+  passed_test_count = messages.IntegerField(15)
+  create_time = message_types.DateTimeField(16)
+  update_time = message_types.DateTimeField(17)
+  error_reason = messages.StringField(18)
+  error_type = messages.EnumField(common.CommandErrorType, 19)
+  failed_test_run_count = messages.IntegerField(20)
+  device_serials = messages.StringField(21, repeated=True)
 
 
 class CommandAttemptMessageCollection(messages.Message):
@@ -705,6 +707,7 @@ class TestGroupStatus(messages.Message):
     total_test_count: total number of tests.
     completed_test_count: number of completed tests.
     failed_test_count: number of failed tests.
+    passed_test_count: number of passed tests.
     is_complete: a flag indicating completion of a test module.
     elapsed_time: elapsed time in millis
     failure_message: a failure message.
@@ -713,9 +716,10 @@ class TestGroupStatus(messages.Message):
   total_test_count = messages.IntegerField(2)
   completed_test_count = messages.IntegerField(3)
   failed_test_count = messages.IntegerField(4)
-  is_complete = messages.BooleanField(5)
-  elapsed_time = messages.IntegerField(6)
-  failure_message = messages.StringField(7)
+  passed_test_count = messages.IntegerField(5)
+  is_complete = messages.BooleanField(6)
+  elapsed_time = messages.IntegerField(7)
+  failure_message = messages.StringField(8)
 
 
 class InvocationStatus(messages.Message):

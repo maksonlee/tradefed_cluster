@@ -54,6 +54,7 @@ class CommandEventTest(unittest.TestCase):
     self.assertEqual("summary", event.summary)
     self.assertEqual(1000, event.total_test_count)
     self.assertEqual(100, event.failed_test_count)
+    self.assertEqual(900, event.passed_test_count)
     self.assertEqual(10, event.failed_test_run_count)
     self.assertEqual(command_event_test_util.TIMESTAMP, event.attempt_end_time)
     self.assertEqual(common.CommandState.COMPLETED, event.attempt_state)

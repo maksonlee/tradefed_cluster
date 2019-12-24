@@ -51,6 +51,7 @@ def CreateTestCommandEventJson(
         "summary": "summary",
         "total_test_count": 1000,
         "failed_test_count": 100,
+        "passed_test_count": 900,
         "failed_test_run_count": 10,
     }
     if error:

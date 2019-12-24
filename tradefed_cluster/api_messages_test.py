@@ -55,6 +55,7 @@ class ApiMessagesTest(unittest.TestCase):
         summary='summary',
         total_test_count=1000,
         failed_test_count=100,
+        passed_test_count=900,
         create_time=TIMESTAMP,
         update_time=TIMESTAMP)
     message = datastore_entities.ToMessage(entity)
@@ -164,6 +165,7 @@ class ApiMessagesTest(unittest.TestCase):
         summary='summary',
         total_test_count=1000,
         failed_test_count=100,
+        passed_test_count=900,
         create_time=TIMESTAMP,
         update_time=TIMESTAMP)
     command_attempt2_key = ndb.Key(
@@ -183,6 +185,7 @@ class ApiMessagesTest(unittest.TestCase):
         summary='summary',
         total_test_count=1000,
         failed_test_count=100,
+        passed_test_count=900,
         create_time=TIMESTAMP,
         update_time=TIMESTAMP)
     commands = [cmd1, cmd2]
@@ -270,6 +273,7 @@ class ApiMessagesTest(unittest.TestCase):
     self.assertEqual(entity.summary, message.summary)
     self.assertEqual(entity.total_test_count, message.total_test_count)
     self.assertEqual(entity.failed_test_count, message.failed_test_count)
+    self.assertEqual(entity.passed_test_count, message.passed_test_count)
     self.assertEqual(entity.create_time, message.create_time)
     self.assertEqual(entity.update_time, message.update_time)
 

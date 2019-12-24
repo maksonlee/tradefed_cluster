@@ -383,6 +383,7 @@ class TestGroupStatus(ndb.Model):
   total_test_count = ndb.IntegerProperty(default=0)
   completed_test_count = ndb.IntegerProperty(default=0)
   failed_test_count = ndb.IntegerProperty(default=0)
+  passed_test_count = ndb.IntegerProperty(default=0)
   is_complete = ndb.BooleanProperty(default=False)
   elapsed_time = ndb.IntegerProperty(default=0)
   failure_message = ndb.TextProperty()
@@ -392,6 +393,7 @@ class TestGroupStatus(ndb.Model):
     self.total_test_count += other.total_test_count
     self.completed_test_count += other.completed_test_count
     self.failed_test_count += other.failed_test_count
+    self.passed_test_count += other.passed_test_count
     self.is_complete &= other.is_complete
     self.elapsed_time += other.elapsed_time
     self.failure_message = (
@@ -407,6 +409,7 @@ def TestGroupStatusToMessage(entity):
       total_test_count=entity.total_test_count,
       completed_test_count=entity.completed_test_count,
       failed_test_count=entity.failed_test_count,
+      passed_test_count=entity.passed_test_count,
       is_complete=entity.is_complete,
       elapsed_time=entity.elapsed_time,
       failure_message=entity.failure_message)
@@ -453,6 +456,7 @@ class CommandAttempt(ndb.Model):
     summary: a summary of the command attempt.
     total_test_count: total test count in the command attempt.
     failed_test_count: failed test count in the command attempt.
+    passed_test_count: passed test count in the command attempt.
     failed_test_run_count: failed test run count in the command attempt.
     error_reason: a error reason of the error message.
     error_type: a error type of the error reason.
@@ -478,6 +482,7 @@ class CommandAttempt(ndb.Model):
   summary = ndb.TextProperty()
   total_test_count = ndb.IntegerProperty()
   failed_test_count = ndb.IntegerProperty()
+  passed_test_count = ndb.IntegerProperty()
   failed_test_run_count = ndb.IntegerProperty()
   error_reason = ndb.StringProperty()
   error_type = msgprop.EnumProperty(
@@ -507,6 +512,7 @@ def CommandAttemptToMessage(command_attempt):
       summary=command_attempt.summary,
       total_test_count=command_attempt.total_test_count,
       failed_test_count=command_attempt.failed_test_count,
+      passed_test_count=command_attempt.passed_test_count,
       failed_test_run_count=command_attempt.failed_test_run_count,
       create_time=command_attempt.create_time,
       update_time=command_attempt.update_time,

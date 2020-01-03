@@ -331,6 +331,7 @@ class RequestEventMessage(messages.Message):
     summary: concatention of summaries in all attempts.
     total_test_count: total test count.
     failed_test_count: failed test count.
+    passed_test_count: passed test count.
     result_links: result links for all attempts.
     total_run_time_sec: total run time seconds
     error_reason: first error reason string in all attempts.
@@ -346,12 +347,13 @@ class RequestEventMessage(messages.Message):
   summary = messages.StringField(5)
   total_test_count = messages.IntegerField(6)
   failed_test_count = messages.IntegerField(7)
-  result_links = messages.StringField(8, repeated=True)
-  total_run_time_sec = messages.IntegerField(9)
-  error_reason = messages.StringField(10)
-  error_type = messages.EnumField(common.CommandErrorType, 11)
-  event_time = message_types.DateTimeField(12)
-  failed_test_run_count = messages.IntegerField(13)
+  passed_test_count = messages.IntegerField(8)
+  result_links = messages.StringField(9, repeated=True)
+  total_run_time_sec = messages.IntegerField(10)
+  error_reason = messages.StringField(11)
+  error_type = messages.EnumField(common.CommandErrorType, 12)
+  event_time = message_types.DateTimeField(13)
+  failed_test_run_count = messages.IntegerField(14)
 
 
 class Note(messages.Message):

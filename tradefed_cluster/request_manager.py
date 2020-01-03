@@ -228,6 +228,7 @@ def CreateRequestEventMessage(request):
   errors = []
   total_test_count = 0
   failed_test_count = 0
+  passed_test_count = 0
   failed_test_run_count = 0
   result_links = set()
   total_run_time_sec = 0
@@ -253,6 +254,8 @@ def CreateRequestEventMessage(request):
           total_test_count += attempt.total_test_count
         if attempt.failed_test_count:
           failed_test_count += attempt.failed_test_count
+        if attempt.passed_test_count:
+          passed_test_count += attempt.passed_test_count
         if attempt.failed_test_run_count:
           failed_test_run_count += attempt.failed_test_run_count
         summaries.append("Attempt %s: %s" % (attempt.attempt_id, summary))
@@ -287,6 +290,7 @@ def CreateRequestEventMessage(request):
       summary=summary,
       total_test_count=total_test_count,
       failed_test_count=failed_test_count,
+      passed_test_count=passed_test_count,
       result_links=list(result_links),
       total_run_time_sec=int(total_run_time_sec),
       error_reason=error_reason,

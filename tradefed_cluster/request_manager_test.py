@@ -915,6 +915,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         common.CommandState.COMPLETED,
         total_test_count=5,
         failed_test_count=3,
+        passed_test_count=2,
         failed_test_run_count=1,
         start_time=datetime.datetime(2016, 12, 1, 0, 0, 0),
         end_time=datetime.datetime(2016, 12, 1, 0, 0, 1))
@@ -928,6 +929,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         summary="Attempt attempt_id: summary: %s\n" % self.result_link,
         total_test_count=5,
         failed_test_count=3,
+        passed_test_count=2,
         failed_test_run_count=1,
         result_links=[self.result_link],
         total_run_time_sec=1,
@@ -944,6 +946,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         state=common.CommandState.COMPLETED,
         total_test_count=5,
         failed_test_count=3,
+        passed_test_count=2,
         failed_test_run_count=1,
         start_time=datetime.datetime(2016, 12, 1, 0, 0, 0),
         end_time=datetime.datetime(2016, 12, 1, 0, 0, 1))
@@ -952,6 +955,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         state=common.CommandState.COMPLETED,
         total_test_count=10,
         failed_test_count=5,
+        passed_test_count=5,
         failed_test_run_count=3,
         start_time=datetime.datetime(2016, 12, 1, 0, 0, 0),
         end_time=datetime.datetime(2016, 12, 1, 0, 0, 1))
@@ -965,6 +969,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         summary="Attempt attempt_id: summary: %s\n" % self.result_link,
         total_test_count=command_attempt2.total_test_count,
         failed_test_count=command_attempt2.failed_test_count,
+        passed_test_count=command_attempt2.passed_test_count,
         failed_test_run_count=command_attempt2.failed_test_run_count,
         result_links=[self.result_link],
         total_run_time_sec=2,
@@ -995,6 +1000,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
             "Attempt attempt_id: %s error (ERROR)" % self.result_link] * 3),
         total_test_count=0,
         failed_test_count=0,
+        passed_test_count=0,
         failed_test_run_count=0,
         result_links=[self.result_link],
         total_run_time_sec=3,
@@ -1027,6 +1033,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
             self.result_link, error_message),
         total_test_count=0,
         failed_test_count=0,
+        passed_test_count=0,
         failed_test_run_count=0,
         result_links=[self.result_link],
         total_run_time_sec=1,
@@ -1060,6 +1067,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
             self.result_link, error_message)] * 3),
         total_test_count=0,
         failed_test_count=0,
+        passed_test_count=0,
         failed_test_run_count=0,
         result_links=[self.result_link],
         total_run_time_sec=3,
@@ -1082,6 +1090,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
           state=common.CommandState.COMPLETED,
           total_test_count=5,
           failed_test_count=i,
+          passed_test_count=5-i,
           failed_test_run_count=i,
           start_time=datetime.datetime(2016, 12, 1, 0, 0, 0),
           end_time=datetime.datetime(2016, 12, 1, 0, 0, 1))
@@ -1097,6 +1106,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
                            self.result_link] * 2),
         total_test_count=10,
         failed_test_count=1,
+        passed_test_count=9,
         failed_test_run_count=1,
         result_links=[self.result_link],
         total_run_time_sec=2,
@@ -1117,6 +1127,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
           state=common.CommandState.COMPLETED,
           total_test_count=5,
           failed_test_count=1,
+          passed_test_count=1,
           failed_test_run_count=1,
           start_time=datetime.datetime(2016, 12, 1, 0, 0, 0),
           end_time=datetime.datetime(2016, 12, 1, 0, 0, 1))
@@ -1132,6 +1143,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
                            self.result_link] * 2),
         total_test_count=10,
         failed_test_count=2,
+        passed_test_count=2,
         failed_test_run_count=2,
         result_links=[self.result_link],
         total_run_time_sec=2,
@@ -1151,6 +1163,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     attempt.summary = None
     attempt.total_test_count = None
     attempt.failed_test_count = None
+    attempt.passed_test_count = None
     attempt.failed_test_run_count = None
     attempt.put()
     request_manager.NotifyRequestState(REQUEST_ID, force=True)
@@ -1163,6 +1176,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         summary="Attempt attempt_id: No summary available.",
         total_test_count=0,
         failed_test_count=0,
+        passed_test_count=0,
         failed_test_run_count=0,
         total_run_time_sec=1,
         event_time=self.END_TIME)
@@ -1189,6 +1203,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
                  self.result_link),
         total_test_count=0,
         failed_test_count=0,
+        passed_test_count=0,
         result_links=[self.result_link],
         total_run_time_sec=0,
         event_time=self.END_TIME,
@@ -1227,8 +1242,9 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     return command
 
   def _CreateTestCommandAttempt(self, command, state, total_test_count=1,
-                                failed_test_count=1, failed_test_run_count=1,
-                                start_time=None, end_time=None):
+                                failed_test_count=1, passed_test_count=0,
+                                failed_test_run_count=1, start_time=None,
+                                end_time=None):
     """Creates a CommandAttempt associated with a Command."""
     command_attempt = datastore_entities.CommandAttempt(
         parent=command.key,
@@ -1241,6 +1257,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         error="error" if state == common.CommandState.ERROR else None,
         total_test_count=total_test_count,
         failed_test_count=failed_test_count,
+        passed_test_count=passed_test_count,
         failed_test_run_count=failed_test_run_count,
         start_time=start_time,
         end_time=end_time)
@@ -1265,6 +1282,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(queue_message.summary, message.summary)
     self.assertEqual(queue_message.total_test_count, message.total_test_count)
     self.assertEqual(queue_message.failed_test_count, message.failed_test_count)
+    self.assertEqual(queue_message.passed_test_count, message.passed_test_count)
     self.assertEqual(queue_message.failed_test_run_count,
                      message.failed_test_run_count)
     self.assertEqual(queue_message.result_links, message.result_links)

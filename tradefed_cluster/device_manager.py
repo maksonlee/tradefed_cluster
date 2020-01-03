@@ -365,7 +365,6 @@ def _UpdateDeviceInNDB(device, device_key, device_data, host_event):
     return []
 
   device.extra_info = device.extra_info or {}
-  old_device_state = device.state
   device_state = device_data.get(STATE_KEY, device_data.get("device_state"))
   if common.DeviceState.AVAILABLE == device_state:
     # TF reports devices in fastboot as available stub devices (no properties)
@@ -406,7 +405,6 @@ def _UpdateDeviceInNDB(device, device_key, device_data, host_event):
     device.extra_info[LAST_KNOWN_BUILD_ID_KEY] = device.build_id
   device.sdk_version = device_data.get(SDK_VERSION_KEY)
   device.extra_info[SDK_VERSION_KEY] = device.sdk_version
-  device.state = device_state
   device.hostname = host_event.hostname
   device.lab_name = host_event.lab_name
   if host_event.cluster_id:
@@ -420,36 +418,35 @@ def _UpdateDeviceInNDB(device, device_key, device_data, host_event):
   device.extra_info[BATTERY_LEVEL_KEY] = device.battery_level
   device.device_type = device_type
 
-  device_history = UpdateDeviceStateHistory(device, old_device_state)
+  device_history = _UpdateDeviceState(
+      device, device_state, host_event.timestamp)
+  entities_to_update.append(device)
   if device_history:
     entities_to_update.append(device_history)
-  entities_to_update.append(device)
   return entities_to_update
 
 
-def UpdateDeviceStateHistory(device, old_device_state):
-  """Updates the device state history with a new state.
+def _UpdateDeviceState(device, state, timestamp):
+  """Updates the device state with a new state.
 
   Args:
-    device: a DeviceInfo object,
-    old_device_state: only update history if the state changed.
+    device: a DeviceInfo object.
+    state: device's new state
+    timestamp: timestamp the state change.
   Returns:
-    the new history
+    the new state history
   """
-  if (not device.state or
+  if (not state or
       device.device_serial.startswith(NON_PHYSICAL_DEVICES_PREFIXES)):
     # We ignore state history changes for non-physical devices.
     return None
-
-  if device.state == old_device_state:
+  if device.state == state:
     # Ignore if the state doesn't change
     return None
-  # use timestamp as device history id
-  history_key = ndb.Key(
-      datastore_entities.DeviceStateHistory, str(device.timestamp),
-      parent=device.key)
+  device.state = state
+  device.timestamp = timestamp
   device_state_history = datastore_entities.DeviceStateHistory(
-      key=history_key,
+      parent=device.key,
       device_serial=device.device_serial,
       timestamp=device.timestamp,
       state=device.state)
@@ -531,15 +528,12 @@ def _DoUpdateGoneDevicesInNDB(missing_device_keys, timestamp):
   entities_to_update = []
   devices = ndb.get_multi(missing_device_keys)
   for device in devices:
-    old_timestamp = device.timestamp
-    old_device_state = device.state
-    if old_timestamp and old_timestamp > timestamp:
+    if device.timestamp and device.timestamp > timestamp:
       logging.debug("Ignore outdated event.")
       continue
-    device.state = common.DeviceState.GONE
-    device.timestamp = timestamp
+    device_history = _UpdateDeviceState(
+        device, common.DeviceState.GONE, timestamp)
     entities_to_update.append(device)
-    device_history = UpdateDeviceStateHistory(device, old_device_state)
     if device_history:
       entities_to_update.append(device_history)
   ndb.put_multi(entities_to_update)
@@ -633,11 +627,9 @@ def UpdateGoneHost(hostname):
     if device.state == common.DeviceState.GONE:
       continue
     logging.debug("Set device %s to GONE.", device.device_serial)
-    old_device_state = device.state
-    device.state = common.DeviceState.GONE
-    device.timestamp = now
+    device_state_history = _UpdateDeviceState(
+        device, common.DeviceState.GONE, now)
     entities_to_update.append(device)
-    device_state_history = UpdateDeviceStateHistory(device, old_device_state)
     if device_state_history:
       entities_to_update.append(device_state_history)
   ndb.put_multi(entities_to_update)

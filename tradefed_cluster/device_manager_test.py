@@ -780,96 +780,42 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(device1.device_serial, device_queried.device_serial)
     self.assertEqual(device1.run_target, device_queried.run_target)
 
-  def testUpdateDeviceStateHistory_newDevice(self):
+  def testUpdateDeviceState_newDevice(self):
     """Test updating a state for a new device."""
-    state = "Allocated"
+    device = datastore_test_util.CreateDevice(
+        "acluster", "ahost", "serial",
+        timestamp=datetime.datetime(2015, 5, 6),
+        state=common.DeviceState.AVAILABLE)
+
     timestamp = datetime.datetime(2015, 5, 7)
-    device_entity = datastore_entities.DeviceInfo(
-        id="serial",
-        device_serial="serial",
-        state=state,
-        timestamp=timestamp)
-    device_entity.put()
-    device_history = device_manager.UpdateDeviceStateHistory(
-        device=device_entity, old_device_state=None)
+    device_history = device_manager._UpdateDeviceState(
+        device, state=common.DeviceState.ALLOCATED, timestamp=timestamp)
     self.assertIsNotNone(device_history)
     self.assertEqual(timestamp, device_history.timestamp)
-    self.assertEqual(state, device_history.state)
+    self.assertEqual(common.DeviceState.ALLOCATED, device_history.state)
 
-  def testUpdateDeviceStateHistory_nonPhysicalDevice(self):
+  def testUpdateDeviceState_nonPhysicalDevice(self):
     """Test updating a state for a new device."""
-    state = "Allocated"
-    timestamp = datetime.datetime(2015, 5, 7)
-    device_entity = datastore_entities.DeviceInfo(
-        id="tcp-device-0",
-        device_serial="tcp-device-0",
-        state=state,
-        timestamp=timestamp)
-    device_entity.put()
-    history = device_manager.UpdateDeviceStateHistory(
-        device=device_entity,
-        old_device_state=None)
+    device = datastore_test_util.CreateDevice(
+        "acluster", "ahost", "tcp-device-0",
+        timestamp=datetime.datetime(2015, 5, 6),
+        state=common.DeviceState.AVAILABLE)
+    history = device_manager._UpdateDeviceState(
+        device, common.DeviceState.ALLOCATED,
+        datetime.datetime(2015, 5, 7))
     self.assertIsNone(history)
 
-  def testUpdateDeviceStateHistory_existingDeviceDifferentState(self):
-    """Test updating a different state for a existing device."""
-    state_0 = "Allocated"
-    timestamp_0 = datetime.datetime(2015, 5, 7)
-    device = datastore_entities.DeviceInfo(
-        id="serial",
-        parent=ndb.Key(datastore_entities.HostInfo, "host"),
-        device_serial="serial",
-        state=state_0,
-        timestamp=timestamp_0)
-    history_0 = device_manager.UpdateDeviceStateHistory(
-        device=device, old_device_state=None)
-    device.put()
-    history_0.put()
-    state_1 = "Available"
-    device.state = state_1
-    timestamp_1 = datetime.datetime(2015, 5, 8)
-    device.timestamp = timestamp_1
-    history_1 = device_manager.UpdateDeviceStateHistory(
-        device=device, old_device_state=state_0)
-    device.put()
-    history_1.put()
-    histories = device_manager.GetDeviceHistory("host", "serial")
-    self.assertEqual(2, len(histories))
-    device_history_0 = histories[0]
-    device_history_1 = histories[1]
-    self.assertEqual(timestamp_1, device_history_0.timestamp)
-    self.assertEqual(state_1, device_history_0.state)
-    self.assertEqual(timestamp_0, device_history_1.timestamp)
-    self.assertEqual(state_0, device_history_1.state)
-
-  def testUpdateDeviceStateHistory_existingDeviceSameState(self):
+  def testUpdateDeviceState_sameState(self):
     """Test updating the same state for a existing device."""
-    state_0 = "Allocated"
-    timestamp_0 = datetime.datetime(2015, 5, 7)
-    device = datastore_entities.DeviceInfo(
-        id="serial",
-        parent=ndb.Key(datastore_entities.HostInfo, "host"),
-        device_serial="serial", state=state_0,
-        timestamp=timestamp_0)
-    history_0 = device_manager.UpdateDeviceStateHistory(
-        device=device, old_device_state=None)
-    device.put()
-    history_0.put()
+    device = datastore_test_util.CreateDevice(
+        "acluster", "ahost", "serial",
+        timestamp=datetime.datetime(2015, 5, 6),
+        state=common.DeviceState.AVAILABLE)
 
-    timestamp_1 = datetime.datetime(2015, 5, 8)
-    state_1 = "Allocated"
-    device.state = state_1
-    device.timestamp = timestamp_1
-    history_1 = device_manager.UpdateDeviceStateHistory(
-        device=device, old_device_state=state_0)
-    device.put()
-    self.assertIsNone(history_1)
-    histories = device_manager.GetDeviceHistory(
-        "host", "serial")
-    self.assertEqual(1, len(histories))
-    device_history = histories[0]
-    self.assertEqual(timestamp_0, device_history.timestamp)
-    self.assertEqual(state_0, device_history.state)
+    device_history = device_manager._UpdateDeviceState(
+        device, state=common.DeviceState.AVAILABLE,
+        timestamp=datetime.datetime(2015, 5, 7))
+    self.assertIsNone(device_history)
 
   def testIsKnownProperty(self):
     """Test _IsKnownProperty()."""

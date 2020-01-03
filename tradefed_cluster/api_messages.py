@@ -451,6 +451,13 @@ class DeviceInfoCollection(messages.Message):
   more = messages.BooleanField(4)
 
 
+class DeviceInfoHistoryCollection(messages.Message):
+  """A class representing a collection of device histories."""
+  histories = messages.MessageField(DeviceInfo, 1, repeated=True)
+  next_cursor = messages.StringField(2)
+  prev_cursor = messages.StringField(3)
+
+
 class HostState(messages.Enum):
   """Enum for host states."""
   UNKNOWN = 0

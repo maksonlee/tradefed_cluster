@@ -36,6 +36,7 @@ from tradefed_cluster import device_manager
 _BATCH_SIZE = 200
 _DEFAULT_LIST_NOTES_COUNT = 10
 _DEFAULT_LIST_DEVICE_COUNT = 100
+_DEFAULT_LIST_HISTORIES_COUNT = 100
 
 
 @api_common.tradefed_cluster_api.api_class(
@@ -384,3 +385,39 @@ class ClusterDeviceApi(remote.Service):
     device.put()
     device_info = datastore_entities.ToMessage(device)
     return device_info
+
+  HISTORIES_LIST_RESOURCE = endpoints.ResourceContainer(
+      device_serial=messages.StringField(1, required=True),
+      count=messages.IntegerField(2, default=_DEFAULT_LIST_HISTORIES_COUNT),
+      cursor=messages.StringField(3),
+  )
+
+  @endpoints.method(
+      HISTORIES_LIST_RESOURCE,
+      api_messages.DeviceInfoHistoryCollection,
+      path="{device_serial}/histories",
+      http_method="GET",
+      name="listHistories")
+  def ListHistories(self, request):
+    """List histories of a device.
+
+    Args:
+      request: an API request.
+
+    Returns:
+      an api_messages.DeviceInfoHistoryCollection object.
+    """
+    device = device_manager.GetDevice(device_serial=request.device_serial)
+    query = (
+        datastore_entities.DeviceInfoHistory
+        .query(ancestor=device.key)
+        .order(-datastore_entities.DeviceInfoHistory.timestamp))
+    histories, prev_cursor, next_cursor = datastore_util.FetchPage(
+        query, request.count, request.cursor)
+    history_msgs = [
+        datastore_entities.ToMessage(entity) for entity in histories
+    ]
+    return api_messages.DeviceInfoHistoryCollection(
+        histories=history_msgs,
+        next_cursor=next_cursor,
+        prev_cursor=prev_cursor)

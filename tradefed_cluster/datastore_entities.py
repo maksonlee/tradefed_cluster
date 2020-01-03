@@ -1005,6 +1005,12 @@ class DeviceInfoHistory(DeviceInfo):
   """DeviceInfo history."""
 
 
+@MessageConverter(DeviceInfoHistory)
+def DeviceInfoHistoryToMessage(device_info_history):
+  """Convert a DeviceInfoHistory entity into a DeviceInfo Message."""
+  return DeviceInfoToMessage(device_info_history)
+
+
 class DeviceStateHistory(ndb.Model):
   """Device state history entity. Its ID is auto generated.
 

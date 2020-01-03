@@ -58,7 +58,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.ndb_host_0 = datastore_test_util.CreateHost(
         'free', 'host_0')
     self.ndb_device_0 = datastore_test_util.CreateDevice(
-        'free', 'host_0', 'device_0')
+        'free', 'host_0', 'device_0', timestamp=self.TIMESTAMP)
     self.ndb_device_1 = datastore_test_util.CreateDevice(
         'free', 'host_0', 'device_1', timestamp=self.TIMESTAMP)
     self.ndb_host_1 = datastore_test_util.CreateHost(
@@ -788,6 +788,31 @@ class ClusterDeviceApiTest(api_test.ApiTest):
                      note_entities[0].note.offline_reason)
     self.assertEqual(note_msgs[1].recovery_action,
                      note_entities[0].note.recovery_action)
+
+  def testListHostHistories(self):
+    """Tests ListHistories returns all device histories."""
+    device_manager._CreateDeviceInfoHistory(self.ndb_device_0).put()
+    self.ndb_device_0.state = common.DeviceState.ALLOCATED
+    self.ndb_device_0.timestamp += datetime.timedelta(hours=1)
+    device_manager._CreateDeviceInfoHistory(self.ndb_device_0).put()
+    self.ndb_device_0.state = common.DeviceState.GONE
+    self.ndb_device_0.timestamp += datetime.timedelta(hours=1)
+    device_manager._CreateDeviceInfoHistory(self.ndb_device_0).put()
+    api_request = {
+        'device_serial': self.ndb_device_0.device_serial
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterDeviceApi.ListHistories', api_request)
+    device_history_collection = protojson.decode_message(
+        api_messages.DeviceInfoHistoryCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(3, len(device_history_collection.histories))
+    self.assertEqual(common.DeviceState.GONE,
+                     device_history_collection.histories[0].state)
+    self.assertEqual(common.DeviceState.ALLOCATED,
+                     device_history_collection.histories[1].state)
+    self.assertEqual(common.DeviceState.AVAILABLE,
+                     device_history_collection.histories[2].state)
 
 
 if __name__ == '__main__':

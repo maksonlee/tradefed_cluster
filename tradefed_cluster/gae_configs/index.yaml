@@ -64,6 +64,12 @@ indexes:
   - name: run_target
   - name: state
 
+- kind: DeviceInfoHistory
+  ancestor: yes
+  properties:
+  - name: timestamp
+    direction: desc
+
 - kind: DeviceNote
   properties:
   - name: device_serial

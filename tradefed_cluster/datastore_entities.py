@@ -1001,6 +1001,10 @@ def DeviceInfoToMessage(device_info_entity):
           device_info_entity.extra_info))
 
 
+class DeviceInfoHistory(DeviceInfo):
+  """DeviceInfo history."""
+
+
 class DeviceStateHistory(ndb.Model):
   """Device state history entity. Its ID is auto generated.
 

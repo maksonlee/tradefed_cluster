@@ -788,8 +788,11 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
         state=common.DeviceState.AVAILABLE)
 
     timestamp = datetime.datetime(2015, 5, 7)
-    device_history = device_manager._UpdateDeviceState(
+    device_state_history, device_history = device_manager._UpdateDeviceState(
         device, state=common.DeviceState.ALLOCATED, timestamp=timestamp)
+    self.assertIsNotNone(device_state_history)
+    self.assertEqual(timestamp, device_state_history.timestamp)
+    self.assertEqual(common.DeviceState.ALLOCATED, device_state_history.state)
     self.assertIsNotNone(device_history)
     self.assertEqual(timestamp, device_history.timestamp)
     self.assertEqual(common.DeviceState.ALLOCATED, device_history.state)
@@ -800,10 +803,11 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
         "acluster", "ahost", "tcp-device-0",
         timestamp=datetime.datetime(2015, 5, 6),
         state=common.DeviceState.AVAILABLE)
-    history = device_manager._UpdateDeviceState(
+    device_state_history, device_history = device_manager._UpdateDeviceState(
         device, common.DeviceState.ALLOCATED,
         datetime.datetime(2015, 5, 7))
-    self.assertIsNone(history)
+    self.assertIsNone(device_state_history)
+    self.assertIsNone(device_history)
 
   def testUpdateDeviceState_sameState(self):
     """Test updating the same state for a existing device."""
@@ -812,9 +816,10 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
         timestamp=datetime.datetime(2015, 5, 6),
         state=common.DeviceState.AVAILABLE)
 
-    device_history = device_manager._UpdateDeviceState(
+    device_state_history, device_history = device_manager._UpdateDeviceState(
         device, state=common.DeviceState.AVAILABLE,
         timestamp=datetime.datetime(2015, 5, 7))
+    self.assertIsNone(device_state_history)
     self.assertIsNone(device_history)
 
   def testIsKnownProperty(self):

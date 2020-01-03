@@ -418,9 +418,11 @@ def _UpdateDeviceInNDB(device, device_key, device_data, host_event):
   device.extra_info[BATTERY_LEVEL_KEY] = device.battery_level
   device.device_type = device_type
 
-  device_history = _UpdateDeviceState(
+  device_state_history, device_history = _UpdateDeviceState(
       device, device_state, host_event.timestamp)
   entities_to_update.append(device)
+  if device_state_history:
+    entities_to_update.append(device_state_history)
   if device_history:
     entities_to_update.append(device_history)
   return entities_to_update
@@ -439,10 +441,10 @@ def _UpdateDeviceState(device, state, timestamp):
   if (not state or
       device.device_serial.startswith(NON_PHYSICAL_DEVICES_PREFIXES)):
     # We ignore state history changes for non-physical devices.
-    return None
+    return None, None
   if device.state == state:
     # Ignore if the state doesn't change
-    return None
+    return None, None
   device.state = state
   device.timestamp = timestamp
   device_state_history = datastore_entities.DeviceStateHistory(
@@ -450,7 +452,16 @@ def _UpdateDeviceState(device, state, timestamp):
       device_serial=device.device_serial,
       timestamp=device.timestamp,
       state=device.state)
-  return device_state_history
+  device_history = _CreateDeviceInfoHistory(device)
+  return device_state_history, device_history
+
+
+def _CreateDeviceInfoHistory(device_info):
+  """Create DeviceInfoHistory from DeviceInfo."""
+  device_info_dict = copy.deepcopy(device_info.to_dict())
+  return datastore_entities.DeviceInfoHistory(
+      parent=device_info.key,
+      **device_info_dict)
 
 
 def _UpdateHostState(host, host_state, timestamp):
@@ -531,9 +542,11 @@ def _DoUpdateGoneDevicesInNDB(missing_device_keys, timestamp):
     if device.timestamp and device.timestamp > timestamp:
       logging.debug("Ignore outdated event.")
       continue
-    device_history = _UpdateDeviceState(
+    device_state_history, device_history = _UpdateDeviceState(
         device, common.DeviceState.GONE, timestamp)
     entities_to_update.append(device)
+    if device_state_history:
+      entities_to_update.append(device_state_history)
     if device_history:
       entities_to_update.append(device_history)
   ndb.put_multi(entities_to_update)
@@ -627,11 +640,13 @@ def UpdateGoneHost(hostname):
     if device.state == common.DeviceState.GONE:
       continue
     logging.debug("Set device %s to GONE.", device.device_serial)
-    device_state_history = _UpdateDeviceState(
+    device_state_history, device_history = _UpdateDeviceState(
         device, common.DeviceState.GONE, now)
     entities_to_update.append(device)
     if device_state_history:
       entities_to_update.append(device_state_history)
+    if device_history:
+      entities_to_update.append(device_history)
   ndb.put_multi(entities_to_update)
 
 

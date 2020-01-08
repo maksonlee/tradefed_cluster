@@ -103,7 +103,7 @@ indexes:
   - name: timestamp
     direction: desc
 
-- kind: HosteNote
+- kind: HostNote
   properties:
   - name: hostname
   - name: note.timestamp

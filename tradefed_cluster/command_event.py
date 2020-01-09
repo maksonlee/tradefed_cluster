@@ -30,7 +30,8 @@ MAX_STRING_LENGTH = 4095
 
 TF_SHUTDOWN_ERROR_REGEX = re.compile(
     r"(?:.*DeviceNotAvailableException: aborted test session.*|"
-    r".*TF is shutting down.*)"
+    r".*TF is shutting down.*|"
+    r".*Tradefed is shutting down.*)"
 )
 
 

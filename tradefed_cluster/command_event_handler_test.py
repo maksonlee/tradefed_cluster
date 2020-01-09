@@ -1003,7 +1003,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
       mock_command_event_type_count: mock command event type count metric
     """
     _, request_id, _, command_id = self.command.key.flat()
-    error = "RunInterruptedException: TF is shutting down."
+    error = "RunInterruptedException: Tradefed is shutting down."
     cancelled_events = [
         command_event_test_util.CreateTestCommandEvent(
             request_id,

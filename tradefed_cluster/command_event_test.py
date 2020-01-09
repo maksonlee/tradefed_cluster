@@ -145,7 +145,7 @@ class CommandEventTest(unittest.TestCase):
   @mock.patch.object(command_error_type_config, "GetConfig")
   def testInit_tfShutDown(self, get_config):
     get_config.return_value = ("error_reason", "error_type")
-    error = "RunInterruptedException: TF is shutting down."
+    error = "RunInterruptedException: Tradefed is shutting down."
     event = command_event_test_util.CreateTestCommandEvent(
         REQUEST_ID, COMMAND_ID, ATTEMPT_ID,
         common.InvocationEventType.INVOCATION_COMPLETED,

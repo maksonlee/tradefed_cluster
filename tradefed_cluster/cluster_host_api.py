@@ -270,6 +270,43 @@ class ClusterHostApi(remote.Service):
 
     return host_note_msg
 
+  NOTES_BATCH_GET_RESOURCE = endpoints.ResourceContainer(
+      hostname=messages.StringField(1, required=True),
+      ids=messages.IntegerField(2, repeated=True),
+  )
+
+  @endpoints.method(
+      NOTES_BATCH_GET_RESOURCE,
+      api_messages.HostNoteCollection,
+      path="{hostname}/notes:batchGet",
+      http_method="GET",
+      name="batchGetNotes"
+      )
+  def BatchGetNotes(self, request):
+    """Batch get notes of a host.
+
+    Args:
+      request: an API request.
+
+    Request Params:
+      hostname: string, the name of a lab host.
+      ids: a list of strings, the ids of notes to batch get.
+
+    Returns:
+      an api_messages.HostNoteCollection object.
+    """
+    keys = [ndb.Key(datastore_entities.HostNote, entity_id)
+            for entity_id in request.ids]
+    note_entities = ndb.get_multi(keys)
+    note_msgs = [datastore_entities.ToMessage(entity)
+                 for entity in note_entities
+                 if entity and entity.hostname == request.hostname]
+    return api_messages.HostNoteCollection(
+        host_notes=note_msgs,
+        more=False,
+        next_cursor=None,
+        prev_cursor=None)
+
   NOTES_LIST_RESOURCE = endpoints.ResourceContainer(
       hostname=messages.StringField(1, required=True),
       count=messages.IntegerField(2, default=_DEFAULT_LIST_NOTES_COUNT),

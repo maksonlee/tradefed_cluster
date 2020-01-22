@@ -705,6 +705,73 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual(note_msgs[1].recovery_action,
                      note_entities[0].note.recovery_action)
 
+  def testBatchGetHostNotes(self):
+    note_entities = [
+        datastore_entities.HostNote(
+            hostname='host_1',
+            note=datastore_entities.Note(
+                user='user1',
+                timestamp=datetime.datetime(1928, 1, 1),
+                message='message_1',
+                offline_reason='offline_reason_1',
+                recovery_action='recovery_action_1')),
+        datastore_entities.HostNote(
+            hostname='host_1',
+            note=datastore_entities.Note(
+                user='user2',
+                timestamp=datetime.datetime(1918, 1, 1),
+                message='message_2',
+                offline_reason='offline_reason_2',
+                recovery_action='recovery_action_2')),
+        datastore_entities.HostNote(
+            hostname='host_1',
+            note=datastore_entities.Note(
+                user='user3',
+                timestamp=datetime.datetime(1988, 1, 1),
+                message='message_3',
+                offline_reason='offline_reason_3',
+                recovery_action='recovery_action_3')),
+        datastore_entities.HostNote(
+            hostname='host_2',
+            note=datastore_entities.Note(
+                user='user4',
+                timestamp=datetime.datetime(2008, 1, 1),
+                message='message_4',
+                offline_reason='offline_reason_4',
+                recovery_action='recovery_action_4')),
+    ]
+    keys = ndb.put_multi(note_entities)
+
+    # The result will be sorted by timestamp in descending order.  `
+    api_request = {
+        'hostname': 'host_1',
+        'ids': [keys[0].id(), keys[1].id(), keys[3].id()],
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.BatchGetNotes', api_request)
+    host_note_collection_msg = protojson.decode_message(
+        api_messages.HostNoteCollection, api_response.body)
+    note_msgs = host_note_collection_msg.host_notes
+    self.assertEqual(2, len(note_msgs))
+    self.assertEqual(note_msgs[0].hostname, note_entities[0].hostname)
+    self.assertEqual(note_msgs[0].user, note_entities[0].note.user)
+    self.assertEqual(note_msgs[0].update_timestamp,
+                     note_entities[0].note.timestamp)
+    self.assertEqual(note_msgs[0].message, note_entities[0].note.message)
+    self.assertEqual(note_msgs[0].offline_reason,
+                     note_entities[0].note.offline_reason)
+    self.assertEqual(note_msgs[0].recovery_action,
+                     note_entities[0].note.recovery_action)
+    self.assertEqual(note_msgs[1].hostname, note_entities[1].hostname)
+    self.assertEqual(note_msgs[1].user, note_entities[1].note.user)
+    self.assertEqual(note_msgs[1].update_timestamp,
+                     note_entities[1].note.timestamp)
+    self.assertEqual(note_msgs[1].message, note_entities[1].note.message)
+    self.assertEqual(note_msgs[1].offline_reason,
+                     note_entities[1].note.offline_reason)
+    self.assertEqual(note_msgs[1].recovery_action,
+                     note_entities[1].note.recovery_action)
+
   def testAssign(self):
     """Tests Assign."""
     api_request = {

@@ -292,6 +292,43 @@ class ClusterDeviceApi(remote.Service):
 
     return device_note_msg
 
+  NOTES_BATCH_GET_RESOURCE = endpoints.ResourceContainer(
+      device_serial=messages.StringField(1, required=True),
+      ids=messages.IntegerField(2, repeated=True),
+  )
+
+  @endpoints.method(
+      NOTES_BATCH_GET_RESOURCE,
+      api_messages.DeviceNoteCollection,
+      path="{device_serial}/notes:batchGet",
+      http_method="GET",
+      name="batchGetNotes"
+      )
+  def BatchGetNotes(self, request):
+    """Batch get notes of a device.
+
+    Args:
+      request: an API request.
+
+    Request Params:
+      device_serial: string, the serial of a lab device.
+      ids: a list of strings, the ids of notes to batch get.
+
+    Returns:
+      an api_messages.DeviceNoteCollection object.
+    """
+    keys = [ndb.Key(datastore_entities.DeviceNote, entity_id)
+            for entity_id in request.ids]
+    note_entities = ndb.get_multi(keys)
+    note_msgs = [datastore_entities.ToMessage(entity)
+                 for entity in note_entities
+                 if entity and entity.device_serial == request.device_serial]
+    return api_messages.DeviceNoteCollection(
+        device_notes=note_msgs,
+        more=False,
+        next_cursor=None,
+        prev_cursor=None)
+
   NOTES_LIST_RESOURCE = endpoints.ResourceContainer(
       device_serial=messages.StringField(1, required=True),
       count=messages.IntegerField(2, default=_DEFAULT_LIST_NOTES_COUNT),

@@ -265,8 +265,15 @@ class ClusterHostApi(remote.Service):
       host_note_entity.note.recovery_action = recovery_action_entity.content
       entities_to_update.append(recovery_action_entity)
 
-    ndb.put_multi(entities_to_update)
+    keys = ndb.put_multi(entities_to_update)
     host_note_msg = datastore_entities.ToMessage(host_note_entity)
+
+    note_key = keys[0]
+    if request.id != note_key.id():
+      # If ids are different, then a new note is created, we should create
+      # a history snapshot.
+      device_manager.CreateAndSaveHostInfoHistoryFromHostNote(
+          request.hostname, note_key.id())
 
     return host_note_msg
 

@@ -410,10 +410,11 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual(self.note.timestamp, device.notes[1].timestamp)
     self.assertEqual(self.note.message, device.notes[1].message)
 
-  def testAddOrUpdateDeviceNote_addWithTextOfflineReasonAndRecoveryAction(self):
+  def testAddOrUpdateDeviceNote_addWithTextOfflineReasonAndRecoveryAction(
+      self):
     """Tests adding a non-existing device note."""
     api_request = {
-        'device_serial': 'device-serial-1',
+        'device_serial': self.ndb_device_0.device_serial,
         'user': 'user-1',
         'message': 'message-1',
         'offline_reason': 'offline-reason-1',
@@ -441,12 +442,19 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertIsNotNone(datastore_entities.PredefinedMessage.query().filter(
         datastore_entities.PredefinedMessage.content ==
         api_request['recovery_action']).get())
+    # Side Effect: Assert DeviceInfoHistory is written into datastore.
+    histories = list(datastore_entities.DeviceInfoHistory.query(
+        datastore_entities.DeviceInfoHistory.device_serial
+        == self.ndb_device_0.device_serial).fetch())
+    self.assertEqual(1, len(histories))
+    self.assertEqual(int(device_note.id),
+                     histories[0].extra_info['device_note_id'])
 
   def testAddOrUpdateDeviceNote_UpdateWithTextOfflineReasonAndRecoveryAction(
       self):
     """Tests updating an existing device note."""
     api_request_1 = {
-        'device_serial': 'device-serial',
+        'device_serial': self.ndb_device_0.device_serial,
         'user': 'user-1',
         'message': 'message-1',
         'offline_reason': 'offline-reason-1',
@@ -460,7 +468,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
                                              api_response_1.body)
     api_request_2 = {
         'id': int(device_note_1.id),
-        'device_serial': 'device-serial',
+        'device_serial': self.ndb_device_0.device_serial,
         'user': 'user-2',
         'message': 'message-2',
         'offline_reason': 'offline-reason-2',
@@ -483,6 +491,13 @@ class ClusterDeviceApiTest(api_test.ApiTest):
                      device_note_2.offline_reason)
     self.assertEqual(api_request_2['recovery_action'],
                      device_note_2.recovery_action)
+    # Side Effect: Assert DeviceInfoHistory is written into datastore.
+    histories = list(datastore_entities.DeviceInfoHistory.query(
+        datastore_entities.DeviceInfoHistory.device_serial
+        == self.ndb_device_0.device_serial).fetch())
+    self.assertEqual(1, len(histories))
+    self.assertEqual(int(device_note_1.id),
+                     histories[0].extra_info['device_note_id'])
 
   def testAddOrUpdateDeviceNote_addWithIdOfflineReasonAndRecoveryAction(self):
     """Tests adding a device note with existing predefined messages."""
@@ -506,7 +521,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     offline_reason_key, recovery_action_key = ndb.put_multi(
         predefined_message_entities)
     api_request = {
-        'device_serial': 'device-serial-1',
+        'device_serial': self.ndb_device_0.device_serial,
         'user': 'user-1',
         'message': 'message-1',
         'offline_reason_id': 111,
@@ -529,6 +544,13 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     # Assert PredefinedMessage used_count fields are updated.
     self.assertEqual(3, offline_reason_key.get().used_count)
     self.assertEqual(6, recovery_action_key.get().used_count)
+    # Side Effect: Assert DeviceInfoHistory is written into datastore.
+    histories = list(datastore_entities.DeviceInfoHistory.query(
+        datastore_entities.DeviceInfoHistory.device_serial
+        == self.ndb_device_0.device_serial).fetch())
+    self.assertEqual(1, len(histories))
+    self.assertEqual(int(device_note.id),
+                     histories[0].extra_info['device_note_id'])
 
   def testGetDevice_includeHistory(self):
     """Tests GetDevice including history when they are available."""

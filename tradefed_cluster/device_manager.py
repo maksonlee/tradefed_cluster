@@ -64,6 +64,8 @@ LAST_KNOWN_BUILD_ID_KEY = "last_known_build_id"
 SDK_VERSION_KEY = "sdk_version"
 BATTERY_LEVEL_KEY = "battery_level"
 HOSTNAME_KEY = "hostname"
+HOST_NOTE_ID_KEY = "host_note_id"
+DEVICE_NOTE_ID_KEY = "device_note_id"
 
 HOST_STATE_CHANGED_EVENT_TYPE = "HOST_STATE_CHANGED"
 
@@ -855,3 +857,46 @@ def CalculateDeviceUtilization(device_serial, days=7):
   allocated_seconds = allocated_time.total_seconds()
   return float(allocated_seconds) / float(total_seconds)
 
+
+def CreateAndSaveDeviceInfoHistoryFromDeviceNote(device_serial, note_id):
+  """Create and save DeviceInfoHistory from a DeviceNote.
+
+  This method obtains current DeviceInfo based on device_serial, and create a
+  DeviceInfoHistory with DeviceNote id in extra_info, then save to datastore.
+
+  Args:
+    device_serial: string, serial number of a lab device.
+    note_id: int, the id of a DeviceNote.
+
+  Returns:
+    An instance of ndb.Key, the key of DeviceInfoHistory entity.
+  """
+  device = GetDevice(device_serial=device_serial)
+  device_info_history = _CreateDeviceInfoHistory(device)
+  if device_info_history.extra_info is None:
+    device_info_history.extra_info = {}
+  device_info_history.extra_info[DEVICE_NOTE_ID_KEY] = note_id
+  key = device_info_history.put()
+  return key
+
+
+def CreateAndSaveHostInfoHistoryFromHostNote(hostname, note_id):
+  """Create and save HostInfoHistory from a HostNote.
+
+  This method obtains current HostInfo based on hostname, and create a
+  HostInfoHistory with HosteNote id in extra_info, then save to datastore.
+
+  Args:
+    hostname: string, name of a lab host.
+    note_id: int, the id of a HostNote.
+
+  Returns:
+    An instance of ndb.Key, the key of HostInfoHistory entity.
+  """
+  host = GetHost(hostname=hostname)
+  host_info_history = _CreateHostInfoHistory(host)
+  if host_info_history.extra_info is None:
+    host_info_history.extra_info = {}
+  host_info_history.extra_info[HOST_NOTE_ID_KEY] = note_id
+  key = host_info_history.put()
+  return key

@@ -305,10 +305,11 @@ class ClusterHostApiTest(api_test.ApiTest):
     for host in host_collection.host_infos:
       self.assertEqual('paid', host.host_group)
 
-  def testAddOrUpdateHostNote_addWithTextOfflineReasonAndRecoveryAction(self):
+  def testAddOrUpdateHostNote_addWithTextOfflineReasonAndRecoveryAction(
+      self):
     """Tests adding a non-existing host note."""
     api_request = {
-        'hostname': 'hostname-1',
+        'hostname': self.ndb_host_0.hostname,
         'user': 'user-1',
         'message': 'message-1',
         'offline_reason': 'offline-reason-1',
@@ -335,12 +336,19 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertIsNotNone(datastore_entities.PredefinedMessage.query().filter(
         datastore_entities.PredefinedMessage.content ==
         api_request['recovery_action']).get())
+    # Side Effect: Assert HostInfoHistory is written into datastore.
+    histories = list(datastore_entities.HostInfoHistory.query(
+        datastore_entities.HostInfoHistory.hostname
+        == self.ndb_host_0.hostname).fetch())
+    self.assertEqual(1, len(histories))
+    self.assertEqual(int(host_note.id),
+                     histories[0].extra_info['host_note_id'])
 
   def testAddOrUpdateHostNote_updateWithTextOfflineReasonAndRecoveryAction(
       self):
     """Tests updating an existing host note."""
     api_request_1 = {
-        'hostname': 'hostname',
+        'hostname': self.ndb_host_0.hostname,
         'user': 'user-1',
         'message': 'message-1',
         'offline_reason': 'offline-reason-1',
@@ -354,7 +362,7 @@ class ClusterHostApiTest(api_test.ApiTest):
                                            api_response_1.body)
     api_request_2 = {
         'id': int(host_note_1.id),
-        'hostname': 'hostname',
+        'hostname': self.ndb_host_0.hostname,
         'user': 'user-2',
         'message': 'message-2',
         'offline_reason': 'offline-reason-2',
@@ -376,6 +384,13 @@ class ClusterHostApiTest(api_test.ApiTest):
                      host_note_2.offline_reason)
     self.assertEqual(api_request_2['recovery_action'],
                      host_note_2.recovery_action)
+    # Side Effect: Assert HostInfoHistory is written into datastore.
+    histories = list(datastore_entities.HostInfoHistory.query(
+        datastore_entities.HostInfoHistory.hostname
+        == self.ndb_host_0.hostname).fetch())
+    self.assertEqual(1, len(histories))
+    self.assertEqual(int(host_note_1.id),
+                     histories[0].extra_info['host_note_id'])
 
   def testAddOrUpdateHostNote_addWithIdOfflineReasonAndRecoveryAction(self):
     """Tests adding a host note with existing predefined messages."""
@@ -399,7 +414,7 @@ class ClusterHostApiTest(api_test.ApiTest):
     offline_reason_key, recovery_action_key = ndb.put_multi(
         predefined_message_entities)
     api_request = {
-        'hostname': 'hostname-1',
+        'hostname': self.ndb_host_0.hostname,
         'user': 'user-1',
         'message': 'message-1',
         'offline_reason_id': 111,
@@ -422,6 +437,13 @@ class ClusterHostApiTest(api_test.ApiTest):
     # Assert PredefinedMessage used_count fields are updated.
     self.assertEqual(3, offline_reason_key.get().used_count)
     self.assertEqual(6, recovery_action_key.get().used_count)
+    # Side Effect: Assert HostInfoHistory is written into datastore.
+    histories = list(datastore_entities.HostInfoHistory.query(
+        datastore_entities.HostInfoHistory.hostname
+        == self.ndb_host_0.hostname).fetch())
+    self.assertEqual(1, len(histories))
+    self.assertEqual(int(host_note.id),
+                     histories[0].extra_info['host_note_id'])
 
   def testGetHost(self):
     """Tests GetHost."""

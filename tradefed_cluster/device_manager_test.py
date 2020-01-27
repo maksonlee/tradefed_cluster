@@ -1449,6 +1449,22 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     host_history = device_manager._CreateHostInfoHistory(host)
     self.assertEqual(host.to_dict(), host_history.to_dict())
 
+  def testCreateAndSaveHostInfoHistoryFromHostNote(self):
+    datastore_test_util.CreateHost("acluster", "ahost")
+    key = device_manager.CreateAndSaveHostInfoHistoryFromHostNote(
+        "ahost", "anoteid")
+    host_history = key.get()
+    self.assertEqual("ahost", host_history.hostname)
+    self.assertEqual("anoteid", host_history.extra_info["host_note_id"])
+
+  def testCreateAndSaveDeviceInfoHistoryFromDeviceNote(self):
+    datastore_test_util.CreateDevice("acluster", "ahost", "aserial")
+    key = device_manager.CreateAndSaveDeviceInfoHistoryFromDeviceNote(
+        "aserial", "anoteid")
+    device_history = key.get()
+    self.assertEqual("aserial", device_history.device_serial)
+    self.assertEqual("anoteid", device_history.extra_info["device_note_id"])
+
 
 if __name__ == "__main__":
   unittest.main()

@@ -59,8 +59,10 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self._request_id = int(REQUEST_ID)
     self._command_id = int(COMMAND_ID)
     self._attempt_id = int(ATTEMPT_ID)
-    self.result_link = ("http://sponge.corp.example.com/invocation?"
-                        "tab=Test+Cases&show=FAILED&id=12345678-abcd")
+    self.v1_result_link = ("http://sponge.corp.example.com/invocation?"
+                           "tab=Test+Cases&show=FAILED&id=12345678-abcd")
+    self.v2_result_link = ("https://g3c.corp.example.com/results/invocations/"
+                           "b585e699-ae52-4c9f-b7d2-4a8b2d35c72f")
 
   def testAddToQueue(self):
     request = ndb.Key(datastore_entities.Request, REQUEST_ID,
@@ -926,12 +928,44 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         request_id=REQUEST_ID,
         new_state=common.RequestState.COMPLETED,
         request=datastore_entities.ToMessage(request),
-        summary="Attempt attempt_id: summary: %s\n" % self.result_link,
+        summary="Attempt attempt_id: summary: %s\n" % self.v1_result_link,
         total_test_count=5,
         failed_test_count=3,
         passed_test_count=2,
         failed_test_run_count=1,
-        result_links=[self.result_link],
+        result_links=[self.v1_result_link],
+        total_run_time_sec=1,
+        event_time=self.END_TIME)
+    self._AssertRequestEventMessageInQueue(msg)
+
+  @mock.patch.object(common, "Now")
+  def testNotifyRequestState_withV2Link(self, now):
+    now.return_value = self.END_TIME
+    request = self._CreateTestRequest(common.RequestState.COMPLETED)
+    command = self._CreateTestCommand(request, common.CommandState.COMPLETED)
+    self._CreateTestCommandAttempt(
+        command,
+        common.CommandState.COMPLETED,
+        total_test_count=5,
+        failed_test_count=3,
+        passed_test_count=2,
+        failed_test_run_count=1,
+        start_time=datetime.datetime(2016, 12, 1, 0, 0, 0),
+        end_time=datetime.datetime(2016, 12, 1, 0, 0, 1),
+        result_link=self.v2_result_link)
+    request_manager.NotifyRequestState(REQUEST_ID, force=True)
+
+    msg = api_messages.RequestEventMessage(
+        type=common.ObjectEventType.REQUEST_STATE_CHANGED,
+        request_id=REQUEST_ID,
+        new_state=common.RequestState.COMPLETED,
+        request=datastore_entities.ToMessage(request),
+        summary="Attempt attempt_id: summary: %s\n" % self.v2_result_link,
+        total_test_count=5,
+        failed_test_count=3,
+        passed_test_count=2,
+        failed_test_run_count=1,
+        result_links=[self.v2_result_link],
         total_run_time_sec=1,
         event_time=self.END_TIME)
     self._AssertRequestEventMessageInQueue(msg)
@@ -966,12 +1000,12 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         request_id=REQUEST_ID,
         new_state=common.RequestState.COMPLETED,
         request=datastore_entities.ToMessage(request),
-        summary="Attempt attempt_id: summary: %s\n" % self.result_link,
+        summary="Attempt attempt_id: summary: %s\n" % self.v1_result_link,
         total_test_count=command_attempt2.total_test_count,
         failed_test_count=command_attempt2.failed_test_count,
         passed_test_count=command_attempt2.passed_test_count,
         failed_test_run_count=command_attempt2.failed_test_run_count,
-        result_links=[self.result_link],
+        result_links=[self.v1_result_link],
         total_run_time_sec=2,
         event_time=self.END_TIME)
     self._AssertRequestEventMessageInQueue(msg)
@@ -997,12 +1031,12 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         new_state=common.RequestState.ERROR,
         request=datastore_entities.ToMessage(request),
         summary="\n".join([
-            "Attempt attempt_id: %s error (ERROR)" % self.result_link] * 3),
+            "Attempt attempt_id: %s error (ERROR)" % self.v1_result_link] * 3),
         total_test_count=0,
         failed_test_count=0,
         passed_test_count=0,
         failed_test_run_count=0,
-        result_links=[self.result_link],
+        result_links=[self.v1_result_link],
         total_run_time_sec=3,
         error_reason="UnknownErrorReason",
         error_type=common.CommandErrorType.UNKNOWN,
@@ -1030,12 +1064,12 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         new_state=common.RequestState.ERROR,
         request=datastore_entities.ToMessage(request),
         summary="Attempt attempt_id: %s %s (ERROR)" % (
-            self.result_link, error_message),
+            self.v1_result_link, error_message),
         total_test_count=0,
         failed_test_count=0,
         passed_test_count=0,
         failed_test_run_count=0,
-        result_links=[self.result_link],
+        result_links=[self.v1_result_link],
         total_run_time_sec=1,
         error_reason="ConfigurationError",
         error_type=common.CommandErrorType.TEST,
@@ -1064,12 +1098,12 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         new_state=common.RequestState.ERROR,
         request=datastore_entities.ToMessage(request),
         summary="\n".join(["Attempt attempt_id: %s %s (ERROR)" % (
-            self.result_link, error_message)] * 3),
+            self.v1_result_link, error_message)] * 3),
         total_test_count=0,
         failed_test_count=0,
         passed_test_count=0,
         failed_test_run_count=0,
-        result_links=[self.result_link],
+        result_links=[self.v1_result_link],
         total_run_time_sec=3,
         error_reason="BuildRetrievalError",
         error_type=common.CommandErrorType.INFRA,
@@ -1103,12 +1137,12 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         new_state=common.RequestState.COMPLETED,
         request=datastore_entities.ToMessage(request),
         summary="\n".join(["Attempt attempt_id: summary: %s\n" %
-                           self.result_link] * 2),
+                           self.v1_result_link] * 2),
         total_test_count=10,
         failed_test_count=1,
         passed_test_count=9,
         failed_test_run_count=1,
-        result_links=[self.result_link],
+        result_links=[self.v1_result_link],
         total_run_time_sec=2,
         event_time=self.END_TIME)
     self._AssertRequestEventMessageInQueue(msg)
@@ -1140,12 +1174,12 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         new_state=common.RequestState.COMPLETED,
         request=datastore_entities.ToMessage(request),
         summary="\n".join(["Attempt attempt_id: summary: %s\n" %
-                           self.result_link] * 2),
+                           self.v1_result_link] * 2),
         total_test_count=10,
         failed_test_count=2,
         passed_test_count=2,
         failed_test_run_count=2,
-        result_links=[self.result_link],
+        result_links=[self.v1_result_link],
         total_run_time_sec=2,
         event_time=self.END_TIME)
     self._AssertRequestEventMessageInQueue(msg)
@@ -1200,11 +1234,11 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         new_state=common.RequestState.ERROR,
         request=datastore_entities.ToMessage(request),
         summary=("Attempt attempt_id: %s No error message available. (ERROR)" %
-                 self.result_link),
+                 self.v1_result_link),
         total_test_count=0,
         failed_test_count=0,
         passed_test_count=0,
-        result_links=[self.result_link],
+        result_links=[self.v1_result_link],
         total_run_time_sec=0,
         event_time=self.END_TIME,
         failed_test_run_count=0)
@@ -1244,8 +1278,10 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   def _CreateTestCommandAttempt(self, command, state, total_test_count=1,
                                 failed_test_count=1, passed_test_count=0,
                                 failed_test_run_count=1, start_time=None,
-                                end_time=None):
+                                end_time=None, result_link=None):
     """Creates a CommandAttempt associated with a Command."""
+    if not result_link:
+      result_link = self.v1_result_link
     command_attempt = datastore_entities.CommandAttempt(
         parent=command.key,
         id=str(self._attempt_id),
@@ -1253,7 +1289,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         task_id="task_id",
         attempt_id="attempt_id",
         state=state,
-        summary="summary: %s\n" % self.result_link,
+        summary="summary: %s\n" % result_link,
         error="error" if state == common.CommandState.ERROR else None,
         total_test_count=total_test_count,
         failed_test_count=failed_test_count,

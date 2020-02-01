@@ -31,7 +31,7 @@ from tradefed_cluster import env_config
 from tradefed_cluster.util import command_util
 
 REQUEST_QUEUE = "test-request-queue"
-SPONGE_URI_PATTERN = r".*(https?://sponge.corp.example.com\S*).*"
+SPONGE_URI_PATTERN = r".*(https?://(?:sponge|g3c).corp.example.com\S*).*"
 
 
 class RequestSummary(object):

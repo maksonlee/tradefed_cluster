@@ -289,7 +289,10 @@ def _PublishHostMessage(hostname):
   host_message = datastore_entities.ToMessage(host)
   host_message.device_infos = [datastore_entities.ToMessage(d) for d in devices]
   encoded_message = protojson.encode_message(host_message)
-  data = base64.urlsafe_b64encode(encoded_message)
+  # TODO: find a better way to add event publish timestamp.
+  msg_dict = json.loads(encoded_message)
+  msg_dict['publish_timestamp'] = _Now().isoformat()
+  data = base64.urlsafe_b64encode(json.dumps(msg_dict))
   _PubsubClient.PublishMessages(
       HOST_AND_DEVICE_PUBSUB_TOPIC,
       [{

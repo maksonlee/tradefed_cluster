@@ -15,6 +15,7 @@
 """Tests for device_monitor."""
 import base64
 import datetime
+import json
 import unittest
 
 import mock
@@ -465,8 +466,11 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
       self.assertEqual(1, len(device_histories))
       self.assertEqual(common.DeviceState.GONE, device_histories[0].state)
 
+  @mock.patch.object(device_monitor, '_Now')
   @mock.patch.object(device_monitor, '_PubsubClient')
-  def testPublishHostMessage(self, mock_pubsub_client):
+  def testPublishHostMessage(self, mock_pubsub_client, mock_now):
+    now = datetime.datetime(2019, 11, 14, 10, 10)
+    mock_now.return_value = now
     device_monitor._PublishHostMessage(self.host1.hostname)
 
     topic, messages = mock_pubsub_client.PublishMessages.call_args[0]
@@ -475,6 +479,8 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual('host', message['attributes']['type'])
     data = message['data']
     data = base64.urlsafe_b64decode(data)
+    msg_dict = json.loads(data)
+    self.assertEqual('2019-11-14T10:10:00', msg_dict['publish_timestamp'])
     host_msg = protojson.decode_message(api_messages.HostInfo, data)
     self.assertEqual(self.host1.hostname, host_msg.hostname)
     self.assertEqual(str(self.host1.host_state), host_msg.host_state)

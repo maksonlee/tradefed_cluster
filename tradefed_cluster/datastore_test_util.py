@@ -58,7 +58,9 @@ def CreateHost(cluster,
                host_state=api_messages.HostState.UNKNOWN,
                tf_start_time=None,
                assignee=None,
-               device_count_summaries=None):
+               device_count_summaries=None,
+               test_runner='tradefed',
+               test_runner_version='1234'):
   """Create a host."""
   total_devices = 0
   offline_devices = 0
@@ -88,7 +90,9 @@ def CreateHost(cluster,
       host_state=host_state,
       tf_start_time=tf_start_time,
       assignee=assignee,
-      device_count_summaries=device_count_summaries or [])
+      device_count_summaries=device_count_summaries or [],
+      test_runner=test_runner,
+      test_runner_version=test_runner_version)
   ndb_host.put()
   return ndb_host
 

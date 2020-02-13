@@ -120,6 +120,12 @@ class ClusterHostApiTest(api_test.ApiTest):
         host_message.device_count_timestamp)
     self.assertEqual(host_entity.physical_cluster, host_message.cluster)
     self.assertEqual(host_entity.hidden, host_message.hidden)
+    self.assertEqual(host_entity.test_runner_version,
+                     host_message.test_runner_version)
+    self.assertEqual(host_entity.test_runner, host_message.test_runner)
+    self.assertEqual(host_entity.test_runner_version,
+                     host_message.test_harness_version)
+    self.assertEqual(host_entity.test_runner, host_message.test_harness)
 
   def testListHosts(self):
     """Tests ListHosts returns all visible hosts."""

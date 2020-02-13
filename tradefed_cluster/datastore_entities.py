@@ -841,8 +841,11 @@ def HostInfoToMessage(host_info_entity, devices=None):
       # TODO: deprecate physical_cluster, use host_group.
       cluster=host_info_entity.physical_cluster,
       host_group=host_info_entity.host_group,
+      # TODO: deprecated test runner and test runner version.
       test_runner=host_info_entity.test_runner,
       test_runner_version=host_info_entity.test_runner_version,
+      test_harness=host_info_entity.test_runner,
+      test_harness_version=host_info_entity.test_runner_version,
       timestamp=host_info_entity.timestamp,
       total_devices=host_info_entity.total_devices,
       offline_devices=host_info_entity.offline_devices,

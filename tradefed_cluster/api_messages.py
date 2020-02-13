@@ -498,6 +498,7 @@ class HostInfo(messages.Message):
   # TODO: deprecate physical_cluster, use host_group.
   cluster = messages.StringField(3)
   host_group = messages.StringField(4)
+  # TODO: deprecated test runner and test runner version.
   test_runner = messages.StringField(5)
   test_runner_version = messages.StringField(6)
   device_infos = messages.MessageField(DeviceInfo, 7, repeated=True)
@@ -522,6 +523,8 @@ class HostInfo(messages.Message):
       DeviceCountSummary, 24, repeated=True)
   # Bad host is defined in datastore_entities._IsBadHost.
   is_bad = messages.BooleanField(25)
+  test_harness = messages.StringField(26)
+  test_harness_version = messages.StringField(27)
 
 
 class HostInfoCollection(messages.Message):

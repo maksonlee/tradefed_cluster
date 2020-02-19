@@ -53,8 +53,8 @@ def _ProcessRequest(request_id):
     commands = _CreateCommands(request)
     command_manager.ScheduleTasks(commands)
     command_monitor.Monitor(commands)
-  except ValueError as e:
-    logging.error("Invalid request %s: %s", request_id, e)
+  except ValueError:
+    logging.exception("Invalid request %s", request_id)
     request_manager.CancelRequest(
         request_id, common.CancelReason.INVALID_REQUEST)
 

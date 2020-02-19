@@ -524,9 +524,11 @@ def DeleteFromQueue(request_id):
   queue = taskqueue.Queue(REQUEST_QUEUE)
   try:
     queue.delete_tasks_by_name(request_id)
-  except taskqueue.Error as e:
-    logging.warn("Failed to delete request %s from the queue: %s",
-                 request_id, e)
+  except taskqueue.Error:
+    logging.warning(
+        "Failed to delete request %s from the queue.",
+        request_id,
+        exc_info=True)
 
 
 def GetRequest(request_id):

@@ -215,8 +215,11 @@ class CommandEventBundle(object):
     for item in task_data:
       try:
         self._events.append(CommandEvent(**item))
-      except (KeyError, TypeError) as e:
-        logging.warn("Failed to parse a command event %s: %s", item, e)
+      except (KeyError, TypeError):
+        logging.warn(
+            "Failed to parse a command event %s",
+            item,
+            exc_info=True)
 
   @property
   def task_id(self):

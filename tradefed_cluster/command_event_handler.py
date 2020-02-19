@@ -141,8 +141,8 @@ class CommandEventHandler(webapp2.RequestHandler):
           continue
         ProcessCommandEvent(event)
       except Exception as e:          exception = e
-        logging.warn("Failed to process (%s, %s), will retry:\n%s",
-                     event.task_id, event.type, e)
+        logging.warn("Failed to process (%s, %s), will retry.",
+                     event.task_id, event.type, exc_info=True)
         # failed events will be retried later.
         failed_objs.append(obj)
     if failed_objs:

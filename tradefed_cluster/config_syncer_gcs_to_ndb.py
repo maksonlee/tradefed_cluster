@@ -38,11 +38,10 @@ def GetLabConfigFromGCS(lab_config_path):
   """
   try:
     return lab_config.Parse(cloudstorage.open(lab_config_path))
-  except cloudstorage.NotFoundError as err:
-    logging.error('Cannot open lab config file: %s due to: %s',
-                  lab_config_path, err)
-  except lab_config.ConfigError as err:
-    logging.error('Fail to parse file: %s due to: %s', lab_config_path, err)
+  except cloudstorage.NotFoundError:
+    logging.exception('Cannot open lab config file: %s', lab_config_path)
+  except lab_config.ConfigError:
+    logging.exception('Fail to parse file: %s', lab_config_path)
 
 
 def _UpdateClusterConfigs(cluster_configs):

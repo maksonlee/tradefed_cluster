@@ -46,10 +46,11 @@ class CommandTask(messages.Message):
   device_serials = messages.StringField(6, repeated=True)
   shard_count = messages.IntegerField(7)
   shard_index = messages.IntegerField(8)
-  plugin_data = messages.MessageField(api_messages.KeyValuePair,
-                                      9,
-                                      repeated=True)
-  attempt_id = messages.StringField(10)
+  plugin_data = messages.MessageField(
+      api_messages.KeyValuePair, 9, repeated=True)
+  extra_options = messages.MessageField(
+      api_messages.KeyMultiValuePair, 10, repeated=True)
+  attempt_id = messages.StringField(11)
 
 
 class CommandTaskList(messages.Message):

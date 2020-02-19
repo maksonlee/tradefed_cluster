@@ -73,6 +73,21 @@ def MapToKeyValuePairMessages(key_value_map):
   return key_value_pair_messages
 
 
+def KeyMultiValuePairMessagesToMap(pairs):
+  """Transform a list of KeyMultiValuePair message to a dict."""
+  return {pair.key: pair.values for pair in pairs}
+
+
+def MapToKeyMultiValuePairMessages(key_values_map):
+  """Transform a key-values dict to a list of KeyMultiValuePairs."""
+  pairs = []
+  for key, values in (key_values_map or {}).iteritems():
+    str_values = [str(v) if v is not None else v for v in values]
+    pairs.append(KeyMultiValuePair(key=key, values=str_values))
+  pairs.sort(key=lambda p: p.key)
+  return pairs
+
+
 class TradefedConfigObjectType(messages.Enum):
   """TF config object types."""
   UNKNOWN = 0

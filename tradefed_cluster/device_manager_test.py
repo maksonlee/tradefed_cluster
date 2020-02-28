@@ -1465,6 +1465,27 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual("aserial", device_history.device_serial)
     self.assertEqual("anoteid", device_history.extra_info["device_note_id"])
 
+  def testIsFastbootDevice(self):
+    self.assertTrue(
+        device_manager._IsFastbootDevice(
+            common.DeviceState.AVAILABLE,
+            api_messages.DeviceTypeMessage.PHYSICAL,
+            "unknown", common.TestHarness.TRADEFED))
+
+  def testIsFastbootDevice_MHDeviceNoProduct(self):
+    self.assertFalse(
+        device_manager._IsFastbootDevice(
+            common.DeviceState.AVAILABLE,
+            api_messages.DeviceTypeMessage.PHYSICAL,
+            "unknown", common.TestHarness.MH))
+
+  def testIsFastbootDevice_MHDeviceFastboot(self):
+    self.assertTrue(
+        device_manager._IsFastbootDevice(
+            common.DeviceState.FASTBOOT,
+            api_messages.DeviceTypeMessage.PHYSICAL,
+            "unknown", common.TestHarness.MH))
+
 
 if __name__ == "__main__":
   unittest.main()

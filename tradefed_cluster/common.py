@@ -132,6 +132,14 @@ DEVICE_OFFLINE_STATES = (
 )
 
 
+class TestHarness(object):
+  """Test harness."""
+  UNKNOWN = "UNKNOWN"
+  TRADEFED = "tradefed"
+  MH = "MH"
+  GOATS = "GOATS"
+
+
 
 class CancelReason(messages.Enum):
   """Enum for cancel reasons."""

@@ -369,10 +369,8 @@ def _UpdateDeviceInNDB(device, device_key, device_data, host_event):
   device.extra_info = device.extra_info or {}
   device_state = device_data.get(STATE_KEY, device_data.get("device_state"))
   if common.DeviceState.AVAILABLE == device_state:
-    # TF reports devices in fastboot as available stub devices (no properties)
-    if (api_messages.DeviceTypeMessage.PHYSICAL == device_type and
-        not _IsKnownProperty(product)):
-      # We only care about Physical devices in fastboot state
+    if _IsFastbootDevice(
+        device_state, device_type, product, host_event.test_runner):
       device_state = common.DeviceState.FASTBOOT
     device.product = product
     device.extra_info[PRODUCT_KEY] = product
@@ -428,6 +426,28 @@ def _UpdateDeviceInNDB(device, device_key, device_data, host_event):
   if device_history:
     entities_to_update.append(device_history)
   return entities_to_update
+
+
+def _IsFastbootDevice(device_state, device_type, product, test_harness):
+  """Check if a device is in fastboot state or not.
+
+  TF reports devices in fastboot as available stub devices (no properties)
+  We only care about Physical devices in fastboot state
+
+  Args:
+    device_state: device's state
+    device_type: device type
+    product: device's product
+    test_harness: device's test_harness
+  Returns:
+    True if the device is fastboot device, otherwise False.
+  """
+  if (common.TestHarness.TRADEFED == test_harness and
+      common.DeviceState.AVAILABLE == device_state and
+      api_messages.DeviceTypeMessage.PHYSICAL == device_type and
+      not _IsKnownProperty(product)):
+    return True
+  return device_state == common.DeviceState.FASTBOOT
 
 
 def _UpdateDeviceState(device, state, timestamp):

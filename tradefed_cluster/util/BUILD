@@ -83,6 +83,7 @@ py_appengine_library(
     srcs = [
         "pubsub_client.py",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         third_party("googleapiclient"),
     ],

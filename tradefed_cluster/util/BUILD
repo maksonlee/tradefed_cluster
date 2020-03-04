@@ -39,6 +39,7 @@ py_appengine_library(
     srcs = [
         "email_sender.py",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         third_party("jinja2"),
     ],

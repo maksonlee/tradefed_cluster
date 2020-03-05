@@ -28,12 +28,14 @@ from tradefed_cluster.util import command_util
 REQUEST_HANDLER_PATH = "/_ah/queue/%s" % request_manager.REQUEST_QUEUE
 
 # The max number of command shards per request.
+# LINT.IfChange(max_shard_count)
 DEFAULT_MAX_SHARDS = 20
 RUN_TARGET_TO_MAX_SHARDS_MAP = {
     # Allow more shards for virtual device run targets.
     "RemoteAvdIDevice": 100,
     "TcpDevice": 100
 }
+
 
 
 def _ProcessRequest(request_id):

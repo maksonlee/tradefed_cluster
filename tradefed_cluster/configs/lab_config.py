@@ -107,7 +107,8 @@ class HostConfig(object):
   @property
   def docker_image(self):
     """Get the docker image the host to use."""
-    return (self.cluster_config_pb.docker_image or
+    return (self.host_config_pb.docker_image or
+            self.cluster_config_pb.docker_image or
             self.lab_config_pb.docker_image)
 
   @property
@@ -223,7 +224,8 @@ def CreateHostConfig(
       hostname=hostname,
       tf_global_config_path=tf_global_config_path,
       tmpfs_configs=tmpfs_configs,
-      enable_autoupdate=enable_autoupdate)
+      enable_autoupdate=enable_autoupdate,
+      docker_image=docker_image)
   cluster_config_pb = lab_config_pb2.ClusterConfig(
       cluster_name=cluster_name,
       host_login_name=host_login_name,

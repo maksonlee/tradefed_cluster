@@ -48,6 +48,7 @@ cluster_configs:
   - hostname: host2
   - hostname: host3
     tf_global_config_path: path/to/new/config.xml
+    docker_image: gcr.io/dockerized-tradefed/tradefed:canary
 
 - cluster_name: cluster2
   tf_global_config_path: path/to/config.xml

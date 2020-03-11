@@ -78,6 +78,8 @@ message HostConfig {
   repeated TmpfsConfig tmpfs_configs = 4;
   // Enable auto-update daemon.
   optional bool enable_autoupdate = 5;
+  // Docker image to use for the host.
+  optional string docker_image = 6;
 }
 
 

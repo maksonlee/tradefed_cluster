@@ -255,7 +255,7 @@ class LabConfigPoolTest(unittest.TestCase):
     self.assertEqual('cluster1', hosts[2].cluster_name)
     self.assertEqual('path/to/new/config.xml', hosts[2].tf_global_config_path)
     self.assertEqual('tradefed_cluster', hosts[2].master_url)
-    self.assertEqual('gcr.io/dockerized-tradefed/tradefed:golden',
+    self.assertEqual('gcr.io/dockerized-tradefed/tradefed:canary',
                      hosts[2].docker_image)
     hosts = pool.GetHostConfigs('cluster2')
     self.assertEqual(2, len(hosts))

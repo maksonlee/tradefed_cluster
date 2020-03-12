@@ -111,6 +111,11 @@ class HostConfig(object):
             self.cluster_config_pb.docker_image or
             self.lab_config_pb.docker_image)
 
+  @docker_image.setter
+  def docker_image(self, val):
+    """The setter of field service_account_json_key_path."""
+    self.lab_config_pb.docker_image = val
+
   @property
   def graceful_shutdown(self):
     """Graceful shutdown or not."""

@@ -324,6 +324,7 @@ class ClusterHostApi(remote.Service):
       hostname=messages.StringField(1, required=True),
       count=messages.IntegerField(2, default=_DEFAULT_LIST_NOTES_COUNT),
       cursor=messages.StringField(3),
+      backwards=messages.BooleanField(4, default=False),
   )
 
   @endpoints.method(
@@ -347,7 +348,7 @@ class ClusterHostApi(remote.Service):
                 -datastore_entities.HostNote.note.timestamp))
 
     note_entities, prev_cursor, next_cursor = datastore_util.FetchPage(
-        query, request.count, request.cursor)
+        query, request.count, request.cursor, backwards=request.backwards)
     note_msgs = [
         datastore_entities.ToMessage(entity) for entity in note_entities
     ]
@@ -454,6 +455,7 @@ class ClusterHostApi(remote.Service):
       hostname=messages.StringField(1, required=True),
       count=messages.IntegerField(2, default=_DEFAULT_LIST_HISTORIES_COUNT),
       cursor=messages.StringField(3),
+      backwards=messages.BooleanField(4, default=False),
   )
 
   @endpoints.method(
@@ -476,7 +478,7 @@ class ClusterHostApi(remote.Service):
         .query(ancestor=ndb.Key(datastore_entities.HostInfo, request.hostname))
         .order(-datastore_entities.HostInfoHistory.timestamp))
     histories, prev_cursor, next_cursor = datastore_util.FetchPage(
-        query, request.count, request.cursor)
+        query, request.count, request.cursor, backwards=request.backwards)
     history_msgs = [
         datastore_entities.ToMessage(entity) for entity in histories
     ]

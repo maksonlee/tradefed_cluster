@@ -751,6 +751,141 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual(note_msgs[1].recovery_action,
                      note_entities[0].note.recovery_action)
 
+  def testListHostNotes_withCursorAndOffsetAndBackwards(self):
+    note_entities = [
+        datastore_entities.HostNote(
+            hostname='host_1',
+            note=datastore_entities.Note(
+                user='user1',
+                timestamp=datetime.datetime(1928, 1, 1),
+                message='message_1',
+                offline_reason='offline_reason_1',
+                recovery_action='recovery_action_1')),
+        datastore_entities.HostNote(
+            hostname='host_1',
+            note=datastore_entities.Note(
+                user='user2',
+                timestamp=datetime.datetime(1918, 1, 1),
+                message='message_2',
+                offline_reason='offline_reason_2',
+                recovery_action='recovery_action_2')),
+        datastore_entities.HostNote(
+            hostname='host_1',
+            note=datastore_entities.Note(
+                user='user3',
+                timestamp=datetime.datetime(1988, 1, 1),
+                message='message_3',
+                offline_reason='offline_reason_3',
+                recovery_action='recovery_action_3')),
+        datastore_entities.HostNote(
+            hostname='host_1',
+            note=datastore_entities.Note(
+                user='user4',
+                timestamp=datetime.datetime(2008, 1, 1),
+                message='message_4',
+                offline_reason='offline_reason_4',
+                recovery_action='recovery_action_4')),
+    ]
+    for entity in note_entities:
+      entity.put()
+
+    # The result will be sorted by timestamp in descending order.  `
+    api_request = {
+        'hostname': 'host_1',
+        'count': 2,
+    }
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListNotes',
+                                          api_request)
+    host_note_collection_msg = protojson.decode_message(
+        api_messages.HostNoteCollection, api_response.body)
+    self.assertTrue(host_note_collection_msg.more)
+    self.assertIsNotNone(host_note_collection_msg.next_cursor)
+    note_msgs = host_note_collection_msg.host_notes
+    self.assertEqual(2, len(note_msgs))
+    self.assertEqual(note_msgs[0].hostname, note_entities[3].hostname)
+    self.assertEqual(note_msgs[0].user, note_entities[3].note.user)
+    self.assertEqual(note_msgs[0].update_timestamp,
+                     note_entities[3].note.timestamp)
+    self.assertEqual(note_msgs[0].message, note_entities[3].note.message)
+    self.assertEqual(note_msgs[0].offline_reason,
+                     note_entities[3].note.offline_reason)
+    self.assertEqual(note_msgs[0].recovery_action,
+                     note_entities[3].note.recovery_action)
+    self.assertEqual(note_msgs[1].hostname, note_entities[2].hostname)
+    self.assertEqual(note_msgs[1].user, note_entities[2].note.user)
+    self.assertEqual(note_msgs[1].update_timestamp,
+                     note_entities[2].note.timestamp)
+    self.assertEqual(note_msgs[1].message, note_entities[2].note.message)
+    self.assertEqual(note_msgs[1].offline_reason,
+                     note_entities[2].note.offline_reason)
+    self.assertEqual(note_msgs[1].recovery_action,
+                     note_entities[2].note.recovery_action)
+
+    # fetch next page
+    api_request = {
+        'hostname': 'host_1',
+        'count': 2,
+        'cursor': host_note_collection_msg.next_cursor,
+    }
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListNotes',
+                                          api_request)
+    host_note_collection_msg = protojson.decode_message(
+        api_messages.HostNoteCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertIsNotNone(host_note_collection_msg.prev_cursor)  # has previous
+    note_msgs = host_note_collection_msg.host_notes
+    self.assertEqual(2, len(note_msgs))
+    self.assertEqual(note_msgs[0].hostname, note_entities[0].hostname)
+    self.assertEqual(note_msgs[0].user, note_entities[0].note.user)
+    self.assertEqual(note_msgs[0].update_timestamp,
+                     note_entities[0].note.timestamp)
+    self.assertEqual(note_msgs[0].message, note_entities[0].note.message)
+    self.assertEqual(note_msgs[0].offline_reason,
+                     note_entities[0].note.offline_reason)
+    self.assertEqual(note_msgs[0].recovery_action,
+                     note_entities[0].note.recovery_action)
+    self.assertEqual(note_msgs[1].hostname, note_entities[1].hostname)
+    self.assertEqual(note_msgs[1].user, note_entities[1].note.user)
+    self.assertEqual(note_msgs[1].update_timestamp,
+                     note_entities[1].note.timestamp)
+    self.assertEqual(note_msgs[1].message, note_entities[1].note.message)
+    self.assertEqual(note_msgs[1].offline_reason,
+                     note_entities[1].note.offline_reason)
+    self.assertEqual(note_msgs[1].recovery_action,
+                     note_entities[1].note.recovery_action)
+
+    # fetch previous page (same as first page)
+    api_request = {
+        'hostname': 'host_1',
+        'count': 2,
+        'cursor': host_note_collection_msg.prev_cursor,
+        'backwards': True,
+    }
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListNotes',
+                                          api_request)
+    host_note_collection_msg = protojson.decode_message(
+        api_messages.HostNoteCollection, api_response.body)
+    note_msgs = host_note_collection_msg.host_notes
+    self.assertEqual(2, len(note_msgs))
+    self.assertEqual(note_msgs[0].hostname, note_entities[3].hostname)
+    self.assertEqual(note_msgs[0].user, note_entities[3].note.user)
+    self.assertEqual(note_msgs[0].update_timestamp,
+                     note_entities[3].note.timestamp)
+    self.assertEqual(note_msgs[0].message, note_entities[3].note.message)
+    self.assertEqual(note_msgs[0].offline_reason,
+                     note_entities[3].note.offline_reason)
+    self.assertEqual(note_msgs[0].recovery_action,
+                     note_entities[3].note.recovery_action)
+    self.assertEqual(note_msgs[1].hostname, note_entities[2].hostname)
+    self.assertEqual(note_msgs[1].user, note_entities[2].note.user)
+    self.assertEqual(note_msgs[1].update_timestamp,
+                     note_entities[2].note.timestamp)
+    self.assertEqual(note_msgs[1].message, note_entities[2].note.message)
+    self.assertEqual(note_msgs[1].offline_reason,
+                     note_entities[2].note.offline_reason)
+    self.assertEqual(note_msgs[1].recovery_action,
+                     note_entities[2].note.recovery_action)
+
   def testBatchGetHostNotes(self):
     note_entities = [
         datastore_entities.HostNote(
@@ -879,6 +1014,59 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual(api_messages.HostState.RUNNING.name,
                      host_history_collection.histories[2].host_state)
 
+  def testListHostHistories_withCursorAndOffsetAndBackwards(self):
+    """Tests ListHistories returns histories applying a count and offset."""
+    device_manager._CreateHostInfoHistory(self.ndb_host_0).put()
+    self.ndb_host_0.host_state = api_messages.HostState.KILLING
+    self.ndb_host_0.timestamp += datetime.timedelta(hours=1)
+    device_manager._CreateHostInfoHistory(self.ndb_host_0).put()
+    self.ndb_host_0.host_state = api_messages.HostState.GONE
+    self.ndb_host_0.timestamp += datetime.timedelta(hours=1)
+    device_manager._CreateHostInfoHistory(self.ndb_host_0).put()
+    # fetch first page
+    api_request = {
+        'hostname': self.ndb_host_0.hostname, 'count': 2
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.ListHistories', api_request)
+    host_history_collection = protojson.decode_message(
+        api_messages.HostInfoHistoryCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(2, len(host_history_collection.histories))
+    self.assertEqual(api_messages.HostState.GONE.name,
+                     host_history_collection.histories[0].host_state)
+    self.assertEqual(api_messages.HostState.KILLING.name,
+                     host_history_collection.histories[1].host_state)
+    # fetch next page
+    api_request = {
+        'hostname': self.ndb_host_0.hostname, 'count': 2,
+        'cursor': host_history_collection.next_cursor
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.ListHistories', api_request)
+    host_history_collection = protojson.decode_message(
+        api_messages.HostInfoHistoryCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(1, len(host_history_collection.histories))
+    self.assertEqual(api_messages.HostState.RUNNING.name,
+                     host_history_collection.histories[0].host_state)
+
+    # fetch previous page (same as first page)
+    api_request = {
+        'hostname': self.ndb_host_0.hostname, 'count': 2,
+        'cursor': host_history_collection.prev_cursor,
+        'backwards': True
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.ListHistories', api_request)
+    host_history_collection = protojson.decode_message(
+        api_messages.HostInfoHistoryCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(2, len(host_history_collection.histories))
+    self.assertEqual(api_messages.HostState.GONE.name,
+                     host_history_collection.histories[0].host_state)
+    self.assertEqual(api_messages.HostState.KILLING.name,
+                     host_history_collection.histories[1].host_state)
 
 if __name__ == '__main__':
   unittest.main()

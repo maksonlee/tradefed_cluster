@@ -435,7 +435,17 @@ class ClusterDeviceApi(remote.Service):
     Raises:
       endpoints.NotFoundException: If the given device does not exist.
     """
-    return self._SetHidden(request.hostname, request.device_serial, True)
+    device = device_manager.GetDevice(
+        device_serial=request.device_serial,
+        hostname=request.hostname)
+    if not device:
+      raise endpoints.NotFoundException(
+          "Device {0} {1} does not exist."
+          .format(request.hostname, request.device_serial))
+    device = device_manager.HideDevice(
+        device_serial=device.device_serial,
+        hostname=device.hostname)
+    return datastore_entities.ToMessage(device)
 
   @endpoints.method(
       DEVICE_SERIAL_RESOURCE,
@@ -454,20 +464,17 @@ class ClusterDeviceApi(remote.Service):
     Raises:
       endpoints.NotFoundException: If the given device does not exist.
     """
-    return self._SetHidden(request.hostname, request.device_serial, False)
-
-  def _SetHidden(self, hostname, device_serial, hidden):
-    """Helper to set the hidden flag of a device."""
     device = device_manager.GetDevice(
-        hostname=hostname,
-        device_serial=device_serial)
+        device_serial=request.device_serial,
+        hostname=request.hostname)
     if not device:
-      raise endpoints.NotFoundException("Device {0} {1} does not exist."
-                                        .format(hostname, device_serial))
-    device.hidden = hidden
-    device.put()
-    device_info = datastore_entities.ToMessage(device)
-    return device_info
+      raise endpoints.NotFoundException(
+          "Device {0} {1} does not exist."
+          .format(request.hostname, request.device_serial))
+    device = device_manager.RestoreDevice(
+        device_serial=device.device_serial,
+        hostname=device.hostname)
+    return datastore_entities.ToMessage(device)
 
   HISTORIES_LIST_RESOURCE = endpoints.ResourceContainer(
       device_serial=messages.StringField(1, required=True),

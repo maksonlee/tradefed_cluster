@@ -1372,6 +1372,61 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     host = host.key.get()
     self.assertEqual(before, host.timestamp)
 
+  @mock.patch.object(device_manager, "_Now")
+  def testRestoreHost(self, mock_now):
+    now = datetime.datetime(2019, 11, 14, 10, 10)
+    mock_now.return_value = now
+    host = datastore_test_util.CreateHost("free", "host1", hidden=True)
+
+    device_manager.RestoreHost("host1")
+
+    ndb.get_context().clear_cache()
+    host = host.key.get()
+    self.assertEqual(now, host.timestamp)
+    self.assertFalse(host.hidden)
+
+  @mock.patch.object(device_manager, "_Now")
+  def testHideDevice(self, mock_now):
+    now = datetime.datetime(2019, 11, 14, 10, 10)
+    mock_now.return_value = now
+    host = datastore_test_util.CreateHost("free", "host1")
+    datastore_test_util.CreateDevice("free", "host1", "s1")
+    d2 = datastore_test_util.CreateDevice("free", "host1", "s2")
+    device_manager._CountDeviceForHost("host1")
+    host = host.key.get()
+    self.assertEqual(1, len(host.device_count_summaries))
+    self.assertEqual(2, host.device_count_summaries[0].total)
+
+    device_manager.HideDevice("s2", "host1")
+    ndb.get_context().clear_cache()
+    d2 = d2.key.get()
+    self.assertEqual(now, d2.timestamp)
+    self.assertTrue(d2.hidden)
+    host = host.key.get()
+    self.assertEqual(1, len(host.device_count_summaries))
+    self.assertEqual(1, host.device_count_summaries[0].total)
+
+  @mock.patch.object(device_manager, "_Now")
+  def testRestoreDevice(self, mock_now):
+    now = datetime.datetime(2019, 11, 14, 10, 10)
+    mock_now.return_value = now
+    host = datastore_test_util.CreateHost("free", "host1")
+    datastore_test_util.CreateDevice("free", "host1", "s1")
+    d2 = datastore_test_util.CreateDevice("free", "host1", "s2", hidden=True)
+    device_manager._CountDeviceForHost("host1")
+    host = host.key.get()
+    self.assertEqual(1, len(host.device_count_summaries))
+    self.assertEqual(1, host.device_count_summaries[0].total)
+
+    device_manager.RestoreDevice("s2", "host1")
+    ndb.get_context().clear_cache()
+    d2 = d2.key.get()
+    self.assertEqual(now, d2.timestamp)
+    self.assertFalse(d2.hidden)
+    host = host.key.get()
+    self.assertEqual(1, len(host.device_count_summaries))
+    self.assertEqual(2, host.device_count_summaries[0].total)
+
   def testAssignHosts(self):
     host1 = datastore_test_util.CreateHost("free", "host1")
     host2 = datastore_test_util.CreateHost("free", "host2")

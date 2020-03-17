@@ -421,7 +421,11 @@ class ClusterHostApi(remote.Service):
     Raises:
       endpoints.NotFoundException: If the given device does not exist.
     """
-    return self._SetHidden(request.hostname, True)
+    host = device_manager.HideHost(request.hostname)
+    if not host:
+      raise endpoints.NotFoundException(
+          "Host %s does not exist." % request.hostname)
+    return datastore_entities.ToMessage(host)
 
   @endpoints.method(
       HOSTNAME_RESOURCE,
@@ -440,25 +444,11 @@ class ClusterHostApi(remote.Service):
     Raises:
       endpoints.NotFoundException: If the given device does not exist.
     """
-    return self._SetHidden(request.hostname, False)
-
-  def _SetHidden(self, hostname, hidden):
-    """Helper to set the hidden flag of a host."""
-    entities_to_update = []
-    host = device_manager.GetHost(hostname)
+    host = device_manager.RestoreHost(request.hostname)
     if not host:
-      raise endpoints.NotFoundException("Host %s does not exist." % hostname)
-    host.hidden = hidden
-    entities_to_update.append(host)
-    if hidden:
-      # Hide a host should also hide devices under the host.
-      device_query = (datastore_entities.DeviceInfo.query(ancestor=host.key)
-                      .filter(datastore_entities.DeviceInfo.hidden == False))        for device in device_query.fetch():
-        device.hidden = hidden
-        entities_to_update.append(device)
-    ndb.put_multi(entities_to_update)
-    host_info = datastore_entities.ToMessage(host)
-    return host_info
+      raise endpoints.NotFoundException(
+          "Host %s does not exist." % request.hostname)
+    return datastore_entities.ToMessage(host)
 
   HISTORIES_LIST_RESOURCE = endpoints.ResourceContainer(
       hostname=messages.StringField(1, required=True),

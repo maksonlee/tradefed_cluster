@@ -685,9 +685,11 @@ def HideHost(hostname):
   """Hide a host and its devices."""
   logging.info("Hide host %s.", hostname)
   host = GetHost(hostname)
+  if not host:
+    return None
   if host.hidden:
     logging.info("Host %s is already hidden.", hostname)
-    return
+    return host
   now = _Now()
   entities_to_update = []
   host.hidden = True
@@ -702,6 +704,116 @@ def HideHost(hostname):
     device.timestamp = now
     entities_to_update.append(device)
   ndb.put_multi(entities_to_update)
+  return host
+
+
+@ndb.transactional
+def RestoreHost(hostname):
+  """Restore a host and its devices."""
+  logging.info("Restore host %s.", hostname)
+  host = GetHost(hostname)
+  if not host:
+    return None
+  if not host.hidden:
+    logging.info("Host %s is not hidden.", hostname)
+    return host
+  now = _Now()
+  entities_to_update = []
+  host.hidden = False
+  host.timestamp = now
+  entities_to_update.append(host)
+  host.put()
+  # We do not restore device for the host, since if devices are still
+  # on the host it should report in next host event.
+  return host
+
+
+def HideDevice(device_serial, hostname):
+  """Hide a device.
+
+  Args:
+    device_serial: device's serial
+    hostname: device hostname
+  Returns:
+    the DeviceInfo entity.
+  """
+  device = _DoHideDevice(device_serial, hostname)
+  if device:
+    _CountDeviceForHost(hostname)
+  return device
+
+
+@ndb.transactional
+def _DoHideDevice(device_serial, hostname):
+  """Actually hide the device.
+
+  This need to run in a separate transaction otherwise _CountDeviceForHost
+  doesn't work, since it will count device before the hide is committed.
+  Both device serial and hostname are required since transactional
+  only works for ancestor query.
+
+  Args:
+    device_serial: device's serial
+    hostname: device hostname
+  Returns:
+    the DeviceInfo entity.
+  """
+  device = ndb.Key(
+      datastore_entities.HostInfo, hostname,
+      datastore_entities.DeviceInfo, device_serial).get()
+  if not device:
+    return None
+  if device.hidden:
+    logging.info("Device %s %s is already hidden.", device_serial, hostname)
+    return device
+  device.hidden = True
+  device.timestamp = _Now()
+  device.put()
+  return device
+
+
+def RestoreDevice(device_serial, hostname):
+  """Restore a device.
+
+  Args:
+    device_serial: device's serial
+    hostname: device hostname
+  Returns:
+    the DeviceInfo entity.
+  """
+  device = _DoRestoreDevice(device_serial, hostname)
+  if device:
+    _CountDeviceForHost(hostname)
+  return device
+
+
+@ndb.transactional
+def _DoRestoreDevice(device_serial, hostname):
+  """Actually restore the device.
+
+  This need to run in a separate transaction otherwise _CountDeviceForHost
+  doesn't work, since it will count device before the restore is committed.
+  Both device serial and hostname are required since transactional
+  only works for ancestor query.
+
+  Args:
+    device_serial: device's serial
+    hostname: device hostname
+  Returns:
+    the DeviceInfo entity.
+  """
+  device = ndb.Key(
+      datastore_entities.HostInfo, hostname,
+      datastore_entities.DeviceInfo, device_serial).get()
+  if not device:
+    return None
+  if not device.hidden:
+    logging.info("Device %s %s is not hidden.", device_serial, hostname)
+    return device
+  device.hidden = False
+  device.timestamp = _Now()
+  device.put()
+  return device
 
 
 def AssignHosts(hostnames, assignee):

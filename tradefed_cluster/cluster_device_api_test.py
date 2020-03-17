@@ -950,7 +950,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual(note_msgs[1].recovery_action,
                      note_entities[1].note.recovery_action)
 
-  def testListHostHistories(self):
+  def testListDeviceHistories(self):
     """Tests ListHistories returns all device histories."""
     device_manager._CreateDeviceInfoHistory(self.ndb_device_0).put()
     self.ndb_device_0.state = common.DeviceState.ALLOCATED
@@ -975,6 +975,64 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual(common.DeviceState.AVAILABLE,
                      device_history_collection.histories[2].state)
 
+  def testListDeviceHistories_withCursorAndOffsetAndBackwards(self):
+    """Tests ListHistories returns histories applying a count and offset."""
+    device_manager._CreateDeviceInfoHistory(self.ndb_device_0).put()
+    self.ndb_device_0.state = common.DeviceState.ALLOCATED
+    self.ndb_device_0.timestamp += datetime.timedelta(hours=1)
+    device_manager._CreateDeviceInfoHistory(self.ndb_device_0).put()
+    self.ndb_device_0.state = common.DeviceState.GONE
+    self.ndb_device_0.timestamp += datetime.timedelta(hours=1)
+    device_manager._CreateDeviceInfoHistory(self.ndb_device_0).put()
+    # fetch first page
+    api_request = {
+        'device_serial': self.ndb_device_0.device_serial, 'count': 2
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterDeviceApi.ListHistories', api_request)
+    device_history_collection = protojson.decode_message(
+        api_messages.DeviceInfoHistoryCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(2, len(device_history_collection.histories))
+    self.assertEqual(common.DeviceState.GONE,
+                     device_history_collection.histories[0].state)
+    self.assertEqual(common.DeviceState.ALLOCATED,
+                     device_history_collection.histories[1].state)
+    self.assertIsNotNone(device_history_collection.next_cursor)  # has next
+
+    # fetch next page
+    api_request = {
+        'device_serial': self.ndb_device_0.device_serial,
+        'count': 2,
+        'cursor': device_history_collection.next_cursor
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterDeviceApi.ListHistories', api_request)
+    device_history_collection = protojson.decode_message(
+        api_messages.DeviceInfoHistoryCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(1, len(device_history_collection.histories))
+    self.assertIsNone(device_history_collection.next_cursor)
+    self.assertIsNotNone(device_history_collection.prev_cursor)  # has previous
+
+    # fetch previous page (same as first page)
+    api_request = {
+        'device_serial': self.ndb_device_0.device_serial,
+        'count': 2,
+        'cursor': device_history_collection.prev_cursor,
+        'backwards': True
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterDeviceApi.ListHistories', api_request)
+    device_history_collection = protojson.decode_message(
+        api_messages.DeviceInfoHistoryCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(2, len(device_history_collection.histories))
+    self.assertEqual(common.DeviceState.GONE,
+                     device_history_collection.histories[0].state)
+    self.assertEqual(common.DeviceState.ALLOCATED,
+                     device_history_collection.histories[1].state)
+    self.assertIsNotNone(device_history_collection.next_cursor)
 
 if __name__ == '__main__':
   unittest.main()

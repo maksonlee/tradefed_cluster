@@ -473,6 +473,7 @@ class ClusterDeviceApi(remote.Service):
       device_serial=messages.StringField(1, required=True),
       count=messages.IntegerField(2, default=_DEFAULT_LIST_HISTORIES_COUNT),
       cursor=messages.StringField(3),
+      backwards=messages.BooleanField(4, default=False),
   )
 
   @endpoints.method(
@@ -496,7 +497,7 @@ class ClusterDeviceApi(remote.Service):
         .query(ancestor=device.key)
         .order(-datastore_entities.DeviceInfoHistory.timestamp))
     histories, prev_cursor, next_cursor = datastore_util.FetchPage(
-        query, request.count, request.cursor)
+        query, request.count, request.cursor, backwards=request.backwards)
     history_msgs = [
         datastore_entities.ToMessage(entity) for entity in histories
     ]

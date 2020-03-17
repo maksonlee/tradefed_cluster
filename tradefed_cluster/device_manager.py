@@ -206,8 +206,16 @@ def _CountDeviceForHost(hostname):
       .filter(datastore_entities.DeviceInfo.hidden == False)        .fetch(projection=[
           datastore_entities.DeviceInfo.run_target,
           datastore_entities.DeviceInfo.state]))
+  _DoCountDeviceForHost(host, devices)
+  host.put()
+
+
+def _DoCountDeviceForHost(host, devices):
+  """Actually count devices for a host."""
+  if not host:
+    return
   if not devices:
-    logging.info("No devices reported for host [%s]", hostname)
+    logging.info("No devices reported for host [%s]", host.hostname)
     if not host.total_devices and not host.device_count_summaries:
       return
     # If there is no devices but the total_devices is not 0, we need to clear
@@ -238,7 +246,6 @@ def _CountDeviceForHost(hostname):
       device_count.offline += 1
   host.device_count_timestamp = now
   host.device_count_summaries = device_counts.values()
-  host.put()
 
 
 def _TransformDeviceSerial(hostname, serial):
@@ -669,6 +676,7 @@ def UpdateGoneHost(hostname):
       entities_to_update.append(device_state_history)
     if device_history:
       entities_to_update.append(device_history)
+  _DoCountDeviceForHost(host, devices)
   ndb.put_multi(entities_to_update)
 
 

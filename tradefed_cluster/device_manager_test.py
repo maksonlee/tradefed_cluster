@@ -1291,8 +1291,11 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     now = datetime.datetime(2019, 11, 14, 10, 10)
     mock_now.return_value = now
     host = datastore_test_util.CreateHost("free", "host1")
-    d1 = datastore_test_util.CreateDevice("free", "host1", "s1")
-    d2 = datastore_test_util.CreateDevice("free", "host1", "s2")
+    d1 = datastore_test_util.CreateDevice(
+        "free", "host1", "s1", run_target="r1")
+    d2 = datastore_test_util.CreateDevice(
+        "free", "host1", "s2", run_target="r1")
+    device_manager._CountDeviceForHost("host1")
 
     device_manager.UpdateGoneHost("host1")
     ndb.get_context().clear_cache()
@@ -1314,6 +1317,10 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     device_histories = device_manager.GetDeviceHistory("host1", "s2")
     self.assertEqual(1, len(device_histories))
     self.assertEqual(now, device_histories[0].timestamp)
+    self.assertEqual(1, len(host.device_count_summaries))
+    self.assertEqual(2, host.device_count_summaries[0].total)
+    self.assertEqual("r1", host.device_count_summaries[0].run_target)
+    self.assertEqual(2, host.device_count_summaries[0].offline)
 
   @mock.patch.object(device_manager, "_Now")
   def testUpdateGoneHost_alreadyGone(self, mock_now):

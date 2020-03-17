@@ -222,6 +222,78 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual(2, len(device_collection.device_infos))
     self.assertFalse(device_collection.more)
 
+  def testBatchGetLastestNotesByDevice(self):
+    """Tests ListDevices returns all devices."""
+    note_entities = [
+        datastore_entities.DeviceNote(
+            device_serial=self.ndb_device_2.device_serial,
+            note=datastore_entities.Note(
+                timestamp=datetime.datetime(1987, 10, 19),
+                message='message_0')),
+        datastore_entities.DeviceNote(
+            device_serial=self.ndb_device_2.device_serial,
+            note=datastore_entities.Note(
+                timestamp=datetime.datetime(2020, 3, 12),
+                message='message_3')),
+        datastore_entities.DeviceNote(
+            device_serial=self.ndb_device_4.device_serial,
+            note=datastore_entities.Note(
+                timestamp=datetime.datetime(2001, 9, 17),
+                message='message_1')),
+        datastore_entities.DeviceNote(
+            device_serial=self.ndb_device_4.device_serial,
+            note=datastore_entities.Note(
+                timestamp=datetime.datetime(2008, 10, 15),
+                message='message_2')),
+    ]
+    ndb.put_multi(note_entities)
+    api_request = {
+        'device_serials': [
+            self.ndb_device_2.device_serial,
+            self.ndb_device_4.device_serial,
+        ]
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterDeviceApi.BatchGetLastestNotesByDevice',
+        api_request)
+    device_note_collection = protojson.decode_message(
+        api_messages.DeviceNoteCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(2, len(device_note_collection.device_notes))
+    self.assertEqual(
+        'message_3', device_note_collection.device_notes[0].message)
+    self.assertEqual(
+        'message_2', device_note_collection.device_notes[1].message)
+
+  def testBatchGetLastestNotesByDevice_noNotesFound(self):
+    """Tests ListDevices returns all devices."""
+    note_entities = [
+        datastore_entities.DeviceNote(
+            device_serial=self.ndb_device_3.device_serial,
+            note=datastore_entities.Note(
+                timestamp=datetime.datetime(1929, 10, 28),
+                message='message_0')),
+        datastore_entities.DeviceNote(
+            device_serial=self.ndb_device_3.device_serial,
+            note=datastore_entities.Note(
+                timestamp=datetime.datetime(2020, 3, 12),
+                message='message_1')),
+    ]
+    ndb.put_multi(note_entities)
+    api_request = {
+        'device_serials': [
+            self.ndb_device_2.device_serial,
+            self.ndb_device_4.device_serial,
+        ]
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterDeviceApi.BatchGetLastestNotesByDevice',
+        api_request)
+    device_note_collection = protojson.decode_message(
+        api_messages.DeviceNoteCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(0, len(device_note_collection.device_notes))
+
   def testGetDevice(self):
     """Tests GetDevice without including notes."""
     api_request = {'device_serial': self.ndb_device_0.device_serial}

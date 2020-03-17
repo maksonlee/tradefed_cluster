@@ -374,6 +374,45 @@ class ClusterDeviceApi(remote.Service):
         next_cursor=next_cursor,
         prev_cursor=prev_cursor)
 
+  LATEST_NOTES_BATCH_GET_BY_DEVICE_RESOURCE = endpoints.ResourceContainer(
+      device_serials=messages.StringField(1, repeated=True),
+  )
+
+  @endpoints.method(
+      LATEST_NOTES_BATCH_GET_BY_DEVICE_RESOURCE,
+      api_messages.DeviceNoteCollection,
+      path="latest_notes:batchGet",
+      http_method="GET",
+      name="batchGetLatestNotesByDevice")
+  def BatchGetLastestNotesByDevice(self, request):
+    """Batch get notes of a device.
+
+    Args:
+      request: an API request.
+
+    Request Params:
+      device_serial: string, the serial of a lab device.
+      ids: a list of strings, the ids of notes to batch get.
+
+    Returns:
+      an api_messages.DeviceNoteCollection object.
+    """
+    note_entities = []
+    for device_serial in request.device_serials:
+      query = (datastore_entities.DeviceNote.query()
+               .filter(datastore_entities.DeviceNote.device_serial
+                       == device_serial)
+               .order(-datastore_entities.DeviceNote.note.timestamp))
+      note_entities += list(query.fetch(1))
+    note_msgs = [
+        datastore_entities.ToMessage(entity) for entity in note_entities
+    ]
+    return api_messages.DeviceNoteCollection(
+        device_notes=note_msgs,
+        more=False,
+        next_cursor=None,
+        prev_cursor=None)
+
   DEVICE_SERIAL_RESOURCE = endpoints.ResourceContainer(
       device_serial=messages.StringField(1, required=True),
       hostname=messages.StringField(2),

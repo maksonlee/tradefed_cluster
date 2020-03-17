@@ -276,7 +276,7 @@ class ClusterHostApiTest(api_test.ApiTest):
       self.assertEqual('alab', host.lab_name)
 
   def testListHosts_filterByAssignee(self):
-    """Tests ListHosts returns hosts the under a lab."""
+    """Tests ListHosts returns hosts that assign to certain user."""
     api_request = {'assignee': 'auser'}
     api_response = self.testapp.post_json(
         '/_ah/api/ClusterHostApi.ListHosts', api_request)
@@ -288,7 +288,7 @@ class ClusterHostApiTest(api_test.ApiTest):
       self.assertEqual('auser', host.assignee)
 
   def testListHosts_filterByIsBad(self):
-    """Tests ListHosts returns hosts the under a lab."""
+    """Tests ListHosts returns hosts that is bad."""
     api_request = {'is_bad': True}
     api_response = self.testapp.post_json(
         '/_ah/api/ClusterHostApi.ListHosts', api_request)
@@ -300,7 +300,7 @@ class ClusterHostApiTest(api_test.ApiTest):
       self.assertTrue(host.is_bad)
 
   def testListHosts_filterByHostGroups(self):
-    """Tests ListHosts returns hosts the under a lab."""
+    """Tests ListHosts returns hosts the under host groups."""
     api_request = {'host_groups': ['paid']}
     api_response = self.testapp.post_json(
         '/_ah/api/ClusterHostApi.ListHosts', api_request)
@@ -310,6 +310,24 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual(1, len(host_collection.host_infos))
     for host in host_collection.host_infos:
       self.assertEqual('paid', host.host_group)
+
+  def testListHosts_filterByTestHarness(self):
+    """Tests ListHosts returns hosts the under a test harness."""
+    mh_host = datastore_test_util.CreateHost(
+        cluster='mh_cluster',
+        hostname='mh_host',
+        lab_name='mh_lab',
+        test_runner='MH',
+        test_runner_version='v1')
+    mh_host.put()
+    api_request = {'test_harness': 'MH'}
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.ListHosts', api_request)
+    host_collection = protojson.decode_message(
+        api_messages.HostInfoCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(1, len(host_collection.host_infos))
+    self.AssertEqualHostInfo(mh_host, host_collection.host_infos[0])
 
   def testAddOrUpdateHostNote_addWithTextOfflineReasonAndRecoveryAction(
       self):

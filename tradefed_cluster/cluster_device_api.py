@@ -340,6 +340,7 @@ class ClusterDeviceApi(remote.Service):
       device_serial=messages.StringField(1, required=True),
       count=messages.IntegerField(2, default=_DEFAULT_LIST_NOTES_COUNT),
       cursor=messages.StringField(3),
+      backwards=messages.BooleanField(4, default=False),
   )
 
   @endpoints.method(
@@ -363,7 +364,7 @@ class ClusterDeviceApi(remote.Service):
         ).order(-datastore_entities.DeviceNote.note.timestamp))
 
     note_entities, prev_cursor, next_cursor = datastore_util.FetchPage(
-        query, request.count, request.cursor)
+        query, request.count, request.cursor, backwards=request.backwards)
 
     note_msgs = [
         datastore_entities.ToMessage(entity) for entity in note_entities

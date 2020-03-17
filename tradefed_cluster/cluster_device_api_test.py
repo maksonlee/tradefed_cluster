@@ -883,6 +883,129 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual(note_msgs[1].recovery_action,
                      note_entities[0].note.recovery_action)
 
+  def testListDeviceNotes_withCursorAndOffsetAndBackwards(self):
+    note_entities = [
+        datastore_entities.DeviceNote(
+            device_serial='device_1',
+            note=datastore_entities.Note(
+                user='user1',
+                timestamp=datetime.datetime(1928, 1, 1),
+                message='message_1',
+                offline_reason='offline_reason_1',
+                recovery_action='recovery_action_1')),
+        datastore_entities.DeviceNote(
+            device_serial='device_1',
+            note=datastore_entities.Note(
+                user='user2',
+                timestamp=datetime.datetime(1918, 1, 1),
+                message='message_2',
+                offline_reason='offline_reason_2',
+                recovery_action='recovery_action_2')),
+        datastore_entities.DeviceNote(
+            device_serial='device_1',
+            note=datastore_entities.Note(
+                user='user3',
+                timestamp=datetime.datetime(1988, 1, 1),
+                message='message_3',
+                offline_reason='offline_reason_3',
+                recovery_action='recovery_action_3')),
+        datastore_entities.DeviceNote(
+            device_serial='device_2',
+            note=datastore_entities.Note(
+                user='user4',
+                timestamp=datetime.datetime(2008, 1, 1),
+                message='message_4',
+                offline_reason='offline_reason_4',
+                recovery_action='recovery_action_4')),
+    ]
+    ndb.put_multi(note_entities)
+
+    # The result will be sorted by timestamp in descending order.  `
+    api_request = {
+        'device_serial': 'device_1',
+        'count': 2,
+    }
+    api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.ListNotes',
+                                          api_request)
+    device_note_collection_msg = protojson.decode_message(
+        api_messages.DeviceNoteCollection, api_response.body)
+    self.assertIsNotNone(device_note_collection_msg.next_cursor)
+    note_msgs = device_note_collection_msg.device_notes
+    self.assertEqual(2, len(note_msgs))
+    self.assertEqual(note_msgs[0].device_serial, note_entities[2].device_serial)
+    self.assertEqual(note_msgs[0].user, note_entities[2].note.user)
+    self.assertEqual(note_msgs[0].update_timestamp,
+                     note_entities[2].note.timestamp)
+    self.assertEqual(note_msgs[0].message, note_entities[2].note.message)
+    self.assertEqual(note_msgs[0].offline_reason,
+                     note_entities[2].note.offline_reason)
+    self.assertEqual(note_msgs[0].recovery_action,
+                     note_entities[2].note.recovery_action)
+    self.assertEqual(note_msgs[1].device_serial, note_entities[0].device_serial)
+    self.assertEqual(note_msgs[1].user, note_entities[0].note.user)
+    self.assertEqual(note_msgs[1].update_timestamp,
+                     note_entities[0].note.timestamp)
+    self.assertEqual(note_msgs[1].message, note_entities[0].note.message)
+    self.assertEqual(note_msgs[1].offline_reason,
+                     note_entities[0].note.offline_reason)
+    self.assertEqual(note_msgs[1].recovery_action,
+                     note_entities[0].note.recovery_action)
+
+    # fetch next page
+    api_request = {
+        'device_serial': 'device_1',
+        'count': 2,
+        'cursor': device_note_collection_msg.next_cursor,
+    }
+    api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.ListNotes',
+                                          api_request)
+    device_note_collection_msg = protojson.decode_message(
+        api_messages.DeviceNoteCollection, api_response.body)
+    self.assertIsNotNone(device_note_collection_msg.prev_cursor)
+    note_msgs = device_note_collection_msg.device_notes
+    self.assertEqual(1, len(note_msgs))
+    self.assertEqual(note_msgs[0].device_serial, note_entities[1].device_serial)
+    self.assertEqual(note_msgs[0].user, note_entities[1].note.user)
+    self.assertEqual(note_msgs[0].update_timestamp,
+                     note_entities[1].note.timestamp)
+    self.assertEqual(note_msgs[0].message, note_entities[1].note.message)
+    self.assertEqual(note_msgs[0].offline_reason,
+                     note_entities[1].note.offline_reason)
+    self.assertEqual(note_msgs[0].recovery_action,
+                     note_entities[1].note.recovery_action)
+
+    # fetch previous page (same as first page)
+    api_request = {
+        'device_serial': 'device_1',
+        'count': 2,
+        'cursor': device_note_collection_msg.prev_cursor,
+        'backwards': True,
+    }
+    api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.ListNotes',
+                                          api_request)
+    device_note_collection_msg = protojson.decode_message(
+        api_messages.DeviceNoteCollection, api_response.body)
+    note_msgs = device_note_collection_msg.device_notes
+    self.assertEqual(2, len(note_msgs))
+    self.assertEqual(note_msgs[0].device_serial, note_entities[2].device_serial)
+    self.assertEqual(note_msgs[0].user, note_entities[2].note.user)
+    self.assertEqual(note_msgs[0].update_timestamp,
+                     note_entities[2].note.timestamp)
+    self.assertEqual(note_msgs[0].message, note_entities[2].note.message)
+    self.assertEqual(note_msgs[0].offline_reason,
+                     note_entities[2].note.offline_reason)
+    self.assertEqual(note_msgs[0].recovery_action,
+                     note_entities[2].note.recovery_action)
+    self.assertEqual(note_msgs[1].device_serial, note_entities[0].device_serial)
+    self.assertEqual(note_msgs[1].user, note_entities[0].note.user)
+    self.assertEqual(note_msgs[1].update_timestamp,
+                     note_entities[0].note.timestamp)
+    self.assertEqual(note_msgs[1].message, note_entities[0].note.message)
+    self.assertEqual(note_msgs[1].offline_reason,
+                     note_entities[0].note.offline_reason)
+    self.assertEqual(note_msgs[1].recovery_action,
+                     note_entities[0].note.recovery_action)
+
   def testBatchGetDeviceNotes(self):
     note_entities = [
         datastore_entities.DeviceNote(

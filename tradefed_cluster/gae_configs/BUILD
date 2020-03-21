@@ -30,6 +30,20 @@ filegroup(
 )
 
 filegroup(
+    name = "app_handlers_yaml",
+    srcs = [
+        "app_handlers.yaml",
+    ],
+)
+
+filegroup(
+    name = "tfc_handlers_yaml",
+    srcs = [
+        "tfc_handlers.yaml",
+    ],
+)
+
+filegroup(
     name = "index_yaml",
     srcs = [
         "index.yaml",

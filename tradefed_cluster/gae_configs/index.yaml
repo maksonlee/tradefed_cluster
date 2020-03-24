@@ -26,6 +26,18 @@ indexes:
   - name: __key__
     direction: desc
 
+- kind: CommandAttempt
+  properties:
+  - name: hostname
+  - name: create_time
+    direction: desc
+
+- kind: CommandAttempt
+  properties:
+  - name: device_serial
+  - name: create_time
+    direction: desc
+
 - kind: DeviceInfo
   ancestor: yes
   properties:

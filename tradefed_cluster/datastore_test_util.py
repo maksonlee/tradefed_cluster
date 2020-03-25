@@ -102,7 +102,8 @@ def CreateDevice(
     lab_name=None, battery_level='100', hidden=False,
     device_type=api_messages.DeviceTypeMessage.PHYSICAL,
     timestamp=None, state='Available', product='product',
-    run_target='run_target', next_cluster_ids=None):
+    run_target='run_target', next_cluster_ids=None,
+    test_harness='tradefed'):
   """Create a device."""
   ndb_device = datastore_entities.DeviceInfo(
       id=device_serial,
@@ -119,7 +120,8 @@ def CreateDevice(
       timestamp=timestamp,
       state=state,
       product=product,
-      run_target=run_target)
+      run_target=run_target,
+      test_harness=test_harness)
   ndb_device.put()
   return ndb_device
 

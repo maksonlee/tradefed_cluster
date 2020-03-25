@@ -57,7 +57,7 @@ class ClusterDeviceApi(remote.Service):
       count=messages.IntegerField(8, variant=messages.Variant.INT32,
                                   default=_DEFAULT_LIST_DEVICE_COUNT),
       product=messages.StringField(9),
-      serial=messages.StringField(10),
+      test_harness=messages.StringField(10),
   )
 
   @endpoints.method(
@@ -84,6 +84,9 @@ class ClusterDeviceApi(remote.Service):
             # https://cloud.google.com/appengine/docs/standard/python/ndb/queryclass
             read_policy=ndb.EVENTUAL_CONSISTENCY
         )).order(datastore_entities.DeviceInfo.key)
+    if request.test_harness:
+      query = query.filter(
+          datastore_entities.DeviceInfo.test_harness == request.test_harness)
     if request.lab_name:
       query = query.filter(
           datastore_entities.DeviceInfo.lab_name == request.lab_name)

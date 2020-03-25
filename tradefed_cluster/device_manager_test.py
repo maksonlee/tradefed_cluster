@@ -256,7 +256,13 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
       "test_runner": "new_runner",
       "test_runner_version": "v2",
       "event_type": "DEVICE_SNAPSHOT",
-      "device_infos": []
+      "device_infos": [
+          {
+              "state": "Available",
+              "device_serial": "new_runner_device",
+              "run_target": "new_runner_run_target",
+          },
+      ]
   }
 
   def testIsHostEventValid(self):
@@ -616,6 +622,8 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertIsNotNone(host)
     self.assertEqual("new_runner", host.test_runner)
     self.assertEqual("v2", host.test_runner_version)
+    device = device_manager.GetDevice(device_serial="new_runner_device")
+    self.assertEqual("new_runner", device.test_harness)
 
   @mock.patch.object(device_manager, "_DoUpdateGoneDevicesInNDB")
   def testUpdateGoneDevicesInNDB_alreadyGone(self, do_update):

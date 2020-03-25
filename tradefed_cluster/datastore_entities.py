@@ -924,6 +924,7 @@ class DeviceInfo(ndb.Expando):
     device_serial: device serial
     run_target: device run target
     state: device state
+    test_harness: test harness
     lab_name: the name of the lab the device belong to
     physical_cluster: physical cluster
     host_group: a group of host using the same host config.
@@ -947,6 +948,7 @@ class DeviceInfo(ndb.Expando):
   device_serial = ndb.StringProperty()
   run_target = ndb.StringProperty()
   state = ndb.StringProperty()
+  test_harness = ndb.StringProperty()
   lab_name = ndb.StringProperty()
   # TODO: deprecate physical_cluster, use host_group.
   physical_cluster = ndb.StringProperty()
@@ -1001,7 +1003,8 @@ def DeviceInfoToMessage(device_info_entity):
       device_type=api_messages.DeviceTypeMessage(
           device_info_entity.device_type),
       extra_info=api_messages.MapToKeyValuePairMessages(
-          device_info_entity.extra_info))
+          device_info_entity.extra_info),
+      test_harness=device_info_entity.test_harness)
 
 
 class DeviceInfoHistory(DeviceInfo):

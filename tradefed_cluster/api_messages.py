@@ -426,6 +426,7 @@ class DeviceInfo(messages.Message):
     group_name: Device group name.
     sim_state: State of the SIM.
     sim_operator: Operator of the SIM.
+    test_harness: test harness the device is running under.
   """
   device_serial = messages.StringField(1)
   lab_name = messages.StringField(2)
@@ -452,6 +453,7 @@ class DeviceInfo(messages.Message):
   sim_state = messages.StringField(22)
   sim_operator = messages.StringField(23)
   extra_info = messages.MessageField(KeyValuePair, 24, repeated=True)
+  test_harness = messages.StringField(25)
 
 
 class DeviceInfoCollection(messages.Message):

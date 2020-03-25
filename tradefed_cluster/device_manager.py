@@ -414,6 +414,7 @@ def _UpdateDeviceInNDB(device, device_key, device_data, host_event):
   device.extra_info[SDK_VERSION_KEY] = device.sdk_version
   device.hostname = host_event.hostname
   device.lab_name = host_event.lab_name
+  device.test_harness = host_event.test_runner
   if host_event.cluster_id:
     device.physical_cluster = host_event.cluster_id
     device.clusters = ([host_event.cluster_id] +

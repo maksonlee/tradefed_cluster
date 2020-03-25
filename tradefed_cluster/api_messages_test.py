@@ -413,6 +413,7 @@ class ApiMessagesTest(unittest.TestCase):
         device_serial='adevice',
         hostname='hostname',
         lab_name='alab',
+        test_harness='atestharness',
         physical_cluster='acluster',
         host_group='atp-us-mtv-43',
         pools=['apct', 'asit'],
@@ -433,6 +434,7 @@ class ApiMessagesTest(unittest.TestCase):
     self.assertEqual(entity.hostname, msg.hostname)
     self.assertEqual('Available', msg.state)
     self.assertEqual('alab', msg.lab_name)
+    self.assertEqual('atestharness', msg.test_harness)
     self.assertEqual('acluster', msg.cluster)
     self.assertEqual('atp-us-mtv-43', msg.host_group)
     self.assertEqual(['apct', 'asit'], msg.pools)

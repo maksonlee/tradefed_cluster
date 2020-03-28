@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Util for datastore query."""
 import logging
 
@@ -26,6 +25,7 @@ def FetchPage(query, page_size, page_cursor=None, backwards=False):
     page_size: maximum number of results to fetch
     page_cursor: marks the position to fetch from
     backwards: True to fetch the page that precedes the cursor
+
   Returns:
     page of results
   """
@@ -37,8 +37,15 @@ def FetchPage(query, page_size, page_cursor=None, backwards=False):
   elif backwards:
     # fetching previous page in reverse order
     orders = query.orders
-    reversed_query = ndb.Query(
-        kind=query.kind, filters=query.filters, orders=orders.reversed())
+    if query.ancestor is not None:
+      reversed_query = ndb.Query(
+          ancestor=query.ancestor,
+          kind=query.kind,
+          filters=query.filters,
+          orders=orders.reversed())
+    else:
+      reversed_query = ndb.Query(
+          kind=query.kind, filters=query.filters, orders=orders.reversed())
     results, cursor, more = reversed_query.fetch_page(
         page_size, start_cursor=ndb.Cursor(urlsafe=page_cursor))
     if not more and len(results) < page_size:
@@ -63,6 +70,7 @@ def BatchQuery(query, batch_size, keys_only=False, projection=None):
     batch_size: batch size
     keys_only: only return keys
     projection: projection of the query
+
   Yields:
     entity
   """

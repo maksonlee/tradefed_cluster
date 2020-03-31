@@ -18,6 +18,7 @@ import logging
 
 import webapp2
 
+from google.appengine.api import modules
 from google.appengine.ext import deferred
 
 from tradefed_cluster import common
@@ -43,7 +44,9 @@ def NotifyPendingRequestStateChanges():
           .fetch(keys_only=True))
   for k in keys:
     deferred.defer(NotifyRequestState, request_id=k.id(),
-                   _queue=NOTIFICATION_TASK_QUEUE)
+                   _queue=NOTIFICATION_TASK_QUEUE,
+                   _target='%s.%s' % (modules.get_current_version_name(),
+                                      modules.get_current_module_name()))
 
 
 def NotifyRequestState(request_id, force=False):

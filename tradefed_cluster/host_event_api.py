@@ -26,6 +26,7 @@ from protorpc import messages
 from protorpc import protojson
 from protorpc import remote
 
+from google.appengine.api import modules
 from google.appengine.ext import deferred
 from google3.third_party.apphosting.python.endpoints.v1_1 import endpoints
 
@@ -107,7 +108,9 @@ class HostEventApi(remote.Service):
     for event_chunk in chunks(host_events, CHUNK_SIZE):
       logging.info("Queuing host event chunk of size %d", len(event_chunk))
       deferred.defer(self._ProcessHostEventWithNDB, event_chunk,
-                     _queue=host_event.HOST_EVENT_QUEUE_NDB)
+                     _queue=host_event.HOST_EVENT_QUEUE_NDB,
+                     _target="%s.%s" % (modules.get_current_version_name(),
+                                        modules.get_current_module_name()))
     logging.debug("Submitted host event message.")
     return message_types.VoidMessage()
 

@@ -158,7 +158,8 @@ class HostEventApiTest(api_test.ApiTest):
     # Should be called 10 times with 5 chunks each
     mock_defer.assert_has_calls([
         mock.call(mock.ANY, [snapshot_event] * 5,
-                  _queue=host_event.HOST_EVENT_QUEUE_NDB)] * 10)
+                  _queue=host_event.HOST_EVENT_QUEUE_NDB,
+                  _target='testbed-version.default')] * 10)
 
   @mock.patch.object(device_manager, 'HandleDeviceSnapshotWithNDB')
   @mock.patch.object(device_manager, 'IsHostEventValid', return_value=False)

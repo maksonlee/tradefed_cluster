@@ -1013,6 +1013,7 @@ def CreateAndSaveDeviceInfoHistoryFromDeviceNote(device_serial, note_id):
     An instance of ndb.Key, the key of DeviceInfoHistory entity.
   """
   device = GetDevice(device_serial=device_serial)
+  device.timestamp = _Now()
   device_info_history = _CreateDeviceInfoHistory(device)
   if device_info_history.extra_info is None:
     device_info_history.extra_info = {}
@@ -1035,6 +1036,7 @@ def CreateAndSaveHostInfoHistoryFromHostNote(hostname, note_id):
     An instance of ndb.Key, the key of HostInfoHistory entity.
   """
   host = GetHost(hostname=hostname)
+  host.timestamp = _Now()
   host_info_history = _CreateHostInfoHistory(host)
   if host_info_history.extra_info is None:
     host_info_history.extra_info = {}

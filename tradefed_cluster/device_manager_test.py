@@ -1519,21 +1519,29 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     host_history = device_manager._CreateHostInfoHistory(host)
     self.assertEqual(host.to_dict(), host_history.to_dict())
 
-  def testCreateAndSaveHostInfoHistoryFromHostNote(self):
+  @mock.patch.object(device_manager, "_Now")
+  def testCreateAndSaveHostInfoHistoryFromHostNote(self, mock_now):
+    now = datetime.datetime(2019, 11, 14, 10, 10)
+    mock_now.return_value = now
     datastore_test_util.CreateHost("acluster", "ahost")
     key = device_manager.CreateAndSaveHostInfoHistoryFromHostNote(
         "ahost", "anoteid")
     host_history = key.get()
     self.assertEqual("ahost", host_history.hostname)
     self.assertEqual("anoteid", host_history.extra_info["host_note_id"])
+    self.assertEqual(now, host_history.timestamp)
 
-  def testCreateAndSaveDeviceInfoHistoryFromDeviceNote(self):
+  @mock.patch.object(device_manager, "_Now")
+  def testCreateAndSaveDeviceInfoHistoryFromDeviceNote(self, mock_now):
+    now = datetime.datetime(2019, 11, 14, 10, 10)
+    mock_now.return_value = now
     datastore_test_util.CreateDevice("acluster", "ahost", "aserial")
     key = device_manager.CreateAndSaveDeviceInfoHistoryFromDeviceNote(
         "aserial", "anoteid")
     device_history = key.get()
     self.assertEqual("aserial", device_history.device_serial)
     self.assertEqual("anoteid", device_history.extra_info["device_note_id"])
+    self.assertEqual(now, device_history.timestamp)
 
   def testIsFastbootDevice(self):
     self.assertTrue(

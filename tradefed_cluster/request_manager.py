@@ -17,6 +17,7 @@ import collections
 import json
 import logging
 import re
+import zlib
 
 from protorpc import protojson
 
@@ -204,9 +205,9 @@ def NotifyRequestState(request_id, force=False):
 @ndb.transactional
 def SendRequestStateNotification(request_id, message):
   request = GetRequest(request_id)
-  taskqueue.add(queue_name=common.OBJECT_EVENT_QUEUE,
-                payload=protojson.encode_message(message),
-                transactional=True)
+  payload = zlib.compress(protojson.encode_message(message))
+  taskqueue.add(
+      queue_name=common.OBJECT_EVENT_QUEUE, payload=payload, transactional=True)
   request.notify_state_change = False
   request.put()
   return request

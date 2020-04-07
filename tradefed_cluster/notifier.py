@@ -17,6 +17,7 @@
 import base64
 import json
 import logging
+import zlib
 
 import lazy_object_proxy
 from protorpc import protojson
@@ -80,6 +81,12 @@ class ObjectStateChangeEventHandler(webapp2.RequestHandler):
     retrieved the request info later.
     """
     encoded_message = self.request.body
+    try:
+      encoded_message = zlib.decompress(encoded_message)
+    except zlib.error:
+      logging.warn(
+          'payload may not be compressed: %s', encoded_message, exc_info=True)
+
     data = json.loads(encoded_message)
 
     # TODO: Remove legacy id later.

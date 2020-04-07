@@ -19,6 +19,7 @@ import datetime
 import json
 import threading
 import unittest
+import zlib
 
 import mock
 from protorpc import protojson
@@ -1301,8 +1302,9 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
                                         datetime.datetime(1989, 5, 7))
     tasks = self.taskqueue_stub.get_filtered_tasks()
     self.assertEqual(len(tasks), 1)
-    message = protojson.decode_message(
-        api_messages.CommandAttemptEventMessage, tasks[0].payload)
+    payload = zlib.decompress(tasks[0].payload)
+    message = protojson.decode_message(api_messages.CommandAttemptEventMessage,
+                                       payload)
     self.assertEqual(common.ObjectEventType.COMMAND_ATTEMPT_STATE_CHANGED,
                      message.type)
     self.assertEqual(datastore_entities.ToMessage(attempt), message.attempt)

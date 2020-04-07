@@ -425,6 +425,7 @@ py_appengine_library(
     ],
     envs = PY_APPENGINE_ENVS,
     deps = [
+        ":api_messages_lib",
         ":command_event_lib",
         ":command_task_store_lib",
         ":common_lib",
@@ -447,8 +448,15 @@ py_appengine_test(
     envs = PY_APPENGINE_TEST_ENVS,
     use_public_sdk = 1,
     deps = [
+        ":api_messages_lib",
         ":command_event_test_util",
         ":command_lib",
+        ":command_task_store_lib",
+        ":common_lib",
+        ":datastore_entities_lib",
+        ":env_config_lib",
+        ":metric_lib",
+        ":request_lib",
         ":testbed_dependent_test_lib",
         third_party("mock"),
     ],
@@ -1085,6 +1093,7 @@ py_appengine_library(
     ],
     envs = PY_APPENGINE_ENVS,
     deps = [
+        ":api_messages_lib",
         ":command_error_type_config_lib",
         ":common_lib",
         ":datastore_entities_lib",

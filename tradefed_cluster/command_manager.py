@@ -18,6 +18,7 @@ import collections
 import datetime
 import json
 import logging
+import zlib
 
 from protorpc import protojson
 
@@ -356,9 +357,8 @@ def _NotifyAttemptState(attempt_entity, old_state, event_time):
       old_state=old_state,
       new_state=attempt_entity.state,
       event_time=event_time)
-
-  taskqueue.add(queue_name=common.OBJECT_EVENT_QUEUE,
-                payload=protojson.encode_message(message))
+  payload = zlib.compress(protojson.encode_message(message))
+  taskqueue.add(queue_name=common.OBJECT_EVENT_QUEUE, payload=payload)
 
 
 def ProcessCommandEvent(event):

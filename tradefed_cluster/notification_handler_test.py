@@ -16,6 +16,7 @@
 
 import json
 import unittest
+import zlib
 
 from googleapiclient import errors
 import mock
@@ -87,7 +88,8 @@ class NotificationHandlerTest(testbed_dependent_test.TestbedDependentTest):
     notification_handler.NotifyRequestState(request_id="1", force=True)
     tasks = self.taskqueue_stub.get_filtered_tasks()
     self.assertEqual(1, len(tasks))
-    task = json.loads(tasks[0].payload)
+    payload = zlib.decompress(tasks[0].payload)
+    task = json.loads(payload)
     self.assertEqual("1", task["request_id"])
 
   def testNotifyDirtyRequest(self):
@@ -102,7 +104,8 @@ class NotificationHandlerTest(testbed_dependent_test.TestbedDependentTest):
     notification_handler.NotifyRequestState(request_id="1")
     tasks = self.taskqueue_stub.get_filtered_tasks()
     self.assertEqual(1, len(tasks))
-    task = json.loads(tasks[0].payload)
+    payload = zlib.decompress(tasks[0].payload)
+    task = json.loads(payload)
     self.assertEqual("1", task["request_id"])
     # The dirty bit should be set.
     r = request_manager.GetRequest("1")

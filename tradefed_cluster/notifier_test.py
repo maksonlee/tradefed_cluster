@@ -18,6 +18,7 @@ import base64
 import datetime
 import json
 import unittest
+import zlib
 
 import mock
 from protorpc import protojson
@@ -42,6 +43,8 @@ class NotifierTest(testbed_dependent_test.TestbedDependentTest):
   def setUp(self):
     super(NotifierTest, self).setUp()
     self.patcher = mock.patch('__main__.notifier._PubsubClient')
+    self.now_patch = mock.patch.object(common, 'Now', return_value=TIMESTAMP)
+    self.now_patch.start()
     self.mock_pubsub_client = self.patcher.start()
 
     self._request_id = int(REQUEST_ID)
@@ -53,12 +56,10 @@ class NotifierTest(testbed_dependent_test.TestbedDependentTest):
 
   def tearDown(self):
     self.patcher.stop()
+    self.now_patch.stop()
     super(NotifierTest, self).tearDown()
 
-  @mock.patch.object(common, 'Now')
-  def testObjectStateChangeEventHandler_idOnly(self, now):
-    now.return_value = TIMESTAMP
-
+  def testObjectStateChangeEventHandler_idOnly(self):
     request = self._CreateTestRequest(state=common.RequestState.COMPLETED)
     expected_message = api_messages.RequestEventMessage(
         type=common.ObjectEventType.REQUEST_STATE_CHANGED,
@@ -79,10 +80,7 @@ class NotifierTest(testbed_dependent_test.TestbedDependentTest):
         json.dumps({'id': REQUEST_ID}))
     self._AssertMessagePublished(expected_message)
 
-  @mock.patch.object(common, 'Now')
-  def testObjectStateChangeEventHandler_requestEvent(self, now):
-    now.return_value = TIMESTAMP
-
+  def testObjectStateChangeEventHandler_requestEvent(self):
     request = self._CreateTestRequest(state=common.RequestState.COMPLETED)
     event_message = api_messages.RequestEventMessage(
         type=common.ObjectEventType.REQUEST_STATE_CHANGED,
@@ -103,10 +101,27 @@ class NotifierTest(testbed_dependent_test.TestbedDependentTest):
         protojson.encode_message(event_message))
     self._AssertMessagePublished(event_message)
 
-  @mock.patch.object(common, 'Now')
-  def testObjectStateChangeEventHandler_attemptEvent(self, now):
-    now.return_value = TIMESTAMP
+  def testObjectStateChangeEventHandler_compressed(self):
+    request = self._CreateTestRequest(state=common.RequestState.COMPLETED)
+    event_message = api_messages.RequestEventMessage(
+        type=common.ObjectEventType.REQUEST_STATE_CHANGED,
+        request_id=REQUEST_ID,
+        new_state=common.RequestState.COMPLETED,
+        request=datastore_entities.ToMessage(request),
+        summary='summary',
+        total_test_count=0,
+        failed_test_count=0,
+        passed_test_count=0,
+        failed_test_run_count=0,
+        result_links=[self.result_link],
+        total_run_time_sec=3,
+        event_time=TIMESTAMP)
 
+    self.testapp.post(notifier.OBJECT_EVENT_QUEUE_HANDLER_PATH,
+                      zlib.compress(protojson.encode_message(event_message)))
+    self._AssertMessagePublished(event_message)
+
+  def testObjectStateChangeEventHandler_attemptEvent(self):
     request = self._CreateTestRequest(state=common.RequestState.COMPLETED)
     command = self._CreateTestCommand(request,
                                       state=common.CommandState.COMPLETED)

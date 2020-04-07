@@ -19,6 +19,7 @@ import datetime
 import json
 import threading
 import unittest
+import zlib
 
 import mock
 from protorpc import protojson
@@ -97,13 +98,14 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     request_manager.CancelRequest(REQUEST_ID, common.CancelReason.QUEUE_TIMEOUT)
 
     persisted_request = request_manager.GetRequest(REQUEST_ID)
-    self.assertEquals(common.RequestState.CANCELED, persisted_request.state)
-    self.assertEquals(
-        common.CancelReason.QUEUE_TIMEOUT, persisted_request.cancel_reason)
+    self.assertEqual(common.RequestState.CANCELED, persisted_request.state)
+    self.assertEqual(common.CancelReason.QUEUE_TIMEOUT,
+                     persisted_request.cancel_reason)
     mock_add.assert_called_once_with(
         queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=protojson.encode_message(
-            request_manager.CreateRequestEventMessage(persisted_request)),
+        payload=zlib.compress(
+            protojson.encode_message(
+                request_manager.CreateRequestEventMessage(persisted_request))),
         transactional=True)
     mock_queue.assert_has_calls([
         mock.call.delete_tasks_by_name(REQUEST_ID)
@@ -365,8 +367,9 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
 
     mock_add.assert_called_once_with(
         queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=protojson.encode_message(
-            request_manager.CreateRequestEventMessage(request)),
+        payload=zlib.compress(
+            protojson.encode_message(
+                request_manager.CreateRequestEventMessage(request))),
         transactional=True)
     mock_add.reset_mock()
 
@@ -380,8 +383,9 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertIsNone(request.end_time)
     mock_add.assert_called_once_with(
         queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=protojson.encode_message(
-            request_manager.CreateRequestEventMessage(request)),
+        payload=zlib.compress(
+            protojson.encode_message(
+                request_manager.CreateRequestEventMessage(request))),
         transactional=True)
     mock_add.reset_mock()
 
@@ -395,8 +399,9 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(self.END_TIME, request.end_time)
     mock_add.assert_called_once_with(
         queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=protojson.encode_message(
-            request_manager.CreateRequestEventMessage(request)),
+        payload=zlib.compress(
+            protojson.encode_message(
+                request_manager.CreateRequestEventMessage(request))),
         transactional=True)
 
   @mock.patch.object(taskqueue, "add")
@@ -438,8 +443,9 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertIsNone(request.end_time)
     mock_add.assert_called_once_with(
         queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=protojson.encode_message(
-            request_manager.CreateRequestEventMessage(request)),
+        payload=zlib.compress(
+            protojson.encode_message(
+                request_manager.CreateRequestEventMessage(request))),
         transactional=True)
     mock_add.reset_mock()
 
@@ -453,8 +459,9 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertIsNone(request.end_time)
     mock_add.assert_called_once_with(
         queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=protojson.encode_message(
-            request_manager.CreateRequestEventMessage(request)),
+        payload=zlib.compress(
+            protojson.encode_message(
+                request_manager.CreateRequestEventMessage(request))),
         transactional=True)
     mock_add.reset_mock()
 
@@ -468,8 +475,9 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertIsNone(request.end_time)
     mock_add.assert_called_once_with(
         queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=protojson.encode_message(
-            request_manager.CreateRequestEventMessage(request)),
+        payload=zlib.compress(
+            protojson.encode_message(
+                request_manager.CreateRequestEventMessage(request))),
         transactional=True)
     mock_add.reset_mock()
 
@@ -483,8 +491,9 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertIsNone(request.end_time)
     mock_add.assert_called_once_with(
         queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=protojson.encode_message(
-            request_manager.CreateRequestEventMessage(request)),
+        payload=zlib.compress(
+            protojson.encode_message(
+                request_manager.CreateRequestEventMessage(request))),
         transactional=True)
     mock_add.reset_mock()
 
@@ -498,8 +507,9 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(self.END_TIME, request.end_time)
     mock_add.assert_called_once_with(
         queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=protojson.encode_message(
-            request_manager.CreateRequestEventMessage(request)),
+        payload=zlib.compress(
+            protojson.encode_message(
+                request_manager.CreateRequestEventMessage(request))),
         transactional=True)
 
   @mock.patch.object(taskqueue, "add")
@@ -527,8 +537,9 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(self.END_TIME, request.end_time)
     mock_add.assert_called_once_with(
         queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=protojson.encode_message(
-            request_manager.CreateRequestEventMessage(request)),
+        payload=zlib.compress(
+            protojson.encode_message(
+                request_manager.CreateRequestEventMessage(request))),
         transactional=True)
 
   @mock.patch.object(taskqueue, "add")
@@ -595,8 +606,9 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(self.END_TIME, request.end_time)
     mock_add.assert_called_once_with(
         queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=protojson.encode_message(
-            request_manager.CreateRequestEventMessage(request)),
+        payload=zlib.compress(
+            protojson.encode_message(
+                request_manager.CreateRequestEventMessage(request))),
         transactional=True)
 
   @mock.patch.object(taskqueue, "add")
@@ -639,8 +651,9 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.CancelReason.INVALID_REQUEST, request.cancel_reason)
     mock_add.assert_called_once_with(
         queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=protojson.encode_message(
-            request_manager.CreateRequestEventMessage(request)),
+        payload=zlib.compress(
+            protojson.encode_message(
+                request_manager.CreateRequestEventMessage(request))),
         transactional=True)
 
   @mock.patch.object(taskqueue, "add")
@@ -668,8 +681,9 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(self.END_TIME, request.end_time)
     mock_add.assert_called_once_with(
         queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=protojson.encode_message(
-            request_manager.CreateRequestEventMessage(request)),
+        payload=zlib.compress(
+            protojson.encode_message(
+                request_manager.CreateRequestEventMessage(request))),
         transactional=True)
     mock_add.reset_mock()
 
@@ -709,8 +723,9 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertIsNone(request.end_time)
     mock_add.assert_called_once_with(
         queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=protojson.encode_message(
-            request_manager.CreateRequestEventMessage(request)),
+        payload=zlib.compress(
+            protojson.encode_message(
+                request_manager.CreateRequestEventMessage(request))),
         transactional=True)
     mock_add.reset_mock()
 
@@ -726,8 +741,9 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(request.end_time, self.END_TIME)
     mock_add.assert_called_once_with(
         queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=protojson.encode_message(
-            request_manager.CreateRequestEventMessage(request)),
+        payload=zlib.compress(
+            protojson.encode_message(
+                request_manager.CreateRequestEventMessage(request))),
         transactional=True)
 
   def testGetCommandAttempts(self):
@@ -764,7 +780,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     for i in range(10):
       command_attempt = command_attempts[i]
       if prev:
-        self.assertTrue(prev.create_time <= command_attempt.create_time)
+        self.assertLessEqual(prev.create_time, command_attempt.create_time)
       self.assertEqual("task_id", command_attempt.task_id)
       self.assertEqual("attempt_id", command_attempt.attempt_id)
       self.assertEqual(common.CommandState.UNKNOWN, command_attempt.state)
@@ -1246,7 +1262,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
 
   def testCreateRequestId(self):
     id_ = request_manager._CreateRequestId()
-    self.assertTrue(int(id_) > 30000000)
+    self.assertGreater(int(id_), 30000000)
 
   def _CreateTestRequest(self, state=common.RequestState.UNKNOWN):
     """Creates a Request for testing purposes."""
@@ -1304,8 +1320,9 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   def _AssertRequestEventMessageInQueue(self, message):
     tasks = self.taskqueue_stub.get_filtered_tasks()
     self.assertEqual(len(tasks), 1)
-    queue_message = protojson.decode_message(
-        api_messages.RequestEventMessage, tasks[0].payload)
+    payload = zlib.decompress(tasks[0].payload)
+    queue_message = protojson.decode_message(api_messages.RequestEventMessage,
+                                             payload)
 
     json_message = protojson.encode_message(message)
     message = protojson.decode_message(

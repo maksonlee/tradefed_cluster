@@ -80,6 +80,11 @@ indexes:
   ancestor: yes
   properties:
   - name: timestamp
+
+- kind: DeviceInfoHistory
+  ancestor: yes
+  properties:
+  - name: timestamp
     direction: desc
 
 - kind: DeviceNote
@@ -108,6 +113,11 @@ indexes:
   properties:
   - name: hidden
   - name: lab_name
+
+- kind: HostInfoHistory
+  ancestor: yes
+  properties:
+  - name: timestamp
 
 - kind: HostInfoHistory
   ancestor: yes

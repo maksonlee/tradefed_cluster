@@ -36,7 +36,7 @@ from tradefed_cluster.util import pubsub_client
 
 
 ONE_HOUR = datetime.timedelta(hours=1)
-CLOUD_TF_HOST_PREFIX = 'cloud-tf'
+CLOUD_TF_LAB_NAME = 'cloud-tf'
 
 # TODO: Make the TTL configurable.
 ONE_MONTH = datetime.timedelta(days=30)
@@ -218,7 +218,7 @@ def _ShouldHideHost(host):
   """
   if not host.timestamp:
     return False
-  if (host.hostname.startswith(CLOUD_TF_HOST_PREFIX) and
+  if (host.lab_name == CLOUD_TF_LAB_NAME and
       host.timestamp <= _Now() - ONE_HOUR):
     logging.info(
         'Hiding cloud tf host [%s], because it last checked in longer than '

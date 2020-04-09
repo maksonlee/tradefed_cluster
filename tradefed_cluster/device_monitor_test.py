@@ -76,7 +76,7 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
         state='Allocated', hidden=True)
     device_manager._CountDeviceForHost('atl-02.mtv')
     self.cloud_host = datastore_test_util.CreateHost(
-        'dockerized-tf-gke', 'cloud-tf-1234', lab_name='cloud_tf')
+        'dockerized-tf-gke', 'cloud-tf-1234', lab_name='cloud-tf')
     self.device_10 = datastore_test_util.CreateDevice(
         'dockerized-tf-gke', 'cloud-tf-1234', 'null-device-0',
         run_target='NullDevice')
@@ -375,7 +375,7 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
     device_monitor._UpdateLabs()
     labs = datastore_entities.LabInfo.query()
     lab_names = {lab.lab_name for lab in labs}
-    self.assertEqual({'alab', 'cloud_tf'}, lab_names)
+    self.assertEqual({'alab', 'cloud-tf'}, lab_names)
 
   @mock.patch.object(device_manager, 'StartHostSync')
   def testScanHosts(self, mock_start_sync):

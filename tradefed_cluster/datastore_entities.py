@@ -464,6 +464,10 @@ class CommandAttempt(ndb.Model):
     invocation_status: invocation status.
     device_serials: a list of devices the command uses.
     plugin_data: the plugin data.
+    run_index: run index from [0, run_count). The (run_index, attempt_index)
+      tuple should be unique for a given command.
+    attempt_index: attempt index. The (run_index, attempt_index) tuple should be
+      unique for a given command.
   """
   command_id = ndb.StringProperty()
   task_id = ndb.StringProperty()
@@ -492,6 +496,8 @@ class CommandAttempt(ndb.Model):
   invocation_status = ndb.StructuredProperty(InvocationStatus)
   device_serials = ndb.StringProperty(repeated=True)
   plugin_data = ndb.JsonProperty()
+  run_index = ndb.IntegerProperty()
+  attempt_index = ndb.IntegerProperty()
 
 
 @MessageConverter(CommandAttempt)
@@ -1159,6 +1165,10 @@ class CommandTask(ndb.Model):
     lease_count: how many time the task has been leased
     command_line: command line
     run_count: run count
+    run_index: run index from [0, run_count). The (run_index, attempt_index)
+      tuple should be unique for a given command.
+    attempt_index: attempt index. The (run_index, attempt_index) tuple should be
+      unique for a given command.
     shard_count: shard count
     shard_index: shard index
     test_bench: test_bench that the task requires
@@ -1181,6 +1191,8 @@ class CommandTask(ndb.Model):
   # There are command lines larger than 1500 bytes.
   command_line = ndb.TextProperty()
   run_count = ndb.IntegerProperty()
+  run_index = ndb.IntegerProperty()
+  attempt_index = ndb.IntegerProperty()
   shard_count = ndb.IntegerProperty()
   shard_index = ndb.IntegerProperty()
   test_bench = ndb.LocalStructuredProperty(TestBench)

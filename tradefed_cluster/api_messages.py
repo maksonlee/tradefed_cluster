@@ -726,6 +726,8 @@ class PredefinedMessageCollection(messages.Message):
   """A class representing a collection of predefined messages."""
   predefined_messages = messages.MessageField(
       PredefinedMessage, 1, repeated=True)
+  next_cursor = messages.StringField(2)
+  prev_cursor = messages.StringField(3)
 
 
 class TestGroupStatus(messages.Message):

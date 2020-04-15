@@ -24,6 +24,7 @@ from tradefed_cluster import api_test
 from tradefed_cluster import cluster_api
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import datastore_test_util
+from google.appengine.ext import ndb
 
 
 class ClusterApiTest(api_test.ApiTest):
@@ -318,7 +319,7 @@ class ClusterApiTest(api_test.ApiTest):
         expect_errors=True)
     self.assertEqual('409 Conflict', api_response.status)
 
-  def testListPredefinedMessages(self):
+  def testListPredefinedMessages_filtersAndOrdering(self):
     """Test list PredefinedMessages."""
     pred_msg_entities = [
         datastore_entities.PredefinedMessage(
@@ -342,8 +343,7 @@ class ClusterApiTest(api_test.ApiTest):
             content='content-4',
             used_count=3),
     ]
-    for pred_msg_entity in pred_msg_entities:
-      pred_msg_entity.put()
+    ndb.put_multi(pred_msg_entities)
     api_request = {'type': 'DEVICE_RECOVERY_ACTION',
                    'lab_name': 'lab-name-2'}
     api_response = self.testapp.post_json(
@@ -362,6 +362,80 @@ class ClusterApiTest(api_test.ApiTest):
     self.assertEqual(pred_msg_entities[2].content, pred_msgs[0].content)
     self.assertEqual(pred_msg_entities[2].type, pred_msgs[0].type)
     self.assertEqual(pred_msg_entities[2].used_count, pred_msgs[0].used_count)
+
+  def testListPredefinedMessages_countAndCursor(self):
+    """Test list PredefinedMessages."""
+    pred_msg_entities = [
+        datastore_entities.PredefinedMessage(
+            lab_name='lab-name-2',
+            type=api_messages.PredefinedMessageType.DEVICE_RECOVERY_ACTION,
+            content='content-1',
+            used_count=4),
+        datastore_entities.PredefinedMessage(
+            lab_name='lab-name-2',
+            type=api_messages.PredefinedMessageType.DEVICE_RECOVERY_ACTION,
+            content='content-2',
+            used_count=3),
+        datastore_entities.PredefinedMessage(
+            lab_name='lab-name-2',
+            type=api_messages.PredefinedMessageType.DEVICE_RECOVERY_ACTION,
+            content='content-3',
+            used_count=2),
+        datastore_entities.PredefinedMessage(
+            lab_name='lab-name-2',
+            type=api_messages.PredefinedMessageType.DEVICE_RECOVERY_ACTION,
+            content='content-4',
+            used_count=1),
+    ]
+    ndb.put_multi(pred_msg_entities)
+    # look up the first page
+    api_request = {
+        'type': 'DEVICE_RECOVERY_ACTION',
+        'lab_name': 'lab-name-2',
+        'count': 2,
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterApi.ListPredefinedMessages', api_request)
+    pred_msg_collection = protojson.decode_message(
+        api_messages.PredefinedMessageCollection,
+        api_response.body)
+    pred_msgs = pred_msg_collection.predefined_messages
+    self.assertEqual(2, len(pred_msgs))
+    self.assertEqual(pred_msg_entities[0].content, pred_msgs[0].content)
+    self.assertEqual(pred_msg_entities[1].content, pred_msgs[1].content)
+    # look up the second page with next_cursor
+    api_request = {
+        'type': 'DEVICE_RECOVERY_ACTION',
+        'lab_name': 'lab-name-2',
+        'count': 2,
+        'cursor': pred_msg_collection.next_cursor,
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterApi.ListPredefinedMessages', api_request)
+    pred_msg_collection = protojson.decode_message(
+        api_messages.PredefinedMessageCollection,
+        api_response.body)
+    pred_msgs = pred_msg_collection.predefined_messages
+    self.assertEqual(2, len(pred_msgs))
+    self.assertEqual(pred_msg_entities[2].content, pred_msgs[0].content)
+    self.assertEqual(pred_msg_entities[3].content, pred_msgs[1].content)
+    # look up the first page again with prev_cursor of the second page
+    api_request = {
+        'type': 'DEVICE_RECOVERY_ACTION',
+        'lab_name': 'lab-name-2',
+        'count': 2,
+        'cursor': pred_msg_collection.prev_cursor,
+        'backwards': True,
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterApi.ListPredefinedMessages', api_request)
+    pred_msg_collection = protojson.decode_message(
+        api_messages.PredefinedMessageCollection,
+        api_response.body)
+    pred_msgs = pred_msg_collection.predefined_messages
+    self.assertEqual(2, len(pred_msgs))
+    self.assertEqual(pred_msg_entities[0].content, pred_msgs[0].content)
+    self.assertEqual(pred_msg_entities[1].content, pred_msgs[1].content)
 
 
 if __name__ == '__main__':

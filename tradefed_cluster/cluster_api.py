@@ -25,10 +25,11 @@ from google3.third_party.apphosting.python.endpoints.v1_1 import endpoints
 from tradefed_cluster import api_common
 from tradefed_cluster import api_messages
 from tradefed_cluster import datastore_entities
+from tradefed_cluster import datastore_util
 from tradefed_cluster import device_manager
 
 
-_PREDEFINED_MESSAGE_LIST_MAX_RESULT = 10
+_PREDEFINED_MESSAGE_LIST_DEFAULT_LIMIT = 10
 
 
 class ClusterInfoCollection(messages.Message):
@@ -189,28 +190,39 @@ class ClusterApi(remote.Service):
   PREDEFINED_MESSAGE_LIST_RESOURCE = endpoints.ResourceContainer(
       type=messages.EnumField(
           api_messages.PredefinedMessageType, 1, required=True),
-      lab_name=messages.StringField(2, required=True))
+      lab_name=messages.StringField(2, required=True),
+      cursor=messages.StringField(3),
+      count=messages.IntegerField(
+          4, default=_PREDEFINED_MESSAGE_LIST_DEFAULT_LIMIT),
+      backwards=messages.BooleanField(5, default=False))
 
   @endpoints.method(
       PREDEFINED_MESSAGE_LIST_RESOURCE,
       api_messages.PredefinedMessageCollection,
-      path="/messages/predefined",
+      path="/predefined_messages",
       http_method="GET",
       name="listPredefinedMessages")
   def ListPredefinedMessages(self, request):
-    predefined_message_entities = (
+    query = (
         datastore_entities.PredefinedMessage.query()
         .filter(datastore_entities.PredefinedMessage.type == request.type)
         .filter(
             datastore_entities.PredefinedMessage.lab_name == request.lab_name)
-        .order(-datastore_entities.PredefinedMessage.used_count)
-        .fetch(_PREDEFINED_MESSAGE_LIST_MAX_RESULT))
+        .order(-datastore_entities.PredefinedMessage.used_count))
+    predefined_message_entities, prev_cursor, next_cursor = (
+        datastore_util.FetchPage(
+            query,
+            request.count,
+            page_cursor=request.cursor,
+            backwards=request.backwards))
     predefined_messages = [
         datastore_entities.ToMessage(pred_msg)
         for pred_msg in predefined_message_entities
     ]
     return api_messages.PredefinedMessageCollection(
-        predefined_messages=predefined_messages)
+        predefined_messages=predefined_messages,
+        next_cursor=next_cursor,
+        prev_cursor=prev_cursor)
 
   def _BuildClusterInfo(self, cluster, host_infos):
     """Helper to build a ClusterInfo object from host messages.

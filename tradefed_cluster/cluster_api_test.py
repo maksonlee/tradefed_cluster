@@ -281,6 +281,43 @@ class ClusterApiTest(api_test.ApiTest):
     self.assertEqual(self.note.timestamp, cluster_info.notes[1].timestamp)
     self.assertEqual(self.note.message, cluster_info.notes[1].message)
 
+  def testCreatePredefinedMessage_succeed(self):
+    lab_name = 'lab_1'
+    content = 'device went down'
+    api_request = {
+        'type': 'DEVICE_OFFLINE_REASON',
+        'lab_name': lab_name,
+        'content': content,
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterApi.CreatePredefinedMessage', api_request)
+    self.assertEqual('200 OK', api_response.status)
+    created_predefined_message = protojson.decode_message(
+        api_messages.PredefinedMessage, api_response.body)
+    self.assertEqual(api_messages.PredefinedMessageType.DEVICE_OFFLINE_REASON,
+                     created_predefined_message.type)
+    self.assertEqual(lab_name, created_predefined_message.lab_name)
+    self.assertEqual(content, created_predefined_message.content)
+    self.assertIsNotNone(created_predefined_message.id)
+    self.assertEqual(0, created_predefined_message.used_count)
+
+  def testCreatePredefinedMessage_failConflict(self):
+    lab_name = 'lab_1'
+    content = 'device went down'
+    datastore_entities.PredefinedMessage(
+        lab_name=lab_name,
+        type=api_messages.PredefinedMessageType.DEVICE_OFFLINE_REASON,
+        content=content).put()
+    api_request = {
+        'type': 'DEVICE_OFFLINE_REASON',
+        'lab_name': lab_name,
+        'content': content,
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterApi.CreatePredefinedMessage', api_request,
+        expect_errors=True)
+    self.assertEqual('409 Conflict', api_response.status)
+
   def testListPredefinedMessages(self):
     """Test list PredefinedMessages."""
     pred_msg_entities = [

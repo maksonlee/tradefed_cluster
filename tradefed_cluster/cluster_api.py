@@ -14,6 +14,8 @@
 
 """API module to serve cluster service calls."""
 
+import datetime
+
 from protorpc import message_types
 from protorpc import messages
 from protorpc import remote
@@ -149,6 +151,40 @@ class ClusterApi(remote.Service):
     cluster_note.note = note
     cluster_note.put()
     return datastore_entities.ToMessage(note)
+
+  PREDEFINED_MESSAGE_CREATE_RESOURCE = endpoints.ResourceContainer(
+      type=messages.EnumField(
+          api_messages.PredefinedMessageType, 1, required=True),
+      lab_name=messages.StringField(2, required=True),
+      content=messages.StringField(3, required=True))
+
+  @endpoints.method(
+      PREDEFINED_MESSAGE_CREATE_RESOURCE,
+      api_messages.PredefinedMessage,
+      path="/predefined_messages",
+      http_method="POST",
+      name="createPredefinedMessage")
+  def CreatePredefinedMessage(self, request):
+    exisiting_predefined_message_entities = (
+        datastore_entities.PredefinedMessage.query()
+        .filter(datastore_entities.PredefinedMessage.type == request.type)
+        .filter(
+            datastore_entities.PredefinedMessage.lab_name == request.lab_name)
+        .filter(datastore_entities.PredefinedMessage.content
+                == request.content)
+        .fetch(1))
+    if exisiting_predefined_message_entities:
+      predefined_message_id = exisiting_predefined_message_entities[0].key.id()
+      raise endpoints.ConflictException(
+          ("Conflict: this PredefinedMessage<id:%s> already exist."
+           % predefined_message_id))
+    predefined_message = datastore_entities.PredefinedMessage(
+        type=request.type,
+        lab_name=request.lab_name,
+        content=request.content,
+        create_timestamp=datetime.datetime.utcnow())
+    predefined_message.put()
+    return datastore_entities.ToMessage(predefined_message)
 
   PREDEFINED_MESSAGE_LIST_RESOURCE = endpoints.ResourceContainer(
       type=messages.EnumField(

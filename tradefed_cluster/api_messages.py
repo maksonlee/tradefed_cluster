@@ -707,14 +707,14 @@ class PredefinedMessage(messages.Message):
   """Predefined messages that describe incidents.
 
   Attributes:
-    id: str, the id of a PredefinedMessage.
+    id: int, the id of a PredefinedMessage.
     lab_name: lab_name, the lab that the predefined_message belongs to.
     type: the type of the message.
     content: a unique text content of the message.
     create_timestamp: the datetime that the message is first created.
     used_count: the count the message has been used.
   """
-  id = messages.StringField(1, required=True)
+  id = messages.IntegerField(1, required=True)
   lab_name = messages.StringField(2, required=True)
   type = messages.EnumField(PredefinedMessageType, 3, required=True)
   content = messages.StringField(4, required=True)

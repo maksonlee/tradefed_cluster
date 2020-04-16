@@ -629,7 +629,7 @@ class PredefinedMessage(ndb.Model):
 @MessageConverter(PredefinedMessage)
 def PredefinedMessageToMessage(entity):
   return api_messages.PredefinedMessage(
-      id=str(entity.key.id()),
+      id=entity.key.id(),
       lab_name=entity.lab_name,
       type=entity.type,
       content=entity.content,

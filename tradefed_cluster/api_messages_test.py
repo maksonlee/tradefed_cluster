@@ -452,7 +452,7 @@ class ApiMessagesTest(unittest.TestCase):
         create_timestamp=TIMESTAMP,
         used_count=4)
     msg = datastore_entities.ToMessage(entity)
-    self.assertEqual('123456789', msg.id)
+    self.assertEqual(123456789, msg.id)
     self.assertEqual(entity.lab_name, msg.lab_name)
     self.assertEqual(entity.type, msg.type)
     self.assertEqual(entity.content, msg.content)

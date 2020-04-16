@@ -20,6 +20,7 @@ from protorpc import message_types
 from protorpc import messages
 from protorpc import remote
 
+from google.appengine.ext import ndb
 from google3.third_party.apphosting.python.endpoints.v1_1 import endpoints
 
 from tradefed_cluster import api_common
@@ -184,6 +185,28 @@ class ClusterApi(remote.Service):
         lab_name=request.lab_name,
         content=request.content,
         create_timestamp=datetime.datetime.utcnow())
+    predefined_message.put()
+    return datastore_entities.ToMessage(predefined_message)
+
+  PREDEFINED_MESSAGE_UPDATE_RESOURCE = endpoints.ResourceContainer(
+      id=messages.IntegerField(1, required=True),
+      content=messages.StringField(2, required=True))
+
+  @endpoints.method(
+      PREDEFINED_MESSAGE_UPDATE_RESOURCE,
+      api_messages.PredefinedMessage,
+      path="/predefined_messages/{id}",
+      http_method="PATCH",
+      name="updatePredefinedMessage")
+  def UpdatePredefinedMessage(self, request):
+    predefined_message = ndb.Key(
+        datastore_entities.PredefinedMessage,
+        request.id).get()
+    if not predefined_message:
+      raise endpoints.NotFoundException(
+          ("Not Found: PredefinedMessage<id:%s> is invalid."
+           % request.id))
+    predefined_message.content = request.content
     predefined_message.put()
     return datastore_entities.ToMessage(predefined_message)
 

@@ -210,6 +210,27 @@ class ClusterApi(remote.Service):
     predefined_message.put()
     return datastore_entities.ToMessage(predefined_message)
 
+  PREDEFINED_MESSAGE_DELETE_RESOURCE = endpoints.ResourceContainer(
+      id=messages.IntegerField(1, required=True))
+
+  @endpoints.method(
+      PREDEFINED_MESSAGE_DELETE_RESOURCE,
+      api_messages.PredefinedMessage,
+      path="/predefined_messages/{id}",
+      http_method="DELETE",
+      name="deletePredefinedMessage")
+  def DeletePredefinedMessage(self, request):
+    predefined_message_key = ndb.Key(
+        datastore_entities.PredefinedMessage,
+        request.id)
+    predefined_message = predefined_message_key.get()
+    if not predefined_message:
+      raise endpoints.NotFoundException(
+          ("Not Found: PredefinedMessage<id:%s> is invalid."
+           % request.id))
+    predefined_message_key.delete()
+    return datastore_entities.ToMessage(predefined_message)
+
   PREDEFINED_MESSAGE_LIST_RESOURCE = endpoints.ResourceContainer(
       type=messages.EnumField(
           api_messages.PredefinedMessageType, 1, required=True),

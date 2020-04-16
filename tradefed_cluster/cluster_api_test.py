@@ -352,6 +352,36 @@ class ClusterApiTest(api_test.ApiTest):
         expect_errors=True)
     self.assertEqual('404 Not Found', api_response.status)
 
+  def testDeletePredefinedMessage_succeed(self):
+    content = 'some content'
+    lab_name = 'lab_1'
+    entity = datastore_entities.PredefinedMessage(
+        lab_name=lab_name,
+        type=api_messages.PredefinedMessageType.DEVICE_OFFLINE_REASON,
+        content=content)
+    key = entity.put()
+    api_request = {
+        'id': key.id(),
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterApi.DeletePredefinedMessage', api_request)
+    self.assertEqual('200 OK', api_response.status)
+    created_predefined_message = protojson.decode_message(
+        api_messages.PredefinedMessage, api_response.body)
+    self.assertEqual(api_messages.PredefinedMessageType.DEVICE_OFFLINE_REASON,
+                     created_predefined_message.type)
+    self.assertEqual(lab_name, created_predefined_message.lab_name)
+    self.assertEqual(content, created_predefined_message.content)
+
+  def testDeletePredefinedMessage_failNotFound(self):
+    api_request = {
+        'id': 123,  # a non-existent id
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterApi.DeletePredefinedMessage', api_request,
+        expect_errors=True)
+    self.assertEqual('404 Not Found', api_response.status)
+
   def testListPredefinedMessages_filtersAndOrdering(self):
     """Test list PredefinedMessages."""
     pred_msg_entities = [

@@ -14,11 +14,10 @@
 
 """API module to serve command attempt service calls."""
 
+import endpoints
 from protorpc import message_types
 from protorpc import messages
 from protorpc import remote
-
-from google3.third_party.apphosting.python.endpoints.v1_1 import endpoints
 
 from tradefed_cluster import api_common
 from tradefed_cluster import api_messages

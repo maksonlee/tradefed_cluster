@@ -18,11 +18,11 @@ import datetime
 import logging
 import uuid
 
+import endpoints
 from protorpc import messages
 from protorpc import remote
 
 from google.appengine.ext import ndb
-from google3.third_party.apphosting.python.endpoints.v1_1 import endpoints
 
 from tradefed_cluster import api_common
 from tradefed_cluster import api_messages

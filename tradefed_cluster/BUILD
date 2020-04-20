@@ -41,6 +41,7 @@ py_appengine_library(
     ],
     envs = PY_APPENGINE_ENVS,
     deps = [
+        third_party("endpoints:endpoints_library"),
     ],
 )
 

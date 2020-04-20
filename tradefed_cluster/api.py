@@ -14,7 +14,7 @@
 
 """an API module to serve TF Cluster APIs."""
 
-from google3.third_party.apphosting.python.endpoints.v1_1 import endpoints
+import endpoints
 
 from tradefed_cluster import cluster_api
 from tradefed_cluster import cluster_device_api

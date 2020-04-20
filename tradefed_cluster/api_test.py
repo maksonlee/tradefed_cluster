@@ -14,6 +14,7 @@
 
 """Module for API dependencies base class. Only used for tests."""
 
+import endpoints
 import webtest
 
 from tradefed_cluster import cluster_api
@@ -30,8 +31,6 @@ from tradefed_cluster import report_api
 from tradefed_cluster import request_api
 from tradefed_cluster import run_target_api
 from tradefed_cluster import testbed_dependent_test
-
-from google3.third_party.apphosting.python.endpoints.v1_1 import endpoints
 
 
 class ApiTest(testbed_dependent_test.TestbedDependentTest):

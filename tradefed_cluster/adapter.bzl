@@ -23,6 +23,7 @@ PACKAGE_MAP = {
     "concurrent": "futures",
     "dateutil": "python-dateutil",
     "docker": "docker",
+    "endpoints": "google-endpoints",
     "google/auth": "google-auth",
     "google/cloud/storage": "google-cloud-storage",
     "google/oauth2": "google-auth",

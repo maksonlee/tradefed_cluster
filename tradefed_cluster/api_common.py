@@ -14,9 +14,7 @@
 
 """Common components for tradefed cluster api."""
 
-# TODO: migrate to use the public version of Endpoints Framework 1.1.
-from google3.third_party.apphosting.python.endpoints.v1_1 import endpoints
-
+import endpoints
 
 # client ID would be anonymous from GAE apps
 ANONYMOUS = "anonymous"

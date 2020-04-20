@@ -21,6 +21,7 @@ uses it to execute the correct function for tasks in our push queue.
 import json
 import logging
 
+import endpoints
 from protorpc import message_types
 from protorpc import messages
 from protorpc import protojson
@@ -28,7 +29,6 @@ from protorpc import remote
 
 from google.appengine.api import modules
 from google.appengine.ext import deferred
-from google3.third_party.apphosting.python.endpoints.v1_1 import endpoints
 
 from tradefed_cluster import api_common
 from tradefed_cluster import api_messages

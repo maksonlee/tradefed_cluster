@@ -36,7 +36,6 @@ from tradefed_cluster import env_config
 from tradefed_cluster import metric
 from tradefed_cluster import request_manager
 from tradefed_cluster import testbed_dependent_test
-from tradefed_cluster.plugins import base as plugin_base
 
 TIMESTAMP = datetime.datetime(2017, 3, 8)
 TIMEDELTA = datetime.timedelta(seconds=30)
@@ -1134,17 +1133,10 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     eval_req.assert_not_called()
     attempt_metric.assert_not_called()
     plugin.assert_has_calls([
-        mock.call.OnCreateCommands([
-            plugin_base.CommandInfo(
-                command_id=1,
-                command_line="command_line1",
-                run_count=1,
-                shard_count=1,
-                shard_index=0)
-        ], {
+        mock.call.OnCreateCommands([1], {
             "ants_invocation_id": "i123",
             "command_ants_work_unit_id": "w123"
-        }, {}),
+        }, {})
     ])
 
   @mock.patch.object(metric, "RecordCommandAttemptMetric")
@@ -1182,14 +1174,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
         hostname="hostname",
         state="ERROR")
     plugin.assert_has_calls([
-        mock.call.OnCreateCommands([
-            plugin_base.CommandInfo(
-                command_id=1,
-                command_line="command_line1",
-                run_count=1,
-                shard_count=1,
-                shard_index=0)
-        ], {
+        mock.call.OnCreateCommands([1], {
             "ants_invocation_id": "i123",
             "command_ants_work_unit_id": "w123"
         }, {}),
@@ -1298,14 +1283,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
         hostname="hostname",
         state="ERROR")
     plugin.assert_has_calls([
-        mock.call.OnCreateCommands([
-            plugin_base.CommandInfo(
-                command_id=1,
-                command_line="command_line1",
-                run_count=1,
-                shard_count=1,
-                shard_index=0)
-        ], {
+        mock.call.OnCreateCommands([1], {
             "ants_invocation_id": "i123",
             "command_ants_work_unit_id": "w123"
         }, {}),

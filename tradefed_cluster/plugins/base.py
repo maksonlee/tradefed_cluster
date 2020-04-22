@@ -17,8 +17,6 @@ A plugin is a python class that gets instantiated and called start and finished.
 Also a test hook can populate parameters so that they can be used in test args.
 """
 
-import collections
-
 from six import with_metaclass
 
 
@@ -39,15 +37,6 @@ class PluginMetaClass(type):
     return cls._registry.get(name)
 
 
-CommandInfo = collections.namedtuple('CommandInfo', [
-    'command_id',
-    'command_line',
-    'run_count',
-    'shard_count',
-    'shard_index',
-])
-
-
 class Plugin(with_metaclass(PluginMetaClass, object)):
   """A base class for Plugin."""
 
@@ -59,12 +48,14 @@ class Plugin(with_metaclass(PluginMetaClass, object)):
     """
     pass
 
-  def OnCreateCommands(
-      self, command_infos, request_plugin_data, command_plugin_data_map):
+  def OnCreateCommands(self,
+                       command_ids,
+                       request_plugin_data,
+                       command_plugin_data_map):
     """A callback function to be executed before a plugin executed.
 
     Args:
-      command_infos: a list of CommandInfo objects.
+      command_ids: a list of command id.
       request_plugin_data: the request plguin data.
       command_plugin_data_map: the command plugin data for each command id.
     """

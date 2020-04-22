@@ -26,7 +26,6 @@ from tradefed_cluster import common
 from tradefed_cluster import env_config
 from tradefed_cluster import request_manager
 from tradefed_cluster import testbed_dependent_test
-from tradefed_cluster.plugins import base as plugin_base
 from tradefed_cluster.util import command_util
 
 
@@ -77,27 +76,10 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(100, command.priority)
     self.assertEqual(86400, command.queue_timeout_seconds)
     monitor.assert_has_calls([mock.call(commands_0), mock.call(commands_1)])
-    plugin.assert_has_calls([
-        mock.call.OnCreateCommands([
-            plugin_base.CommandInfo(
-                command_id=1,
-                command_line="command_line0",
-                run_count=1,
-                shard_count=1,
-                shard_index=0)
-        ], {
-            "ants_invocation_id": "i123",
-            "ants_work_unit_id": "w123"
-        }, {}),
-        mock.call.OnCreateCommands([
-            plugin_base.CommandInfo(
-                command_id=2,
-                command_line="command_line0",
-                run_count=1,
-                shard_count=1,
-                shard_index=0)
-        ], None, {}),
-    ])
+    plugin.assert_has_calls([mock.call.OnCreateCommands([1], {
+        "ants_invocation_id": "i123",
+        "ants_work_unit_id": "w123"}, {}),
+                             mock.call.OnCreateCommands([2], None, {})])
 
   @mock.patch.object(command_manager, "ScheduleTasks")
   @mock.patch.object(request_manager, "CancelRequest")

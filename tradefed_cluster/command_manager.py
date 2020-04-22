@@ -32,7 +32,6 @@ from tradefed_cluster import datastore_entities
 from tradefed_cluster import env_config
 from tradefed_cluster import metric
 from tradefed_cluster import request_manager
-from tradefed_cluster.plugins import base as plugin_base
 
 # Maximum number of tasks created for a single command with a run_count > 1
 
@@ -603,20 +602,8 @@ def CreateCommands(request_id,
   command_ids = range(command_id_start, command_id_end + 1)
 
   command_plugin_data_map = {}
-  command_infos = []
-  for cid, cl, i in zip(command_ids, command_lines, shard_indexes):
-    command_infos.append(
-        plugin_base.CommandInfo(
-            command_id=cid,
-            command_line=cl,
-            run_count=run_count,
-            shard_count=shard_count,
-            shard_index=i))
-
   env_config.CONFIG.plugin.OnCreateCommands(
-      command_infos,
-      request_plugin_data,
-      command_plugin_data_map)
+      command_ids, request_plugin_data, command_plugin_data_map)
 
   return _DoCreateCommands(request_id,
                            run_target,

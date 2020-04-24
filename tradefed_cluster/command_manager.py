@@ -14,7 +14,6 @@
 
 """A module for managing test commands."""
 
-import collections
 import datetime
 import json
 import logging
@@ -63,10 +62,30 @@ class CommandTaskNotFoundError(Exception):
 
 
 class CommandSummary(object):
-  """Command summary from command's attempts."""
+  """Command summary from command's attempts.
 
-  def __init__(self):
+  The queued_count, running_count, canceled_count, completed_count, error_count
+  and fatal_count are the number of command attempts for this command on
+  these states.
+
+  The start_time is the earliest start time of all the command attempts for
+  this command. The end_time is the latest end_time of all the commands
+  attempts for this command. They may be none if the command has no attempts
+  or if its attempts have not started or ended.
+
+  The runs holds the summary for individual runs and can be used to assign the
+  next run_index and attempt_index for a command.
+  """
+
+  def __init__(self, run_count=1):
+    """Initialized the command summary.
+
+    Args:
+      run_count: The number of runs the command has. This controls how the
+        CommandAttempts are distributed between runs and attempts.
+    """
     self.total_count = 0
+    self.queued_count = 0
     self.running_count = 0
     self.canceled_count = 0
     self.completed_count = 0
@@ -75,6 +94,204 @@ class CommandSummary(object):
     self.fatal_count = 0
     self.start_time = None
     self.end_time = None
+    self.runs = [RunSummary() for _ in range(run_count)]
+
+  def AddCommandTask(self, command_attempt):
+    """Adds the command task to the command summary.
+
+    Args:
+      command_attempt: the CommandAttempt object.
+    """
+    self.total_count += 1
+    if command_attempt.state == common.CommandState.QUEUED:
+      self.queued_count += 1
+    elif command_attempt.state == common.CommandState.RUNNING:
+      self.running_count += 1
+    elif command_attempt.state == common.CommandState.CANCELED:
+      self.canceled_count += 1
+    elif command_attempt.state == common.CommandState.COMPLETED:
+      self.completed_count += 1
+      if (command_attempt.failed_test_count > 0 or
+          command_attempt.failed_test_run_count > 0):
+        self.completed_fail_count += 1
+    elif command_attempt.state == common.CommandState.ERROR:
+      self.error_count += 1
+    elif command_attempt.state == common.CommandState.FATAL:
+      self.fatal_count += 1
+
+    if command_attempt.start_time:
+      if not self.start_time:
+        self.start_time = command_attempt.start_time
+      else:
+        self.start_time = min(command_attempt.start_time, self.start_time)
+
+    if command_attempt.end_time:
+      if not self.end_time:
+        self.end_time = command_attempt.end_time
+      else:
+        self.end_time = max(command_attempt.end_time, self.end_time)
+
+    if (command_attempt.run_index is not None and
+        0 <= command_attempt.run_index < len(self.runs)):
+      run_summary = self.runs[command_attempt.run_index]
+      run_summary.attempt_count += 1
+      if command_attempt.state == common.CommandState.QUEUED:
+        run_summary.queued_count += 1
+      if command_attempt.state == common.CommandState.RUNNING:
+        run_summary.running_count += 1
+      elif command_attempt.state == common.CommandState.CANCELED:
+        run_summary.canceled_count += 1
+      elif command_attempt.state == common.CommandState.COMPLETED:
+        run_summary.completed_count += 1
+        if (command_attempt.failed_test_count > 0 or
+            command_attempt.failed_test_run_count > 0):
+          run_summary.completed_fail_count += 1
+      elif command_attempt.state == common.CommandState.ERROR:
+        run_summary.error_count += 1
+      elif command_attempt.state == common.CommandState.FATAL:
+        run_summary.fatal_count += 1
+
+  def ScheduleTask(self, max_retry_on_test_failures=0):
+    """Increments the counts in the summary and appropriate run summary.
+
+    Note that this doesn't actually schedule the next task, but treats the
+    summary as if the next task was scheduled in the queued state.
+
+    Args:
+      max_retry_on_test_failures: The max number of attempts with test failures
+        to retry.
+
+    Returns:
+      run_index: the next run without have a completed or scheduled attempt.
+      attempt_index: the attempt index of the task for the run
+    """
+    self.total_count += 1
+    self.queued_count += 1
+    run_index = 0
+    run_summary = None
+
+    for i, tmp_summary in enumerate(self.runs):
+      # If max_retry_on_test_failures is set, ignore failed attempts up to
+      # the number.
+      completed_count = tmp_summary.completed_count
+      if tmp_summary.completed_fail_count <= max_retry_on_test_failures:
+        completed_count -= tmp_summary.completed_fail_count
+        max_retry_on_test_failures -= tmp_summary.completed_fail_count
+      # Find the run with the fewest attempts which doesn't have a successful,
+      # queued, or running attempt. This helps distributed the attempts between
+      # the runs.
+
+      if ((not run_summary or
+           tmp_summary.attempt_count < run_summary.attempt_count) and
+          completed_count == 0 and
+          tmp_summary.queued_count == 0 and
+          tmp_summary.running_count == 0):
+        run_index = i
+        run_summary = tmp_summary
+
+    if not run_summary:
+      # If all runs have a completed, queued, or running attempt, fall back to
+      # the first run. This should not happen as tasks are only scheduled or
+      # rescheduled if more attempts are needed.
+      run_index = 0
+      run_summary = self.runs[0]
+      logging.warning("All runs have a complete or running attempt")
+
+    run_summary.attempt_count += 1
+    run_summary.queued_count += 1
+    return run_index, run_summary.attempt_count - 1
+
+  def GetState(self,
+               state,
+               max_retry_on_test_failures=0,
+               max_canceled_count=1,
+               max_error_count=1):
+    """Gets the computed state.
+
+    Args:
+      state: the existing state or the state to update to. This allows for the
+        summary to override the desired state. For example, if the desired state
+        is CANCELLED while the determined state is COMPLETED.
+      max_retry_on_test_failures: The max number of attempts with test failures
+        to retry.
+      max_canceled_count: The number of cancelled attempts before cancelling the
+        command.
+      max_error_count: The number of errored attempts before erroring the
+        command.
+
+    Returns:
+      The computed state of the summary
+    """
+    # If max_retry_on_test_failures is set, ignore failed attempts up to
+    # the number.
+    completed_count = self.completed_count
+    if self.completed_fail_count <= max_retry_on_test_failures:
+      completed_count -= self.completed_fail_count
+
+    if completed_count >= len(self.runs):
+      return common.CommandState.COMPLETED
+    if self.fatal_count > 0:
+      return common.CommandState.FATAL
+    if self.canceled_count >= max_canceled_count:
+      return common.CommandState.CANCELED
+    if self.error_count >= max_error_count:
+      return common.CommandState.ERROR
+    if common.IsFinalCommandState(state):
+      return state
+    if self.running_count > 0:
+      return common.CommandState.RUNNING
+    return common.CommandState.QUEUED
+
+  def RemainingRunCount(self, max_retry_on_test_failures=0):
+    """The number of successful CommandAttempts needed to complete the Command.
+
+    Args:
+      max_retry_on_test_failures: The max number of attempts with test failures
+        to retry.
+
+    Returns:
+      The number of CommandAttempts which would need to complete successfully in
+        order for the Command to be considered complete.
+    """
+    # If max_retry_on_test_failures is set, ignore failed attempts up to
+    # the number.
+    completed_count = self.completed_count
+    if self.completed_fail_count <= max_retry_on_test_failures:
+      completed_count -= self.completed_fail_count
+    return len(self.runs) - completed_count
+
+
+class RunSummary(object):
+  """Run summary for a particular run index of a command's attempts."""
+
+  def __init__(self):
+    self.attempt_count = 0
+    self.queued_count = 0
+    self.running_count = 0
+    self.canceled_count = 0
+    self.completed_count = 0
+    self.completed_fail_count = 0
+    self.error_count = 0
+    self.fatal_count = 0
+
+
+def GetCommandSummary(request_id, command_id, run_count):
+  """Provides a summary of the attempts for this command.
+
+  Args:
+    request_id: request id, str
+    command_id: command id, str
+    run_count: the number of runs for the command.
+  Returns:
+    a Command summary object.
+  """
+  command_attempts = GetCommandAttempts(request_id, command_id)
+  if not command_attempts:
+    return None
+  summary = CommandSummary(run_count)
+  for attempt in command_attempts:
+    summary.AddCommandTask(attempt)
+  return summary
 
 
 def GetActiveTaskCount(command):
@@ -167,17 +384,13 @@ def _UpdateState(
   logging.info("Attempting to update %s state%s",
                command.key,
                " to %s" % state.name if state is not None else "")
-  summary = GetCommandSummary(request_id, command_id)
-  if request.max_retry_on_test_failures:
-    # If request.max_retry_on_test_failures is set, ignore failed attempts up to
-    # the number.
-    if (summary and
-        summary.completed_fail_count <= request.max_retry_on_test_failures):
-      summary.completed_count -= summary.completed_fail_count
+  summary = GetCommandSummary(request_id, command_id, command.run_count)
+
+  max_retries_on_failure = request.max_retry_on_test_failures or 0
   if not (force or command.dirty):
     logging.info("%s doesn't need to be updated", command.key.id())
     if summary:
-      return command, command.run_count - summary.completed_count
+      return command, summary.RemainingRunCount(max_retries_on_failure)
     return command, 0
   state = state or command.state
   start_time = None
@@ -185,25 +398,15 @@ def _UpdateState(
   remaining_run_count = 0
 
   if summary:
+    state = summary.GetState(
+        state,
+        max_retry_on_test_failures=max_retries_on_failure,
+        max_canceled_count=_GetCommandMaxCancelCount(command),
+        max_error_count=_GetCommandMaxErrorCount(command))
     start_time = summary.start_time
     end_time = summary.end_time
-    if summary.completed_count >= command.run_count:
-      state = common.CommandState.COMPLETED
-    elif summary.fatal_count > 0:
-      state = common.CommandState.FATAL
-    elif summary.canceled_count >= _GetCommandMaxCancelCount(command):
-      state = common.CommandState.CANCELED
-    elif summary.error_count >= _GetCommandMaxErrorCount(command):
-      state = common.CommandState.ERROR
-    elif state in (
-        common.CommandState.RUNNING,
-        common.CommandState.QUEUED,
-        common.CommandState.UNKNOWN):
-      if summary.running_count > 0:
-        state = common.CommandState.RUNNING
-      else:
-        state = common.CommandState.QUEUED
-      remaining_run_count = command.run_count - summary.completed_count
+    remaining_run_count = summary.RemainingRunCount(
+        max_retry_on_test_failures=max_retries_on_failure)
 
   if state and state != command.state:
     command.state = state
@@ -424,60 +627,6 @@ def ProcessCommandEvent(event):
       GetCommand(event.request_id, event.command_id),
       GetCommandAttempt(event.request_id, event.command_id, event.attempt_id),
       )
-
-
-def GetCommandSummary(request_id, command_id):
-  """Provides a summary of the attempts for this command.
-
-  The running_count, canceled_count, completed_count, error_count and
-  fatal_count are the number of command attempts for this command on
-  these states.
-  The start_time is the earliest start time of all the command attempts for
-  this command. The end_time is the latest end_time of all the commands
-  attempts for this command. They may be none if the command has no attempts
-  or if its attempts have not started or ended.
-
-  Args:
-    request_id: request id, str
-    command_id: command id, str
-  Returns:
-    a Command summary object.
-  """
-  command_attempts = GetCommandAttempts(request_id, command_id)
-  if not command_attempts:
-    return None
-  summary = CommandSummary()
-  attempt_state_map = collections.defaultdict(list)
-  for attempt in command_attempts:
-    attempt_state_map[attempt.state].append(attempt.key.id())
-    summary.total_count += 1
-    if attempt.state == common.CommandState.RUNNING:
-      summary.running_count += 1
-    elif attempt.state == common.CommandState.CANCELED:
-      summary.canceled_count += 1
-    elif attempt.state == common.CommandState.COMPLETED:
-      summary.completed_count += 1
-      if attempt.failed_test_count > 0 or attempt.failed_test_run_count > 0:
-        summary.completed_fail_count += 1
-    elif attempt.state == common.CommandState.ERROR:
-      summary.error_count += 1
-    elif attempt.state == common.CommandState.FATAL:
-      summary.fatal_count += 1
-    if attempt.start_time:
-      if not summary.start_time:
-        summary.start_time = attempt.start_time
-      else:
-        summary.start_time = min(attempt.start_time, summary.start_time)
-    if attempt.end_time:
-      if not summary.end_time:
-        summary.end_time = attempt.end_time
-      else:
-        summary.end_time = max(attempt.end_time, summary.end_time)
-
-  attempt_map_str = "\n\t".join(
-      "{}: {}".format(state, ids) for state, ids in attempt_state_map.items())
-  logging.debug("Command summary:\n\t%s", attempt_map_str)
-  return summary
 
 
 def ScheduleTasks(commands):

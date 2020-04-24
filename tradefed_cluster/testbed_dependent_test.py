@@ -17,6 +17,7 @@ import os
 
 import unittest
 
+from google.appengine.datastore import datastore_stub_util
 from google.appengine.ext import ndb
 from google.appengine.ext import testbed
 
@@ -39,6 +40,8 @@ class TestbedDependentTest(unittest.TestCase):
         overwrite=True)
     self.testbed.activate()
     self.testbed.init_all_stubs()
+    policy = datastore_stub_util.PseudoRandomHRConsistencyPolicy(1.0)
+    self.testbed.init_datastore_v3_stub(consistency_policy=policy)
     self.testbed.init_taskqueue_stub(
         root_path=os.path.join(os.path.dirname(__file__), 'test_yaml'))
     self.taskqueue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)

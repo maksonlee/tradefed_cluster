@@ -71,7 +71,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     request_manager.AddToQueue(request)
     tasks = self.taskqueue_stub.get_filtered_tasks()
     self.assertEqual(len(tasks), 1)
-    request_task = json.loads(tasks[0].payload)
+    request_task = json.loads(zlib.decompress(tasks[0].payload))
     self.assertEqual(REQUEST_ID, request_task["id"])
     self.assertEqual("command line", request_task["command_line"])
     self.assertEqual("user", request_task["user"])

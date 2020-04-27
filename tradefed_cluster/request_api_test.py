@@ -17,6 +17,7 @@
 import datetime
 import json
 import unittest
+import zlib
 
 import mock
 from protorpc import protojson
@@ -123,7 +124,7 @@ class RequestApiTest(api_test.ApiTest):
     tasks = self.taskqueue_stub.get_filtered_tasks()
     self.assertEqual(len(tasks), 1)
 
-    request_task = json.loads(tasks[0].payload)
+    request_task = json.loads(zlib.decompress(tasks[0].payload))
     self.assertEqual(request_task['id'], return_request.id)
     self.assertEqual(request_task['command_line'], command_line)
     self.assertEqual(request_task['user'], 'user1')
@@ -171,7 +172,7 @@ class RequestApiTest(api_test.ApiTest):
     tasks = self.taskqueue_stub.get_filtered_tasks()
     self.assertEqual(len(tasks), 1)
 
-    request_task = json.loads(tasks[0].payload)
+    request_task = json.loads(zlib.decompress(tasks[0].payload))
     self.assertEqual(request_task['id'], return_request.id)
     self.assertEqual(request_task['command_line'], command_line)
     self.assertEqual(request_task['user'], 'user1')
@@ -209,7 +210,7 @@ class RequestApiTest(api_test.ApiTest):
     self.assertEqual(command_line, request_entity.command_line)
     tasks = self.taskqueue_stub.get_filtered_tasks()
     self.assertEqual(len(tasks), 1)
-    request_task = json.loads(tasks[0].payload)
+    request_task = json.loads(zlib.decompress(tasks[0].payload))
     self.assertEqual(request_task['id'], return_request.id)
     self.assertEqual(request_task['command_line'], command_line)
     self.assertEqual(request_task['user'], 'user1')
@@ -285,7 +286,7 @@ class RequestApiTest(api_test.ApiTest):
 
     tasks = self.taskqueue_stub.get_filtered_tasks()
     self.assertEqual(len(tasks), 1)
-    request_task = json.loads(tasks[0].payload)
+    request_task = json.loads(zlib.decompress(tasks[0].payload))
     self.assertEqual(request_msg.id, request_task['id'])
     self.assertEqual(command_line, request_task['command_line'])
     self.assertEqual('user', request_task['user'])

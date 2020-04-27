@@ -16,6 +16,7 @@
 
 import json
 import logging
+import zlib
 
 import webapp2
 
@@ -140,7 +141,13 @@ class RequestHandler(webapp2.RequestHandler):
 
   def post(self):
     """Process a request message."""
-    payload = json.loads(self.request.body)
+    body = self.request.body
+    try:
+      body = zlib.decompress(body)
+    except zlib.error:
+      logging.warn(
+          "payload may not be compressed: %s", body, exc_info=True)
+    payload = json.loads(body)
     request_id = payload["id"]
     _ProcessRequest(request_id)
 

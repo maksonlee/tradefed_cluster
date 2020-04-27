@@ -512,7 +512,8 @@ def AddToQueue(request):
       "priority": request.priority,
       "queue_timeout_seconds": request.queue_timeout_seconds
   })
-  task = taskqueue.Task(name=task_name, payload=payload)
+  compressed_payload = zlib.compress(payload)
+  task = taskqueue.Task(name=task_name, payload=compressed_payload)
   queue.add(task)
 
 

@@ -40,6 +40,24 @@ TIMING_DATA_FIELDS_TO_COMMAND_ACTIONS = {
     "setup_time_millis": metric.CommandAction.INVOCATION_SETUP
 }
 
+DEFAULT_TRUNCATE_LENGTH = 1024
+
+
+def _Truncate(s, length=DEFAULT_TRUNCATE_LENGTH):
+  """Truncate a string if longer than a given length.
+
+  Args:
+    s: a string or an object
+    length: a truncate start length.
+  Returns:
+    A truncated string.
+  """
+  if not isinstance(s, str):
+    s = str(s)
+  if length < len(s):
+    s = s[:length] + "...(total %s chars)" % len(s)
+  return s
+
 
 def EnqueueCommandEvents(events):
   """Enqueue the command events to COMMAND_EVENT_QUEUE.
@@ -129,7 +147,7 @@ class CommandEventHandler(webapp2.RequestHandler):
     exception = None
     for obj in objs:
       try:
-        logging.info(obj)
+        logging.info(_Truncate(obj))
         event = command_event.CommandEvent(**obj)
         if (event.time + datetime.timedelta(days=COMMAND_EVENT_TIMEOUT_DAYS) <
             _Now()):

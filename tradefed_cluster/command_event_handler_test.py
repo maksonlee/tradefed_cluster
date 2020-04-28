@@ -91,6 +91,12 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     self.now_patcher.stop()
     testbed_dependent_test.TestbedDependentTest.tearDown(self)
 
+  def testTruncate(self):
+    self.assertEqual("foo", command_event_handler._Truncate("foo"))
+    self.assertEqual(
+        "foo...(total 3072 chars)",
+        command_event_handler._Truncate("foo" * 1024, 3))
+
   @mock.patch.object(command_event_handler, "ProcessCommandEvent")
   def testEnqueueCommandEvents(self, mock_process):
     event = command_event_test_util.CreateTestCommandEventJson(

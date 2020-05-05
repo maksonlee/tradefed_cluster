@@ -77,7 +77,8 @@ class NotifierTest(testbed_dependent_test.TestbedDependentTest):
     self.testapp.post(
         notifier.OBJECT_EVENT_QUEUE_HANDLER_PATH,
         protojson.encode_message(event_message))
-    self._AssertMessagePublished(event_message)
+    self._AssertMessagePublished(
+        event_message, notifier.REQUEST_EVENT_PUBSUB_TOPIC)
 
   def testObjectStateChangeEventHandler_compressed(self):
     request = self._CreateTestRequest(state=common.RequestState.COMPLETED)
@@ -97,7 +98,8 @@ class NotifierTest(testbed_dependent_test.TestbedDependentTest):
 
     self.testapp.post(notifier.OBJECT_EVENT_QUEUE_HANDLER_PATH,
                       zlib.compress(protojson.encode_message(event_message)))
-    self._AssertMessagePublished(event_message)
+    self._AssertMessagePublished(
+        event_message, notifier.REQUEST_EVENT_PUBSUB_TOPIC)
 
   def testObjectStateChangeEventHandler_attemptEvent(self):
     request = self._CreateTestRequest(state=common.RequestState.COMPLETED)
@@ -122,7 +124,8 @@ class NotifierTest(testbed_dependent_test.TestbedDependentTest):
     self.testapp.post(
         notifier.OBJECT_EVENT_QUEUE_HANDLER_PATH,
         protojson.encode_message(event_message))
-    self._AssertMessagePublished(event_message)
+    self._AssertMessagePublished(
+        event_message, notifier.COMMAND_ATTEMPT_EVENT_PUBSUB_TOPIC)
 
   def _CreateTestRequest(self, state=common.RequestState.UNKNOWN):
     """Creates a Request for testing purposes."""
@@ -174,11 +177,11 @@ class NotifierTest(testbed_dependent_test.TestbedDependentTest):
     self._attempt_id += 1
     return command_attempt
 
-  def _AssertMessagePublished(self, message):
+  def _AssertMessagePublished(self, message, pubsub_topic):
     data = base64.urlsafe_b64encode(protojson.encode_message(message))
     messages = [{'data': data}]
     self.mock_pubsub_client.PublishMessages.assert_called_once_with(
-        notifier.OBJECT_EVENT_PUBSUB_TOPIC, messages)
+        pubsub_topic, messages)
 
 if __name__ == '__main__':
   unittest.main()

@@ -389,6 +389,65 @@ class HostConfigTest(unittest.TestCase):
       # close will delete the file.
       f.close()
 
+  def testUpdateHostConfig(self):
+    host_config = lab_config.CreateHostConfig(
+        lab_name='alab',
+        cluster_name='acluster',
+        hostname='ahost',
+        host_login_name='auser',
+        tf_global_config_path='apath',
+        docker_image='a_docker_image',
+        master_url='tfc',
+        graceful_shutdown=True,
+        enable_stackdriver=True,
+        enable_autoupdate=True,
+        service_account_json_key_path='a_service_keyfile')
+    new_host_config = host_config.SetDockerImage('b_docker_image')
+    new_host_config = new_host_config.SetServiceAccountJsonKeyPath(
+        'b_service_keyfile')
+
+    self.assertEqual('a_service_keyfile',
+                     host_config.service_account_json_key_path)
+    self.assertEqual('b_service_keyfile',
+                     new_host_config.service_account_json_key_path)
+    self.assertEqual('a_docker_image', host_config.docker_image)
+    self.assertEqual('b_docker_image', new_host_config.docker_image)
+
+    self.assertEqual('alab', new_host_config.lab_name)
+    self.assertEqual('acluster', new_host_config.cluster_name)
+
+  def testConfigEquals_equals(self):
+    host_config_1 = lab_config.CreateHostConfig(
+        lab_name='alab',
+        cluster_name='acluster',
+        hostname='ahost',
+        host_login_name='auser',
+        tf_global_config_path='apath',
+        docker_image='a_docker_image',
+        master_url='tfc',
+        graceful_shutdown=True,
+        enable_stackdriver=True,
+        enable_autoupdate=True,
+        service_account_json_key_path='a_service_keyfile')
+    host_config_2 = host_config_1.Copy()
+    self.assertEqual(host_config_1, host_config_2)
+
+  def testConfigEquals_notEquals(self):
+    host_config_1 = lab_config.CreateHostConfig(
+        lab_name='alab',
+        cluster_name='acluster',
+        hostname='ahost',
+        host_login_name='auser',
+        tf_global_config_path='apath',
+        docker_image='a_docker_image',
+        master_url='tfc',
+        graceful_shutdown=True,
+        enable_stackdriver=True,
+        enable_autoupdate=True,
+        service_account_json_key_path='a_service_keyfile')
+    host_config_2 = host_config_1.SetDockerImage('b_docker_image')
+    self.assertNotEqual(host_config_1, host_config_2)
+
 
 if __name__ == '__main__':
   unittest.main()

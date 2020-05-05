@@ -55,7 +55,10 @@ def Parse(yaml_file_obj):
 
 
 class HostConfig(object):
-  """A host config object."""
+  """A host config object.
+
+  This class is immutable. The setter functions return a new HostConfig object.
+  """
 
   def __init__(
       self,
@@ -69,6 +72,12 @@ class HostConfig(object):
     self.host_config_pb.CopyFrom(host_config_pb)
     self.cluster_config_pb.CopyFrom(cluster_config_pb)
     self.lab_config_pb.CopyFrom(lab_config_pb)
+
+  def Copy(self):
+    """Copy the host config."""
+    return HostConfig(self.host_config_pb,
+                      self.cluster_config_pb,
+                      self.lab_config_pb)
 
   @property
   def hostname(self):
@@ -111,10 +120,11 @@ class HostConfig(object):
             self.cluster_config_pb.docker_image or
             self.lab_config_pb.docker_image)
 
-  @docker_image.setter
-  def docker_image(self, val):
-    """The setter of field service_account_json_key_path."""
-    self.lab_config_pb.docker_image = val
+  def SetDockerImage(self, val):
+    """Create a new config with given value of docker_image."""
+    host_config = self.Copy()
+    host_config.host_config_pb.docker_image = val
+    return host_config
 
   @property
   def graceful_shutdown(self):
@@ -140,10 +150,11 @@ class HostConfig(object):
     """The file path of service account json key."""
     return self.lab_config_pb.service_account_json_key_path
 
-  @service_account_json_key_path.setter
-  def service_account_json_key_path(self, val):
-    """The setter of field service_account_json_key_path."""
-    self.lab_config_pb.service_account_json_key_path = val
+  def SetServiceAccountJsonKeyPath(self, val):
+    """Create a new config with given value of service_account_json_key_path."""
+    host_config = self.Copy()
+    host_config.lab_config_pb.service_account_json_key_path = val
+    return host_config
 
   @property
   def tmpfs_configs(self):
@@ -180,17 +191,21 @@ class HostConfig(object):
       f.write(yaml.safe_dump(lab_config_dict))
 
   def __eq__(self, other):
-    if self.hostname != other.hostname:
+    if not isinstance(other, HostConfig):
       return False
-    if self.host_login_name != other.host_login_name:
-      return False
-    if self.tf_global_config_path != other.tf_global_config_path:
-      return False
-    if self.lab_name != other.lab_name:
-      return False
-    if self.cluster_name != other.cluster_name:
-      return False
-    return self.tmpfs_configs == other.tmpfs_configs
+    property_names = [name for name, obj
+                      in vars(HostConfig).items()
+                      if isinstance(obj, property)]
+    return all(getattr(self, property_name) == getattr(other, property_name)
+               for property_name in property_names)
+
+  def __repr__(self):
+    lines = []
+    for name, obj in vars(HostConfig).items():
+      if not isinstance(obj, property):
+        continue
+      lines.append('%s: %s' % (name, getattr(self, name)))
+    return '\n'.join(lines)
 
 
 def CreateHostConfig(

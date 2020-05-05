@@ -206,6 +206,19 @@ class ClusterApi(remote.Service):
       raise endpoints.NotFoundException(
           ("Not Found: PredefinedMessage<id:%s> is invalid."
            % request.id))
+    exisiting_predefined_message_entities = (
+        datastore_entities.PredefinedMessage.query()
+        .filter(datastore_entities.PredefinedMessage.type
+                == predefined_message.type)
+        .filter(datastore_entities.PredefinedMessage.lab_name
+                == predefined_message.lab_name)
+        .filter(datastore_entities.PredefinedMessage.content
+                == request.content)
+        .fetch(1))
+    if exisiting_predefined_message_entities:
+      raise endpoints.ConflictException(
+          "Conflict: a same predefine message<id:%s> already exist." %
+          exisiting_predefined_message_entities[0].key.id())
     predefined_message.content = request.content
     predefined_message.put()
     return datastore_entities.ToMessage(predefined_message)

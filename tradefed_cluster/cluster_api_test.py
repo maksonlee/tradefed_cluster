@@ -352,6 +352,27 @@ class ClusterApiTest(api_test.ApiTest):
         expect_errors=True)
     self.assertEqual('404 Not Found', api_response.status)
 
+  def testUpdatePredefinedMessage_failAlreadyExist(self):
+    predefined_messages = [
+        datastore_entities.PredefinedMessage(
+            lab_name='lab1',
+            type=api_messages.PredefinedMessageType.DEVICE_OFFLINE_REASON,
+            content='content-1'),
+        datastore_entities.PredefinedMessage(
+            lab_name='lab1',
+            type=api_messages.PredefinedMessageType.DEVICE_OFFLINE_REASON,
+            content='content-2'),
+    ]
+    keys = ndb.put_multi(predefined_messages)
+    api_request = {
+        'id': keys[0].id(),  # the id of the 1st message
+        'content': 'content-2',  # the content of the 2nd message
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterApi.UpdatePredefinedMessage', api_request,
+        expect_errors=True)
+    self.assertEqual('409 Conflict', api_response.status)
+
   def testDeletePredefinedMessage_succeed(self):
     content = 'some content'
     lab_name = 'lab_1'

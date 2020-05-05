@@ -16,7 +16,6 @@
 
 import base64
 import datetime
-import json
 import unittest
 import zlib
 
@@ -58,27 +57,6 @@ class NotifierTest(testbed_dependent_test.TestbedDependentTest):
     self.patcher.stop()
     self.now_patch.stop()
     super(NotifierTest, self).tearDown()
-
-  def testObjectStateChangeEventHandler_idOnly(self):
-    request = self._CreateTestRequest(state=common.RequestState.COMPLETED)
-    expected_message = api_messages.RequestEventMessage(
-        type=common.ObjectEventType.REQUEST_STATE_CHANGED,
-        request_id=REQUEST_ID,
-        new_state=common.RequestState.COMPLETED,
-        request=datastore_entities.ToMessage(request),
-        summary='',
-        total_test_count=0,
-        failed_test_count=0,
-        passed_test_count=0,
-        failed_test_run_count=0,
-        result_links=[],
-        total_run_time_sec=0,
-        event_time=TIMESTAMP)
-
-    self.testapp.post(
-        notifier.OBJECT_EVENT_QUEUE_HANDLER_PATH,
-        json.dumps({'id': REQUEST_ID}))
-    self._AssertMessagePublished(expected_message)
 
   def testObjectStateChangeEventHandler_requestEvent(self):
     request = self._CreateTestRequest(state=common.RequestState.COMPLETED)

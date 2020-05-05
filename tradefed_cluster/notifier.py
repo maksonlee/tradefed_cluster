@@ -20,14 +20,12 @@ import logging
 import zlib
 
 import lazy_object_proxy
-from protorpc import protojson
 import webapp2
 
 from google.appengine.api import taskqueue
 
 from tradefed_cluster import common
 from tradefed_cluster import env_config
-from tradefed_cluster import request_manager
 from tradefed_cluster.util import pubsub_client
 
 
@@ -76,9 +74,6 @@ class ObjectStateChangeEventHandler(webapp2.RequestHandler):
 
     This method takes protojson-encoded request or attempt state change event
     messages and passes them on to the event queue configured in env_config.
-
-    Prior to cl/220835423, this queue only received data with an 'id' field and
-    retrieved the request info later.
     """
     encoded_message = self.request.body
     try:
@@ -88,19 +83,11 @@ class ObjectStateChangeEventHandler(webapp2.RequestHandler):
           'payload may not be compressed: %s', encoded_message, exc_info=True)
 
     data = json.loads(encoded_message)
-
-    # TODO: Remove legacy id later.
-    legacy_id = data.get('id')
     message_type = data.get('type')
     if message_type == common.ObjectEventType.COMMAND_ATTEMPT_STATE_CHANGED:
       typed_id = 'Attempt %s' % data.get('attempt').get('attempt_id')
     elif message_type == common.ObjectEventType.REQUEST_STATE_CHANGED:
       typed_id = 'Request %s' % data.get('request_id')
-    elif legacy_id:
-      request = request_manager.GetRequest(legacy_id)
-      message = request_manager.CreateRequestEventMessage(request)
-      encoded_message = protojson.encode_message(message)
-      typed_id = 'Request %s' % legacy_id
     else:
       typed_id = 'Unknown message type (%s)' % message_type
     logging.info('Notifying %s state changed to %s', typed_id,

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""API module to serve cluster service calls."""
+"""API module to serve predefined message service calls."""
 
 import datetime
 
@@ -26,6 +26,7 @@ from tradefed_cluster import api_common
 from tradefed_cluster import api_messages
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import datastore_util
+from tradefed_cluster import note_manager
 
 
 _PREDEFINED_MESSAGE_LIST_DEFAULT_LIMIT = 10
@@ -49,16 +50,13 @@ class PredefinedMessageApi(remote.Service):
       http_method="POST",
       name="createPredefinedMessage")
   def CreatePredefinedMessage(self, request):
-    exisiting_predefined_message_entities = (
-        datastore_entities.PredefinedMessage.query()
-        .filter(datastore_entities.PredefinedMessage.type == request.type)
-        .filter(
-            datastore_entities.PredefinedMessage.lab_name == request.lab_name)
-        .filter(datastore_entities.PredefinedMessage.content
-                == request.content)
-        .fetch(1))
-    if exisiting_predefined_message_entities:
-      predefined_message_id = exisiting_predefined_message_entities[0].key.id()
+    existing_predefined_message_entity = (
+        note_manager.GetPredefinedMessage(
+            message_type=request.type,
+            lab_name=request.lab_name,
+            content=request.content))
+    if existing_predefined_message_entity:
+      predefined_message_id = existing_predefined_message_entity.key.id()
       raise endpoints.ConflictException(
           ("Conflict: this PredefinedMessage<id:%s> already exist."
            % predefined_message_id))
@@ -88,19 +86,15 @@ class PredefinedMessageApi(remote.Service):
       raise endpoints.NotFoundException(
           ("Not Found: PredefinedMessage<id:%s> is invalid."
            % request.id))
-    exisiting_predefined_message_entities = (
-        datastore_entities.PredefinedMessage.query()
-        .filter(datastore_entities.PredefinedMessage.type
-                == predefined_message.type)
-        .filter(datastore_entities.PredefinedMessage.lab_name
-                == predefined_message.lab_name)
-        .filter(datastore_entities.PredefinedMessage.content
-                == request.content)
-        .fetch(1))
-    if exisiting_predefined_message_entities:
+    existing_predefined_message_entity = (
+        note_manager.GetPredefinedMessage(
+            message_type=predefined_message.type,
+            lab_name=predefined_message.lab_name,
+            content=request.content))
+    if existing_predefined_message_entity:
       raise endpoints.ConflictException(
-          "Conflict: a same predefine message<id:%s> already exist." %
-          exisiting_predefined_message_entities[0].key.id())
+          "Conflict: a same predefine message<id:%s> already exists." %
+          existing_predefined_message_entity.key.id())
     predefined_message.content = request.content
     predefined_message.put()
     return datastore_entities.ToMessage(predefined_message)

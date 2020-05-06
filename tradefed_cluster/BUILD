@@ -977,6 +977,31 @@ py_appengine_test(
 )
 
 py_appengine_library(
+    name = "note_manager_lib",
+    srcs = [
+        "note_manager.py",
+    ],
+    envs = PY_APPENGINE_ENVS,
+    deps = [
+        ":datastore_entities_lib",
+    ],
+)
+
+py_appengine_test(
+    name = "note_manager_test",
+    srcs = [
+        "note_manager_test.py",
+    ],
+    envs = PY_APPENGINE_TEST_ENVS,
+    use_public_sdk = 1,
+    deps = [
+        ":datastore_test_util_lib",
+        ":note_manager_lib",
+        ":testbed_dependent_test_lib",
+    ],
+)
+
+py_appengine_library(
     name = "notification_handler_lib",
     srcs = [
         "notification_handler.py",
@@ -1046,6 +1071,7 @@ py_appengine_library(
         ":common_lib",
         ":datastore_entities_lib",
         ":device_manager_lib",
+        ":note_manager_lib",
         third_party("pytz"),
     ],
 )

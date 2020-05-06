@@ -27,6 +27,7 @@ from tradefed_cluster import device_snapshot_api
 from tradefed_cluster import env_config
 from tradefed_cluster import host_event_api
 from tradefed_cluster import lab_management_api
+from tradefed_cluster import predefined_message_api
 from tradefed_cluster import report_api
 from tradefed_cluster import request_api
 from tradefed_cluster import run_target_api
@@ -42,6 +43,7 @@ API_HANDLERS = [
     device_snapshot_api.DeviceSnapshotApi,
     host_event_api.HostEventApi,
     lab_management_api.LabManagementApi,
+    predefined_message_api.PredefinedMessageApi,
     report_api.ReportApi,
     request_api.RequestApi,
     run_target_api.RunTargetApi,

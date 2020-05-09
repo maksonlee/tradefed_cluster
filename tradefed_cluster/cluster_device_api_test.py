@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Tests cluster_device_api."""
 
 import datetime
@@ -28,6 +27,7 @@ from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import datastore_test_util
 from tradefed_cluster import device_manager
+from tradefed_cluster import note_manager
 
 
 class ClusterDeviceApiTest(api_test.ApiTest):
@@ -48,32 +48,33 @@ class ClusterDeviceApiTest(api_test.ApiTest):
   def _setDeviceState(self, serial, state):
     """Helper function to set a device's state."""
     device = datastore_entities.DeviceInfo.query().filter(
-        datastore_entities.DeviceInfo.device_serial ==
-        serial).get()
+        datastore_entities.DeviceInfo.device_serial == serial).get()
     device.state = state
     device.put()
 
   def setUp(self):
     api_test.ApiTest.setUp(self)
-    self.ndb_host_0 = datastore_test_util.CreateHost(
-        'free', 'host_0')
+    self.ndb_host_0 = datastore_test_util.CreateHost('free', 'host_0')
     self.ndb_device_0 = datastore_test_util.CreateDevice(
-        'free', 'host_0', 'device_0', timestamp=self.TIMESTAMP)
+        'free', 'host_0', 'device_0', 'lab-name-1', timestamp=self.TIMESTAMP)
     self.ndb_device_1 = datastore_test_util.CreateDevice(
         'free', 'host_0', 'device_1', timestamp=self.TIMESTAMP)
     self.ndb_host_1 = datastore_test_util.CreateHost(
         'paid', 'host_1', lab_name='alab')
     self.ndb_device_2 = datastore_test_util.CreateDevice(
-        'paid', 'host_1', 'device_2', hidden=True,
-        lab_name='alab')
+        'paid', 'host_1', 'device_2', hidden=True, lab_name='alab')
     self.ndb_device_3 = datastore_test_util.CreateDevice(
-        'paid', 'host_1', 'device_3',
+        'paid',
+        'host_1',
+        'device_3',
         lab_name='alab',
         device_type=api_messages.DeviceTypeMessage.NULL)
     self.ndb_host_2 = datastore_test_util.CreateHost(
         'free', 'host_2', hidden=True)
     self.ndb_device_4 = datastore_test_util.CreateDevice(
-        'free', 'host_2', 'device_4',
+        'free',
+        'host_2',
+        'device_4',
         device_type=api_messages.DeviceTypeMessage.NULL)
     self.note = datastore_entities.Note(
         user='user0', timestamp=self.TIMESTAMP, message='Hello, World')
@@ -99,8 +100,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     """Tests ListDevices returns all devices."""
     api_request = {}
     api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.ListDevices',
-        api_request)
+        '/_ah/api/ClusterDeviceApi.ListDevices', api_request)
     device_collection = protojson.decode_message(
         api_messages.DeviceInfoCollection, api_response.body)
     self.assertEqual('200 OK', api_response.status)
@@ -111,8 +111,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     """Tests ListDevices returns devices filtered by cluster."""
     api_request = {'cluster_id': 'free'}
     api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.ListDevices',
-        api_request)
+        '/_ah/api/ClusterDeviceApi.ListDevices', api_request)
     device_collection = protojson.decode_message(
         api_messages.DeviceInfoCollection, api_response.body)
     self.assertEqual('200 OK', api_response.status)
@@ -125,8 +124,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     """Tests ListDevices returns devices filtered by lab_name."""
     api_request = {'lab_name': 'alab'}
     api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.ListDevices',
-        api_request)
+        '/_ah/api/ClusterDeviceApi.ListDevices', api_request)
     device_collection = protojson.decode_message(
         api_messages.DeviceInfoCollection, api_response.body)
     self.assertEqual('200 OK', api_response.status)
@@ -138,12 +136,14 @@ class ClusterDeviceApiTest(api_test.ApiTest):
   def testListDevices_filterTestHarness(self):
     """Tests ListDevices returns devices filtered by test harness."""
     self.ndb_device_0 = datastore_test_util.CreateDevice(
-        'mh_cluster', 'mh_host', 'mh_device', timestamp=self.TIMESTAMP,
+        'mh_cluster',
+        'mh_host',
+        'mh_device',
+        timestamp=self.TIMESTAMP,
         test_harness='mh')
     api_request = {'test_harness': 'mh'}
     api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.ListDevices',
-        api_request)
+        '/_ah/api/ClusterDeviceApi.ListDevices', api_request)
     device_collection = protojson.decode_message(
         api_messages.DeviceInfoCollection, api_response.body)
     self.assertEqual('200 OK', api_response.status)
@@ -196,15 +196,13 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     # ListDevices counts non-hidden devices under hidden host.
     self.assertEqual(2, len(device_collection.device_infos))
     for d in device_collection.device_infos:
-      self.assertEqual(api_messages.DeviceTypeMessage.NULL,
-                       d.device_type)
+      self.assertEqual(api_messages.DeviceTypeMessage.NULL, d.device_type)
 
   def testListDevices_withOffset(self):
     """Tests ListDevices returns devices applying a count and offset."""
     api_request = {'include_hidden': True, 'count': '2'}
     api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.ListDevices',
-        api_request)
+        '/_ah/api/ClusterDeviceApi.ListDevices', api_request)
     device_collection = protojson.decode_message(
         api_messages.DeviceInfoCollection, api_response.body)
     self.assertEqual('200 OK', api_response.status)
@@ -221,17 +219,18 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     # 4 devices. Offset of 3 means it should return only 1 when count >= 1
     api_request = {'include_hidden': True, 'count': '3'}
     api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.ListDevices',
-        api_request)
+        '/_ah/api/ClusterDeviceApi.ListDevices', api_request)
     device_collection = protojson.decode_message(
         api_messages.DeviceInfoCollection, api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(3, len(device_collection.device_infos))
-    api_request = {'include_hidden': True, 'count': '3',
-                   'cursor': device_collection.next_cursor}
+    api_request = {
+        'include_hidden': True,
+        'count': '3',
+        'cursor': device_collection.next_cursor
+    }
     api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.ListDevices',
-        api_request)
+        '/_ah/api/ClusterDeviceApi.ListDevices', api_request)
     device_collection = protojson.decode_message(
         api_messages.DeviceInfoCollection, api_response.body)
     self.assertEqual('200 OK', api_response.status)
@@ -249,13 +248,11 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         datastore_entities.DeviceNote(
             device_serial=self.ndb_device_2.device_serial,
             note=datastore_entities.Note(
-                timestamp=datetime.datetime(2020, 3, 12),
-                message='message_3')),
+                timestamp=datetime.datetime(2020, 3, 12), message='message_3')),
         datastore_entities.DeviceNote(
             device_serial=self.ndb_device_4.device_serial,
             note=datastore_entities.Note(
-                timestamp=datetime.datetime(2001, 9, 17),
-                message='message_1')),
+                timestamp=datetime.datetime(2001, 9, 17), message='message_1')),
         datastore_entities.DeviceNote(
             device_serial=self.ndb_device_4.device_serial,
             note=datastore_entities.Note(
@@ -270,16 +267,15 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         ]
     }
     api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.BatchGetLastestNotesByDevice',
-        api_request)
+        '/_ah/api/ClusterDeviceApi.BatchGetLastestNotesByDevice', api_request)
     device_note_collection = protojson.decode_message(
         api_messages.DeviceNoteCollection, api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(2, len(device_note_collection.device_notes))
-    self.assertEqual(
-        'message_3', device_note_collection.device_notes[0].message)
-    self.assertEqual(
-        'message_2', device_note_collection.device_notes[1].message)
+    self.assertEqual('message_3',
+                     device_note_collection.device_notes[0].message)
+    self.assertEqual('message_2',
+                     device_note_collection.device_notes[1].message)
 
   def testBatchGetLastestNotesByDevice_noNotesFound(self):
     """Tests ListDevices returns all devices."""
@@ -292,8 +288,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         datastore_entities.DeviceNote(
             device_serial=self.ndb_device_3.device_serial,
             note=datastore_entities.Note(
-                timestamp=datetime.datetime(2020, 3, 12),
-                message='message_1')),
+                timestamp=datetime.datetime(2020, 3, 12), message='message_1')),
     ]
     ndb.put_multi(note_entities)
     api_request = {
@@ -303,8 +298,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         ]
     }
     api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.BatchGetLastestNotesByDevice',
-        api_request)
+        '/_ah/api/ClusterDeviceApi.BatchGetLastestNotesByDevice', api_request)
     device_note_collection = protojson.decode_message(
         api_messages.DeviceNoteCollection, api_response.body)
     self.assertEqual('200 OK', api_response.status)
@@ -313,10 +307,10 @@ class ClusterDeviceApiTest(api_test.ApiTest):
   def testGetDevice(self):
     """Tests GetDevice without including notes."""
     api_request = {'device_serial': self.ndb_device_0.device_serial}
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.GetDevice', api_request)
-    device = protojson.decode_message(
-        api_messages.DeviceInfo, api_response.body)
+    api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.GetDevice',
+                                          api_request)
+    device = protojson.decode_message(api_messages.DeviceInfo,
+                                      api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(self.ndb_device_0.device_serial, device.device_serial)
     self.assertEqual(self.ndb_device_0.hostname, device.hostname)
@@ -331,10 +325,10 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         'device_serial': self.ndb_device_0.device_serial,
         'hostname': self.ndb_device_0.hostname
     }
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.GetDevice', api_request)
-    device = protojson.decode_message(
-        api_messages.DeviceInfo, api_response.body)
+    api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.GetDevice',
+                                          api_request)
+    device = protojson.decode_message(api_messages.DeviceInfo,
+                                      api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(self.ndb_device_0.device_serial, device.device_serial)
     self.assertEqual(self.ndb_device_0.hostname, device.hostname)
@@ -343,19 +337,19 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     """Tests GetDevice where it does not exist."""
     api_request = {'device_serial': 'fake_device_serial'}
     api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.GetDevice', api_request,
-        expect_errors=True)
+        '/_ah/api/ClusterDeviceApi.GetDevice', api_request, expect_errors=True)
     self.assertEqual('404 Not Found', api_response.status)
 
   def testGetDevice_includeNotes(self):
     """Tests GetDevice including notes when they are available."""
-    api_request = {'device_serial': self.ndb_device_0.device_serial,
-                   'include_notes': True}
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.GetDevice',
-        api_request)
-    device = protojson.decode_message(
-        api_messages.DeviceInfo, api_response.body)
+    api_request = {
+        'device_serial': self.ndb_device_0.device_serial,
+        'include_notes': True
+    }
+    api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.GetDevice',
+                                          api_request)
+    device = protojson.decode_message(api_messages.DeviceInfo,
+                                      api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(self.ndb_device_0.device_serial, device.device_serial)
     self.assertEqual(self.ndb_device_0.hostname, device.hostname)
@@ -369,13 +363,14 @@ class ClusterDeviceApiTest(api_test.ApiTest):
 
   def testGetDevice_includeNotesNoneAvailable(self):
     """Tests GetDevice including notes when they are available."""
-    api_request = {'device_serial': self.ndb_device_1.device_serial,
-                   'include_notes': True}
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.GetDevice',
-        api_request)
-    device = protojson.decode_message(
-        api_messages.DeviceInfo, api_response.body)
+    api_request = {
+        'device_serial': self.ndb_device_1.device_serial,
+        'include_notes': True
+    }
+    api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.GetDevice',
+                                          api_request)
+    device = protojson.decode_message(api_messages.DeviceInfo,
+                                      api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(self.ndb_device_1.device_serial, device.device_serial)
     self.assertEqual(self.ndb_device_1.hostname, device.hostname)
@@ -392,25 +387,27 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         device_serial=self.ndb_device_0.device_serial,
         state='Allocated')
     device_snapshot.put()
-    api_request = {'device_serial': self.ndb_device_0.device_serial,
-                   'include_utilization': True}
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.GetDevice',
-        api_request)
-    device = protojson.decode_message(
-        api_messages.DeviceInfo, api_response.body)
+    api_request = {
+        'device_serial': self.ndb_device_0.device_serial,
+        'include_utilization': True
+    }
+    api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.GetDevice',
+                                          api_request)
+    device = protojson.decode_message(api_messages.DeviceInfo,
+                                      api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(1, device.utilization)
 
   def testGetDevice_includeUtilization_noUtilization(self):
     """Tests GetDevice including utilization."""
-    api_request = {'device_serial': self.ndb_device_0.device_serial,
-                   'include_utilization': True}
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.GetDevice',
-        api_request)
-    device = protojson.decode_message(
-        api_messages.DeviceInfo, api_response.body)
+    api_request = {
+        'device_serial': self.ndb_device_0.device_serial,
+        'include_utilization': True
+    }
+    api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.GetDevice',
+                                          api_request)
+    device = protojson.decode_message(api_messages.DeviceInfo,
+                                      api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(0, device.utilization)
 
@@ -421,22 +418,25 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     message = 'The Message'
     offline_reason = 'Battery ran out'
     recovery_action = 'Press a button'
-    api_request = {'device_serial': self.ndb_device_1.device_serial,
-                   'user': user,
-                   'timestamp': timestamp.isoformat(),
-                   'message': message,
-                   'offline_reason': offline_reason,
-                   'recovery_action': recovery_action,
-                  }
+    api_request = {
+        'device_serial': self.ndb_device_1.device_serial,
+        'user': user,
+        'timestamp': timestamp.isoformat(),
+        'message': message,
+        'offline_reason': offline_reason,
+        'recovery_action': recovery_action,
+    }
     api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.NewNote',
                                           api_request)
     self.assertEqual('200 OK', api_response.status)
-    api_request = {'device_serial': self.ndb_device_1.device_serial,
-                   'include_notes': True}
+    api_request = {
+        'device_serial': self.ndb_device_1.device_serial,
+        'include_notes': True
+    }
     api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.GetDevice',
                                           api_request)
-    device = protojson.decode_message(
-        api_messages.DeviceInfo, api_response.body)
+    device = protojson.decode_message(api_messages.DeviceInfo,
+                                      api_response.body)
     self.assertEqual(1, len(device.notes))
     self.assertEqual(user, device.notes[0].user)
     self.assertEqual(timestamp, device.notes[0].timestamp)
@@ -453,17 +453,19 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         'device_serial': self.ndb_device_1.device_serial,
         'user': user,
         'timestamp': timestamp.isoformat(),
-        'message': message}
+        'message': message
+    }
     api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.NewNote',
                                           api_request)
     self.assertEqual('200 OK', api_response.status)
     api_request = {
         'device_serial': self.ndb_device_1.device_serial,
-        'include_notes': True}
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.GetDevice', api_request)
-    device = protojson.decode_message(
-        api_messages.DeviceInfo, api_response.body)
+        'include_notes': True
+    }
+    api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.GetDevice',
+                                          api_request)
+    device = protojson.decode_message(api_messages.DeviceInfo,
+                                      api_response.body)
     self.assertEqual(1, len(device.notes))
     self.assertEqual(user, device.notes[0].user)
     expected_timestamp = datetime.datetime(2015, 10, 18, 20)
@@ -475,21 +477,24 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     user = 'some_user'
     timestamp = datetime.datetime(2015, 10, 18, 20, 46)
     message = 'The Message'
-    api_request = {'device_serial': self.ndb_device_0.device_serial,
-                   'user': user,
-                   'timestamp': timestamp.isoformat(),
-                   'message': message
-                  }
+    api_request = {
+        'device_serial': self.ndb_device_0.device_serial,
+        'user': user,
+        'timestamp': timestamp.isoformat(),
+        'message': message
+    }
     api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.NewNote',
                                           api_request)
     self.assertEqual('200 OK', api_response.status)
     # Query the same device again. Notes should be sorted.
-    api_request = {'device_serial': self.ndb_device_0.device_serial,
-                   'include_notes': True}
+    api_request = {
+        'device_serial': self.ndb_device_0.device_serial,
+        'include_notes': True
+    }
     api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.GetDevice',
                                           api_request)
-    device = protojson.decode_message(
-        api_messages.DeviceInfo, api_response.body)
+    device = protojson.decode_message(api_messages.DeviceInfo,
+                                      api_response.body)
     self.assertEqual(2, len(device.notes))
     self.assertEqual(user, device.notes[0].user)
     self.assertEqual(timestamp, device.notes[0].timestamp)
@@ -498,22 +503,31 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual(self.note.timestamp, device.notes[1].timestamp)
     self.assertEqual(self.note.message, device.notes[1].message)
 
+  @mock.patch.object(device_manager, 'GetDevice')
+  @mock.patch.object(note_manager, 'PublishDeviceNoteEventMessage')
   def testAddOrUpdateDeviceNote_addWithTextOfflineReasonAndRecoveryAction(
-      self):
+      self, mock_publish_device_note_message, mock_get_device):
     """Tests adding a non-existing device note."""
+    mock_get_device.return_value = self.ndb_device_0
     api_request = {
         'device_serial': self.ndb_device_0.device_serial,
         'user': 'user-1',
         'message': 'message-1',
         'offline_reason': 'offline-reason-1',
         'recovery_action': 'recovery-action-1',
-        'lab_name': 'lab-name-1',
+        'lab_name': self.ndb_device_0.lab_name,
     }
     api_response = self.testapp.post_json(
         '/_ah/api/ClusterDeviceApi.AddOrUpdateNote', api_request)
     self.assertEqual('200 OK', api_response.status)
     device_note = protojson.decode_message(api_messages.DeviceNote,
                                            api_response.body)
+    device_note_event_msg = api_messages.DeviceNoteEvent(
+        device_note=device_note,
+        hostname=self.ndb_device_0.hostname,
+        lab_name=self.ndb_device_0.lab_name,
+        run_target=self.ndb_device_0.run_target)
+
     # Assert datastore id is generated.
     self.assertIsNotNone(device_note.id)
     # Assert fields equal.
@@ -531,29 +545,37 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         datastore_entities.PredefinedMessage.content ==
         api_request['recovery_action']).get())
     # Side Effect: Assert DeviceInfoHistory is written into datastore.
-    histories = list(datastore_entities.DeviceInfoHistory.query(
-        datastore_entities.DeviceInfoHistory.device_serial
-        == self.ndb_device_0.device_serial).fetch())
+    histories = list(
+        datastore_entities.DeviceInfoHistory.query(
+            datastore_entities.DeviceInfoHistory.device_serial ==
+            self.ndb_device_0.device_serial).fetch())
     self.assertEqual(1, len(histories))
-    self.assertEqual(int(device_note.id),
-                     histories[0].extra_info['device_note_id'])
+    self.assertEqual(
+        int(device_note.id), histories[0].extra_info['device_note_id'])
+    mock_publish_device_note_message.assert_called_once_with(
+        device_note_event_msg)
 
+  @mock.patch.object(device_manager, 'GetDevice')
+  @mock.patch.object(note_manager, 'PublishDeviceNoteEventMessage')
   def testAddOrUpdateDeviceNote_UpdateWithTextOfflineReasonAndRecoveryAction(
-      self):
+      self, mock_publish_device_note_message, mock_get_device):
     """Tests updating an existing device note."""
+    mock_get_device.return_value = self.ndb_device_0
     api_request_1 = {
         'device_serial': self.ndb_device_0.device_serial,
         'user': 'user-1',
         'message': 'message-1',
         'offline_reason': 'offline-reason-1',
         'recovery_action': 'recovery-action-1',
-        'lab_name': 'lab-name-1',
+        'lab_name': self.ndb_device_0.lab_name,
     }
     api_response_1 = self.testapp.post_json(
         '/_ah/api/ClusterDeviceApi.AddOrUpdateNote', api_request_1)
     self.assertEqual('200 OK', api_response_1.status)
     device_note_1 = protojson.decode_message(api_messages.DeviceNote,
                                              api_response_1.body)
+    new_lab_name = 'lab-name-2'
+    mock_get_device.return_value.lab_name = new_lab_name
     api_request_2 = {
         'id': int(device_note_1.id),
         'device_serial': self.ndb_device_0.device_serial,
@@ -561,13 +583,19 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         'message': 'message-2',
         'offline_reason': 'offline-reason-2',
         'recovery_action': 'recovery-action-2',
-        'lab_name': 'lab-name-2',
+        'lab_name': new_lab_name,
     }
     api_response_2 = self.testapp.post_json(
         '/_ah/api/ClusterDeviceApi.AddOrUpdateNote', api_request_2)
     self.assertEqual('200 OK', api_response_1.status)
     device_note_2 = protojson.decode_message(api_messages.DeviceNote,
                                              api_response_2.body)
+    device_note_event_msg = api_messages.DeviceNoteEvent(
+        device_note=device_note_2,
+        hostname=self.ndb_device_0.hostname,
+        lab_name=new_lab_name,
+        run_target=self.ndb_device_0.run_target)
+
     # Assert two requests modified the same datastore entity.
     self.assertEqual(device_note_1.id, device_note_2.id)
     # Assert the fields finally equal to the ones in the 2nd request.
@@ -580,28 +608,33 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual(api_request_2['recovery_action'],
                      device_note_2.recovery_action)
     # Side Effect: Assert DeviceInfoHistory is written into datastore.
-    histories = list(datastore_entities.DeviceInfoHistory.query(
-        datastore_entities.DeviceInfoHistory.device_serial
-        == self.ndb_device_0.device_serial).fetch())
+    histories = list(
+        datastore_entities.DeviceInfoHistory.query(
+            datastore_entities.DeviceInfoHistory.device_serial ==
+            self.ndb_device_0.device_serial).fetch())
     self.assertEqual(1, len(histories))
-    self.assertEqual(int(device_note_1.id),
-                     histories[0].extra_info['device_note_id'])
+    self.assertEqual(
+        int(device_note_1.id), histories[0].extra_info['device_note_id'])
+    mock_publish_device_note_message.assert_called_with(device_note_event_msg)
 
-  def testAddOrUpdateDeviceNote_addWithIdOfflineReasonAndRecoveryAction(self):
+  @mock.patch.object(device_manager, 'GetDevice')
+  @mock.patch.object(note_manager, 'PublishDeviceNoteEventMessage')
+  def testAddOrUpdateDeviceNote_addWithIdOfflineReasonAndRecoveryAction(
+      self, mock_publish_device_note_message, mock_get_device):
     """Tests adding a device note with existing predefined messages."""
     offline_reason = 'offline-reason'
     recovery_action = 'recovery-action'
-    lab_name = 'lab-name'
+    mock_get_device.return_value = self.ndb_device_0
     predefined_message_entities = [
         datastore_entities.PredefinedMessage(
             key=ndb.Key(datastore_entities.PredefinedMessage, 111),
-            lab_name=lab_name,
+            lab_name=self.ndb_device_0.lab_name,
             type=api_messages.PredefinedMessageType.DEVICE_OFFLINE_REASON,
             content=offline_reason,
             used_count=2),
         datastore_entities.PredefinedMessage(
             key=ndb.Key(datastore_entities.PredefinedMessage, 222),
-            lab_name=lab_name,
+            lab_name=self.ndb_device_0.lab_name,
             type=api_messages.PredefinedMessageType.DEVICE_RECOVERY_ACTION,
             content=recovery_action,
             used_count=5),
@@ -614,13 +647,19 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         'message': 'message-1',
         'offline_reason_id': 111,
         'recovery_action_id': 222,
-        'lab_name': lab_name,
+        'lab_name': self.ndb_device_0.lab_name,
     }
     api_response = self.testapp.post_json(
         '/_ah/api/ClusterDeviceApi.AddOrUpdateNote', api_request)
     self.assertEqual('200 OK', api_response.status)
     device_note = protojson.decode_message(api_messages.DeviceNote,
                                            api_response.body)
+    device_note_event_msg = api_messages.DeviceNoteEvent(
+        device_note=device_note,
+        hostname=self.ndb_device_0.hostname,
+        lab_name=self.ndb_device_0.lab_name,
+        run_target=self.ndb_device_0.run_target)
+
     # Assert datastore id is generated.
     self.assertIsNotNone(device_note.id)
     # Assert fields equal.
@@ -633,22 +672,26 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual(3, offline_reason_key.get().used_count)
     self.assertEqual(6, recovery_action_key.get().used_count)
     # Side Effect: Assert DeviceInfoHistory is written into datastore.
-    histories = list(datastore_entities.DeviceInfoHistory.query(
-        datastore_entities.DeviceInfoHistory.device_serial
-        == self.ndb_device_0.device_serial).fetch())
+    histories = list(
+        datastore_entities.DeviceInfoHistory.query(
+            datastore_entities.DeviceInfoHistory.device_serial ==
+            self.ndb_device_0.device_serial).fetch())
     self.assertEqual(1, len(histories))
-    self.assertEqual(int(device_note.id),
-                     histories[0].extra_info['device_note_id'])
+    self.assertEqual(
+        int(device_note.id), histories[0].extra_info['device_note_id'])
+    mock_publish_device_note_message.assert_called_once_with(
+        device_note_event_msg)
 
   def testGetDevice_includeHistory(self):
     """Tests GetDevice including history when they are available."""
-    api_request = {'device_serial': self.ndb_device_0.device_serial,
-                   'include_history': True}
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.GetDevice',
-        api_request)
-    device = protojson.decode_message(
-        api_messages.DeviceInfo, api_response.body)
+    api_request = {
+        'device_serial': self.ndb_device_0.device_serial,
+        'include_history': True
+    }
+    api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.GetDevice',
+                                          api_request)
+    device = protojson.decode_message(api_messages.DeviceInfo,
+                                      api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(self.ndb_device_0.device_serial, device.device_serial)
     self.assertEqual(self.ndb_device_0.hostname, device.hostname)
@@ -665,13 +708,14 @@ class ClusterDeviceApiTest(api_test.ApiTest):
 
   def testGetDevice_includeHistoryNoneAvailable(self):
     """Tests GetDevice including history when none available."""
-    api_request = {'device_serial': self.ndb_device_1.device_serial,
-                   'include_history': True}
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.GetDevice',
-        api_request)
-    device = protojson.decode_message(
-        api_messages.DeviceInfo, api_response.body)
+    api_request = {
+        'device_serial': self.ndb_device_1.device_serial,
+        'include_history': True
+    }
+    api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.GetDevice',
+                                          api_request)
+    device = protojson.decode_message(api_messages.DeviceInfo,
+                                      api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(self.ndb_device_1.device_serial, device.device_serial)
     self.assertEqual(self.ndb_device_1.hostname, device.hostname)
@@ -681,14 +725,15 @@ class ClusterDeviceApiTest(api_test.ApiTest):
 
   def testGetDevice_includeNotesAndHistory(self):
     """Tests GetDevice including notes and history."""
-    api_request = {'device_serial': self.ndb_device_0.device_serial,
-                   'include_notes': True,
-                   'include_history': True}
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.GetDevice',
-        api_request)
-    device = protojson.decode_message(
-        api_messages.DeviceInfo, api_response.body)
+    api_request = {
+        'device_serial': self.ndb_device_0.device_serial,
+        'include_notes': True,
+        'include_history': True
+    }
+    api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.GetDevice',
+                                          api_request)
+    device = protojson.decode_message(api_messages.DeviceInfo,
+                                      api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(1, len(device.notes))
     self.assertEqual(2, len(device.history))
@@ -699,22 +744,22 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     api_request = {'device_serial': self.ndb_device_0.device_serial}
     api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.GetDevice',
                                           api_request)
-    device = protojson.decode_message(
-        api_messages.DeviceInfo, api_response.body)
+    device = protojson.decode_message(api_messages.DeviceInfo,
+                                      api_response.body)
     self.assertFalse(device.hidden)
     # Call Remove
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.Remove', api_request)
-    device = protojson.decode_message(
-        api_messages.DeviceInfo, api_response.body)
+    api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.Remove',
+                                          api_request)
+    device = protojson.decode_message(api_messages.DeviceInfo,
+                                      api_response.body)
     # Verify API response
     self.assertEqual('200 OK', api_response.status)
     self.assertTrue(device.hidden)
     # Verify by retrieving the device
     api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.GetDevice',
                                           api_request)
-    device = protojson.decode_message(
-        api_messages.DeviceInfo, api_response.body)
+    device = protojson.decode_message(api_messages.DeviceInfo,
+                                      api_response.body)
     self.assertTrue(device.hidden)
 
   def testRemove_withHostname(self):
@@ -726,22 +771,22 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     }
     api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.GetDevice',
                                           api_request)
-    device = protojson.decode_message(
-        api_messages.DeviceInfo, api_response.body)
+    device = protojson.decode_message(api_messages.DeviceInfo,
+                                      api_response.body)
     self.assertFalse(device.hidden)
     # Call Remove
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.Remove', api_request)
-    device = protojson.decode_message(
-        api_messages.DeviceInfo, api_response.body)
+    api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.Remove',
+                                          api_request)
+    device = protojson.decode_message(api_messages.DeviceInfo,
+                                      api_response.body)
     # Verify API response
     self.assertEqual('200 OK', api_response.status)
     self.assertTrue(device.hidden)
     # Verify by retrieving the device
     api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.GetDevice',
                                           api_request)
-    device = protojson.decode_message(
-        api_messages.DeviceInfo, api_response.body)
+    device = protojson.decode_message(api_messages.DeviceInfo,
+                                      api_response.body)
     self.assertTrue(device.hidden)
 
   def testRemove_missingDevice(self):
@@ -757,22 +802,22 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     api_request = {'device_serial': self.ndb_device_2.device_serial}
     api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.GetDevice',
                                           api_request)
-    device = protojson.decode_message(
-        api_messages.DeviceInfo, api_response.body)
+    device = protojson.decode_message(api_messages.DeviceInfo,
+                                      api_response.body)
     self.assertTrue(device.hidden)
     # Call Restore
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.Restore', api_request)
-    device = protojson.decode_message(
-        api_messages.DeviceInfo, api_response.body)
+    api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.Restore',
+                                          api_request)
+    device = protojson.decode_message(api_messages.DeviceInfo,
+                                      api_response.body)
     # Verify API response
     self.assertEqual('200 OK', api_response.status)
     self.assertFalse(device.hidden)
     # Verify by retrieving the device
     api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.GetDevice',
                                           api_request)
-    device = protojson.decode_message(
-        api_messages.DeviceInfo, api_response.body)
+    device = protojson.decode_message(api_messages.DeviceInfo,
+                                      api_response.body)
     self.assertFalse(device.hidden)
 
   def testRestore_withHostname(self):
@@ -784,22 +829,22 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     }
     api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.GetDevice',
                                           api_request)
-    device = protojson.decode_message(
-        api_messages.DeviceInfo, api_response.body)
+    device = protojson.decode_message(api_messages.DeviceInfo,
+                                      api_response.body)
     self.assertTrue(device.hidden)
     # Call Restore
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.Restore', api_request)
-    device = protojson.decode_message(
-        api_messages.DeviceInfo, api_response.body)
+    api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.Restore',
+                                          api_request)
+    device = protojson.decode_message(api_messages.DeviceInfo,
+                                      api_response.body)
     # Verify API response
     self.assertEqual('200 OK', api_response.status)
     self.assertFalse(device.hidden)
     # Verify by retrieving the device
     api_response = self.testapp.post_json('/_ah/api/ClusterDeviceApi.GetDevice',
                                           api_request)
-    device = protojson.decode_message(
-        api_messages.DeviceInfo, api_response.body)
+    device = protojson.decode_message(api_messages.DeviceInfo,
+                                      api_response.body)
     self.assertFalse(device.hidden)
 
   def testRestore_missingDevice(self):
@@ -1098,9 +1143,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.ndb_device_0.state = common.DeviceState.GONE
     self.ndb_device_0.timestamp += datetime.timedelta(hours=1)
     device_manager._CreateDeviceInfoHistory(self.ndb_device_0).put()
-    api_request = {
-        'device_serial': self.ndb_device_0.device_serial
-    }
+    api_request = {'device_serial': self.ndb_device_0.device_serial}
     api_response = self.testapp.post_json(
         '/_ah/api/ClusterDeviceApi.ListHistories', api_request)
     device_history_collection = protojson.decode_message(
@@ -1124,9 +1167,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.ndb_device_0.timestamp += datetime.timedelta(hours=1)
     device_manager._CreateDeviceInfoHistory(self.ndb_device_0).put()
     # fetch first page
-    api_request = {
-        'device_serial': self.ndb_device_0.device_serial, 'count': 2
-    }
+    api_request = {'device_serial': self.ndb_device_0.device_serial, 'count': 2}
     api_response = self.testapp.post_json(
         '/_ah/api/ClusterDeviceApi.ListHistories', api_request)
     device_history_collection = protojson.decode_message(
@@ -1172,6 +1213,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual(common.DeviceState.ALLOCATED,
                      device_history_collection.histories[1].state)
     self.assertIsNotNone(device_history_collection.next_cursor)
+
 
 if __name__ == '__main__':
   unittest.main()

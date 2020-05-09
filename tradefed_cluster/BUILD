@@ -195,6 +195,7 @@ py_appengine_test(
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
+        "//third_party/py/mock",
     ],
 )
 
@@ -983,7 +984,12 @@ py_appengine_library(
     ],
     envs = PY_APPENGINE_ENVS,
     deps = [
+        ":api_messages_lib",
+        ":common_lib",
         ":datastore_entities_lib",
+        ":env_config_lib",
+        third_party("lazy_object_proxy"),
+        "//tradefed_cluster/util:pubsub_client_lib",
     ],
 )
 

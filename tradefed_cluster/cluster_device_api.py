@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """API module to serve cluster device service calls."""
 
 import datetime
@@ -31,7 +30,7 @@ from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import datastore_util
 from tradefed_cluster import device_manager
-
+from tradefed_cluster import note_manager
 
 _BATCH_SIZE = 200
 _DEFAULT_LIST_NOTES_COUNT = 10
@@ -54,8 +53,9 @@ class ClusterDeviceApi(remote.Service):
       include_hidden=messages.BooleanField(5, default=False),
       include_offline_devices=messages.BooleanField(6, default=True),
       cursor=messages.StringField(7),
-      count=messages.IntegerField(8, variant=messages.Variant.INT32,
-                                  default=_DEFAULT_LIST_DEVICE_COUNT),
+      count=messages.IntegerField(
+          8, variant=messages.Variant.INT32,
+          default=_DEFAULT_LIST_DEVICE_COUNT),
       product=messages.StringField(9),
       test_harness=messages.StringField(10),
   )
@@ -65,13 +65,13 @@ class ClusterDeviceApi(remote.Service):
       api_messages.DeviceInfoCollection,
       path="/devices",
       http_method="GET",
-      name="list"
-  )
+      name="list")
   def ListDevices(self, request):
     """Fetches a list of devices from NDB.
 
     Args:
       request: an API request.
+
     Returns:
       a DeviceInfoCollection object.
     """
@@ -82,8 +82,8 @@ class ClusterDeviceApi(remote.Service):
             batch_size=_BATCH_SIZE,
             # Use EVENTUAL_CONSISTENCY perhaps-quicker results.
             # https://cloud.google.com/appengine/docs/standard/python/ndb/queryclass
-            read_policy=ndb.EVENTUAL_CONSISTENCY
-        )).order(datastore_entities.DeviceInfo.key)
+            read_policy=ndb.EVENTUAL_CONSISTENCY)).order(
+                datastore_entities.DeviceInfo.key)
     if request.test_harness:
       query = query.filter(
           datastore_entities.DeviceInfo.test_harness == request.test_harness)
@@ -101,8 +101,7 @@ class ClusterDeviceApi(remote.Service):
     # join like operation in datastore. We tried fetching host and use
     # in(hostnames), but it was not scalable at all.
     if not request.include_hidden:
-      query = query.filter(
-          datastore_entities.DeviceInfo.hidden == False)  
+      query = query.filter(datastore_entities.DeviceInfo.hidden == False)  
     if not request.include_offline_devices:
       query = query.filter(
           datastore_entities.DeviceInfo.state.IN(common.DEVICE_ONLINE_STATES))
@@ -119,14 +118,12 @@ class ClusterDeviceApi(remote.Service):
     devices, prev_cursor, next_cursor = datastore_util.FetchPage(
         query, request.count, request.cursor)
 
-    logging.debug(
-        "Fetched %d devices in %r seconds.",
-        len(devices), time.time() - start_time)
+    logging.debug("Fetched %d devices in %r seconds.", len(devices),
+                  time.time() - start_time)
     start_time = time.time()
     device_infos = [datastore_entities.ToMessage(d) for d in devices]
-    logging.debug(
-        "Tranformed devices to messages in %r seconds.",
-        time.time() - start_time)
+    logging.debug("Tranformed devices to messages in %r seconds.",
+                  time.time() - start_time)
     return api_messages.DeviceInfoCollection(
         device_infos=device_infos,
         next_cursor=next_cursor,
@@ -147,13 +144,13 @@ class ClusterDeviceApi(remote.Service):
       api_messages.DeviceInfo,
       path="{device_serial}",
       http_method="GET",
-      name="get"
-  )
+      name="get")
   def GetDevice(self, request):
     """Fetches the information and notes of a given device.
 
     Args:
       request: an API request.
+
     Returns:
       a DeviceInfo object.
     Raises:
@@ -161,8 +158,7 @@ class ClusterDeviceApi(remote.Service):
     """
     device_serial = request.device_serial
     device = device_manager.GetDevice(
-        hostname=request.hostname,
-        device_serial=device_serial)
+        hostname=request.hostname, device_serial=device_serial)
     if not device:
       raise endpoints.NotFoundException(
           "Device {0} does not exist.".format(device_serial))
@@ -176,20 +172,17 @@ class ClusterDeviceApi(remote.Service):
           datastore_entities.DeviceNote.device_serial == device_serial)
       device_info.notes = self._ExtractDeviceNotes(device_notes)
     if request.include_history:
-      histories = device_manager.GetDeviceHistory(
-          device.hostname, device_serial)
-      device_info.history = [datastore_entities.ToMessage(h)
-                             for h in histories]
+      histories = device_manager.GetDeviceHistory(device.hostname,
+                                                  device_serial)
+      device_info.history = [datastore_entities.ToMessage(h) for h in histories]
     if request.include_utilization:
-      utilization = device_manager.CalculateDeviceUtilization(
-          device_serial)
+      utilization = device_manager.CalculateDeviceUtilization(device_serial)
       device_info.utilization = utilization
     return device_info
 
   def _ExtractDeviceNotes(self, device_notes):
     """Extract and convert notes from DeviceNote datastore entity."""
-    notes = [datastore_entities.ToMessage(n.note)
-             for n in device_notes.iter()]
+    notes = [datastore_entities.ToMessage(n.note) for n in device_notes.iter()]
     return sorted(notes, key=lambda x: x.timestamp, reverse=True)
 
   # TODO: deprecate "NewNote" endpoint.
@@ -209,6 +202,7 @@ class ClusterDeviceApi(remote.Service):
 
     Args:
       request: an API request.
+
     Returns:
       an api_messages.Note object.
     """
@@ -217,11 +211,12 @@ class ClusterDeviceApi(remote.Service):
     # Datastore only accepts UTC times. Doing a conversion if necessary.
     if timestamp.utcoffset() is not None:
       timestamp = timestamp.replace(tzinfo=None) - timestamp.utcoffset()
-    note = datastore_entities.Note(user=request.user,
-                                   timestamp=timestamp,
-                                   message=request.message,
-                                   offline_reason=request.offline_reason,
-                                   recovery_action=request.recovery_action)
+    note = datastore_entities.Note(
+        user=request.user,
+        timestamp=timestamp,
+        message=request.message,
+        offline_reason=request.offline_reason,
+        recovery_action=request.recovery_action)
 
     device_note = datastore_entities.DeviceNote(device_serial=device_serial)
     device_note.note = note
@@ -293,6 +288,15 @@ class ClusterDeviceApi(remote.Service):
     keys = ndb.put_multi(entities_to_update)
     device_note_msg = datastore_entities.ToMessage(device_note_entity)
 
+    device = device_manager.GetDevice(
+        device_serial=device_note_entity.device_serial)
+    device_note_event_msg = api_messages.DeviceNoteEvent(
+        device_note=device_note_msg,
+        hostname=device.hostname,
+        lab_name=device.lab_name,
+        run_target=device.run_target)
+    note_manager.PublishDeviceNoteEventMessage(device_note_event_msg)
+
     note_key = keys[0]
     if request.id != note_key.id():
       # If ids are different, then a new note is created, we should create
@@ -312,14 +316,12 @@ class ClusterDeviceApi(remote.Service):
       api_messages.DeviceNoteCollection,
       path="{device_serial}/notes:batchGet",
       http_method="GET",
-      name="batchGetNotes"
-      )
+      name="batchGetNotes")
   def BatchGetNotes(self, request):
     """Batch get notes of a device.
 
     Args:
       request: an API request.
-
     Request Params:
       device_serial: string, the serial of a lab device.
       ids: a list of strings, the ids of notes to batch get.
@@ -327,17 +329,18 @@ class ClusterDeviceApi(remote.Service):
     Returns:
       an api_messages.DeviceNoteCollection object.
     """
-    keys = [ndb.Key(datastore_entities.DeviceNote, entity_id)
-            for entity_id in request.ids]
+    keys = [
+        ndb.Key(datastore_entities.DeviceNote, entity_id)
+        for entity_id in request.ids
+    ]
     note_entities = ndb.get_multi(keys)
-    note_msgs = [datastore_entities.ToMessage(entity)
-                 for entity in note_entities
-                 if entity and entity.device_serial == request.device_serial]
+    note_msgs = [
+        datastore_entities.ToMessage(entity)
+        for entity in note_entities
+        if entity and entity.device_serial == request.device_serial
+    ]
     return api_messages.DeviceNoteCollection(
-        device_notes=note_msgs,
-        more=False,
-        next_cursor=None,
-        prev_cursor=None)
+        device_notes=note_msgs, more=False, next_cursor=None, prev_cursor=None)
 
   NOTES_LIST_RESOURCE = endpoints.ResourceContainer(
       device_serial=messages.StringField(1, required=True),
@@ -379,8 +382,7 @@ class ClusterDeviceApi(remote.Service):
         prev_cursor=prev_cursor)
 
   LATEST_NOTES_BATCH_GET_BY_DEVICE_RESOURCE = endpoints.ResourceContainer(
-      device_serials=messages.StringField(1, repeated=True),
-  )
+      device_serials=messages.StringField(1, repeated=True),)
 
   @endpoints.method(
       LATEST_NOTES_BATCH_GET_BY_DEVICE_RESOURCE,
@@ -393,7 +395,6 @@ class ClusterDeviceApi(remote.Service):
 
     Args:
       request: an API request.
-
     Request Params:
       device_serial: string, the serial of a lab device.
       ids: a list of strings, the ids of notes to batch get.
@@ -403,19 +404,16 @@ class ClusterDeviceApi(remote.Service):
     """
     note_entities = []
     for device_serial in request.device_serials:
-      query = (datastore_entities.DeviceNote.query()
-               .filter(datastore_entities.DeviceNote.device_serial
-                       == device_serial)
-               .order(-datastore_entities.DeviceNote.note.timestamp))
+      query = (
+          datastore_entities.DeviceNote.query().filter(
+              datastore_entities.DeviceNote.device_serial == device_serial)
+          .order(-datastore_entities.DeviceNote.note.timestamp))
       note_entities += list(query.fetch(1))
     note_msgs = [
         datastore_entities.ToMessage(entity) for entity in note_entities
     ]
     return api_messages.DeviceNoteCollection(
-        device_notes=note_msgs,
-        more=False,
-        next_cursor=None,
-        prev_cursor=None)
+        device_notes=note_msgs, more=False, next_cursor=None, prev_cursor=None)
 
   DEVICE_SERIAL_RESOURCE = endpoints.ResourceContainer(
       device_serial=messages.StringField(1, required=True),
@@ -427,28 +425,25 @@ class ClusterDeviceApi(remote.Service):
       api_messages.DeviceInfo,
       path="{device_serial}/remove",
       http_method="POST",
-      name="remove"
-      )
+      name="remove")
   def Remove(self, request):
     """Remove this device .
 
     Args:
       request: an API request.
+
     Returns:
       an updated DeviceInfo
     Raises:
       endpoints.NotFoundException: If the given device does not exist.
     """
     device = device_manager.GetDevice(
-        device_serial=request.device_serial,
-        hostname=request.hostname)
+        device_serial=request.device_serial, hostname=request.hostname)
     if not device:
-      raise endpoints.NotFoundException(
-          "Device {0} {1} does not exist."
-          .format(request.hostname, request.device_serial))
+      raise endpoints.NotFoundException("Device {0} {1} does not exist.".format(
+          request.hostname, request.device_serial))
     device = device_manager.HideDevice(
-        device_serial=device.device_serial,
-        hostname=device.hostname)
+        device_serial=device.device_serial, hostname=device.hostname)
     return datastore_entities.ToMessage(device)
 
   @endpoints.method(
@@ -456,28 +451,25 @@ class ClusterDeviceApi(remote.Service):
       api_messages.DeviceInfo,
       path="{device_serial}/restore",
       http_method="POST",
-      name="restore"
-      )
+      name="restore")
   def Restore(self, request):
     """Restore this device .
 
     Args:
       request: an API request.
+
     Returns:
       an updated DeviceInfo
     Raises:
       endpoints.NotFoundException: If the given device does not exist.
     """
     device = device_manager.GetDevice(
-        device_serial=request.device_serial,
-        hostname=request.hostname)
+        device_serial=request.device_serial, hostname=request.hostname)
     if not device:
-      raise endpoints.NotFoundException(
-          "Device {0} {1} does not exist."
-          .format(request.hostname, request.device_serial))
+      raise endpoints.NotFoundException("Device {0} {1} does not exist.".format(
+          request.hostname, request.device_serial))
     device = device_manager.RestoreDevice(
-        device_serial=device.device_serial,
-        hostname=device.hostname)
+        device_serial=device.device_serial, hostname=device.hostname)
     return datastore_entities.ToMessage(device)
 
   HISTORIES_LIST_RESOURCE = endpoints.ResourceContainer(
@@ -504,9 +496,8 @@ class ClusterDeviceApi(remote.Service):
     """
     device = device_manager.GetDevice(device_serial=request.device_serial)
     query = (
-        datastore_entities.DeviceInfoHistory
-        .query(ancestor=device.key)
-        .order(-datastore_entities.DeviceInfoHistory.timestamp))
+        datastore_entities.DeviceInfoHistory.query(ancestor=device.key).order(
+            -datastore_entities.DeviceInfoHistory.timestamp))
     histories, prev_cursor, next_cursor = datastore_util.FetchPage(
         query, request.count, request.cursor, backwards=request.backwards)
     history_msgs = [

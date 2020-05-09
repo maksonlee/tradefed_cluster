@@ -13,9 +13,20 @@
 # limitations under the License.
 """A module for note management."""
 
+import base64
 import datetime
+import logging
+
+import lazy_object_proxy
+
+from protorpc import protojson
 
 from tradefed_cluster import datastore_entities
+from tradefed_cluster import env_config
+from tradefed_cluster.util import pubsub_client
+
+DEVICE_NOTE_PUBSUB_TOPIC = "projects/%s/topics/%s" % (env_config.CONFIG.app_id,
+                                                      "device_note")
 
 
 def GetPredefinedMessage(message_type, lab_name, content):
@@ -31,10 +42,9 @@ def GetPredefinedMessage(message_type, lab_name, content):
   """
   predefined_message_entities = (
       datastore_entities.PredefinedMessage.query()
-      .filter(datastore_entities.PredefinedMessage.type == message_type)
-      .filter(datastore_entities.PredefinedMessage.lab_name == lab_name)
-      .filter(datastore_entities.PredefinedMessage.content == content)
-      .fetch(1))
+      .filter(datastore_entities.PredefinedMessage.type == message_type).filter(
+          datastore_entities.PredefinedMessage.lab_name == lab_name).filter(
+              datastore_entities.PredefinedMessage.content == content).fetch(1))
   if predefined_message_entities:
     return predefined_message_entities[0]
   else:
@@ -62,3 +72,34 @@ def GetOrCreatePredefinedMessage(message_type, lab_name, content):
         content=content,
         lab_name=lab_name,
         create_timestamp=datetime.datetime.utcnow())
+
+
+def _Now():
+  """Returns the current time in UTC. Added to allow mocking in our tests."""
+  return datetime.datetime.utcnow()
+
+
+def _CreatePubsubDeviceNoteClient():
+  """Create a client for Google Cloud Pub/Sub."""
+  client = pubsub_client.PubSubClient()
+  client.CreateTopic(DEVICE_NOTE_PUBSUB_TOPIC)
+  return client
+
+
+_PubsubDeviceNoteClient = lazy_object_proxy.Proxy(_CreatePubsubDeviceNoteClient)  
+
+def PublishDeviceNoteEventMessage(device_note_message):
+  """Publish device note event message to pubsub."""
+  if not env_config.CONFIG.use_google_api:
+    logging.warn(
+        "Unabled to send device note message to pubsub: use_google_api=False")
+    return
+  device_note_message.publish_timestamp = _Now()
+  encoded_message = protojson.encode_message(device_note_message)
+  data = base64.urlsafe_b64encode(encoded_message)
+  _PubsubDeviceNoteClient.PublishMessages(DEVICE_NOTE_PUBSUB_TOPIC, [{
+      "data": data,
+      "attributes": {
+          "type": "deviceNote",
+      }
+  }])

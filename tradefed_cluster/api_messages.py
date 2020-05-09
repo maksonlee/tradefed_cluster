@@ -674,6 +674,15 @@ class DeviceNote(messages.Message):
   message = messages.StringField(7)
 
 
+class DeviceNoteEvent(messages.Message):
+  """Device note event with part of the device info message."""
+  device_note = messages.MessageField(DeviceNote, 1, required=True)
+  hostname = messages.StringField(2, required=True)
+  lab_name = messages.StringField(3)
+  run_target = messages.StringField(4)
+  publish_timestamp = message_types.DateTimeField(5, required=True)
+
+
 class DeviceNoteCollection(messages.Message):
   """A class representing a collection of device notes."""
   device_notes = messages.MessageField(DeviceNote, 1, repeated=True)

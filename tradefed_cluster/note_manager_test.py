@@ -14,12 +14,18 @@
 
 """Unit tests for note manager module."""
 
+import base64
+import datetime
+import json
 import unittest
+
+import mock
 
 from google.appengine.ext import ndb
 
 from tradefed_cluster import api_messages
 from tradefed_cluster import datastore_entities
+from tradefed_cluster import datastore_test_util
 from tradefed_cluster import note_manager
 from tradefed_cluster import testbed_dependent_test
 
@@ -94,6 +100,38 @@ class NoteManagerTest(testbed_dependent_test.TestbedDependentTest):
                      message.type)
     self.assertEqual(lab_name, message.lab_name)
     self.assertEqual(content, message.content)
+
+  @mock.patch.object(note_manager, "_Now")
+  @mock.patch.object(note_manager, "_PubsubDeviceNoteClient")
+  def testPublishDeviceNoteEventMessage(self, mock_pubsub_client, mock_now):
+    now = datetime.datetime(2020, 4, 14, 10, 10)
+    mock_now.return_value = now
+    device_note = datastore_test_util.CreateDeviceNote(
+        device_serial="serial_1", timestamp=now)
+    device_note_msg = api_messages.DeviceNote(
+        id=str(device_note.key.id()),
+        device_serial=device_note.device_serial,
+        update_timestamp=device_note.note.timestamp,
+        user=device_note.note.user,
+        offline_reason=device_note.note.offline_reason,
+        recovery_action=device_note.note.recovery_action,
+        message=device_note.note.message)
+    device_note_event_msg = api_messages.DeviceNoteEvent(
+        device_note=device_note_msg,
+        hostname="host1",
+        lab_name="lab1",
+        run_target="run_target1")
+    note_manager.PublishDeviceNoteEventMessage(device_note_event_msg)
+
+    topic, messages = mock_pubsub_client.PublishMessages.call_args[0]
+    self.assertEqual(note_manager.DEVICE_NOTE_PUBSUB_TOPIC, topic)
+    message = messages[0]
+    self.assertEqual("deviceNote", message["attributes"]["type"])
+    data = message["data"]
+    data = base64.urlsafe_b64decode(data)
+    msg_dict = json.loads(data)
+    self.assertEqual("2020-04-14T10:10:00", msg_dict["publish_timestamp"])
+
 
 if __name__ == "__main__":
   unittest.main()

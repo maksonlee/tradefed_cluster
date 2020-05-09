@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Test util for datastore related tests."""
 
 from google.appengine.ext import ndb
@@ -20,10 +19,12 @@ from tradefed_cluster import api_messages
 from tradefed_cluster import datastore_entities
 
 
-def CreateCluster(
-    cluster, total_devices=1, offline_devices=0,
-    available_devices=1, allocated_devices=0,
-    device_count_timestamp=None):
+def CreateCluster(cluster,
+                  total_devices=1,
+                  offline_devices=0,
+                  available_devices=1,
+                  allocated_devices=0,
+                  device_count_timestamp=None):
   """Create a cluster."""
   cluster = datastore_entities.ClusterInfo(
       id=cluster,
@@ -37,8 +38,7 @@ def CreateCluster(
   return cluster
 
 
-def CreateDeviceCountSummary(
-    run_target, offline=0, available=0, allocated=0):
+def CreateDeviceCountSummary(run_target, offline=0, available=0, allocated=0):
   """Create a device count summary."""
   return datastore_entities.DeviceCountSummary(
       run_target=run_target,
@@ -97,18 +97,23 @@ def CreateHost(cluster,
   return ndb_host
 
 
-def CreateDevice(
-    cluster, hostname, device_serial,
-    lab_name=None, battery_level='100', hidden=False,
-    device_type=api_messages.DeviceTypeMessage.PHYSICAL,
-    timestamp=None, state='Available', product='product',
-    run_target='run_target', next_cluster_ids=None,
-    test_harness='tradefed'):
+def CreateDevice(cluster,
+                 hostname,
+                 device_serial,
+                 lab_name=None,
+                 battery_level='100',
+                 hidden=False,
+                 device_type=api_messages.DeviceTypeMessage.PHYSICAL,
+                 timestamp=None,
+                 state='Available',
+                 product='product',
+                 run_target='run_target',
+                 next_cluster_ids=None,
+                 test_harness='tradefed'):
   """Create a device."""
   ndb_device = datastore_entities.DeviceInfo(
       id=device_serial,
-      parent=ndb.Key(
-          datastore_entities.HostInfo, hostname),
+      parent=ndb.Key(datastore_entities.HostInfo, hostname),
       device_serial=device_serial,
       hostname=hostname,
       battery_level=battery_level,
@@ -126,8 +131,26 @@ def CreateDevice(
   return ndb_device
 
 
-def CreateLabInfo(
-    lab_name, owners=('owner1', 'owner2'), update_timestamp=None):
+def CreateDeviceNote(device_serial,
+                     user='user1',
+                     offline_reason='offline_reason1',
+                     recovery_action='recovery_action1',
+                     message='message1',
+                     timestamp=None):
+  """Create a device note."""
+  note = datastore_entities.Note(
+      user=user,
+      offline_reason=offline_reason,
+      recovery_action=recovery_action,
+      message=message,
+      timestamp=timestamp)
+  device_note = datastore_entities.DeviceNote(
+      id=device_serial, device_serial=device_serial, note=note)
+  device_note.put()
+  return device_note
+
+
+def CreateLabInfo(lab_name, owners=('owner1', 'owner2'), update_timestamp=None):
   """Create a lab info entity."""
   lab_info = datastore_entities.LabInfo(
       id=lab_name,

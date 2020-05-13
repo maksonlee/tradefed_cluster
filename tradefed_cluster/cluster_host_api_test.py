@@ -11,21 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Tests for cluster_host_api."""
 
 import datetime
 import unittest
 
+import mock
 from protorpc import protojson
 
 from google.appengine.ext import ndb
 
 from tradefed_cluster import api_messages
 from tradefed_cluster import api_test
+from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import datastore_test_util
 from tradefed_cluster import device_manager
+from tradefed_cluster import note_manager
 
 
 class ClusterHostApiTest(api_test.ApiTest):
@@ -42,9 +44,8 @@ class ClusterHostApiTest(api_test.ApiTest):
         device_count_timestamp=self.TIMESTAMP,
         device_count_summaries=[
             datastore_test_util.CreateDeviceCountSummary(
-                run_target='run_target1',
-                available=3,
-                allocated=7)])
+                run_target='run_target1', available=3, allocated=7)
+        ])
     self.ndb_device_0 = datastore_test_util.CreateDevice(
         cluster='free',
         hostname='host_0',
@@ -66,9 +67,8 @@ class ClusterHostApiTest(api_test.ApiTest):
         hidden=True,
         device_count_summaries=[
             datastore_test_util.CreateDeviceCountSummary(
-                run_target='run_target1',
-                available=1,
-                allocated=1)])
+                run_target='run_target1', available=1, allocated=1)
+        ])
     self.ndb_device_2 = datastore_test_util.CreateDevice(
         cluster='paid',
         hostname='host_1',
@@ -90,14 +90,10 @@ class ClusterHostApiTest(api_test.ApiTest):
         device_count_timestamp=self.TIMESTAMP,
         device_count_summaries=[
             datastore_test_util.CreateDeviceCountSummary(
-                run_target='run_target1',
-                offline=4,
-                available=0,
-                allocated=1)])
+                run_target='run_target1', offline=4, available=0, allocated=1)
+        ])
     self.ndb_host_3 = datastore_test_util.CreateHost(
-        cluster='paid',
-        hostname='host_3',
-        lab_name='alab')
+        cluster='paid', hostname='host_3', lab_name='alab')
     self.note = datastore_entities.Note(
         user='user0', timestamp=self.TIMESTAMP, message='Hello, World')
     host_note = datastore_entities.HostNote(hostname='host_0')
@@ -107,17 +103,14 @@ class ClusterHostApiTest(api_test.ApiTest):
   def AssertEqualHostInfo(self, host_entity, host_message):
     # Helper to compare host entities and messages
     self.assertEqual(host_entity.hostname, host_message.hostname)
-    self.assertEqual(
-        host_entity.total_devices, host_message.total_devices)
-    self.assertEqual(
-        host_entity.offline_devices, host_message.offline_devices)
-    self.assertEqual(
-        host_entity.available_devices, host_message.available_devices)
-    self.assertEqual(
-        host_entity.allocated_devices, host_message.allocated_devices)
-    self.assertEqual(
-        host_entity.device_count_timestamp,
-        host_message.device_count_timestamp)
+    self.assertEqual(host_entity.total_devices, host_message.total_devices)
+    self.assertEqual(host_entity.offline_devices, host_message.offline_devices)
+    self.assertEqual(host_entity.available_devices,
+                     host_message.available_devices)
+    self.assertEqual(host_entity.allocated_devices,
+                     host_message.allocated_devices)
+    self.assertEqual(host_entity.device_count_timestamp,
+                     host_message.device_count_timestamp)
     self.assertEqual(host_entity.physical_cluster, host_message.cluster)
     self.assertEqual(host_entity.hidden, host_message.hidden)
     self.assertEqual(host_entity.test_runner_version,
@@ -130,10 +123,10 @@ class ClusterHostApiTest(api_test.ApiTest):
   def testListHosts(self):
     """Tests ListHosts returns all visible hosts."""
     api_request = {}
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterHostApi.ListHosts', api_request)
-    host_collection = protojson.decode_message(
-        api_messages.HostInfoCollection, api_response.body)
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
+                                          api_request)
+    host_collection = protojson.decode_message(api_messages.HostInfoCollection,
+                                               api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(3, len(host_collection.host_infos))
     for host in host_collection.host_infos:
@@ -151,10 +144,10 @@ class ClusterHostApiTest(api_test.ApiTest):
   def testListHosts_shouldContainDevices(self):
     """Tests ListHosts returns hosts and include visible devices."""
     api_request = {'include_devices': True}
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterHostApi.ListHosts', api_request)
-    host_collection = protojson.decode_message(
-        api_messages.HostInfoCollection, api_response.body)
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
+                                          api_request)
+    host_collection = protojson.decode_message(api_messages.HostInfoCollection,
+                                               api_response.body)
     self.assertEqual('200 OK', api_response.status)
     for host in host_collection.host_infos:
       if host.hostname == 'host_0':
@@ -173,10 +166,10 @@ class ClusterHostApiTest(api_test.ApiTest):
   def testListHosts_includeHidden(self):
     """Tests ListHosts returns all hosts includding hidden and devices."""
     api_request = {'include_hidden': True, 'include_devices': True}
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterHostApi.ListHosts', api_request)
-    host_collection = protojson.decode_message(
-        api_messages.HostInfoCollection, api_response.body)
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
+                                          api_request)
+    host_collection = protojson.decode_message(api_messages.HostInfoCollection,
+                                               api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(4, len(host_collection.host_infos))
     for host in host_collection.host_infos:
@@ -199,8 +192,8 @@ class ClusterHostApiTest(api_test.ApiTest):
     api_request = {'count': '1'}
     api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
                                           api_request)
-    host_collection = protojson.decode_message(
-        api_messages.HostInfoCollection, api_response.body)
+    host_collection = protojson.decode_message(api_messages.HostInfoCollection,
+                                               api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(1, len(host_collection.host_infos))
     self.assertEqual(0, len(host_collection.host_infos[0].device_infos))
@@ -210,8 +203,8 @@ class ClusterHostApiTest(api_test.ApiTest):
     api_request = {'count': '1'}
     api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
                                           api_request)
-    host_collection = protojson.decode_message(
-        api_messages.HostInfoCollection, api_response.body)
+    host_collection = protojson.decode_message(api_messages.HostInfoCollection,
+                                               api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertTrue(host_collection.more)
     cursor = host_collection.next_cursor
@@ -222,8 +215,8 @@ class ClusterHostApiTest(api_test.ApiTest):
     api_request = {'count': '1', 'cursor': cursor}
     api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
                                           api_request)
-    host_collection = protojson.decode_message(
-        api_messages.HostInfoCollection, api_response.body)
+    host_collection = protojson.decode_message(api_messages.HostInfoCollection,
+                                               api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertTrue(host_collection.more)
     self.assertIsNotNone(host_collection.next_cursor)
@@ -232,10 +225,10 @@ class ClusterHostApiTest(api_test.ApiTest):
   def testListHosts_withDevicesOffset(self):
     """Tests ListHosts returns hosts with devices for a count and offset."""
     api_request = {'include_devices': True, 'count': '1'}
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterHostApi.ListHosts', api_request)
-    host_collection = protojson.decode_message(
-        api_messages.HostInfoCollection, api_response.body)
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
+                                          api_request)
+    host_collection = protojson.decode_message(api_messages.HostInfoCollection,
+                                               api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(1, len(host_collection.host_infos))
     self.assertEqual(1, len(host_collection.host_infos[0].device_infos))
@@ -245,8 +238,8 @@ class ClusterHostApiTest(api_test.ApiTest):
     api_request = {'include_hidden': True, 'count': '1'}
     api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
                                           api_request)
-    host_collection = protojson.decode_message(
-        api_messages.HostInfoCollection, api_response.body)
+    host_collection = protojson.decode_message(api_messages.HostInfoCollection,
+                                               api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(1, len(host_collection.host_infos))
     self.assertEqual(0, len(host_collection.host_infos[0].device_infos))
@@ -254,11 +247,14 @@ class ClusterHostApiTest(api_test.ApiTest):
   def testListHosts_includeHiddenWithDevicesCount(self):
     """Tests ListHosts includes hidden applying a count and offset."""
     api_request = {
-        'include_devices': True, 'include_hidden': True, 'count': '1'}
+        'include_devices': True,
+        'include_hidden': True,
+        'count': '1'
+    }
     api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
                                           api_request)
-    host_collection = protojson.decode_message(
-        api_messages.HostInfoCollection, api_response.body)
+    host_collection = protojson.decode_message(api_messages.HostInfoCollection,
+                                               api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(1, len(host_collection.host_infos))
     self.assertEqual(2, len(host_collection.host_infos[0].device_infos))
@@ -266,10 +262,10 @@ class ClusterHostApiTest(api_test.ApiTest):
   def testListHosts_filterByLab(self):
     """Tests ListHosts returns hosts the under a lab."""
     api_request = {'lab_name': 'alab'}
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterHostApi.ListHosts', api_request)
-    host_collection = protojson.decode_message(
-        api_messages.HostInfoCollection, api_response.body)
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
+                                          api_request)
+    host_collection = protojson.decode_message(api_messages.HostInfoCollection,
+                                               api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(2, len(host_collection.host_infos))
     for host in host_collection.host_infos:
@@ -278,10 +274,10 @@ class ClusterHostApiTest(api_test.ApiTest):
   def testListHosts_filterByAssignee(self):
     """Tests ListHosts returns hosts that assign to certain user."""
     api_request = {'assignee': 'auser'}
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterHostApi.ListHosts', api_request)
-    host_collection = protojson.decode_message(
-        api_messages.HostInfoCollection, api_response.body)
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
+                                          api_request)
+    host_collection = protojson.decode_message(api_messages.HostInfoCollection,
+                                               api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(1, len(host_collection.host_infos))
     for host in host_collection.host_infos:
@@ -290,10 +286,10 @@ class ClusterHostApiTest(api_test.ApiTest):
   def testListHosts_filterByIsBad(self):
     """Tests ListHosts returns hosts that is bad."""
     api_request = {'is_bad': True}
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterHostApi.ListHosts', api_request)
-    host_collection = protojson.decode_message(
-        api_messages.HostInfoCollection, api_response.body)
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
+                                          api_request)
+    host_collection = protojson.decode_message(api_messages.HostInfoCollection,
+                                               api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(1, len(host_collection.host_infos))
     for host in host_collection.host_infos:
@@ -302,10 +298,10 @@ class ClusterHostApiTest(api_test.ApiTest):
   def testListHosts_filterByHostGroups(self):
     """Tests ListHosts returns hosts the under host groups."""
     api_request = {'host_groups': ['paid']}
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterHostApi.ListHosts', api_request)
-    host_collection = protojson.decode_message(
-        api_messages.HostInfoCollection, api_response.body)
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
+                                          api_request)
+    host_collection = protojson.decode_message(api_messages.HostInfoCollection,
+                                               api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(1, len(host_collection.host_infos))
     for host in host_collection.host_infos:
@@ -321,30 +317,34 @@ class ClusterHostApiTest(api_test.ApiTest):
         test_runner_version='v1')
     mh_host.put()
     api_request = {'test_harness': 'MH'}
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterHostApi.ListHosts', api_request)
-    host_collection = protojson.decode_message(
-        api_messages.HostInfoCollection, api_response.body)
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
+                                          api_request)
+    host_collection = protojson.decode_message(api_messages.HostInfoCollection,
+                                               api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(1, len(host_collection.host_infos))
     self.AssertEqualHostInfo(mh_host, host_collection.host_infos[0])
 
+  @mock.patch.object(note_manager, 'PublishMessage')
   def testAddOrUpdateHostNote_addWithTextOfflineReasonAndRecoveryAction(
-      self):
+      self, mock_publish_host_note_message):
     """Tests adding a non-existing host note."""
+    lab_name = 'lab-name-1'
     api_request = {
         'hostname': self.ndb_host_0.hostname,
         'user': 'user-1',
         'message': 'message-1',
         'offline_reason': 'offline-reason-1',
         'recovery_action': 'recovery-action-1',
-        'lab_name': 'lab-name-1',
+        'lab_name': lab_name,
     }
     api_response = self.testapp.post_json(
         '/_ah/api/ClusterHostApi.AddOrUpdateNote', api_request)
     self.assertEqual('200 OK', api_response.status)
     host_note = protojson.decode_message(api_messages.HostNote,
                                          api_response.body)
+    host_note_event = api_messages.HostNoteEvent(
+        host_note=host_note, lab_name=lab_name)
     # Assert datastore id is generated.
     self.assertIsNotNone(host_note.id)
     # Assert fields equal.
@@ -361,15 +361,18 @@ class ClusterHostApiTest(api_test.ApiTest):
         datastore_entities.PredefinedMessage.content ==
         api_request['recovery_action']).get())
     # Side Effect: Assert HostInfoHistory is written into datastore.
-    histories = list(datastore_entities.HostInfoHistory.query(
-        datastore_entities.HostInfoHistory.hostname
-        == self.ndb_host_0.hostname).fetch())
+    histories = list(
+        datastore_entities.HostInfoHistory.query(
+            datastore_entities.HostInfoHistory.hostname ==
+            self.ndb_host_0.hostname).fetch())
     self.assertEqual(1, len(histories))
-    self.assertEqual(int(host_note.id),
-                     histories[0].extra_info['host_note_id'])
+    self.assertEqual(int(host_note.id), histories[0].extra_info['host_note_id'])
+    mock_publish_host_note_message.assert_called_once_with(
+        host_note_event, common.PublishEventType.HOST_NOTE_EVENT)
 
+  @mock.patch.object(note_manager, 'PublishMessage')
   def testAddOrUpdateHostNote_updateWithTextOfflineReasonAndRecoveryAction(
-      self):
+      self, mock_publish_host_note_message):
     """Tests updating an existing host note."""
     api_request_1 = {
         'hostname': self.ndb_host_0.hostname,
@@ -384,6 +387,7 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual('200 OK', api_response_1.status)
     host_note_1 = protojson.decode_message(api_messages.HostNote,
                                            api_response_1.body)
+    new_lab_name = 'lab-name-2'
     api_request_2 = {
         'id': int(host_note_1.id),
         'hostname': self.ndb_host_0.hostname,
@@ -391,13 +395,15 @@ class ClusterHostApiTest(api_test.ApiTest):
         'message': 'message-2',
         'offline_reason': 'offline-reason-2',
         'recovery_action': 'recovery-action-2',
-        'lab_name': 'lab-name-2',
+        'lab_name': new_lab_name,
     }
     api_response_2 = self.testapp.post_json(
         '/_ah/api/ClusterHostApi.AddOrUpdateNote', api_request_2)
     self.assertEqual('200 OK', api_response_1.status)
     host_note_2 = protojson.decode_message(api_messages.HostNote,
                                            api_response_2.body)
+    host_note_event = api_messages.HostNoteEvent(
+        host_note=host_note_2, lab_name=new_lab_name)
     # Assert two requests modified the same datastore entity.
     self.assertEqual(host_note_1.id, host_note_2.id)
     # Assert the fields finally equal to the ones in the 2nd request.
@@ -409,14 +415,19 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual(api_request_2['recovery_action'],
                      host_note_2.recovery_action)
     # Side Effect: Assert HostInfoHistory is written into datastore.
-    histories = list(datastore_entities.HostInfoHistory.query(
-        datastore_entities.HostInfoHistory.hostname
-        == self.ndb_host_0.hostname).fetch())
+    histories = list(
+        datastore_entities.HostInfoHistory.query(
+            datastore_entities.HostInfoHistory.hostname ==
+            self.ndb_host_0.hostname).fetch())
     self.assertEqual(1, len(histories))
-    self.assertEqual(int(host_note_1.id),
-                     histories[0].extra_info['host_note_id'])
+    self.assertEqual(
+        int(host_note_1.id), histories[0].extra_info['host_note_id'])
+    mock_publish_host_note_message.assert_called_with(
+        host_note_event, common.PublishEventType.HOST_NOTE_EVENT)
 
-  def testAddOrUpdateHostNote_addWithIdOfflineReasonAndRecoveryAction(self):
+  @mock.patch.object(note_manager, 'PublishMessage')
+  def testAddOrUpdateHostNote_addWithIdOfflineReasonAndRecoveryAction(
+      self, mock_publish_host_note_message):
     """Tests adding a host note with existing predefined messages."""
     offline_reason = 'offline-reason'
     recovery_action = 'recovery-action'
@@ -450,6 +461,8 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual('200 OK', api_response.status)
     host_note = protojson.decode_message(api_messages.HostNote,
                                          api_response.body)
+    host_note_event = api_messages.HostNoteEvent(
+        host_note=host_note, lab_name=lab_name)
     # Assert datastore id is generated.
     self.assertIsNotNone(host_note.id)
     # Assert fields equal.
@@ -462,12 +475,14 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual(3, offline_reason_key.get().used_count)
     self.assertEqual(6, recovery_action_key.get().used_count)
     # Side Effect: Assert HostInfoHistory is written into datastore.
-    histories = list(datastore_entities.HostInfoHistory.query(
-        datastore_entities.HostInfoHistory.hostname
-        == self.ndb_host_0.hostname).fetch())
+    histories = list(
+        datastore_entities.HostInfoHistory.query(
+            datastore_entities.HostInfoHistory.hostname ==
+            self.ndb_host_0.hostname).fetch())
     self.assertEqual(1, len(histories))
-    self.assertEqual(int(host_note.id),
-                     histories[0].extra_info['host_note_id'])
+    self.assertEqual(int(host_note.id), histories[0].extra_info['host_note_id'])
+    mock_publish_host_note_message.assert_called_once_with(
+        host_note_event, common.PublishEventType.HOST_NOTE_EVENT)
 
   def testGetHost(self):
     """Tests GetHost."""
@@ -478,15 +493,15 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual('200 OK', api_response.status)
     self.AssertEqualHostInfo(self.ndb_host_0, host)
     self.assertEqual(1, len(host.device_infos))
-    self.assertEqual(
-        self.ndb_device_1.device_serial, host.device_infos[0].device_serial)
+    self.assertEqual(self.ndb_device_1.device_serial,
+                     host.device_infos[0].device_serial)
     self.assertEqual(0, len(host.notes))
 
   def testGetHost_noDevices(self):
     """Tests GetHost when a host has no devices."""
     api_request = {'hostname': self.ndb_host_2.hostname}
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterHostApi.GetHost', api_request)
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.GetHost',
+                                          api_request)
     host = protojson.decode_message(api_messages.HostInfo, api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.AssertEqualHostInfo(self.ndb_host_2, host)
@@ -501,8 +516,8 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual('200 OK', api_response.status)
     self.AssertEqualHostInfo(self.ndb_host_0, host)
     self.assertEqual(2, len(host.device_infos))
-    self.assertItemsEqual(
-        ['device_0', 'device_1'], [d.device_serial for d in host.device_infos])
+    self.assertItemsEqual(['device_0', 'device_1'],
+                          [d.device_serial for d in host.device_infos])
     self.assertEqual(0, len(host.notes))
 
   def testGetHost_includeNotes(self):
@@ -534,26 +549,30 @@ class ClusterHostApiTest(api_test.ApiTest):
     timestamp2 = datetime.datetime(2015, 10, 9, 2)
     state1 = api_messages.HostState.RUNNING
     state2 = api_messages.HostState.GONE
-    history_key1 = ndb.Key(datastore_entities.HostStateHistory,
-                           self.ndb_host_1.hostname + str(timestamp1),
-                           parent=self.ndb_host_1.key)
+    history_key1 = ndb.Key(
+        datastore_entities.HostStateHistory,
+        self.ndb_host_1.hostname + str(timestamp1),
+        parent=self.ndb_host_1.key)
     ndb_host_1_state_history1 = datastore_entities.HostStateHistory(
         key=history_key1,
         hostname=self.ndb_host_1.hostname,
         timestamp=timestamp1,
         state=state1)
     ndb_host_1_state_history1.put()
-    history_key2 = ndb.Key(datastore_entities.HostStateHistory,
-                           self.ndb_host_1.hostname + str(timestamp2),
-                           parent=self.ndb_host_1.key)
+    history_key2 = ndb.Key(
+        datastore_entities.HostStateHistory,
+        self.ndb_host_1.hostname + str(timestamp2),
+        parent=self.ndb_host_1.key)
     ndb_host_1_state_history2 = datastore_entities.HostStateHistory(
         key=history_key2,
         hostname=self.ndb_host_1.hostname,
         timestamp=timestamp2,
         state=state2)
     ndb_host_1_state_history2.put()
-    api_request = {'hostname': self.ndb_host_1.hostname,
-                   'include_host_state_history': True}
+    api_request = {
+        'hostname': self.ndb_host_1.hostname,
+        'include_host_state_history': True
+    }
     api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.GetHost',
                                           api_request)
     host = protojson.decode_message(api_messages.HostInfo, api_response.body)
@@ -572,13 +591,14 @@ class ClusterHostApiTest(api_test.ApiTest):
     message = 'The Message'
     offline_reason = 'Wires are disconnected'
     recovery_action = 'Press a button'
-    api_request = {'hostname': self.ndb_host_1.hostname,
-                   'user': user,
-                   'timestamp': timestamp.isoformat(),
-                   'message': message,
-                   'offline_reason': offline_reason,
-                   'recovery_action': recovery_action,
-                  }
+    api_request = {
+        'hostname': self.ndb_host_1.hostname,
+        'user': user,
+        'timestamp': timestamp.isoformat(),
+        'message': message,
+        'offline_reason': offline_reason,
+        'recovery_action': recovery_action,
+    }
     api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.NewNote',
                                           api_request)
     self.assertEqual('200 OK', api_response.status)
@@ -598,11 +618,12 @@ class ClusterHostApiTest(api_test.ApiTest):
     user = 'some_user'
     timestamp = datetime.datetime(2015, 10, 18, 20, 46)
     message = 'The Message'
-    api_request = {'hostname': self.ndb_host_0.hostname,
-                   'user': user,
-                   'timestamp': timestamp.isoformat(),
-                   'message': message
-                  }
+    api_request = {
+        'hostname': self.ndb_host_0.hostname,
+        'user': user,
+        'timestamp': timestamp.isoformat(),
+        'message': message
+    }
     api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.NewNote',
                                           api_request)
     self.assertEqual('200 OK', api_response.status)
@@ -628,8 +649,8 @@ class ClusterHostApiTest(api_test.ApiTest):
     host = protojson.decode_message(api_messages.HostInfo, api_response.body)
     self.assertFalse(host.hidden)
     # Call Remove
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterHostApi.Remove', api_request)
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.Remove',
+                                          api_request)
     host = protojson.decode_message(api_messages.HostInfo, api_response.body)
     # Verify API response
     self.assertEqual('200 OK', api_response.status)
@@ -659,8 +680,8 @@ class ClusterHostApiTest(api_test.ApiTest):
     host = protojson.decode_message(api_messages.HostInfo, api_response.body)
     self.assertTrue(host.hidden)
     # Call Remove
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterHostApi.Restore', api_request)
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.Restore',
+                                          api_request)
     host = protojson.decode_message(api_messages.HostInfo, api_response.body)
     # Verify API response
     self.assertEqual('200 OK', api_response.status)
@@ -956,19 +977,16 @@ class ClusterHostApiTest(api_test.ApiTest):
   def testAssign(self):
     """Tests Assign."""
     api_request = {
-        'hostnames': [self.ndb_host_0.hostname,
-                      self.ndb_host_1.hostname],
+        'hostnames': [self.ndb_host_0.hostname, self.ndb_host_1.hostname],
         'assignee': 'assignee@example.com',
     }
     api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.Assign',
                                           api_request)
     self.assertEqual('200 OK', api_response.status)
     self.ndb_host_0 = self.ndb_host_0.key.get()
-    self.assertEqual('assignee@example.com',
-                     self.ndb_host_0.assignee)
+    self.assertEqual('assignee@example.com', self.ndb_host_0.assignee)
     self.ndb_host_1 = self.ndb_host_1.key.get()
-    self.assertEqual('assignee@example.com',
-                     self.ndb_host_1.assignee)
+    self.assertEqual('assignee@example.com', self.ndb_host_1.assignee)
 
   def testUnassign(self):
     """Tests Unassign."""
@@ -978,8 +996,7 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.ndb_host_2.put()
 
     api_request = {
-        'hostnames': [self.ndb_host_0.hostname,
-                      self.ndb_host_1.hostname],
+        'hostnames': [self.ndb_host_0.hostname, self.ndb_host_1.hostname],
     }
     api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.Unassign',
                                           api_request)
@@ -998,9 +1015,7 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.ndb_host_0.host_state = api_messages.HostState.GONE
     self.ndb_host_0.timestamp += datetime.timedelta(hours=1)
     device_manager._CreateHostInfoHistory(self.ndb_host_0).put()
-    api_request = {
-        'hostname': self.ndb_host_0.hostname
-    }
+    api_request = {'hostname': self.ndb_host_0.hostname}
     api_response = self.testapp.post_json(
         '/_ah/api/ClusterHostApi.ListHistories', api_request)
     host_history_collection = protojson.decode_message(
@@ -1024,9 +1039,7 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.ndb_host_0.timestamp += datetime.timedelta(hours=1)
     device_manager._CreateHostInfoHistory(self.ndb_host_0).put()
     # fetch first page
-    api_request = {
-        'hostname': self.ndb_host_0.hostname, 'count': 2
-    }
+    api_request = {'hostname': self.ndb_host_0.hostname, 'count': 2}
     api_response = self.testapp.post_json(
         '/_ah/api/ClusterHostApi.ListHistories', api_request)
     host_history_collection = protojson.decode_message(
@@ -1039,7 +1052,8 @@ class ClusterHostApiTest(api_test.ApiTest):
                      host_history_collection.histories[1].host_state)
     # fetch next page
     api_request = {
-        'hostname': self.ndb_host_0.hostname, 'count': 2,
+        'hostname': self.ndb_host_0.hostname,
+        'count': 2,
         'cursor': host_history_collection.next_cursor
     }
     api_response = self.testapp.post_json(
@@ -1053,7 +1067,8 @@ class ClusterHostApiTest(api_test.ApiTest):
 
     # fetch previous page (same as first page)
     api_request = {
-        'hostname': self.ndb_host_0.hostname, 'count': 2,
+        'hostname': self.ndb_host_0.hostname,
+        'count': 2,
         'cursor': host_history_collection.prev_cursor,
         'backwards': True
     }
@@ -1067,6 +1082,7 @@ class ClusterHostApiTest(api_test.ApiTest):
                      host_history_collection.histories[0].host_state)
     self.assertEqual(api_messages.HostState.KILLING.name,
                      host_history_collection.histories[1].host_state)
+
 
 if __name__ == '__main__':
   unittest.main()

@@ -21,12 +21,16 @@ import lazy_object_proxy
 
 from protorpc import protojson
 
+from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import env_config
 from tradefed_cluster.util import pubsub_client
 
+
 DEVICE_NOTE_PUBSUB_TOPIC = "projects/%s/topics/%s" % (env_config.CONFIG.app_id,
                                                       "device_note")
+HOST_NOTE_PUBSUB_TOPIC = "projects/%s/topics/%s" % (env_config.CONFIG.app_id,
+                                                    "host_note")
 
 
 def GetPredefinedMessage(message_type, lab_name, content):
@@ -79,27 +83,35 @@ def _Now():
   return datetime.datetime.utcnow()
 
 
-def _CreatePubsubDeviceNoteClient():
+def _CreatePubsubClient():
   """Create a client for Google Cloud Pub/Sub."""
   client = pubsub_client.PubSubClient()
   client.CreateTopic(DEVICE_NOTE_PUBSUB_TOPIC)
+  client.CreateTopic(HOST_NOTE_PUBSUB_TOPIC)
   return client
 
 
-_PubsubDeviceNoteClient = lazy_object_proxy.Proxy(_CreatePubsubDeviceNoteClient)  
+_PubsubClient = lazy_object_proxy.Proxy(_CreatePubsubClient)  
 
-def PublishDeviceNoteEventMessage(device_note_message):
+def PublishMessage(device_note_message, event_type):
   """Publish device note event message to pubsub."""
   if not env_config.CONFIG.use_google_api:
     logging.warn(
-        "Unabled to send device note message to pubsub: use_google_api=False")
+        "Unabled to send device note message to pubsub: use_google_api=False"
+    )
     return
   device_note_message.publish_timestamp = _Now()
   encoded_message = protojson.encode_message(device_note_message)
   data = base64.urlsafe_b64encode(encoded_message)
-  _PubsubDeviceNoteClient.PublishMessages(DEVICE_NOTE_PUBSUB_TOPIC, [{
+  if event_type == common.PublishEventType.DEVICE_NOTE_EVENT:
+    data_type = "deviceNote"
+    topic = DEVICE_NOTE_PUBSUB_TOPIC
+  else:
+    data_type = "hostNote"
+    topic = HOST_NOTE_PUBSUB_TOPIC
+  _PubsubClient.PublishMessages(topic, [{
       "data": data,
       "attributes": {
-          "type": "deviceNote",
+          "type": data_type,
       }
   }])

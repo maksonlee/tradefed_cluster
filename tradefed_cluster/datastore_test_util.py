@@ -150,6 +150,25 @@ def CreateDeviceNote(device_serial,
   return device_note
 
 
+def CreateHostNote(hostname,
+                   user='user1',
+                   offline_reason='offline_reason1',
+                   recovery_action='recovery_action1',
+                   message='message1',
+                   timestamp=None):
+  """Create a host note."""
+  note = datastore_entities.Note(
+      user=user,
+      offline_reason=offline_reason,
+      recovery_action=recovery_action,
+      message=message,
+      timestamp=timestamp)
+  host_note = datastore_entities.HostNote(
+      id=hostname, hostname=hostname, note=note)
+  host_note.put()
+  return host_note
+
+
 def CreateLabInfo(lab_name, owners=('owner1', 'owner2'), update_timestamp=None):
   """Create a lab info entity."""
   lab_info = datastore_entities.LabInfo(

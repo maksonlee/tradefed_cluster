@@ -504,7 +504,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual(self.note.message, device.notes[1].message)
 
   @mock.patch.object(device_manager, 'GetDevice')
-  @mock.patch.object(note_manager, 'PublishDeviceNoteEventMessage')
+  @mock.patch.object(note_manager, 'PublishMessage')
   def testAddOrUpdateDeviceNote_addWithTextOfflineReasonAndRecoveryAction(
       self, mock_publish_device_note_message, mock_get_device):
     """Tests adding a non-existing device note."""
@@ -553,10 +553,10 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual(
         int(device_note.id), histories[0].extra_info['device_note_id'])
     mock_publish_device_note_message.assert_called_once_with(
-        device_note_event_msg)
+        device_note_event_msg, common.PublishEventType.DEVICE_NOTE_EVENT)
 
   @mock.patch.object(device_manager, 'GetDevice')
-  @mock.patch.object(note_manager, 'PublishDeviceNoteEventMessage')
+  @mock.patch.object(note_manager, 'PublishMessage')
   def testAddOrUpdateDeviceNote_UpdateWithTextOfflineReasonAndRecoveryAction(
       self, mock_publish_device_note_message, mock_get_device):
     """Tests updating an existing device note."""
@@ -615,10 +615,11 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual(1, len(histories))
     self.assertEqual(
         int(device_note_1.id), histories[0].extra_info['device_note_id'])
-    mock_publish_device_note_message.assert_called_with(device_note_event_msg)
+    mock_publish_device_note_message.assert_called_with(
+        device_note_event_msg, common.PublishEventType.DEVICE_NOTE_EVENT)
 
   @mock.patch.object(device_manager, 'GetDevice')
-  @mock.patch.object(note_manager, 'PublishDeviceNoteEventMessage')
+  @mock.patch.object(note_manager, 'PublishMessage')
   def testAddOrUpdateDeviceNote_addWithIdOfflineReasonAndRecoveryAction(
       self, mock_publish_device_note_message, mock_get_device):
     """Tests adding a device note with existing predefined messages."""
@@ -680,7 +681,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual(
         int(device_note.id), histories[0].extra_info['device_note_id'])
     mock_publish_device_note_message.assert_called_once_with(
-        device_note_event_msg)
+        device_note_event_msg, common.PublishEventType.DEVICE_NOTE_EVENT)
 
   def testGetDevice_includeHistory(self):
     """Tests GetDevice including history when they are available."""

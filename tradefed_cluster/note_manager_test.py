@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Unit tests for note manager module."""
 
 import base64
@@ -24,6 +23,7 @@ import mock
 from google.appengine.ext import ndb
 
 from tradefed_cluster import api_messages
+from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import datastore_test_util
 from tradefed_cluster import note_manager
@@ -49,16 +49,14 @@ class NoteManagerTest(testbed_dependent_test.TestbedDependentTest):
     ndb.put_multi(predefined_message_entities)
 
     message_1 = note_manager.GetPredefinedMessage(
-        api_messages.PredefinedMessageType.DEVICE_OFFLINE_REASON,
-        lab_name,
+        api_messages.PredefinedMessageType.DEVICE_OFFLINE_REASON, lab_name,
         "offline_reason1")
     self.assertEqual("offline_reason1", message_1.content)
     self.assertEqual(api_messages.PredefinedMessageType.DEVICE_OFFLINE_REASON,
                      message_1.type)
 
     message_2 = note_manager.GetPredefinedMessage(
-        api_messages.PredefinedMessageType.DEVICE_RECOVERY_ACTION,
-        lab_name,
+        api_messages.PredefinedMessageType.DEVICE_RECOVERY_ACTION, lab_name,
         "recovery_action1")
     self.assertEqual("recovery_action1", message_2.content)
     self.assertEqual(api_messages.PredefinedMessageType.DEVICE_RECOVERY_ACTION,
@@ -66,8 +64,7 @@ class NoteManagerTest(testbed_dependent_test.TestbedDependentTest):
 
   def testGetPredefinedMessage_None(self):
     nonexistent_message = note_manager.GetPredefinedMessage(
-        api_messages.PredefinedMessageType.DEVICE_RECOVERY_ACTION,
-        "alab",
+        api_messages.PredefinedMessageType.DEVICE_RECOVERY_ACTION, "alab",
         "non-existent content")
     self.assertIsNone(nonexistent_message)
 
@@ -83,8 +80,7 @@ class NoteManagerTest(testbed_dependent_test.TestbedDependentTest):
         used_count=2).put()
 
     message = note_manager.GetOrCreatePredefinedMessage(
-        api_messages.PredefinedMessageType.DEVICE_OFFLINE_REASON,
-        lab_name,
+        api_messages.PredefinedMessageType.DEVICE_OFFLINE_REASON, lab_name,
         content)
     self.assertEqual(message_id, message.key.id())
 
@@ -93,8 +89,7 @@ class NoteManagerTest(testbed_dependent_test.TestbedDependentTest):
     content = "content1"
 
     message = note_manager.GetOrCreatePredefinedMessage(
-        api_messages.PredefinedMessageType.DEVICE_OFFLINE_REASON,
-        lab_name,
+        api_messages.PredefinedMessageType.DEVICE_OFFLINE_REASON, lab_name,
         content)
     self.assertEqual(api_messages.PredefinedMessageType.DEVICE_OFFLINE_REASON,
                      message.type)
@@ -102,8 +97,8 @@ class NoteManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(content, message.content)
 
   @mock.patch.object(note_manager, "_Now")
-  @mock.patch.object(note_manager, "_PubsubDeviceNoteClient")
-  def testPublishDeviceNoteEventMessage(self, mock_pubsub_client, mock_now):
+  @mock.patch.object(note_manager, "_PubsubClient")
+  def testPublishMessage(self, mock_pubsub_client, mock_now):
     now = datetime.datetime(2020, 4, 14, 10, 10)
     mock_now.return_value = now
     device_note = datastore_test_util.CreateDeviceNote(
@@ -121,7 +116,8 @@ class NoteManagerTest(testbed_dependent_test.TestbedDependentTest):
         hostname="host1",
         lab_name="lab1",
         run_target="run_target1")
-    note_manager.PublishDeviceNoteEventMessage(device_note_event_msg)
+    note_manager.PublishMessage(device_note_event_msg,
+                                common.PublishEventType.DEVICE_NOTE_EVENT)
 
     topic, messages = mock_pubsub_client.PublishMessages.call_args[0]
     self.assertEqual(note_manager.DEVICE_NOTE_PUBSUB_TOPIC, topic)

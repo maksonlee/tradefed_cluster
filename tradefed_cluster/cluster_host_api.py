@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """API module to serve cluster host service calls."""
 
 import datetime
@@ -29,15 +28,14 @@ from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import datastore_util
 from tradefed_cluster import device_manager
-
+from tradefed_cluster import note_manager
 
 _DEFAULT_LIST_NOTES_COUNT = 10
 _DEFAULT_LIST_HOST_COUNT = 100
 _DEFAULT_LIST_HISTORIES_COUNT = 100
 
 
-@api_common.tradefed_cluster_api.api_class(resource_name="hosts",
-                                           path="hosts")
+@api_common.tradefed_cluster_api.api_class(resource_name="hosts", path="hosts")
 class ClusterHostApi(remote.Service):
   """A class for cluster host API service."""
 
@@ -51,22 +49,21 @@ class ClusterHostApi(remote.Service):
       host_groups=messages.StringField(6, repeated=True),
       test_harness=messages.StringField(7),
       cursor=messages.StringField(8),
-      count=messages.IntegerField(9, variant=messages.Variant.INT32,
-                                  default=_DEFAULT_LIST_HOST_COUNT)
-  )
+      count=messages.IntegerField(
+          9, variant=messages.Variant.INT32, default=_DEFAULT_LIST_HOST_COUNT))
 
   @endpoints.method(
       HOST_LIST_RESOURCE,
       api_messages.HostInfoCollection,
       path="/hosts",
       http_method="GET",
-      name="list"
-  )
+      name="list")
   def ListHosts(self, request):
     """Fetches a list of hosts.
 
     Args:
       request: an API request.
+
     Returns:
       a HostInfoCollection object.
     """
@@ -85,8 +82,8 @@ class ClusterHostApi(remote.Service):
     if not request.include_hidden:
       query = query.filter(datastore_entities.HostInfo.hidden == False)  
     if request.host_groups:
-      query = query.filter(datastore_entities.HostInfo.host_group.IN(
-          request.host_groups))
+      query = query.filter(
+          datastore_entities.HostInfo.host_group.IN(request.host_groups))
 
     if request.test_harness:
       # TODO: Change test_runner to test_harness.
@@ -100,8 +97,7 @@ class ClusterHostApi(remote.Service):
     for host in hosts:
       devices = []
       if request.include_devices:
-        device_query = datastore_entities.DeviceInfo.query(
-            ancestor=host.key)
+        device_query = datastore_entities.DeviceInfo.query(ancestor=host.key)
         if not request.include_hidden:
           device_query = device_query.filter(
               datastore_entities.DeviceInfo.hidden == False)          devices = device_query.fetch()
@@ -127,13 +123,13 @@ class ClusterHostApi(remote.Service):
       api_messages.HostInfo,
       path="{hostname}",
       http_method="GET",
-      name="get"
-  )
+      name="get")
   def GetHost(self, request):
     """Fetches the information and notes of a given hostname.
 
     Args:
       request: an API request.
+
     Returns:
       a HostInfo object.
     Raises:
@@ -157,20 +153,20 @@ class ClusterHostApi(remote.Service):
       host_notes = datastore_entities.HostNote.query()
       host_notes = host_notes.filter(
           datastore_entities.HostNote.hostname == hostname)
-      notes = [datastore_entities.ToMessage(n.note)
-               for n in host_notes.iter()]
+      notes = [datastore_entities.ToMessage(n.note) for n in host_notes.iter()]
       host_info.notes = sorted(notes, key=lambda x: x.timestamp, reverse=True)
     if request.include_host_state_history:
       history_states = None
       limit = request.host_state_history_limit
       try:
-        history_states = device_manager.GetHostStateHistory(hostname,
-                                                            limit=limit)
+        history_states = device_manager.GetHostStateHistory(
+            hostname, limit=limit)
       except ValueError as err:
         raise endpoints.BadRequestException(err)
 
-      host_state_history = [datastore_entities.ToMessage(state)
-                            for state in history_states]
+      host_state_history = [
+          datastore_entities.ToMessage(state) for state in history_states
+      ]
       host_info.state_history = host_state_history
     return host_info
 
@@ -191,6 +187,7 @@ class ClusterHostApi(remote.Service):
 
     Args:
       request: an API request.
+
     Returns:
       a VoidMessage
     """
@@ -199,11 +196,12 @@ class ClusterHostApi(remote.Service):
     # Datastore only accepts UTC times. Doing a conversion if necessary.
     if timestamp.utcoffset() is not None:
       timestamp = timestamp.replace(tzinfo=None) - timestamp.utcoffset()
-    note = datastore_entities.Note(user=request.user,
-                                   timestamp=timestamp,
-                                   message=request.message,
-                                   offline_reason=request.offline_reason,
-                                   recovery_action=request.recovery_action)
+    note = datastore_entities.Note(
+        user=request.user,
+        timestamp=timestamp,
+        message=request.message,
+        offline_reason=request.offline_reason,
+        recovery_action=request.recovery_action)
     host_note = datastore_entities.HostNote(hostname=hostname)
     host_note.note = note
     host_note.put()
@@ -274,6 +272,11 @@ class ClusterHostApi(remote.Service):
     keys = ndb.put_multi(entities_to_update)
     host_note_msg = datastore_entities.ToMessage(host_note_entity)
 
+    host_note_event_msg = api_messages.HostNoteEvent(
+        host_note=host_note_msg, lab_name=request.lab_name)
+    note_manager.PublishMessage(host_note_event_msg,
+                                common.PublishEventType.HOST_NOTE_EVENT)
+
     note_key = keys[0]
     if request.id != note_key.id():
       # If ids are different, then a new note is created, we should create
@@ -293,14 +296,12 @@ class ClusterHostApi(remote.Service):
       api_messages.HostNoteCollection,
       path="{hostname}/notes:batchGet",
       http_method="GET",
-      name="batchGetNotes"
-      )
+      name="batchGetNotes")
   def BatchGetNotes(self, request):
     """Batch get notes of a host.
 
     Args:
       request: an API request.
-
     Request Params:
       hostname: string, the name of a lab host.
       ids: a list of strings, the ids of notes to batch get.
@@ -308,17 +309,18 @@ class ClusterHostApi(remote.Service):
     Returns:
       an api_messages.HostNoteCollection object.
     """
-    keys = [ndb.Key(datastore_entities.HostNote, entity_id)
-            for entity_id in request.ids]
+    keys = [
+        ndb.Key(datastore_entities.HostNote, entity_id)
+        for entity_id in request.ids
+    ]
     note_entities = ndb.get_multi(keys)
-    note_msgs = [datastore_entities.ToMessage(entity)
-                 for entity in note_entities
-                 if entity and entity.hostname == request.hostname]
+    note_msgs = [
+        datastore_entities.ToMessage(entity)
+        for entity in note_entities
+        if entity and entity.hostname == request.hostname
+    ]
     return api_messages.HostNoteCollection(
-        host_notes=note_msgs,
-        more=False,
-        next_cursor=None,
-        prev_cursor=None)
+        host_notes=note_msgs, more=False, next_cursor=None, prev_cursor=None)
 
   NOTES_LIST_RESOURCE = endpoints.ResourceContainer(
       hostname=messages.StringField(1, required=True),
@@ -367,13 +369,13 @@ class ClusterHostApi(remote.Service):
       message_types.VoidMessage,
       path="assign",
       http_method="POST",
-      name="assign"
-      )
+      name="assign")
   def Assign(self, request):
     """Mark the hosts as recover.
 
     Args:
       request: request with a list of hostnames and an assignee.
+
     Returns:
       message_types.VoidMessage
     """
@@ -388,13 +390,13 @@ class ClusterHostApi(remote.Service):
       message_types.VoidMessage,
       path="unassign",
       http_method="POST",
-      name="unassign"
-      )
+      name="unassign")
   def Unassign(self, request):
     """Mark the hosts as recover.
 
     Args:
       request: request with a list of hostnames.
+
     Returns:
       message_types.VoidMessage
     """
@@ -402,21 +404,20 @@ class ClusterHostApi(remote.Service):
     return message_types.VoidMessage()
 
   HOSTNAME_RESOURCE = endpoints.ResourceContainer(
-      hostname=messages.StringField(1, required=True),
-  )
+      hostname=messages.StringField(1, required=True),)
 
   @endpoints.method(
       HOSTNAME_RESOURCE,
       api_messages.HostInfo,
       path="{hostname}/remove",
       http_method="POST",
-      name="remove"
-      )
+      name="remove")
   def Remove(self, request):
     """Remove this host.
 
     Args:
       request: an API request.
+
     Returns:
       an updated HostInfo
     Raises:
@@ -424,8 +425,8 @@ class ClusterHostApi(remote.Service):
     """
     host = device_manager.HideHost(request.hostname)
     if not host:
-      raise endpoints.NotFoundException(
-          "Host %s does not exist." % request.hostname)
+      raise endpoints.NotFoundException("Host %s does not exist." %
+                                        request.hostname)
     return datastore_entities.ToMessage(host)
 
   @endpoints.method(
@@ -433,13 +434,13 @@ class ClusterHostApi(remote.Service):
       api_messages.HostInfo,
       path="{hostname}/restore",
       http_method="POST",
-      name="restore"
-      )
+      name="restore")
   def Restore(self, request):
     """Restore this host.
 
     Args:
       request: an API request.
+
     Returns:
       an updated HostInfo
     Raises:
@@ -447,8 +448,8 @@ class ClusterHostApi(remote.Service):
     """
     host = device_manager.RestoreHost(request.hostname)
     if not host:
-      raise endpoints.NotFoundException(
-          "Host %s does not exist." % request.hostname)
+      raise endpoints.NotFoundException("Host %s does not exist." %
+                                        request.hostname)
     return datastore_entities.ToMessage(host)
 
   HISTORIES_LIST_RESOURCE = endpoints.ResourceContainer(
@@ -474,8 +475,8 @@ class ClusterHostApi(remote.Service):
       an api_messages.HostInfoHistoryCollection object.
     """
     query = (
-        datastore_entities.HostInfoHistory
-        .query(ancestor=ndb.Key(datastore_entities.HostInfo, request.hostname))
+        datastore_entities.HostInfoHistory.query(
+            ancestor=ndb.Key(datastore_entities.HostInfo, request.hostname))
         .order(-datastore_entities.HostInfoHistory.timestamp))
     histories, prev_cursor, next_cursor = datastore_util.FetchPage(
         query, request.count, request.cursor, backwards=request.backwards)

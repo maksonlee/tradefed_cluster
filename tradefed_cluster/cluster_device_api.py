@@ -295,7 +295,8 @@ class ClusterDeviceApi(remote.Service):
         hostname=device.hostname,
         lab_name=device.lab_name,
         run_target=device.run_target)
-    note_manager.PublishDeviceNoteEventMessage(device_note_event_msg)
+    note_manager.PublishMessage(device_note_event_msg,
+                                common.PublishEventType.DEVICE_NOTE_EVENT)
 
     note_key = keys[0]
     if request.id != note_key.id():

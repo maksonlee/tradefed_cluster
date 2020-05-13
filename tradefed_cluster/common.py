@@ -193,3 +193,9 @@ class PredefinedMessageType(messages.Enum):
 def Now():
   """Returns the current time in UTC."""
   return datetime.datetime.utcnow()
+
+
+class PublishEventType(messages.Enum):
+  """Event types for publishing message to pubsub."""
+  DEVICE_NOTE_EVENT = 0
+  HOST_NOTE_EVENT = 1

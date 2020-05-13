@@ -703,6 +703,13 @@ class HostNote(messages.Message):
   message = messages.StringField(7)
 
 
+class HostNoteEvent(messages.Message):
+  """Host note event message."""
+  host_note = messages.MessageField(HostNote, 1, required=True)
+  lab_name = messages.StringField(2)
+  publish_timestamp = message_types.DateTimeField(3, required=True)
+
+
 class HostNoteCollection(messages.Message):
   """A class representing a collection of host notes."""
   host_notes = messages.MessageField(HostNote, 1, repeated=True)

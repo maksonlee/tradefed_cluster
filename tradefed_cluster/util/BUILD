@@ -86,7 +86,8 @@ py_appengine_library(
     ],
     srcs_version = "PY2AND3",
     deps = [
-        third_party("googleapiclient"),
+        # TODO: switch from oauth2client to google.auth
+        third_party("googleapiclient:googleapiclient_with_oauth2client"),
     ],
 )
 

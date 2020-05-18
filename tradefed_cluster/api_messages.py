@@ -394,6 +394,7 @@ class DeviceTypeMessage(messages.Enum):
   PHYSICAL = 3
   GCE = 4
   REMOTE = 5
+  LOCAL_VIRTUAL = 6
 
 
 class DeviceInfo(messages.Message):

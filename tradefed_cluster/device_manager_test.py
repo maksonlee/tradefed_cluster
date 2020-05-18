@@ -715,6 +715,14 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     result = device_manager._TransformDeviceSerial(hostname, serial)
     self.assertEqual(expected, result)
 
+  def testTransformDeviceSerial_localVirtualDevice(self):
+    """Tests TransformDeviceSerial for local virtual device serials."""
+    hostname = "test.mtv.corp"
+    serial = "local-virtual-device-0"
+    expected = "%s:%s" % (hostname, serial)
+    result = device_manager._TransformDeviceSerial(hostname, serial)
+    self.assertEqual(expected, result)
+
   def testTransformDeviceSerial_emptySerial(self):
     """Tests TransformDeviceSerial for empty device serials."""
     hostname = "test.mtv.corp"
@@ -996,6 +1004,9 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(
         api_messages.DeviceTypeMessage.REMOTE,
         device_manager._GetDeviceType("remote-device-0"))
+    self.assertEqual(
+        api_messages.DeviceTypeMessage.LOCAL_VIRTUAL,
+        device_manager._GetDeviceType("local-virtual-device-0"))
 
   def testUpdateHostWithDeviceSnapshotEvent_newHost(self):
     # Test  _UpdateHostWithDeviceSnapshotEvent for a new host

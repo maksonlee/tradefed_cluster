@@ -37,6 +37,7 @@ EMULATOR_DEVICE_PREFIX = "emulator"
 NULL_DEVICE_PREFIX = "null-device"
 GCE_DEVICE_PREFIX = "gce-device"
 REMOTE_DEVICE_PREFIX = "remote-device"
+LOCAL_VIRTUAL_DEVICE_PREFIX = "local-virtual-device"
 
 LOCALHOST_IP = "127.0.0.1"
 
@@ -47,7 +48,8 @@ NON_PHYSICAL_DEVICES_PREFIXES = (
     EMULATOR_DEVICE_PREFIX,
     NULL_DEVICE_PREFIX,
     GCE_DEVICE_PREFIX,
-    REMOTE_DEVICE_PREFIX)
+    REMOTE_DEVICE_PREFIX,
+    LOCAL_VIRTUAL_DEVICE_PREFIX)
 
 DEVICE_SERIAL_KEY = "device_serial"
 RUN_TARGET_KEY = "run_target"
@@ -289,6 +291,9 @@ def _GetDeviceType(serial):
 
   if serial.startswith(REMOTE_DEVICE_PREFIX):
     return api_messages.DeviceTypeMessage.REMOTE
+
+  if serial.startswith(LOCAL_VIRTUAL_DEVICE_PREFIX):
+    return api_messages.DeviceTypeMessage.LOCAL_VIRTUAL
 
   return api_messages.DeviceTypeMessage.PHYSICAL
 

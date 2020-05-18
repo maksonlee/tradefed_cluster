@@ -22,7 +22,6 @@ import hamcrest
 import mock
 import webtest
 
-from google.appengine.api import taskqueue
 from google.appengine.ext import ndb
 
 from tradefed_cluster import command_manager
@@ -31,6 +30,7 @@ from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import env_config  from tradefed_cluster import request_manager
 from tradefed_cluster import testbed_dependent_test
+from tradefed_cluster.services import task_scheduler
 
 
 class CommandMonitorTest(testbed_dependent_test.TestbedDependentTest):
@@ -208,8 +208,8 @@ class CommandMonitorTest(testbed_dependent_test.TestbedDependentTest):
     sync.assert_called_once_with(command_1)
 
   @mock.patch.object(command_monitor, 'Now')
-  @mock.patch.object(taskqueue, 'add')
-  def testAddToSyncQueue(self, mock_taskqueue_add, mock_now):
+  @mock.patch.object(task_scheduler, 'add_task')
+  def testAddToSyncQueue(self, mock_add, mock_now):
     # Create a command that was created 5 minutes ago.
     datastore_entities.Command.update_time._auto_now = False
     now = datetime.datetime.utcnow()
@@ -235,14 +235,14 @@ class CommandMonitorTest(testbed_dependent_test.TestbedDependentTest):
         command_manager.COMMAND_ID_KEY: command_id,
         command_manager.REQUEST_ID_KEY: request_id,
     })
-    mock_taskqueue_add.assert_called_once_with(
+    mock_add.assert_called_once_with(
         queue_name=command_monitor.COMMAND_SYNC_QUEUE,
         payload=payload,
         eta=now + datetime.timedelta(
             minutes=command_monitor.MAX_COMMAND_EVENT_DELAY_MIN))
 
-  @mock.patch.object(taskqueue, 'add')
-  def testAddToSyncQueue_CancelDeadline(self, mock_taskqueue_add):
+  @mock.patch.object(task_scheduler, 'add_task')
+  def testAddToSyncQueue_CancelDeadline(self, mock_add):
     # Create a command that needs to be cancelled in 1 minute.
     datastore_entities.Command.update_time._auto_now = False
     now = datetime.datetime.utcnow()
@@ -267,13 +267,13 @@ class CommandMonitorTest(testbed_dependent_test.TestbedDependentTest):
         command_manager.COMMAND_ID_KEY: command_id,
         command_manager.REQUEST_ID_KEY: request_id,
     })
-    mock_taskqueue_add.assert_called_once_with(
+    mock_add.assert_called_once_with(
         queue_name=command_monitor.COMMAND_SYNC_QUEUE,
         payload=payload,
         eta=now + datetime.timedelta(minutes=1))
 
-  @mock.patch.object(taskqueue, 'add')
-  def testAddToSyncQueue_CustomCancelDeadline(self, mock_taskqueue_add):
+  @mock.patch.object(task_scheduler, 'add_task')
+  def testAddToSyncQueue_CustomCancelDeadline(self, mock_add):
     # Create a command with a custom 10 hour command timeout that needs to be
     # cancelled in 1 minute.
     datastore_entities.Command.update_time._auto_now = False
@@ -300,14 +300,14 @@ class CommandMonitorTest(testbed_dependent_test.TestbedDependentTest):
         command_manager.COMMAND_ID_KEY: command_id,
         command_manager.REQUEST_ID_KEY: request_id,
     })
-    mock_taskqueue_add.assert_called_once_with(
+    mock_add.assert_called_once_with(
         queue_name=command_monitor.COMMAND_SYNC_QUEUE,
         payload=payload,
         eta=now + datetime.timedelta(minutes=1))
 
   @mock.patch.object(command_monitor, 'Now')
-  @mock.patch.object(taskqueue, 'add')
-  def testAddToSyncQueue_RunningCommand(self, mock_taskqueue_add, mock_now):
+  @mock.patch.object(task_scheduler, 'add_task')
+  def testAddToSyncQueue_RunningCommand(self, mock_add, mock_now):
     # Create a command that has been running for 3 hours.
     datastore_entities.Command.update_time._auto_now = False
     now = datetime.datetime.utcnow()
@@ -333,7 +333,7 @@ class CommandMonitorTest(testbed_dependent_test.TestbedDependentTest):
         command_manager.COMMAND_ID_KEY: command_id,
         command_manager.REQUEST_ID_KEY: request_id,
     })
-    mock_taskqueue_add.assert_called_once_with(
+    mock_add.assert_called_once_with(
         queue_name=command_monitor.COMMAND_SYNC_QUEUE,
         payload=payload,
         eta=now + datetime.timedelta(

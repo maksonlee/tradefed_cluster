@@ -21,7 +21,6 @@ import zlib
 
 from protorpc import protojson
 
-from google.appengine.api import taskqueue
 from google.appengine.ext import ndb
 
 from tradefed_cluster import api_messages
@@ -32,6 +31,7 @@ from tradefed_cluster import env_config
 from tradefed_cluster import metric
 from tradefed_cluster import request_manager
 from tradefed_cluster.plugins import base as plugin_base
+from tradefed_cluster.services import task_scheduler
 
 # Maximum number of tasks created for a single command with a run_count > 1
 
@@ -448,7 +448,7 @@ def AddToSyncCommandAttemptQueue(attempt):
       ATTEMPT_ID_KEY: attempt_id,
   })
   update_time = attempt.update_time or common.Now()
-  taskqueue.add(
+  task_scheduler.add_task(
       queue_name=COMMAND_ATTEMPT_SYNC_QUEUE,
       payload=payload,
       eta=update_time + datetime.timedelta(minutes=MAX_COMMAND_EVENT_DELAY_MIN))
@@ -562,7 +562,8 @@ def _NotifyAttemptState(attempt_entity, old_state, event_time):
       new_state=attempt_entity.state,
       event_time=event_time)
   payload = zlib.compress(protojson.encode_message(message))
-  taskqueue.add(queue_name=common.OBJECT_EVENT_QUEUE, payload=payload)
+  task_scheduler.add_task(
+      queue_name=common.OBJECT_EVENT_QUEUE, payload=payload)
 
 
 def ProcessCommandEvent(event):

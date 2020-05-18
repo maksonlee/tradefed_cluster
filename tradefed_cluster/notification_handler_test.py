@@ -21,13 +21,12 @@ import zlib
 from googleapiclient import errors
 import mock
 
-from google.appengine.api import taskqueue
-
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import notification_handler
 from tradefed_cluster import request_manager
 from tradefed_cluster import testbed_dependent_test
+from tradefed_cluster.services import task_scheduler
 
 
 class NotificationHandlerTest(testbed_dependent_test.TestbedDependentTest):
@@ -111,7 +110,7 @@ class NotificationHandlerTest(testbed_dependent_test.TestbedDependentTest):
     r = request_manager.GetRequest("1")
     self.assertFalse(r.notify_state_change)
 
-  @mock.patch.object(taskqueue, "add")
+  @mock.patch.object(task_scheduler, "add_task")
   def testNotifyDirtyRequest_Error(self, add):
     request = datastore_entities.Request(
         id="1",

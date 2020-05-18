@@ -19,12 +19,11 @@ import logging
 
 import webapp2
 
-from google.appengine.api import taskqueue
-
 from tradefed_cluster import command_manager
 from tradefed_cluster import common
 from tradefed_cluster import metric
 from tradefed_cluster import request_manager
+from tradefed_cluster.services import task_scheduler
 
 COMMAND_SYNC_QUEUE = 'command-sync-queue'
 
@@ -71,7 +70,7 @@ def AddToSyncQueue(command):
       request_id,
       command_id,
       next_sync)
-  taskqueue.add(
+  task_scheduler.add_task(
       queue_name=COMMAND_SYNC_QUEUE,
       payload=payload,
       eta=next_sync)

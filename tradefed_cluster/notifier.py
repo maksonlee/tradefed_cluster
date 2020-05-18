@@ -22,10 +22,9 @@ import zlib
 import lazy_object_proxy
 import webapp2
 
-from google.appengine.api import taskqueue
-
 from tradefed_cluster import common
 from tradefed_cluster import env_config
+from tradefed_cluster.services import task_scheduler
 from tradefed_cluster.util import pubsub_client
 
 
@@ -64,7 +63,7 @@ def _SendEventMessage(encoded_message, pubsub_topic):
     data = base64.urlsafe_b64encode(encoded_message)
     _PubsubClient.PublishMessages(pubsub_topic, [{'data': data}])
   elif queue:
-    taskqueue.add(queue_name=queue, payload=encoded_message)
+    task_scheduler.add_task(queue_name=queue, payload=encoded_message)
   else:
     logging.warn(
         'Unabled to notify events: use_google_api=False and queue is null')

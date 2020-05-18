@@ -18,7 +18,6 @@ import datetime
 import json
 import logging
 
-from google.appengine.api import taskqueue
 from google.appengine.ext import ndb
 
 from tradefed_cluster import api_messages
@@ -26,6 +25,7 @@ from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import env_config
 from tradefed_cluster import metric
+from tradefed_cluster.services import task_scheduler
 
 TF_TEST_RUNNER = "tradefed"
 MAX_DEVICE_HISTORY_SIZE = 100
@@ -618,7 +618,7 @@ def StartHostSync(hostname, current_taskname=None):
   payload = json.dumps({
       HOSTNAME_KEY: hostname,
   })
-  task = taskqueue.add(
+  task = task_scheduler.add_task(
       queue_name=HOST_SYNC_QUEUE,
       payload=payload,
       eta=_Now() + HOST_SYNC_INTERVAL)

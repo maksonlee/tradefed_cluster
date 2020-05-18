@@ -21,13 +21,11 @@ import logging
 import zlib
 import webapp2
 
-from google.appengine.api import taskqueue
-
 from tradefed_cluster import command_event
 from tradefed_cluster import command_manager
 from tradefed_cluster import common
 from tradefed_cluster import metric
-
+from tradefed_cluster.services import task_scheduler
 
 COMMAND_EVENT_QUEUE = "command-event-queue"
 COMMAND_EVENT_HANDLER_PATH = "/_ah/queue/%s" % COMMAND_EVENT_QUEUE
@@ -76,7 +74,7 @@ def EnqueueCommandEvents(events):
   # Sort by task_ids to make it easy to test.
   for key in sorted(event_map.keys()):
     payload = zlib.compress(json.dumps(event_map[key]))
-    taskqueue.add(queue_name=COMMAND_EVENT_QUEUE, payload=payload)
+    task_scheduler.add_task(queue_name=COMMAND_EVENT_QUEUE, payload=payload)
 
 
 def LogCommandEventMetrics(command, event):

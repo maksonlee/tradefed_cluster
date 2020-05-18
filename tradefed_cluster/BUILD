@@ -801,6 +801,7 @@ py_appengine_library(
         ":datastore_entities_lib",
         ":host_event_lib",
         ":metric_lib",
+        "//tradefed_cluster/services:task_scheduler_lib",
     ],
 )
 
@@ -833,6 +834,7 @@ py_appengine_library(
         ":device_manager_lib",
         ":metric_lib",
         third_party("lazy_object_proxy"),
+        "//tradefed_cluster/services:task_scheduler_lib",
         "//tradefed_cluster/util:pubsub_client_lib",
     ],
 )
@@ -1160,6 +1162,7 @@ py_appengine_library(
         ":common_lib",
         ":datastore_entities_lib",
         ":env_config_lib",
+        "//tradefed_cluster/services:task_scheduler_lib",
         "//tradefed_cluster/util:command_util",
     ],
 )

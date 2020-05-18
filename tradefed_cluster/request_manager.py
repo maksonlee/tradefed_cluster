@@ -21,7 +21,6 @@ import zlib
 
 from protorpc import protojson
 
-from google.appengine.api import taskqueue
 from google.appengine.ext import ndb
 
 from tradefed_cluster import api_messages
@@ -29,6 +28,7 @@ from tradefed_cluster import command_error_type_config
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import env_config
+from tradefed_cluster.services import task_scheduler
 from tradefed_cluster.util import command_util
 
 REQUEST_QUEUE = "test-request-queue"
@@ -206,7 +206,7 @@ def NotifyRequestState(request_id, force=False):
 def SendRequestStateNotification(request_id, message):
   request = GetRequest(request_id)
   payload = zlib.compress(protojson.encode_message(message))
-  taskqueue.add(
+  task_scheduler.add_task(
       queue_name=common.OBJECT_EVENT_QUEUE, payload=payload, transactional=True)
   request.notify_state_change = False
   request.put()
@@ -503,7 +503,6 @@ def AddToQueue(request):
   Args:
     request: request entity, read only
   """
-  queue = taskqueue.Queue(REQUEST_QUEUE)
   task_name = str(request.key.id())
   payload = json.dumps({
       "id": request.key.id(),
@@ -513,8 +512,8 @@ def AddToQueue(request):
       "queue_timeout_seconds": request.queue_timeout_seconds
   })
   compressed_payload = zlib.compress(payload)
-  task = taskqueue.Task(name=task_name, payload=compressed_payload)
-  queue.add(task)
+  task_scheduler.add_task(
+      queue_name=REQUEST_QUEUE, name=task_name, payload=compressed_payload)
 
 
 def DeleteFromQueue(request_id):
@@ -523,10 +522,9 @@ def DeleteFromQueue(request_id):
   Args:
     request_id: request id, str
   """
-  queue = taskqueue.Queue(REQUEST_QUEUE)
   try:
-    queue.delete_tasks_by_name(request_id)
-  except taskqueue.Error:
+    task_scheduler.delete_task(REQUEST_QUEUE, request_id)
+  except task_scheduler.Error:
     logging.warning(
         "Failed to delete request %s from the queue.",
         request_id,

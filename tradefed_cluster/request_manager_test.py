@@ -24,7 +24,6 @@ import zlib
 import mock
 from protorpc import protojson
 
-from google.appengine.api import taskqueue
 from google.appengine.ext import ndb
 
 from tradefed_cluster import api_messages
@@ -32,6 +31,7 @@ from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import request_manager
 from tradefed_cluster import testbed_dependent_test
+from tradefed_cluster.services import task_scheduler
 
 
 REQUEST_ID = "1001"
@@ -76,23 +76,17 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual("command line", request_task["command_line"])
     self.assertEqual("user", request_task["user"])
 
-  @mock.patch.object(taskqueue, "Queue")
-  def testDeleteFromQueue(self, new_queue):
-    mock_queue = mock.MagicMock()
-    new_queue.return_value = mock_queue
-
+  @mock.patch.object(task_scheduler, "delete_task")
+  def testDeleteFromQueue(self, mock_delete):
     request_manager.DeleteFromQueue(REQUEST_ID)
 
-    mock_queue.assert_has_calls([
-        mock.call.delete_tasks_by_name(REQUEST_ID)
-    ])
+    mock_delete.assert_called_once_with(
+        request_manager.REQUEST_QUEUE, REQUEST_ID)
 
-  @mock.patch.object(taskqueue, "add")
-  @mock.patch.object(taskqueue, "Queue")
+  @mock.patch.object(task_scheduler, "delete_task")
+  @mock.patch.object(task_scheduler, "add_task")
   @mock.patch.object(common, "Now")
-  def testCancelExistRequest(self, now, new_queue, mock_add):
-    mock_queue = mock.MagicMock()
-    new_queue.return_value = mock_queue
+  def testCancelExistRequest(self, now, mock_add, mock_delete):
     now.return_value = self.END_TIME
 
     request_manager.CancelRequest(REQUEST_ID, common.CancelReason.QUEUE_TIMEOUT)
@@ -107,9 +101,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
             protojson.encode_message(
                 request_manager.CreateRequestEventMessage(persisted_request))),
         transactional=True)
-    mock_queue.assert_has_calls([
-        mock.call.delete_tasks_by_name(REQUEST_ID)
-    ])
+    mock_delete.assert_called_once_with(
+        request_manager.REQUEST_QUEUE, REQUEST_ID)
 
   @mock.patch.object(request_manager, "DeleteFromQueue")
   def testCancelNonExistRequest(self, delete_from_queue):
@@ -261,7 +254,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
                   namespace=common.NAMESPACE)
     return key
 
-  @mock.patch.object(taskqueue, "add")
+  @mock.patch.object(task_scheduler, "add_task")
   @mock.patch.object(request_manager, "GetRequestSummary")
   def testUpdateState_atomicTransaction(self, mock_get_summary, mock_add):
     """Tests atomicity of datastore transactions when updating the state."""
@@ -320,7 +313,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     # Thread1 first transcation failed, and the second attempt succeeded.
     self.assertEqual(2, counts["thread1"])
 
-  @mock.patch.object(taskqueue, "add")
+  @mock.patch.object(task_scheduler, "add_task")
   def testEvaluateState_noCommands(self, mock_add):
     """Tests request_manager.EvaluateState() when there are no commands."""
     request = request_manager.CreateRequest(
@@ -336,7 +329,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     # No state change. Should not notify.
     self.assertFalse(mock_add.called)
 
-  @mock.patch.object(taskqueue, "add")
+  @mock.patch.object(task_scheduler, "add_task")
   @mock.patch.object(common, "Now")
   def testEvaluateState_singleCommandCompletion(self, now, mock_add):
     """Tests updating a request with a single command up to completion."""
@@ -404,7 +397,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
                 request_manager.CreateRequestEventMessage(request))),
         transactional=True)
 
-  @mock.patch.object(taskqueue, "add")
+  @mock.patch.object(task_scheduler, "add_task")
   @mock.patch.object(common, "Now")
   def testEvaluateState_multiCommandCompletion(self, now, mock_add):
     """Tests updating a request with multiple commands up to completion."""
@@ -512,7 +505,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
                 request_manager.CreateRequestEventMessage(request))),
         transactional=True)
 
-  @mock.patch.object(taskqueue, "add")
+  @mock.patch.object(task_scheduler, "add_task")
   @mock.patch.object(common, "Now")
   def testEvaluateState_withCompleteCommand(self, now, mock_add):
     """Tests Request.UpdateState() when all commands are complete."""
@@ -542,7 +535,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
                 request_manager.CreateRequestEventMessage(request))),
         transactional=True)
 
-  @mock.patch.object(taskqueue, "add")
+  @mock.patch.object(task_scheduler, "add_task")
   def testEvaluateState_withCompleteCommand_notifyError(self, mock_add):
     """Tests request_manager.EvaluateState() when it gets a notify error."""
     request = request_manager.CreateRequest(
@@ -569,7 +562,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     # Since we failed to notify in the first place, we still need to notify.
     self.assertTrue(request.notify_state_change)
 
-  @mock.patch.object(taskqueue, "add")
+  @mock.patch.object(task_scheduler, "add_task")
   @mock.patch.object(common, "Now")
   def testEvaluateState_withErrorCommand(self, now, mock_add):
     """Tests EvaluateState() when a command is in error state."""
@@ -611,7 +604,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
                 request_manager.CreateRequestEventMessage(request))),
         transactional=True)
 
-  @mock.patch.object(taskqueue, "add")
+  @mock.patch.object(task_scheduler, "add_task")
   @mock.patch.object(common, "Now")
   def testEvaluteState_withCanceledCommand(self, now, mock_add):
     """Tests EvaluateState() when a command is in canceled state."""
@@ -656,7 +649,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
                 request_manager.CreateRequestEventMessage(request))),
         transactional=True)
 
-  @mock.patch.object(taskqueue, "add")
+  @mock.patch.object(task_scheduler, "add_task")
   @mock.patch.object(common, "Now")
   def testEvaluateState_cancelCompletedCommand(self, now, mock_add):
     """Tests EvaluateState() when cancelling a completed command."""
@@ -698,7 +691,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.CancelReason.QUEUE_TIMEOUT, request.cancel_reason)
     self.assertFalse(mock_add.called)
 
-  @mock.patch.object(taskqueue, "add")
+  @mock.patch.object(task_scheduler, "add_task")
   @mock.patch.object(common, "Now")
   def testEvaluateState_completeCancelledCommand(self, now, mock_add):
     """Tests EvaluateState() when updating a cancelled command."""

@@ -9,6 +9,7 @@ py_appengine_library(
     srcs = [
         "task_scheduler.py",
     ],
+    srcs_version = "PY2AND3",
 )
 
 py_appengine_test(

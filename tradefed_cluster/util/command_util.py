@@ -24,7 +24,7 @@ import pipes
 import re
 import shlex
 
-import bunch
+import munch
 import six
 
 
@@ -104,7 +104,7 @@ class CommandLine(list):
     Returns:
       A new command with the expanded context variables
     """
-    context_obj = bunch.Bunch.fromDict(context)
+    context_obj = munch.Munch.fromDict(context)
     old_options = self.GetOptionsDicts()
     new_options = []
     for option in old_options:

@@ -18,7 +18,7 @@ py_library(
     ],
     srcs_version = "PY2AND3",
     deps = [
-        third_party("bunch"),
+        third_party("munch"),
         third_party("six"),
     ],
 )

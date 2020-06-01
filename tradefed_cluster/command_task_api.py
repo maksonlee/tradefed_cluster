@@ -51,6 +51,8 @@ class CommandTask(messages.Message):
   extra_options = messages.MessageField(
       api_messages.KeyMultiValuePair, 10, repeated=True)
   attempt_id = messages.StringField(11)
+  run_index = messages.IntegerField(12)
+  attempt_index = messages.IntegerField(13)
 
 
 class CommandTaskList(messages.Message):

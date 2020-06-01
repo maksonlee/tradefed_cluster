@@ -30,6 +30,7 @@ from tradefed_cluster import datastore_util
 from tradefed_cluster import device_manager
 from tradefed_cluster import note_manager
 
+
 _DEFAULT_LIST_NOTES_COUNT = 10
 _DEFAULT_LIST_HOST_COUNT = 100
 _DEFAULT_LIST_HISTORIES_COUNT = 100
@@ -245,27 +246,29 @@ class ClusterHostApi(remote.Service):
         user=request.user, message=request.message, timestamp=time_now)
     entities_to_update = [host_note_entity]
 
-    if request.offline_reason_id or request.offline_reason:
-      offline_reason_entity = datastore_util.GetOrCreateEntity(
-          datastore_entities.PredefinedMessage,
-          entity_id=request.offline_reason_id,
-          type=common.PredefinedMessageType.HOST_OFFLINE_REASON,
-          content=request.offline_reason,
+    try:
+      offline_reason_entity = note_manager.PreparePredefinedMessageForNote(
+          common.PredefinedMessageType.HOST_OFFLINE_REASON,
+          message_id=request.offline_reason_id,
           lab_name=request.lab_name,
-          create_timestamp=time_now)
-      offline_reason_entity.used_count += 1
+          content=request.offline_reason)
+    except note_manager.InvalidParameterError:
+      raise endpoints.BadRequestException(
+          "Invalid offline_reason_id: %s" % request.offline_reason_id)
+    if offline_reason_entity:
       host_note_entity.note.offline_reason = offline_reason_entity.content
       entities_to_update.append(offline_reason_entity)
 
-    if request.recovery_action_id or request.recovery_action:
-      recovery_action_entity = datastore_util.GetOrCreateEntity(
-          datastore_entities.PredefinedMessage,
-          entity_id=request.recovery_action_id,
-          type=common.PredefinedMessageType.HOST_RECOVERY_ACTION,
-          content=request.recovery_action,
+    try:
+      recovery_action_entity = note_manager.PreparePredefinedMessageForNote(
+          common.PredefinedMessageType.HOST_RECOVERY_ACTION,
+          message_id=request.recovery_action_id,
           lab_name=request.lab_name,
-          create_timestamp=time_now)
-      recovery_action_entity.used_count += 1
+          content=request.recovery_action)
+    except note_manager.InvalidParameterError:
+      raise endpoints.BadRequestException(
+          "Invalid recovery_action_id: %s" % request.recovery_action_id)
+    if recovery_action_entity:
       host_note_entity.note.recovery_action = recovery_action_entity.content
       entities_to_update.append(recovery_action_entity)
 

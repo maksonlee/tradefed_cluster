@@ -96,6 +96,68 @@ class NoteManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(lab_name, message.lab_name)
     self.assertEqual(content, message.content)
 
+  def testPreparePredefinedMessageForNote_withValidId(self):
+    message_id = 111
+    lab_name = "alab"
+    content = "content1"
+    datastore_entities.PredefinedMessage(
+        key=ndb.Key(datastore_entities.PredefinedMessage, message_id),
+        lab_name=lab_name,
+        type=api_messages.PredefinedMessageType.DEVICE_OFFLINE_REASON,
+        content=content,
+        used_count=2).put()
+
+    message = note_manager.PreparePredefinedMessageForNote(
+        api_messages.PredefinedMessageType.DEVICE_OFFLINE_REASON,
+        message_id=message_id)
+
+    self.assertEqual(message_id, message.key.id())
+    self.assertEqual(lab_name, message.lab_name)
+    self.assertEqual(content, message.content)
+    self.assertEqual(3, message.used_count)  # the used_count increases
+
+  def testPreparePredefinedMessageForNote_withInvalidId(self):
+    invalid_message_id = 111
+    with self.assertRaises(note_manager.InvalidParameterError):
+      note_manager.PreparePredefinedMessageForNote(
+          api_messages.PredefinedMessageType.DEVICE_OFFLINE_REASON,
+          message_id=invalid_message_id)
+
+  def testPreparePredefinedMessageForNote_withExistingContent(self):
+    message_id = 111
+    lab_name = "alab"
+    content = "content1"
+    datastore_entities.PredefinedMessage(
+        key=ndb.Key(datastore_entities.PredefinedMessage, message_id),
+        lab_name=lab_name,
+        type=api_messages.PredefinedMessageType.DEVICE_OFFLINE_REASON,
+        content=content,
+        used_count=2).put()
+
+    message = note_manager.PreparePredefinedMessageForNote(
+        api_messages.PredefinedMessageType.DEVICE_OFFLINE_REASON,
+        lab_name=lab_name,
+        content=content)
+
+    self.assertEqual(message_id, message.key.id())
+    self.assertEqual(lab_name, message.lab_name)
+    self.assertEqual(content, message.content)
+    self.assertEqual(3, message.used_count)  # the used_count increases
+
+  def testPreparePredefinedMessageForNote_withNewContent(self):
+    lab_name = "alab"
+    content = "content1"
+
+    message = note_manager.PreparePredefinedMessageForNote(
+        api_messages.PredefinedMessageType.DEVICE_OFFLINE_REASON,
+        lab_name=lab_name,
+        content=content)
+
+    self.assertIsNone(message.key)  # new entity without a key yet
+    self.assertEqual(lab_name, message.lab_name)
+    self.assertEqual(content, message.content)
+    self.assertEqual(1, message.used_count)
+
   @mock.patch.object(note_manager, "_Now")
   @mock.patch.object(note_manager, "_PubsubClient")
   def testPublishMessage(self, mock_pubsub_client, mock_now):

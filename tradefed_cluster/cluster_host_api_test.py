@@ -420,10 +420,57 @@ class ClusterHostApiTest(api_test.ApiTest):
             datastore_entities.HostInfoHistory.hostname ==
             self.ndb_host_0.hostname).fetch())
     self.assertEqual(1, len(histories))
-    self.assertEqual(
-        int(host_note_1.id), histories[0].extra_info['host_note_id'])
+    self.assertEqual(int(host_note_1.id),
+                     histories[0].extra_info['host_note_id'])
     mock_publish_host_note_message.assert_called_with(
         host_note_event, common.PublishEventType.HOST_NOTE_EVENT)
+
+  @mock.patch.object(note_manager, 'PublishMessage')
+  def testAddOrUpdateHostNote_UpdateWithDedupTextPredefinedMessage(
+      self, mock_publish_host_note_message):
+    """Tests updating an existing host note."""
+    api_request_1 = {
+        'hostname': self.ndb_host_0.hostname,
+        'user': 'user-1',
+        'message': 'message-1',
+        'offline_reason': 'offline-reason-1',
+        'recovery_action': 'recovery-action-1',
+        'lab_name': 'lab-name-1',
+    }
+    api_response_1 = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.AddOrUpdateNote', api_request_1)
+    self.assertEqual('200 OK', api_response_1.status)
+    host_note_1 = protojson.decode_message(api_messages.HostNote,
+                                           api_response_1.body)
+    api_request_2 = {
+        'id': int(host_note_1.id),
+        'hostname': self.ndb_host_0.hostname,
+        'user': 'user-2',
+        'message': 'message-2',
+        'offline_reason': 'offline-reason-1',
+        'recovery_action': 'recovery-action-1',
+        'lab_name': 'lab-name-1',
+    }
+    api_response_2 = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.AddOrUpdateNote', api_request_2)
+    self.assertEqual('200 OK', api_response_1.status)
+    host_note_2 = protojson.decode_message(api_messages.HostNote,
+                                           api_response_2.body)
+    # Assert two requests modified the same datastore entity.
+    self.assertEqual(host_note_1.id, host_note_2.id)
+    # Assert the fields finally equal to the ones in the 2nd request.
+    self.assertEqual(api_request_2['hostname'],
+                     host_note_2.hostname)
+    self.assertEqual(api_request_2['user'], host_note_2.user)
+    self.assertEqual(api_request_2['message'], host_note_2.message)
+    self.assertEqual(api_request_2['offline_reason'],
+                     host_note_2.offline_reason)
+    self.assertEqual(api_request_2['recovery_action'],
+                     host_note_2.recovery_action)
+    # Side Effect: Assert PredefinedMessage is created only in first call.
+    predefine_messages = list(datastore_entities.PredefinedMessage.query(
+        datastore_entities.PredefinedMessage.lab_name == 'lab-name-1').fetch())
+    self.assertEqual(2, len(predefine_messages))
 
   @mock.patch.object(note_manager, 'PublishMessage')
   def testAddOrUpdateHostNote_addWithIdOfflineReasonAndRecoveryAction(
@@ -483,6 +530,56 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual(int(host_note.id), histories[0].extra_info['host_note_id'])
     mock_publish_host_note_message.assert_called_once_with(
         host_note_event, common.PublishEventType.HOST_NOTE_EVENT)
+
+  @mock.patch.object(note_manager, 'PublishMessage')
+  def testAddOrUpdateHostNote_InvalidIdOfflineReasonAndRecoveryAction(
+      self, mock_publish_host_note_message):
+    """Tests adding a Host note with existing predefined messages."""
+    offline_reason = 'offline-reason'
+    recovery_action = 'recovery-action'
+    lab_name = 'lab-name'
+    predefined_message_entities = [
+        datastore_entities.PredefinedMessage(
+            key=ndb.Key(datastore_entities.PredefinedMessage, 111),
+            lab_name=lab_name,
+            type=api_messages.PredefinedMessageType.HOST_OFFLINE_REASON,
+            content=offline_reason,
+            used_count=2),
+        datastore_entities.PredefinedMessage(
+            key=ndb.Key(datastore_entities.PredefinedMessage, 222),
+            lab_name=lab_name,
+            type=api_messages.PredefinedMessageType.HOST_RECOVERY_ACTION,
+            content=recovery_action,
+            used_count=5),
+    ]
+    ndb.put_multi(predefined_message_entities)
+
+    # Invalid recovery action.
+    api_request = {
+        'hostname': self.ndb_host_0.hostname,
+        'user': 'user-1',
+        'message': 'message-1',
+        'recovery_action_id': 111,
+        'lab_name': lab_name,
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.AddOrUpdateNote',
+        api_request,
+        expect_errors=True)
+    self.assertEqual('400 Bad Request', api_response.status)
+    # Non-existing offline reason.
+    api_request = {
+        'hostname': self.ndb_host_0.hostname,
+        'user': 'user-1',
+        'message': 'message-1',
+        'offline_reason_id': 333,
+        'lab_name': lab_name,
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.AddOrUpdateNote',
+        api_request,
+        expect_errors=True)
+    self.assertEqual('400 Bad Request', api_response.status)
 
   def testGetHost(self):
     """Tests GetHost."""

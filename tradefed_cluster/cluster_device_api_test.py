@@ -613,10 +613,59 @@ class ClusterDeviceApiTest(api_test.ApiTest):
             datastore_entities.DeviceInfoHistory.device_serial ==
             self.ndb_device_0.device_serial).fetch())
     self.assertEqual(1, len(histories))
-    self.assertEqual(
-        int(device_note_1.id), histories[0].extra_info['device_note_id'])
+    self.assertEqual(int(device_note_1.id),
+                     histories[0].extra_info['device_note_id'])
     mock_publish_device_note_message.assert_called_with(
         device_note_event_msg, common.PublishEventType.DEVICE_NOTE_EVENT)
+
+  @mock.patch.object(device_manager, 'GetDevice')
+  @mock.patch.object(note_manager, 'PublishMessage')
+  def testAddOrUpdateDeviceNote_UpdateWithDedupTextPredefinedMessage(
+      self, mock_publish_device_note_message, mock_get_device):
+    """Tests updating an existing device note."""
+    mock_get_device.return_value = self.ndb_device_0
+    api_request_1 = {
+        'device_serial': self.ndb_device_0.device_serial,
+        'user': 'user-1',
+        'message': 'message-1',
+        'offline_reason': 'offline-reason-1',
+        'recovery_action': 'recovery-action-1',
+        'lab_name': 'lab-name-1',
+    }
+    api_response_1 = self.testapp.post_json(
+        '/_ah/api/ClusterDeviceApi.AddOrUpdateNote', api_request_1)
+    self.assertEqual('200 OK', api_response_1.status)
+    device_note_1 = protojson.decode_message(api_messages.DeviceNote,
+                                             api_response_1.body)
+    api_request_2 = {
+        'id': int(device_note_1.id),
+        'device_serial': self.ndb_device_0.device_serial,
+        'user': 'user-2',
+        'message': 'message-2',
+        'offline_reason': 'offline-reason-1',
+        'recovery_action': 'recovery-action-1',
+        'lab_name': 'lab-name-1',
+    }
+    api_response_2 = self.testapp.post_json(
+        '/_ah/api/ClusterDeviceApi.AddOrUpdateNote', api_request_2)
+    self.assertEqual('200 OK', api_response_1.status)
+    device_note_2 = protojson.decode_message(api_messages.DeviceNote,
+                                             api_response_2.body)
+    # Assert two requests modified the same datastore entity.
+    self.assertEqual(device_note_1.id, device_note_2.id)
+    # Assert the fields finally equal to the ones in the 2nd request.
+    self.assertEqual(api_request_2['device_serial'],
+                     device_note_2.device_serial)
+    self.assertEqual(api_request_2['user'], device_note_2.user)
+    self.assertEqual(api_request_2['message'], device_note_2.message)
+    self.assertEqual(api_request_2['offline_reason'],
+                     device_note_2.offline_reason)
+    self.assertEqual(api_request_2['recovery_action'],
+                     device_note_2.recovery_action)
+    # Side Effect: Assert PredefinedMessage is created only in first call.
+    predefine_messages = list(datastore_entities.PredefinedMessage.query(
+        datastore_entities.PredefinedMessage.lab_name == 'lab-name-1').fetch())
+    self.assertEqual(2, len(predefine_messages))
 
   @mock.patch.object(device_manager, 'GetDevice')
   @mock.patch.object(note_manager, 'PublishMessage')
@@ -682,6 +731,58 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         int(device_note.id), histories[0].extra_info['device_note_id'])
     mock_publish_device_note_message.assert_called_once_with(
         device_note_event_msg, common.PublishEventType.DEVICE_NOTE_EVENT)
+
+  @mock.patch.object(device_manager, 'GetDevice')
+  @mock.patch.object(note_manager, 'PublishMessage')
+  def testAddOrUpdateDeviceNote_InvalidIdOfflineReasonAndRecoveryAction(
+      self, mock_publish_device_note_message, mock_get_device):
+    """Tests adding a device note with existing predefined messages."""
+    mock_get_device.return_value = self.ndb_device_0
+    offline_reason = 'offline-reason'
+    recovery_action = 'recovery-action'
+    lab_name = 'lab-name'
+    predefined_message_entities = [
+        datastore_entities.PredefinedMessage(
+            key=ndb.Key(datastore_entities.PredefinedMessage, 111),
+            lab_name=lab_name,
+            type=api_messages.PredefinedMessageType.DEVICE_OFFLINE_REASON,
+            content=offline_reason,
+            used_count=2),
+        datastore_entities.PredefinedMessage(
+            key=ndb.Key(datastore_entities.PredefinedMessage, 222),
+            lab_name=lab_name,
+            type=api_messages.PredefinedMessageType.DEVICE_RECOVERY_ACTION,
+            content=recovery_action,
+            used_count=5),
+    ]
+    ndb.put_multi(predefined_message_entities)
+
+    # Invalid recovery action.
+    api_request = {
+        'device_serial': self.ndb_device_0.device_serial,
+        'user': 'user-1',
+        'message': 'message-1',
+        'recovery_action_id': 111,
+        'lab_name': lab_name,
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterDeviceApi.AddOrUpdateNote',
+        api_request,
+        expect_errors=True)
+    self.assertEqual('400 Bad Request', api_response.status)
+    # Non-existing offline reason.
+    api_request = {
+        'device_serial': self.ndb_device_0.device_serial,
+        'user': 'user-1',
+        'message': 'message-1',
+        'offline_reason_id': 333,
+        'lab_name': lab_name,
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterDeviceApi.AddOrUpdateNote',
+        api_request,
+        expect_errors=True)
+    self.assertEqual('400 Bad Request', api_response.status)
 
   def testGetDevice_includeHistory(self):
     """Tests GetDevice including history when they are available."""

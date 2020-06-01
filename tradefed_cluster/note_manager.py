@@ -21,6 +21,8 @@ import lazy_object_proxy
 
 from protorpc import protojson
 
+from google.appengine.ext import ndb
+
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import env_config
@@ -31,6 +33,10 @@ DEVICE_NOTE_PUBSUB_TOPIC = "projects/%s/topics/%s" % (env_config.CONFIG.app_id,
                                                       "device_note")
 HOST_NOTE_PUBSUB_TOPIC = "projects/%s/topics/%s" % (env_config.CONFIG.app_id,
                                                     "host_note")
+
+
+class InvalidParameterError(ValueError):
+  """The error of invalid function parameter."""
 
 
 def GetPredefinedMessage(message_type, lab_name, content):
@@ -76,6 +82,45 @@ def GetOrCreatePredefinedMessage(message_type, lab_name, content):
         content=content,
         lab_name=lab_name,
         create_timestamp=datetime.datetime.utcnow())
+
+
+def PreparePredefinedMessageForNote(
+    message_type, message_id=None, lab_name=None, content=None):
+  """Prepare a PredefinedMessage to attach to a Note.
+
+  This method prepares a PredefinedMessage in following ways:
+   - if message_id is provided, find the message with id, or
+   - if content is provide, get existing message matching the content, or create
+     new message with the content
+   - if neither is provided, return None
+
+  Args:
+    message_type: enum, common.PredefinedMessageType, type of PredefinedMessage.
+    message_id: int, the ID of PredefinedMessage.
+    lab_name: str, the lab where the message is created.
+    content: str, content of the message.
+
+  Returns:
+    An instance of datastore_entities.PredefinedMessage.
+
+  Raises:
+    InvalidParameterError: when the message_id is not valid or it leads to an
+      wrong PredefineMessage type.
+  """
+  predefined_message_entity = None
+  if message_id:
+    predefined_message_entity = ndb.Key(
+        datastore_entities.PredefinedMessage, message_id).get()
+    if (not predefined_message_entity
+        or predefined_message_entity.type != message_type):
+      raise InvalidParameterError(
+          "Invalid predefined_message_id: %s" % message_id)
+  elif content:
+    predefined_message_entity = GetOrCreatePredefinedMessage(
+        message_type, lab_name, content)
+  if predefined_message_entity:
+    predefined_message_entity.used_count += 1
+  return predefined_message_entity
 
 
 def _Now():

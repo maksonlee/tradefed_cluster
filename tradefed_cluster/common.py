@@ -182,6 +182,14 @@ class LogLevel(messages.Enum):
   ERROR = 5
 
 
+class NoteType(messages.Enum):
+  """The types of notes."""
+  UNKNOWN = 0
+  CLUSTER_NOTE = 1
+  HOST_NOTE = 2
+  DEVICE_NOTE = 3
+
+
 class PredefinedMessageType(messages.Enum):
   """The types of predefined messages."""
   DEVICE_OFFLINE_REASON = 1

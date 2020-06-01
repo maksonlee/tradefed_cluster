@@ -188,8 +188,16 @@ class ClusterDeviceApi(remote.Service):
 
   # TODO: deprecate "NewNote" endpoint.
   NEW_NOTE_RESOURCE = endpoints.ResourceContainer(
-      api_messages.Note,
+      hostname=messages.StringField(1),
       device_serial=messages.StringField(2, required=True),
+      user=messages.StringField(3, required=True),
+      message=messages.StringField(4),
+      offline_reason=messages.StringField(5),
+      recovery_action=messages.StringField(6),
+      offline_reason_id=messages.IntegerField(7),
+      recovery_action_id=messages.IntegerField(8),
+      lab_name=messages.StringField(9),
+      timestamp=message_types.DateTimeField(10, required=True),
   )
 
   @endpoints.method(

@@ -120,7 +120,16 @@ class ClusterApi(remote.Service):
     return host_msgs
 
   CLUSTER_NOTE_RESOURCE = endpoints.ResourceContainer(
-      api_messages.Note, cluster_id=messages.StringField(2, required=True))
+      cluster_id=messages.StringField(1, required=True),
+      user=messages.StringField(2, required=True),
+      message=messages.StringField(3),
+      offline_reason=messages.StringField(4),
+      recovery_action=messages.StringField(5),
+      offline_reason_id=messages.IntegerField(6),
+      recovery_action_id=messages.IntegerField(7),
+      lab_name=messages.StringField(8),
+      timestamp=message_types.DateTimeField(9, required=True),
+  )
 
   @endpoints.method(CLUSTER_NOTE_RESOURCE, api_messages.Note,
                     path="{cluster_id}/note", http_method="POST",

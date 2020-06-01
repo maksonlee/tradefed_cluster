@@ -530,28 +530,46 @@ def CommandAttemptToMessage(command_attempt):
 class Note(ndb.Model):
   """Note entity.
 
+  The note can be attached to a cluster, a host, or a device.
+
   Attributes:
     user: Author's username.
     timestamp: A timestamp of when this note was created.
     message: Message of the note.
     offline_reason: The reason that a cluster/host/device get offline.
     recovery_action: The recovery action.
+    cluster_id: The cluster id, if the note is attached to a cluster.
+    hostname: The hostname, if the note is attached to a host.
+    device_serial: The device serial, if the note is attached to a device.
   """
   user = ndb.StringProperty()
   timestamp = ndb.DateTimeProperty()
   message = ndb.TextProperty()
   offline_reason = ndb.StringProperty()
   recovery_action = ndb.StringProperty()
+  type = msgprop.EnumProperty(common.NoteType)
+  cluster_id = ndb.StringProperty()
+  hostname = ndb.StringProperty()
+  device_serial = ndb.StringProperty()
 
 
 @MessageConverter(Note)
 def NoteToMessage(note_entity):
+  if note_entity.key:
+    note_entity_id = str(note_entity.key.id())
+  else:
+    note_entity_id = None
   return api_messages.Note(
+      id=note_entity_id,
       user=note_entity.user,
       timestamp=note_entity.timestamp,
       message=note_entity.message,
       offline_reason=note_entity.offline_reason,
-      recovery_action=note_entity.recovery_action)
+      recovery_action=note_entity.recovery_action,
+      type=note_entity.type,
+      cluster_id=note_entity.cluster_id,
+      hostname=note_entity.hostname,
+      device_serial=note_entity.device_serial)
 
 
 class ClusterNote(ndb.Model):

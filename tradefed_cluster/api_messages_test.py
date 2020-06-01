@@ -301,13 +301,36 @@ class ApiMessagesTest(unittest.TestCase):
                                           timestamp=TIMESTAMP,
                                           message='Hello, World',
                                           offline_reason='something reasonable',
-                                          recovery_action='press the button')
+                                          recovery_action='press the button',
+                                          type=common.NoteType.UNKNOWN,
+                                          cluster_id='acluser',
+                                          hostname='ahost',
+                                          device_serial='adevice')
     note_message = datastore_entities.ToMessage(note_entity)
+    self.assertIsNone(note_message.id)
     self.assertEqual(note_entity.user, note_message.user)
     self.assertEqual(note_entity.timestamp, note_message.timestamp)
     self.assertEqual(note_entity.message, note_message.message)
     self.assertEqual(note_entity.offline_reason, note_message.offline_reason)
     self.assertEqual(note_entity.recovery_action, note_message.recovery_action)
+    self.assertEqual(note_entity.type, note_message.type)
+    self.assertEqual(note_entity.cluster_id, note_message.cluster_id)
+    self.assertEqual(note_entity.hostname, note_message.hostname)
+    self.assertEqual(note_entity.device_serial, note_message.device_serial)
+
+  def testNoteFromEntity_withId(self):
+    note_entity = datastore_entities.Note(
+        key=ndb.Key(datastore_entities.Note, 123456789),
+        message='Hello, World',
+        offline_reason='something reasonable',
+        recovery_action='press the button',
+        type=common.NoteType.UNKNOWN)
+    note_message = datastore_entities.ToMessage(note_entity)
+    self.assertEqual('123456789', note_message.id)
+    self.assertEqual(note_entity.message, note_message.message)
+    self.assertEqual(note_entity.offline_reason, note_message.offline_reason)
+    self.assertEqual(note_entity.recovery_action, note_message.recovery_action)
+    self.assertEqual(note_entity.type, note_message.type)
 
   def testNoteFromEntity_invalidEntity(self):
     """Tests converting an invalid Note entity."""

@@ -373,11 +373,16 @@ class RequestEventMessage(messages.Message):
 
 class Note(messages.Message):
   """Note for a cluster, host, or device."""
-  user = messages.StringField(1, required=True)
-  timestamp = message_types.DateTimeField(2, required=True)
-  message = messages.StringField(3)
-  offline_reason = messages.StringField(4)
-  recovery_action = messages.StringField(5)
+  id = messages.StringField(1)
+  user = messages.StringField(2, required=True)
+  timestamp = message_types.DateTimeField(3, required=True)
+  message = messages.StringField(4)
+  offline_reason = messages.StringField(5)
+  recovery_action = messages.StringField(6)
+  type = messages.EnumField(common.NoteType, 7)
+  cluster_id = messages.StringField(8)
+  hostname = messages.StringField(9)
+  device_serial = messages.StringField(10)
 
 
 class DeviceStateHistory(messages.Message):

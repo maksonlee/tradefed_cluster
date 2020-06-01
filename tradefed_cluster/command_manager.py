@@ -532,6 +532,8 @@ def _UpdateCommandAttemptEntity(attempt_entity, event):
     attempt_entity.passed_test_count = event.passed_test_count
   if event.failed_test_run_count is not None:
     attempt_entity.failed_test_run_count = event.failed_test_run_count
+  if event.device_lost_detected is not None:
+    attempt_entity.device_lost_detected = event.device_lost_detected
   # If we process command events out of order, we should keep the latest
   # event timestamp.
   if (event.time is not None and

@@ -66,6 +66,8 @@ class CommandEvent(object):
         self.data, CommandEventDataKey.PASSED_TEST_COUNT, int)
     self.failed_test_run_count = _GetEventData(
         self.data, CommandEventDataKey.FAILED_TEST_RUN_COUNT, int)
+    self.device_lost_detected = _GetEventData(
+        self.data, CommandEventDataKey.DEVICE_LOST_DETECTED, int)
     self.invocation_status = _ParseInvocationStatus(
         kwargs.get("invocation_status"))
 
@@ -240,3 +242,4 @@ class CommandEventDataKey(object):
   PASSED_TEST_COUNT = "passed_test_count"
   TOTAL_TEST_RUN_COUNT = "total_test_run_count"
   FAILED_TEST_RUN_COUNT = "failed_test_run_count"
+  DEVICE_LOST_DETECTED = "device_lost_detected"

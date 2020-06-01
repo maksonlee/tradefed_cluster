@@ -458,6 +458,7 @@ class CommandAttempt(ndb.Model):
     failed_test_count: failed test count in the command attempt.
     passed_test_count: passed test count in the command attempt.
     failed_test_run_count: failed test run count in the command attempt.
+    device_lost_detected: device lost detected in the command attempt.
     error_reason: a error reason of the error message.
     error_type: a error type of the error reason.
     last_event_time: time when the last TF event arrivaled.
@@ -488,6 +489,7 @@ class CommandAttempt(ndb.Model):
   failed_test_count = ndb.IntegerProperty()
   passed_test_count = ndb.IntegerProperty()
   failed_test_run_count = ndb.IntegerProperty()
+  device_lost_detected = ndb.IntegerProperty()
   error_reason = ndb.StringProperty()
   error_type = msgprop.EnumProperty(
       common.CommandErrorType,

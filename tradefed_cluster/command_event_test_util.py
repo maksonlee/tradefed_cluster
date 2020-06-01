@@ -53,6 +53,7 @@ def CreateTestCommandEventJson(
         "failed_test_count": 100,
         "passed_test_count": 900,
         "failed_test_run_count": 10,
+        "device_lost_detected": 1,
     }
     if error:
       event["data"]["error"] = error

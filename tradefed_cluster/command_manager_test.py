@@ -678,6 +678,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(1000, attempts[0].total_test_count)
     self.assertEqual(100, attempts[0].failed_test_count)
     self.assertEqual(10, attempts[0].failed_test_run_count)
+    self.assertEqual(1, attempts[0].device_lost_detected)
     self.assertEqual(TIMESTAMP, attempts[0].last_event_time)
     self.assertGreaterEqual(
         attempts[0].update_time, update_time,

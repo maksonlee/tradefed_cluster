@@ -64,6 +64,7 @@ py_appengine_library(
         ":common_lib",
         ":coordinator_api_lib",
         ":device_snapshot_api_lib",
+        ":filter_hint_api_lib",
         ":host_event_api_lib",
         ":lab_management_api_lib",
         ":predefined_message_api_lib",
@@ -880,6 +881,35 @@ py_appengine_test(
     use_public_sdk = 1,
     deps = [
         ":api_test_lib",
+    ],
+)
+
+py_appengine_library(
+    name = "filter_hint_api_lib",
+    srcs = [
+        "filter_hint_api.py",
+    ],
+    envs = PY_APPENGINE_ENVS,
+    deps = [
+        ":api_common_lib",
+        ":api_messages_lib",
+        ":common_lib",
+        ":datastore_entities_lib",
+        ":device_manager_lib",
+        third_party("pytz"),
+    ],
+)
+
+py_appengine_test(
+    name = "filter_hint_api_test",
+    srcs = [
+        "filter_hint_api_test.py",
+    ],
+    envs = PY_APPENGINE_TEST_ENVS,
+    use_public_sdk = 1,
+    deps = [
+        ":api_test_lib",
+        ":datastore_test_util_lib",
     ],
 )
 

@@ -819,3 +819,13 @@ class CommandEvent(messages.Message):
 class CommandEventList(messages.Message):
   """A message class representing a list of cluster command events."""
   command_events = messages.MessageField(CommandEvent, 1, repeated=True)
+
+
+class FilterHintMessage(messages.Message):
+  """A message class representing filter hint."""
+  value = messages.StringField(1)
+
+
+class FilterHintCollection(messages.Message):
+  """A class representing a collection of filter hint."""
+  filter_hints = messages.MessageField(FilterHintMessage, 1, repeated=True)

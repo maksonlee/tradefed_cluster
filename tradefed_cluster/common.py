@@ -207,3 +207,8 @@ class PublishEventType(messages.Enum):
   """Event types for publishing message to pubsub."""
   DEVICE_NOTE_EVENT = 0
   HOST_NOTE_EVENT = 1
+
+
+class FilterHintType(messages.Enum):
+  """Which type of filter hint will be retuened on the api."""
+  POOL = 0

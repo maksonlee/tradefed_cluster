@@ -25,6 +25,7 @@ from tradefed_cluster import command_event_api
 from tradefed_cluster import command_task_api
 from tradefed_cluster import coordinator_api
 from tradefed_cluster import device_snapshot_api
+from tradefed_cluster import filter_hint_api
 from tradefed_cluster import host_event_api
 from tradefed_cluster import lab_management_api
 from tradefed_cluster import predefined_message_api
@@ -48,6 +49,7 @@ class ApiTest(testbed_dependent_test.TestbedDependentTest):
             command_task_api.CommandTaskApi,
             coordinator_api.CoordinatorApi,
             device_snapshot_api.DeviceSnapshotApi,
+            filter_hint_api.FilterHintApi,
             host_event_api.HostEventApi,
             lab_management_api.LabManagementApi,
             predefined_message_api.PredefinedMessageApi,

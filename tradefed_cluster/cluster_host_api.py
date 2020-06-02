@@ -229,7 +229,7 @@ class ClusterHostApi(remote.Service):
 
   @endpoints.method(
       NOTE_ADD_OR_UPDATE_RESOURCE,
-      api_messages.HostNote,
+      api_messages.Note,
       path="{hostname}/notes",
       http_method="POST",
       name="addOrUpdateNote")
@@ -240,16 +240,16 @@ class ClusterHostApi(remote.Service):
       request: an API request.
 
     Returns:
-      an api_messages.HostNote.
+      an api_messages.Note.
     """
     time_now = datetime.datetime.utcnow()
 
     host_note_entity = datastore_util.GetOrCreateEntity(
-        datastore_entities.HostNote,
+        datastore_entities.Note,
         entity_id=request.id,
         hostname=request.hostname,
-        note=datastore_entities.Note())
-    host_note_entity.note.populate(
+        type=common.NoteType.HOST_NOTE)
+    host_note_entity.populate(
         user=request.user, message=request.message, timestamp=time_now)
     entities_to_update = [host_note_entity]
 
@@ -263,7 +263,7 @@ class ClusterHostApi(remote.Service):
       raise endpoints.BadRequestException(
           "Invalid offline_reason_id: %s" % request.offline_reason_id)
     if offline_reason_entity:
-      host_note_entity.note.offline_reason = offline_reason_entity.content
+      host_note_entity.offline_reason = offline_reason_entity.content
       entities_to_update.append(offline_reason_entity)
 
     try:
@@ -276,14 +276,14 @@ class ClusterHostApi(remote.Service):
       raise endpoints.BadRequestException(
           "Invalid recovery_action_id: %s" % request.recovery_action_id)
     if recovery_action_entity:
-      host_note_entity.note.recovery_action = recovery_action_entity.content
+      host_note_entity.recovery_action = recovery_action_entity.content
       entities_to_update.append(recovery_action_entity)
 
     keys = ndb.put_multi(entities_to_update)
     host_note_msg = datastore_entities.ToMessage(host_note_entity)
 
-    host_note_event_msg = api_messages.HostNoteEvent(
-        host_note=host_note_msg, lab_name=request.lab_name)
+    host_note_event_msg = api_messages.NoteEvent(
+        note=host_note_msg, lab_name=request.lab_name)
     note_manager.PublishMessage(host_note_event_msg,
                                 common.PublishEventType.HOST_NOTE_EVENT)
 
@@ -303,7 +303,7 @@ class ClusterHostApi(remote.Service):
 
   @endpoints.method(
       NOTES_BATCH_GET_RESOURCE,
-      api_messages.HostNoteCollection,
+      api_messages.NoteCollection,
       path="{hostname}/notes:batchGet",
       http_method="GET",
       name="batchGetNotes")
@@ -317,10 +317,10 @@ class ClusterHostApi(remote.Service):
       ids: a list of strings, the ids of notes to batch get.
 
     Returns:
-      an api_messages.HostNoteCollection object.
+      an api_messages.NoteCollection object.
     """
     keys = [
-        ndb.Key(datastore_entities.HostNote, entity_id)
+        ndb.Key(datastore_entities.Note, entity_id)
         for entity_id in request.ids
     ]
     note_entities = ndb.get_multi(keys)
@@ -329,8 +329,8 @@ class ClusterHostApi(remote.Service):
         for entity in note_entities
         if entity and entity.hostname == request.hostname
     ]
-    return api_messages.HostNoteCollection(
-        host_notes=note_msgs, more=False, next_cursor=None, prev_cursor=None)
+    return api_messages.NoteCollection(
+        notes=note_msgs, more=False, next_cursor=None, prev_cursor=None)
 
   NOTES_LIST_RESOURCE = endpoints.ResourceContainer(
       hostname=messages.StringField(1, required=True),
@@ -341,7 +341,7 @@ class ClusterHostApi(remote.Service):
 
   @endpoints.method(
       NOTES_LIST_RESOURCE,
-      api_messages.HostNoteCollection,
+      api_messages.NoteCollection,
       path="{hostname}/notes",
       http_method="GET",
       name="listNotes")
@@ -352,20 +352,21 @@ class ClusterHostApi(remote.Service):
       request: an API request.
 
     Returns:
-      an api_messages.HostNoteCollection object.
+      an api_messages.NoteCollection object.
     """
     query = (
-        datastore_entities.HostNote.query().filter(
-            datastore_entities.HostNote.hostname == request.hostname).order(
-                -datastore_entities.HostNote.note.timestamp))
+        datastore_entities.Note.query()
+        .filter(datastore_entities.Note.type == common.NoteType.HOST_NOTE)
+        .filter(datastore_entities.Note.hostname == request.hostname)
+        .order(-datastore_entities.Note.timestamp))
 
     note_entities, prev_cursor, next_cursor = datastore_util.FetchPage(
         query, request.count, request.cursor, backwards=request.backwards)
     note_msgs = [
         datastore_entities.ToMessage(entity) for entity in note_entities
     ]
-    return api_messages.HostNoteCollection(
-        host_notes=note_msgs,
+    return api_messages.NoteCollection(
+        notes=note_msgs,
         more=bool(next_cursor),
         next_cursor=next_cursor,
         prev_cursor=prev_cursor)

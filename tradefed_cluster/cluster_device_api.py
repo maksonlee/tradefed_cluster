@@ -188,16 +188,15 @@ class ClusterDeviceApi(remote.Service):
 
   # TODO: deprecate "NewNote" endpoint.
   NEW_NOTE_RESOURCE = endpoints.ResourceContainer(
-      hostname=messages.StringField(1),
-      device_serial=messages.StringField(2, required=True),
-      user=messages.StringField(3, required=True),
-      message=messages.StringField(4),
-      offline_reason=messages.StringField(5),
-      recovery_action=messages.StringField(6),
-      offline_reason_id=messages.IntegerField(7),
-      recovery_action_id=messages.IntegerField(8),
-      lab_name=messages.StringField(9),
-      timestamp=message_types.DateTimeField(10, required=True),
+      device_serial=messages.StringField(1, required=True),
+      user=messages.StringField(2, required=True),
+      message=messages.StringField(3),
+      offline_reason=messages.StringField(4),
+      recovery_action=messages.StringField(5),
+      offline_reason_id=messages.IntegerField(6),
+      recovery_action_id=messages.IntegerField(7),
+      lab_name=messages.StringField(8),
+      timestamp=message_types.DateTimeField(9, required=True),
   )
 
   @endpoints.method(
@@ -242,11 +241,12 @@ class ClusterDeviceApi(remote.Service):
       offline_reason_id=messages.IntegerField(7),
       recovery_action_id=messages.IntegerField(8),
       lab_name=messages.StringField(9),
+      hostname=messages.StringField(10),
   )
 
   @endpoints.method(
       NOTE_ADD_OR_UPDATE_RESOURCE,
-      api_messages.DeviceNote,
+      api_messages.Note,
       path="{device_serial}/notes",
       http_method="POST",
       name="addOrUpdateNote")
@@ -257,16 +257,17 @@ class ClusterDeviceApi(remote.Service):
       request: an API request.
 
     Returns:
-      an api_messages.DeviceNote.
+      an api_messages.Note.
     """
     time_now = datetime.datetime.utcnow()
 
     device_note_entity = datastore_util.GetOrCreateEntity(
-        datastore_entities.DeviceNote,
+        datastore_entities.Note,
         entity_id=request.id,
         device_serial=request.device_serial,
-        note=datastore_entities.Note())
-    device_note_entity.note.populate(
+        hostname=request.hostname,
+        type=common.NoteType.DEVICE_NOTE)
+    device_note_entity.populate(
         user=request.user, message=request.message, timestamp=time_now)
     entities_to_update = [device_note_entity]
 
@@ -280,7 +281,7 @@ class ClusterDeviceApi(remote.Service):
       raise endpoints.BadRequestException(
           "Invalid offline_reason_id: %s" % request.offline_reason_id)
     if offline_reason_entity:
-      device_note_entity.note.offline_reason = offline_reason_entity.content
+      device_note_entity.offline_reason = offline_reason_entity.content
       entities_to_update.append(offline_reason_entity)
 
     try:
@@ -293,7 +294,7 @@ class ClusterDeviceApi(remote.Service):
       raise endpoints.BadRequestException(
           "Invalid recovery_action_id: %s" % request.recovery_action_id)
     if recovery_action_entity:
-      device_note_entity.note.recovery_action = recovery_action_entity.content
+      device_note_entity.recovery_action = recovery_action_entity.content
       entities_to_update.append(recovery_action_entity)
 
     keys = ndb.put_multi(entities_to_update)
@@ -301,8 +302,8 @@ class ClusterDeviceApi(remote.Service):
 
     device = device_manager.GetDevice(
         device_serial=device_note_entity.device_serial)
-    device_note_event_msg = api_messages.DeviceNoteEvent(
-        device_note=device_note_msg,
+    device_note_event_msg = api_messages.NoteEvent(
+        note=device_note_msg,
         hostname=device.hostname,
         lab_name=device.lab_name,
         run_target=device.run_target)
@@ -325,7 +326,7 @@ class ClusterDeviceApi(remote.Service):
 
   @endpoints.method(
       NOTES_BATCH_GET_RESOURCE,
-      api_messages.DeviceNoteCollection,
+      api_messages.NoteCollection,
       path="{device_serial}/notes:batchGet",
       http_method="GET",
       name="batchGetNotes")
@@ -339,10 +340,10 @@ class ClusterDeviceApi(remote.Service):
       ids: a list of strings, the ids of notes to batch get.
 
     Returns:
-      an api_messages.DeviceNoteCollection object.
+      an api_messages.NoteCollection object.
     """
     keys = [
-        ndb.Key(datastore_entities.DeviceNote, entity_id)
+        ndb.Key(datastore_entities.Note, entity_id)
         for entity_id in request.ids
     ]
     note_entities = ndb.get_multi(keys)
@@ -351,8 +352,8 @@ class ClusterDeviceApi(remote.Service):
         for entity in note_entities
         if entity and entity.device_serial == request.device_serial
     ]
-    return api_messages.DeviceNoteCollection(
-        device_notes=note_msgs, more=False, next_cursor=None, prev_cursor=None)
+    return api_messages.NoteCollection(
+        notes=note_msgs, more=False, next_cursor=None, prev_cursor=None)
 
   NOTES_LIST_RESOURCE = endpoints.ResourceContainer(
       device_serial=messages.StringField(1, required=True),
@@ -363,7 +364,7 @@ class ClusterDeviceApi(remote.Service):
 
   @endpoints.method(
       NOTES_LIST_RESOURCE,
-      api_messages.DeviceNoteCollection,
+      api_messages.NoteCollection,
       path="{device_serial}/notes",
       http_method="GET",
       name="listNotes")
@@ -374,12 +375,13 @@ class ClusterDeviceApi(remote.Service):
       request: an API request.
 
     Returns:
-      an api_messages.DeviceNoteCollection object.
+      an api_messages.NoteCollection object.
     """
     query = (
-        datastore_entities.DeviceNote.query().filter(
-            datastore_entities.DeviceNote.device_serial == request.device_serial
-        ).order(-datastore_entities.DeviceNote.note.timestamp))
+        datastore_entities.Note.query()
+        .filter(datastore_entities.Note.type == common.NoteType.DEVICE_NOTE)
+        .filter(datastore_entities.Note.device_serial == request.device_serial)
+        .order(-datastore_entities.Note.timestamp))
 
     note_entities, prev_cursor, next_cursor = datastore_util.FetchPage(
         query, request.count, request.cursor, backwards=request.backwards)
@@ -387,8 +389,8 @@ class ClusterDeviceApi(remote.Service):
     note_msgs = [
         datastore_entities.ToMessage(entity) for entity in note_entities
     ]
-    return api_messages.DeviceNoteCollection(
-        device_notes=note_msgs,
+    return api_messages.NoteCollection(
+        notes=note_msgs,
         more=bool(next_cursor),
         next_cursor=next_cursor,
         prev_cursor=prev_cursor)
@@ -398,7 +400,7 @@ class ClusterDeviceApi(remote.Service):
 
   @endpoints.method(
       LATEST_NOTES_BATCH_GET_BY_DEVICE_RESOURCE,
-      api_messages.DeviceNoteCollection,
+      api_messages.NoteCollection,
       path="latest_notes:batchGet",
       http_method="GET",
       name="batchGetLatestNotesByDevice")
@@ -412,20 +414,21 @@ class ClusterDeviceApi(remote.Service):
       ids: a list of strings, the ids of notes to batch get.
 
     Returns:
-      an api_messages.DeviceNoteCollection object.
+      an api_messages.NoteCollection object.
     """
     note_entities = []
     for device_serial in request.device_serials:
       query = (
-          datastore_entities.DeviceNote.query().filter(
-              datastore_entities.DeviceNote.device_serial == device_serial)
-          .order(-datastore_entities.DeviceNote.note.timestamp))
+          datastore_entities.Note.query()
+          .filter(datastore_entities.Note.type == common.NoteType.DEVICE_NOTE)
+          .filter(datastore_entities.Note.device_serial == device_serial)
+          .order(-datastore_entities.Note.timestamp))
       note_entities += list(query.fetch(1))
     note_msgs = [
         datastore_entities.ToMessage(entity) for entity in note_entities
     ]
-    return api_messages.DeviceNoteCollection(
-        device_notes=note_msgs, more=False, next_cursor=None, prev_cursor=None)
+    return api_messages.NoteCollection(
+        notes=note_msgs, more=False, next_cursor=None, prev_cursor=None)
 
   DEVICE_SERIAL_RESOURCE = endpoints.ResourceContainer(
       device_serial=messages.StringField(1, required=True),

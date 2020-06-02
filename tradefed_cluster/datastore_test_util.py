@@ -16,6 +16,7 @@
 from google.appengine.ext import ndb
 
 from tradefed_cluster import api_messages
+from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 
 
@@ -167,6 +168,30 @@ def CreateHostNote(hostname,
       id=hostname, hostname=hostname, note=note)
   host_note.put()
   return host_note
+
+
+def CreateNote(hostname='host1',
+               user='user1',
+               offline_reason='offline_reason1',
+               recovery_action='recovery_action1',
+               message='message1',
+               timestamp=None,
+               cluster_id=None,
+               device_serial=None,
+               note_type=common.NoteType.UNKNOWN):
+  """Create a host note."""
+  note = datastore_entities.Note(
+      user=user,
+      offline_reason=offline_reason,
+      recovery_action=recovery_action,
+      message=message,
+      timestamp=timestamp,
+      cluster_id=cluster_id,
+      hostname=hostname,
+      device_serial=device_serial,
+      type=note_type)
+  note.put()
+  return note
 
 
 def CreateLabInfo(lab_name, owners=('owner1', 'owner2'), update_timestamp=None):

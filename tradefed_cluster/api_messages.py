@@ -385,6 +385,24 @@ class Note(messages.Message):
   device_serial = messages.StringField(10)
 
 
+class NoteCollection(messages.Message):
+  """A class representing a collection of notes."""
+  notes = messages.MessageField(Note, 1, repeated=True)
+  more = messages.BooleanField(2)
+  next_cursor = messages.StringField(3)
+  prev_cursor = messages.StringField(4)
+
+
+class NoteEvent(messages.Message):
+  """Note event with part of the cluster/host/device info message."""
+  note = messages.MessageField(Note, 1, required=True)
+  cluster_id = messages.StringField(2)
+  hostname = messages.StringField(3)
+  lab_name = messages.StringField(4)
+  run_target = messages.StringField(5)
+  publish_timestamp = message_types.DateTimeField(6, required=True)
+
+
 class DeviceStateHistory(messages.Message):
   """Device state history record."""
   timestamp = message_types.DateTimeField(1, required=True)

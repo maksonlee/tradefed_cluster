@@ -341,10 +341,10 @@ class ClusterHostApiTest(api_test.ApiTest):
     api_response = self.testapp.post_json(
         '/_ah/api/ClusterHostApi.AddOrUpdateNote', api_request)
     self.assertEqual('200 OK', api_response.status)
-    host_note = protojson.decode_message(api_messages.HostNote,
+    host_note = protojson.decode_message(api_messages.Note,
                                          api_response.body)
-    host_note_event = api_messages.HostNoteEvent(
-        host_note=host_note, lab_name=lab_name)
+    host_note_event = api_messages.NoteEvent(
+        note=host_note, lab_name=lab_name)
     # Assert datastore id is generated.
     self.assertIsNotNone(host_note.id)
     # Assert fields equal.
@@ -385,7 +385,7 @@ class ClusterHostApiTest(api_test.ApiTest):
     api_response_1 = self.testapp.post_json(
         '/_ah/api/ClusterHostApi.AddOrUpdateNote', api_request_1)
     self.assertEqual('200 OK', api_response_1.status)
-    host_note_1 = protojson.decode_message(api_messages.HostNote,
+    host_note_1 = protojson.decode_message(api_messages.Note,
                                            api_response_1.body)
     new_lab_name = 'lab-name-2'
     api_request_2 = {
@@ -400,10 +400,10 @@ class ClusterHostApiTest(api_test.ApiTest):
     api_response_2 = self.testapp.post_json(
         '/_ah/api/ClusterHostApi.AddOrUpdateNote', api_request_2)
     self.assertEqual('200 OK', api_response_1.status)
-    host_note_2 = protojson.decode_message(api_messages.HostNote,
+    host_note_2 = protojson.decode_message(api_messages.Note,
                                            api_response_2.body)
-    host_note_event = api_messages.HostNoteEvent(
-        host_note=host_note_2, lab_name=new_lab_name)
+    host_note_event = api_messages.NoteEvent(
+        note=host_note_2, lab_name=new_lab_name)
     # Assert two requests modified the same datastore entity.
     self.assertEqual(host_note_1.id, host_note_2.id)
     # Assert the fields finally equal to the ones in the 2nd request.
@@ -506,10 +506,10 @@ class ClusterHostApiTest(api_test.ApiTest):
     api_response = self.testapp.post_json(
         '/_ah/api/ClusterHostApi.AddOrUpdateNote', api_request)
     self.assertEqual('200 OK', api_response.status)
-    host_note = protojson.decode_message(api_messages.HostNote,
+    host_note = protojson.decode_message(api_messages.Note,
                                          api_response.body)
-    host_note_event = api_messages.HostNoteEvent(
-        host_note=host_note, lab_name=lab_name)
+    host_note_event = api_messages.NoteEvent(
+        note=host_note, lab_name=lab_name)
     # Assert datastore id is generated.
     self.assertIsNotNone(host_note.id)
     # Assert fields equal.
@@ -801,41 +801,40 @@ class ClusterHostApiTest(api_test.ApiTest):
 
   def testListHostNotes(self):
     note_entities = [
-        datastore_entities.HostNote(
+        datastore_entities.Note(
+            type=common.NoteType.HOST_NOTE,
             hostname='host_1',
-            note=datastore_entities.Note(
-                user='user1',
-                timestamp=datetime.datetime(1928, 1, 1),
-                message='message_1',
-                offline_reason='offline_reason_1',
-                recovery_action='recovery_action_1')),
-        datastore_entities.HostNote(
+            user='user1',
+            timestamp=datetime.datetime(1928, 1, 1),
+            message='message_1',
+            offline_reason='offline_reason_1',
+            recovery_action='recovery_action_1'),
+        datastore_entities.Note(
+            type=common.NoteType.HOST_NOTE,
             hostname='host_1',
-            note=datastore_entities.Note(
-                user='user2',
-                timestamp=datetime.datetime(1918, 1, 1),
-                message='message_2',
-                offline_reason='offline_reason_2',
-                recovery_action='recovery_action_2')),
-        datastore_entities.HostNote(
+            user='user2',
+            timestamp=datetime.datetime(1918, 1, 1),
+            message='message_2',
+            offline_reason='offline_reason_2',
+            recovery_action='recovery_action_2'),
+        datastore_entities.Note(
+            type=common.NoteType.HOST_NOTE,
             hostname='host_1',
-            note=datastore_entities.Note(
-                user='user3',
-                timestamp=datetime.datetime(1988, 1, 1),
-                message='message_3',
-                offline_reason='offline_reason_3',
-                recovery_action='recovery_action_3')),
-        datastore_entities.HostNote(
+            user='user3',
+            timestamp=datetime.datetime(1988, 1, 1),
+            message='message_3',
+            offline_reason='offline_reason_3',
+            recovery_action='recovery_action_3'),
+        datastore_entities.Note(
+            type=common.NoteType.HOST_NOTE,
             hostname='host_2',
-            note=datastore_entities.Note(
-                user='user4',
-                timestamp=datetime.datetime(2008, 1, 1),
-                message='message_4',
-                offline_reason='offline_reason_4',
-                recovery_action='recovery_action_4')),
+            user='user4',
+            timestamp=datetime.datetime(2008, 1, 1),
+            message='message_4',
+            offline_reason='offline_reason_4',
+            recovery_action='recovery_action_4'),
     ]
-    for entity in note_entities:
-      entity.put()
+    ndb.put_multi(note_entities)
 
     # The result will be sorted by timestamp in descending order.  `
     api_request = {
@@ -845,67 +844,66 @@ class ClusterHostApiTest(api_test.ApiTest):
     api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListNotes',
                                           api_request)
     host_note_collection_msg = protojson.decode_message(
-        api_messages.HostNoteCollection, api_response.body)
+        api_messages.NoteCollection, api_response.body)
     self.assertTrue(host_note_collection_msg.more)
     self.assertIsNotNone(host_note_collection_msg.next_cursor)
-    note_msgs = host_note_collection_msg.host_notes
+    note_msgs = host_note_collection_msg.notes
     self.assertEqual(2, len(note_msgs))
     self.assertEqual(note_msgs[0].hostname, note_entities[2].hostname)
-    self.assertEqual(note_msgs[0].user, note_entities[2].note.user)
-    self.assertEqual(note_msgs[0].update_timestamp,
-                     note_entities[2].note.timestamp)
-    self.assertEqual(note_msgs[0].message, note_entities[2].note.message)
+    self.assertEqual(note_msgs[0].user, note_entities[2].user)
+    self.assertEqual(note_msgs[0].timestamp,
+                     note_entities[2].timestamp)
+    self.assertEqual(note_msgs[0].message, note_entities[2].message)
     self.assertEqual(note_msgs[0].offline_reason,
-                     note_entities[2].note.offline_reason)
+                     note_entities[2].offline_reason)
     self.assertEqual(note_msgs[0].recovery_action,
-                     note_entities[2].note.recovery_action)
+                     note_entities[2].recovery_action)
     self.assertEqual(note_msgs[1].hostname, note_entities[0].hostname)
-    self.assertEqual(note_msgs[1].user, note_entities[0].note.user)
-    self.assertEqual(note_msgs[1].update_timestamp,
-                     note_entities[0].note.timestamp)
-    self.assertEqual(note_msgs[1].message, note_entities[0].note.message)
+    self.assertEqual(note_msgs[1].user, note_entities[0].user)
+    self.assertEqual(note_msgs[1].timestamp,
+                     note_entities[0].timestamp)
+    self.assertEqual(note_msgs[1].message, note_entities[0].message)
     self.assertEqual(note_msgs[1].offline_reason,
-                     note_entities[0].note.offline_reason)
+                     note_entities[0].offline_reason)
     self.assertEqual(note_msgs[1].recovery_action,
-                     note_entities[0].note.recovery_action)
+                     note_entities[0].recovery_action)
 
   def testListHostNotes_withCursorAndOffsetAndBackwards(self):
     note_entities = [
-        datastore_entities.HostNote(
+        datastore_entities.Note(
+            type=common.NoteType.HOST_NOTE,
             hostname='host_1',
-            note=datastore_entities.Note(
-                user='user1',
-                timestamp=datetime.datetime(1928, 1, 1),
-                message='message_1',
-                offline_reason='offline_reason_1',
-                recovery_action='recovery_action_1')),
-        datastore_entities.HostNote(
+            user='user1',
+            timestamp=datetime.datetime(1928, 1, 1),
+            message='message_1',
+            offline_reason='offline_reason_1',
+            recovery_action='recovery_action_1'),
+        datastore_entities.Note(
+            type=common.NoteType.HOST_NOTE,
             hostname='host_1',
-            note=datastore_entities.Note(
-                user='user2',
-                timestamp=datetime.datetime(1918, 1, 1),
-                message='message_2',
-                offline_reason='offline_reason_2',
-                recovery_action='recovery_action_2')),
-        datastore_entities.HostNote(
+            user='user2',
+            timestamp=datetime.datetime(1918, 1, 1),
+            message='message_2',
+            offline_reason='offline_reason_2',
+            recovery_action='recovery_action_2'),
+        datastore_entities.Note(
+            type=common.NoteType.HOST_NOTE,
             hostname='host_1',
-            note=datastore_entities.Note(
-                user='user3',
-                timestamp=datetime.datetime(1988, 1, 1),
-                message='message_3',
-                offline_reason='offline_reason_3',
-                recovery_action='recovery_action_3')),
-        datastore_entities.HostNote(
+            user='user3',
+            timestamp=datetime.datetime(1988, 1, 1),
+            message='message_3',
+            offline_reason='offline_reason_3',
+            recovery_action='recovery_action_3'),
+        datastore_entities.Note(
+            type=common.NoteType.HOST_NOTE,
             hostname='host_1',
-            note=datastore_entities.Note(
-                user='user4',
-                timestamp=datetime.datetime(2008, 1, 1),
-                message='message_4',
-                offline_reason='offline_reason_4',
-                recovery_action='recovery_action_4')),
+            user='user4',
+            timestamp=datetime.datetime(2008, 1, 1),
+            message='message_4',
+            offline_reason='offline_reason_4',
+            recovery_action='recovery_action_4'),
     ]
-    for entity in note_entities:
-      entity.put()
+    ndb.put_multi(note_entities)
 
     # The result will be sorted by timestamp in descending order.  `
     api_request = {
@@ -915,29 +913,29 @@ class ClusterHostApiTest(api_test.ApiTest):
     api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListNotes',
                                           api_request)
     host_note_collection_msg = protojson.decode_message(
-        api_messages.HostNoteCollection, api_response.body)
+        api_messages.NoteCollection, api_response.body)
     self.assertTrue(host_note_collection_msg.more)
     self.assertIsNotNone(host_note_collection_msg.next_cursor)
-    note_msgs = host_note_collection_msg.host_notes
+    note_msgs = host_note_collection_msg.notes
     self.assertEqual(2, len(note_msgs))
     self.assertEqual(note_msgs[0].hostname, note_entities[3].hostname)
-    self.assertEqual(note_msgs[0].user, note_entities[3].note.user)
-    self.assertEqual(note_msgs[0].update_timestamp,
-                     note_entities[3].note.timestamp)
-    self.assertEqual(note_msgs[0].message, note_entities[3].note.message)
+    self.assertEqual(note_msgs[0].user, note_entities[3].user)
+    self.assertEqual(note_msgs[0].timestamp,
+                     note_entities[3].timestamp)
+    self.assertEqual(note_msgs[0].message, note_entities[3].message)
     self.assertEqual(note_msgs[0].offline_reason,
-                     note_entities[3].note.offline_reason)
+                     note_entities[3].offline_reason)
     self.assertEqual(note_msgs[0].recovery_action,
-                     note_entities[3].note.recovery_action)
+                     note_entities[3].recovery_action)
     self.assertEqual(note_msgs[1].hostname, note_entities[2].hostname)
-    self.assertEqual(note_msgs[1].user, note_entities[2].note.user)
-    self.assertEqual(note_msgs[1].update_timestamp,
-                     note_entities[2].note.timestamp)
-    self.assertEqual(note_msgs[1].message, note_entities[2].note.message)
+    self.assertEqual(note_msgs[1].user, note_entities[2].user)
+    self.assertEqual(note_msgs[1].timestamp,
+                     note_entities[2].timestamp)
+    self.assertEqual(note_msgs[1].message, note_entities[2].message)
     self.assertEqual(note_msgs[1].offline_reason,
-                     note_entities[2].note.offline_reason)
+                     note_entities[2].offline_reason)
     self.assertEqual(note_msgs[1].recovery_action,
-                     note_entities[2].note.recovery_action)
+                     note_entities[2].recovery_action)
 
     # fetch next page
     api_request = {
@@ -948,29 +946,29 @@ class ClusterHostApiTest(api_test.ApiTest):
     api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListNotes',
                                           api_request)
     host_note_collection_msg = protojson.decode_message(
-        api_messages.HostNoteCollection, api_response.body)
+        api_messages.NoteCollection, api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertIsNotNone(host_note_collection_msg.prev_cursor)  # has previous
-    note_msgs = host_note_collection_msg.host_notes
+    note_msgs = host_note_collection_msg.notes
     self.assertEqual(2, len(note_msgs))
     self.assertEqual(note_msgs[0].hostname, note_entities[0].hostname)
-    self.assertEqual(note_msgs[0].user, note_entities[0].note.user)
-    self.assertEqual(note_msgs[0].update_timestamp,
-                     note_entities[0].note.timestamp)
-    self.assertEqual(note_msgs[0].message, note_entities[0].note.message)
+    self.assertEqual(note_msgs[0].user, note_entities[0].user)
+    self.assertEqual(note_msgs[0].timestamp,
+                     note_entities[0].timestamp)
+    self.assertEqual(note_msgs[0].message, note_entities[0].message)
     self.assertEqual(note_msgs[0].offline_reason,
-                     note_entities[0].note.offline_reason)
+                     note_entities[0].offline_reason)
     self.assertEqual(note_msgs[0].recovery_action,
-                     note_entities[0].note.recovery_action)
+                     note_entities[0].recovery_action)
     self.assertEqual(note_msgs[1].hostname, note_entities[1].hostname)
-    self.assertEqual(note_msgs[1].user, note_entities[1].note.user)
-    self.assertEqual(note_msgs[1].update_timestamp,
-                     note_entities[1].note.timestamp)
-    self.assertEqual(note_msgs[1].message, note_entities[1].note.message)
+    self.assertEqual(note_msgs[1].user, note_entities[1].user)
+    self.assertEqual(note_msgs[1].timestamp,
+                     note_entities[1].timestamp)
+    self.assertEqual(note_msgs[1].message, note_entities[1].message)
     self.assertEqual(note_msgs[1].offline_reason,
-                     note_entities[1].note.offline_reason)
+                     note_entities[1].offline_reason)
     self.assertEqual(note_msgs[1].recovery_action,
-                     note_entities[1].note.recovery_action)
+                     note_entities[1].recovery_action)
 
     # fetch previous page (same as first page)
     api_request = {
@@ -982,62 +980,61 @@ class ClusterHostApiTest(api_test.ApiTest):
     api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListNotes',
                                           api_request)
     host_note_collection_msg = protojson.decode_message(
-        api_messages.HostNoteCollection, api_response.body)
-    note_msgs = host_note_collection_msg.host_notes
+        api_messages.NoteCollection, api_response.body)
+    note_msgs = host_note_collection_msg.notes
     self.assertEqual(2, len(note_msgs))
     self.assertEqual(note_msgs[0].hostname, note_entities[3].hostname)
-    self.assertEqual(note_msgs[0].user, note_entities[3].note.user)
-    self.assertEqual(note_msgs[0].update_timestamp,
-                     note_entities[3].note.timestamp)
-    self.assertEqual(note_msgs[0].message, note_entities[3].note.message)
+    self.assertEqual(note_msgs[0].user, note_entities[3].user)
+    self.assertEqual(note_msgs[0].timestamp,
+                     note_entities[3].timestamp)
+    self.assertEqual(note_msgs[0].message, note_entities[3].message)
     self.assertEqual(note_msgs[0].offline_reason,
-                     note_entities[3].note.offline_reason)
+                     note_entities[3].offline_reason)
     self.assertEqual(note_msgs[0].recovery_action,
-                     note_entities[3].note.recovery_action)
+                     note_entities[3].recovery_action)
     self.assertEqual(note_msgs[1].hostname, note_entities[2].hostname)
-    self.assertEqual(note_msgs[1].user, note_entities[2].note.user)
-    self.assertEqual(note_msgs[1].update_timestamp,
-                     note_entities[2].note.timestamp)
-    self.assertEqual(note_msgs[1].message, note_entities[2].note.message)
+    self.assertEqual(note_msgs[1].user, note_entities[2].user)
+    self.assertEqual(note_msgs[1].timestamp,
+                     note_entities[2].timestamp)
+    self.assertEqual(note_msgs[1].message, note_entities[2].message)
     self.assertEqual(note_msgs[1].offline_reason,
-                     note_entities[2].note.offline_reason)
+                     note_entities[2].offline_reason)
     self.assertEqual(note_msgs[1].recovery_action,
-                     note_entities[2].note.recovery_action)
+                     note_entities[2].recovery_action)
 
   def testBatchGetHostNotes(self):
     note_entities = [
-        datastore_entities.HostNote(
+        datastore_entities.Note(
+            type=common.NoteType.HOST_NOTE,
             hostname='host_1',
-            note=datastore_entities.Note(
-                user='user1',
-                timestamp=datetime.datetime(1928, 1, 1),
-                message='message_1',
-                offline_reason='offline_reason_1',
-                recovery_action='recovery_action_1')),
-        datastore_entities.HostNote(
+            user='user1',
+            timestamp=datetime.datetime(1928, 1, 1),
+            message='message_1',
+            offline_reason='offline_reason_1',
+            recovery_action='recovery_action_1'),
+        datastore_entities.Note(
+            type=common.NoteType.HOST_NOTE,
             hostname='host_1',
-            note=datastore_entities.Note(
-                user='user2',
-                timestamp=datetime.datetime(1918, 1, 1),
-                message='message_2',
-                offline_reason='offline_reason_2',
-                recovery_action='recovery_action_2')),
-        datastore_entities.HostNote(
+            user='user2',
+            timestamp=datetime.datetime(1918, 1, 1),
+            message='message_2',
+            offline_reason='offline_reason_2',
+            recovery_action='recovery_action_2'),
+        datastore_entities.Note(
+            type=common.NoteType.HOST_NOTE,
             hostname='host_1',
-            note=datastore_entities.Note(
-                user='user3',
-                timestamp=datetime.datetime(1988, 1, 1),
-                message='message_3',
-                offline_reason='offline_reason_3',
-                recovery_action='recovery_action_3')),
-        datastore_entities.HostNote(
+            user='user3',
+            timestamp=datetime.datetime(1988, 1, 1),
+            message='message_3',
+            offline_reason='offline_reason_3',
+            recovery_action='recovery_action_3'),
+        datastore_entities.Note(
             hostname='host_2',
-            note=datastore_entities.Note(
-                user='user4',
-                timestamp=datetime.datetime(2008, 1, 1),
-                message='message_4',
-                offline_reason='offline_reason_4',
-                recovery_action='recovery_action_4')),
+            user='user4',
+            timestamp=datetime.datetime(2008, 1, 1),
+            message='message_4',
+            offline_reason='offline_reason_4',
+            recovery_action='recovery_action_4'),
     ]
     keys = ndb.put_multi(note_entities)
 
@@ -1049,27 +1046,27 @@ class ClusterHostApiTest(api_test.ApiTest):
     api_response = self.testapp.post_json(
         '/_ah/api/ClusterHostApi.BatchGetNotes', api_request)
     host_note_collection_msg = protojson.decode_message(
-        api_messages.HostNoteCollection, api_response.body)
-    note_msgs = host_note_collection_msg.host_notes
+        api_messages.NoteCollection, api_response.body)
+    note_msgs = host_note_collection_msg.notes
     self.assertEqual(2, len(note_msgs))
     self.assertEqual(note_msgs[0].hostname, note_entities[0].hostname)
-    self.assertEqual(note_msgs[0].user, note_entities[0].note.user)
-    self.assertEqual(note_msgs[0].update_timestamp,
-                     note_entities[0].note.timestamp)
-    self.assertEqual(note_msgs[0].message, note_entities[0].note.message)
+    self.assertEqual(note_msgs[0].user, note_entities[0].user)
+    self.assertEqual(note_msgs[0].timestamp,
+                     note_entities[0].timestamp)
+    self.assertEqual(note_msgs[0].message, note_entities[0].message)
     self.assertEqual(note_msgs[0].offline_reason,
-                     note_entities[0].note.offline_reason)
+                     note_entities[0].offline_reason)
     self.assertEqual(note_msgs[0].recovery_action,
-                     note_entities[0].note.recovery_action)
+                     note_entities[0].recovery_action)
     self.assertEqual(note_msgs[1].hostname, note_entities[1].hostname)
-    self.assertEqual(note_msgs[1].user, note_entities[1].note.user)
-    self.assertEqual(note_msgs[1].update_timestamp,
-                     note_entities[1].note.timestamp)
-    self.assertEqual(note_msgs[1].message, note_entities[1].note.message)
+    self.assertEqual(note_msgs[1].user, note_entities[1].user)
+    self.assertEqual(note_msgs[1].timestamp,
+                     note_entities[1].timestamp)
+    self.assertEqual(note_msgs[1].message, note_entities[1].message)
     self.assertEqual(note_msgs[1].offline_reason,
-                     note_entities[1].note.offline_reason)
+                     note_entities[1].offline_reason)
     self.assertEqual(note_msgs[1].recovery_action,
-                     note_entities[1].note.recovery_action)
+                     note_entities[1].recovery_action)
 
   def testAssign(self):
     """Tests Assign."""

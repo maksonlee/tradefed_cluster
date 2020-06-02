@@ -163,18 +163,18 @@ class NoteManagerTest(testbed_dependent_test.TestbedDependentTest):
   def testPublishMessage(self, mock_pubsub_client, mock_now):
     now = datetime.datetime(2020, 4, 14, 10, 10)
     mock_now.return_value = now
-    device_note = datastore_test_util.CreateDeviceNote(
+    device_note = datastore_test_util.CreateNote(
         device_serial="serial_1", timestamp=now)
-    device_note_msg = api_messages.DeviceNote(
+    device_note_msg = api_messages.Note(
         id=str(device_note.key.id()),
         device_serial=device_note.device_serial,
-        update_timestamp=device_note.note.timestamp,
-        user=device_note.note.user,
-        offline_reason=device_note.note.offline_reason,
-        recovery_action=device_note.note.recovery_action,
-        message=device_note.note.message)
-    device_note_event_msg = api_messages.DeviceNoteEvent(
-        device_note=device_note_msg,
+        timestamp=device_note.timestamp,
+        user=device_note.user,
+        offline_reason=device_note.offline_reason,
+        recovery_action=device_note.recovery_action,
+        message=device_note.message)
+    device_note_event_msg = api_messages.NoteEvent(
+        note=device_note_msg,
         hostname="host1",
         lab_name="lab1",
         run_target="run_target1")

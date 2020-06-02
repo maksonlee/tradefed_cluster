@@ -534,7 +534,7 @@ class Note(ndb.Model):
 
   Attributes:
     user: Author's username.
-    timestamp: A timestamp of when this note was created.
+    timestamp: A timestamp of when this note was last updated.
     message: Message of the note.
     offline_reason: The reason that a cluster/host/device get offline.
     recovery_action: The recovery action.

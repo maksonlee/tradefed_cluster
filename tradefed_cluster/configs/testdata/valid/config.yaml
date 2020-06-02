@@ -35,12 +35,14 @@ cluster_configs:
   graceful_shutdown: True
   enable_stackdriver: True
   enable_autoupdate: True
+  extra_docker_args: ['--arg1', 'value1']
   tmpfs_configs:
   - path: /atmpfs
     size: 1000
   - path: /btmpfs
   host_configs:
   - hostname: host1
+    extra_docker_args: ['--arg2', 'value2']
     tmpfs_configs:
     - path: /atmpfs
       size: 2000

@@ -57,6 +57,7 @@ class ConfigTest(unittest.TestCase):
     self.assertTrue(cluster.graceful_shutdown)
     self.assertTrue(cluster.enable_stackdriver)
     self.assertTrue(cluster.enable_autoupdate)
+    self.assertEqual(['--arg1', 'value1'], cluster.extra_docker_args)
     self.assertEqual('gcr.io/dockerized-tradefed/tradefed:golden',
                      cluster.docker_image)
     self.assertEqual(2, len(cluster.tmpfs_configs))
@@ -80,6 +81,7 @@ class ConfigTest(unittest.TestCase):
     cluster = lab_config_pb.cluster_configs[1]
     self.assertEqual('cluster2', cluster.cluster_name)
     self.assertEqual('path/to/config.xml', cluster.tf_global_config_path)
+    self.assertEqual(0, len(list(cluster.extra_docker_args)))
     self.assertEqual(2, len(cluster.host_configs))
     self.assertEqual('host4', cluster.host_configs[0].hostname)
     self.assertEqual('host5', cluster.host_configs[1].hostname)
@@ -123,7 +125,8 @@ class ConfigTest(unittest.TestCase):
         master_url='tfc',
         graceful_shutdown=True,
         enable_stackdriver=True,
-        enable_autoupdate=True)
+        enable_autoupdate=True,
+        extra_docker_args=['--arg1', 'value1'])
     self.assertEqual('alab', host_config.lab_name)
     self.assertEqual('acluster', host_config.cluster_name)
     self.assertEqual('ahost', host_config.hostname)
@@ -134,6 +137,7 @@ class ConfigTest(unittest.TestCase):
     self.assertTrue(host_config.graceful_shutdown)
     self.assertTrue(host_config.enable_stackdriver)
     self.assertTrue(host_config.enable_autoupdate)
+    self.assertEqual(['--arg1', 'value1'], host_config.extra_docker_args)
 
   def testCreateHostConfig_noLabName(self):
     host_config = lab_config.CreateHostConfig(
@@ -243,6 +247,9 @@ class LabConfigPoolTest(unittest.TestCase):
     self.assertTrue(hosts[0].enable_autoupdate)
     self.assertEqual('gcr.io/dockerized-tradefed/tradefed:golden',
                      hosts[0].docker_image)
+    self.assertEqual(
+        ['--arg1', 'value1', '--arg2', 'value2'],
+        hosts[0].extra_docker_args)
     self.assertEqual('host2', hosts[1].hostname)
     self.assertEqual('user1', hosts[1].host_login_name)
     self.assertEqual('cluster1', hosts[1].cluster_name)
@@ -250,6 +257,7 @@ class LabConfigPoolTest(unittest.TestCase):
     self.assertEqual('tradefed_cluster', hosts[1].master_url)
     self.assertEqual('gcr.io/dockerized-tradefed/tradefed:golden',
                      hosts[1].docker_image)
+    self.assertEqual(['--arg1', 'value1'], hosts[1].extra_docker_args)
     self.assertEqual('host3', hosts[2].hostname)
     self.assertEqual('user1', hosts[2].host_login_name)
     self.assertEqual('cluster1', hosts[2].cluster_name)

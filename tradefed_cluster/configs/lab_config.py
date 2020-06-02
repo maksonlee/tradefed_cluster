@@ -146,6 +146,12 @@ class HostConfig(object):
             self.lab_config_pb.enable_autoupdate)
 
   @property
+  def extra_docker_args(self):
+    """Extra docker args."""
+    return (list(self.cluster_config_pb.extra_docker_args or []) +
+            list(self.host_config_pb.extra_docker_args or []))
+
+  @property
   def service_account_json_key_path(self):
     """The file path of service account json key."""
     return self.lab_config_pb.service_account_json_key_path
@@ -220,7 +226,8 @@ def CreateHostConfig(
     graceful_shutdown=False,
     enable_stackdriver=False,
     enable_autoupdate=False,
-    service_account_json_key_path=None):
+    service_account_json_key_path=None,
+    extra_docker_args=()):
   """Create a host config from raw data.
 
   Args:
@@ -237,6 +244,7 @@ def CreateHostConfig(
     enable_autoupdate: enable auto-update daemon or not.
     service_account_json_key_path: string or None, the file path of service
       account json key.
+    extra_docker_args: extra docker args to pass to docker container.
   Returns:
     a HostConfig have all those data.
   """
@@ -245,7 +253,8 @@ def CreateHostConfig(
       tf_global_config_path=tf_global_config_path,
       tmpfs_configs=tmpfs_configs,
       enable_autoupdate=enable_autoupdate,
-      docker_image=docker_image)
+      docker_image=docker_image,
+      extra_docker_args=list(extra_docker_args))
   cluster_config_pb = lab_config_pb2.ClusterConfig(
       cluster_name=cluster_name,
       host_login_name=host_login_name,

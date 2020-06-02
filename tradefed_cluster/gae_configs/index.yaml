@@ -131,6 +131,26 @@ indexes:
   - name: note.timestamp
     direction: desc
 
+- kind: Note
+  properties:
+  - name: type
+  - name: device_serial
+  - name: timestamp
+    direction: desc
+
+- kind: Note
+  properties:
+  - name: type
+  - name: hostname
+  - name: timestamp
+    direction: desc
+
+- kind: Note
+  properties:
+  - name: hostname
+  - name: timestamp
+    direction: desc
+
 - kind: Request
   properties:
   - name: user

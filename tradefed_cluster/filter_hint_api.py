@@ -52,6 +52,8 @@ class FilterHintApi(remote.Service):
 
     if request.type == common.FilterHintType.POOL:
       return self._ListPools()
+    elif request.type == common.FilterHintType.LAB:
+      return self._ListLabs()
     else:
       raise endpoints.BadRequestException("Invalid type: %s" % request.type)
 
@@ -63,3 +65,10 @@ class FilterHintApi(remote.Service):
     ]
     return api_messages.FilterHintCollection(filter_hints=infos)
 
+  def _ListLabs(self):
+    """Fetches a list of labs."""
+    entities = datastore_entities.LabInfo.query().fetch(keys_only=True)
+    infos = [
+        api_messages.FilterHintMessage(value=item.id()) for item in entities
+    ]
+    return api_messages.FilterHintCollection(filter_hints=infos)

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Tests for Dimension API."""
 
 import datetime
@@ -47,6 +46,26 @@ class FilterHintApiTest(api_test.ApiTest):
     clusters = list(cluster_collection.filter_hints)
     self.assertEqual(clusters[0].value, cluster_list[0].cluster)
     self.assertEqual(clusters[1].value, cluster_list[1].cluster)
+
+  def testListLabs_keys(self):
+    """Tests ListLabs's key."""
+    lab_list = [
+        datastore_test_util.CreateLabInfo('lab1'),
+        datastore_test_util.CreateLabInfo('lab2'),
+        datastore_test_util.CreateLabInfo('lab3')
+    ]
+    api_request = {'type': 'LAB'}
+    api_response = self.testapp.post_json(
+        '/_ah/api/FilterHintApi.ListFilterHints', api_request)
+    lab_collection = protojson.decode_message(api_messages.FilterHintCollection,
+                                              api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(3, len(lab_collection.filter_hints))
+    labs = list(lab_collection.filter_hints)
+    self.assertEqual(labs[0].value, lab_list[0].lab_name)
+    self.assertEqual(labs[1].value, lab_list[1].lab_name)
+    self.assertEqual(labs[2].value, lab_list[2].lab_name)
+
 
 if __name__ == '__main__':
   unittest.main()

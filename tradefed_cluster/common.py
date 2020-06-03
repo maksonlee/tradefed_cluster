@@ -212,3 +212,4 @@ class PublishEventType(messages.Enum):
 class FilterHintType(messages.Enum):
   """Which type of filter hint will be retuened on the api."""
   POOL = 0
+  LAB = 1

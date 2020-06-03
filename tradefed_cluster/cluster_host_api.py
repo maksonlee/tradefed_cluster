@@ -337,6 +337,7 @@ class ClusterHostApi(remote.Service):
       count=messages.IntegerField(2, default=_DEFAULT_LIST_NOTES_COUNT),
       cursor=messages.StringField(3),
       backwards=messages.BooleanField(4, default=False),
+      include_device_notes=messages.BooleanField(5, default=False),
   )
 
   @endpoints.method(
@@ -356,9 +357,11 @@ class ClusterHostApi(remote.Service):
     """
     query = (
         datastore_entities.Note.query()
-        .filter(datastore_entities.Note.type == common.NoteType.HOST_NOTE)
         .filter(datastore_entities.Note.hostname == request.hostname)
         .order(-datastore_entities.Note.timestamp))
+    if not request.include_device_notes:
+      query = query.filter(
+          datastore_entities.Note.type == common.NoteType.HOST_NOTE)
 
     note_entities, prev_cursor, next_cursor = datastore_util.FetchPage(
         query, request.count, request.cursor, backwards=request.backwards)

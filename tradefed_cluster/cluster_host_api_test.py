@@ -868,6 +868,109 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual(note_msgs[1].recovery_action,
                      note_entities[0].recovery_action)
 
+  def testListHostNotes_includeDeviceNotes(self):
+    note_entities = [
+        datastore_entities.Note(
+            type=common.NoteType.HOST_NOTE,
+            hostname='host_1',
+            user='user1',
+            timestamp=datetime.datetime(1928, 1, 1),
+            message='message_1',
+            offline_reason='offline_reason_1',
+            recovery_action='recovery_action_1'),
+        datastore_entities.Note(
+            type=common.NoteType.HOST_NOTE,
+            hostname='host_1',
+            user='user2',
+            timestamp=datetime.datetime(1918, 1, 1),
+            message='message_2',
+            offline_reason='offline_reason_2',
+            recovery_action='recovery_action_2'),
+        datastore_entities.Note(
+            type=common.NoteType.HOST_NOTE,
+            hostname='host_1',
+            user='user3',
+            timestamp=datetime.datetime(1988, 1, 1),
+            message='message_3',
+            offline_reason='offline_reason_3',
+            recovery_action='recovery_action_3'),
+        datastore_entities.Note(
+            type=common.NoteType.DEVICE_NOTE,
+            hostname='host_1',
+            device_serial='device_2',
+            user='user4',
+            timestamp=datetime.datetime(2008, 1, 1),
+            message='message_4',
+            offline_reason='offline_reason_4',
+            recovery_action='recovery_action_4'),
+    ]
+    ndb.put_multi(note_entities)
+
+    # The result will be sorted by timestamp in descending order.  `
+    api_request = {
+        'hostname': 'host_1',
+        'count': 2,
+        'include_device_notes': True,
+    }
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListNotes',
+                                          api_request)
+    host_note_collection_msg = protojson.decode_message(
+        api_messages.NoteCollection, api_response.body)
+    self.assertTrue(host_note_collection_msg.more)
+    note_msgs = host_note_collection_msg.notes
+    self.assertEqual(2, len(note_msgs))
+    self.assertEqual(note_msgs[0].hostname, note_entities[3].hostname)
+    self.assertEqual(note_msgs[0].user, note_entities[3].user)
+    self.assertEqual(note_msgs[0].timestamp,
+                     note_entities[3].timestamp)
+    self.assertEqual(note_msgs[0].message, note_entities[3].message)
+    self.assertEqual(note_msgs[0].offline_reason,
+                     note_entities[3].offline_reason)
+    self.assertEqual(note_msgs[0].recovery_action,
+                     note_entities[3].recovery_action)
+    self.assertEqual(note_msgs[1].hostname, note_entities[2].hostname)
+    self.assertEqual(note_msgs[1].user, note_entities[2].user)
+    self.assertEqual(note_msgs[1].timestamp,
+                     note_entities[2].timestamp)
+    self.assertEqual(note_msgs[1].message, note_entities[2].message)
+    self.assertEqual(note_msgs[1].offline_reason,
+                     note_entities[2].offline_reason)
+    self.assertEqual(note_msgs[1].recovery_action,
+                     note_entities[2].recovery_action)
+
+    # query the second page to make sure the cursor works
+    api_request = {
+        'hostname': 'host_1',
+        'count': 2,
+        'include_device_notes': True,
+        'cursor': host_note_collection_msg.next_cursor,
+    }
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListNotes',
+                                          api_request)
+    host_note_collection_msg = protojson.decode_message(
+        api_messages.NoteCollection, api_response.body)
+    self.assertFalse(host_note_collection_msg.more)
+    note_msgs = host_note_collection_msg.notes
+    self.assertEqual(2, len(note_msgs))
+    self.assertEqual(note_msgs[0].hostname, note_entities[0].hostname)
+    self.assertEqual(note_msgs[0].user, note_entities[0].user)
+    self.assertEqual(note_msgs[0].timestamp,
+                     note_entities[0].timestamp)
+    self.assertEqual(note_msgs[0].message, note_entities[0].message)
+    self.assertEqual(note_msgs[0].offline_reason,
+                     note_entities[0].offline_reason)
+    self.assertEqual(note_msgs[0].recovery_action,
+                     note_entities[0].recovery_action)
+    self.assertEqual(note_msgs[1].hostname, note_entities[1].hostname)
+    self.assertEqual(note_msgs[1].user, note_entities[1].user)
+    self.assertEqual(note_msgs[1].timestamp,
+                     note_entities[1].timestamp)
+    self.assertEqual(note_msgs[1].message, note_entities[1].message)
+    self.assertEqual(note_msgs[1].offline_reason,
+                     note_entities[1].offline_reason)
+    self.assertEqual(note_msgs[1].recovery_action,
+                     note_entities[1].recovery_action)
+
   def testListHostNotes_withCursorAndOffsetAndBackwards(self):
     note_entities = [
         datastore_entities.Note(

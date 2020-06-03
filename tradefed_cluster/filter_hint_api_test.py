@@ -66,6 +66,49 @@ class FilterHintApiTest(api_test.ApiTest):
     self.assertEqual(labs[1].value, lab_list[1].lab_name)
     self.assertEqual(labs[2].value, lab_list[2].lab_name)
 
+  def testListRunTarget_keys(self):
+    """Tests ListRunTargets."""
+    self._setUpRunTarget()
+    api_request = {'type': 'RUN_TARGET'}
+    api_response = self.testapp.post_json(
+        '/_ah/api/FilterHintApi.ListFilterHints', api_request)
+    run_target_collection = protojson.decode_message(
+        api_messages.FilterHintCollection, api_response.body)
+    self.assertEqual(2, len(run_target_collection.filter_hints))
+    self.assertEqual('200 OK', api_response.status)
+    run_targets = list(run_target_collection.filter_hints)
+    self.assertEqual(run_targets[0].value, 'hammerhead')
+    self.assertEqual(run_targets[1].value, 'shamu')
+
+  def _setUpRunTarget(self):
+    datastore_test_util.CreateHost(
+        cluster='free', hostname='host_0')
+    datastore_test_util.CreateDevice(
+        cluster='free',
+        hostname='host_0',
+        device_serial='device_0',
+        run_target='shamu')
+    datastore_test_util.CreateDevice(
+        cluster='free',
+        hostname='host_0',
+        device_serial='device_1',
+        run_target='shamu')
+
+    datastore_test_util.CreateHost(
+        cluster='free', hostname='host_1')
+    datastore_test_util.CreateDevice(
+        cluster='free',
+        hostname='host_1',
+        device_serial='device_2',
+        run_target='hammerhead')
+    datastore_test_util.CreateHost(
+        cluster='presubmit', hostname='host_2')
+    datastore_test_util.CreateDevice(
+        cluster='presubmit',
+        hostname='host_2',
+        device_serial='device_3',
+        run_target='hammerhead')
+
 
 if __name__ == '__main__':
   unittest.main()

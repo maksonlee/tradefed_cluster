@@ -24,6 +24,7 @@ from tradefed_cluster import api_common
 from tradefed_cluster import api_messages
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
+from tradefed_cluster import device_manager
 
 
 @api_common.tradefed_cluster_api.api_class(resource_name="filterHints",
@@ -54,6 +55,8 @@ class FilterHintApi(remote.Service):
       return self._ListPools()
     elif request.type == common.FilterHintType.LAB:
       return self._ListLabs()
+    elif request.type == common.FilterHintType.RUN_TARGET:
+      return self._ListRunTargets()
     else:
       raise endpoints.BadRequestException("Invalid type: %s" % request.type)
 
@@ -70,5 +73,13 @@ class FilterHintApi(remote.Service):
     entities = datastore_entities.LabInfo.query().fetch(keys_only=True)
     infos = [
         api_messages.FilterHintMessage(value=item.id()) for item in entities
+    ]
+    return api_messages.FilterHintCollection(filter_hints=infos)
+
+  def _ListRunTargets(self):
+    """Fetches a list of run targets."""
+    entities = device_manager.GetRunTargetsFromNDB()
+    infos = [
+        api_messages.FilterHintMessage(value=item) for item in entities
     ]
     return api_messages.FilterHintCollection(filter_hints=infos)

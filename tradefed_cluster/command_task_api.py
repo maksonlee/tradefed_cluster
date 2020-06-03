@@ -120,7 +120,6 @@ class CommandTaskApi(remote.Service):
     return CommandTaskList(tasks=leased_tasks)
 
   def _CreateCommandAttempt(self, leased_tasks):
-    # TODO: treat test run and attempt differently.
     for task in leased_tasks:
       attempt_id = str(uuid.uuid4())
       task.attempt_id = attempt_id
@@ -138,6 +137,8 @@ class CommandTaskApi(remote.Service):
           command_id=task.command_id,
           last_event_time=Now(),
           task_id=task.task_id,
+          run_index=task.run_index,
+          attempt_index=task.attempt_index,
           plugin_data=plugin_data_)
       command_manager.AddToSyncCommandAttemptQueue(attempt_entity)
       attempt_entity.put()

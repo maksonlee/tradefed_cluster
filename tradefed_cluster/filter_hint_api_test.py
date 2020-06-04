@@ -155,5 +155,38 @@ class FilterHintApiTest(api_test.ApiTest):
     self.assertEqual(harness[0].value, 'mobile harness')
     self.assertEqual(harness[1].value, 'tradefed')
 
+  def testListTestHarnessVersion(self):
+    """Tests ListTestHarnessVersion."""
+    datastore_test_util.CreateHost(
+        cluster='free',
+        hostname='host_0',
+        timestamp=self.TIMESTAMP,
+    )
+    datastore_test_util.CreateHost(
+        cluster='paid',
+        hostname='host_1',
+        timestamp=self.TIMESTAMP,
+        test_runner='mobile harness',
+        test_runner_version='3.0.1',
+    )
+    datastore_test_util.CreateHost(
+        cluster='free',
+        hostname='host_2',
+        lab_name='alab',
+        assignee='auser',
+        hidden=True,
+    )
+    api_request = {'type': 'TEST_HARNESS_VERSION'}
+    api_response = self.testapp.post_json(
+        '/_ah/api/FilterHintApi.ListFilterHints', api_request)
+    test_harness_version_collection = protojson.decode_message(
+        api_messages.FilterHintCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(2, len(test_harness_version_collection.filter_hints))
+    test_harness_versions = list(test_harness_version_collection.filter_hints)
+    self.assertEqual(test_harness_versions[0].value, '1234')
+    self.assertEqual(test_harness_versions[1].value, '3.0.1')
+
+
 if __name__ == '__main__':
   unittest.main()

@@ -216,3 +216,4 @@ class FilterHintType(messages.Enum):
   RUN_TARGET = 2
   HOST = 3
   TEST_HARNESS = 4
+  TEST_HARNESS_VERSION = 5

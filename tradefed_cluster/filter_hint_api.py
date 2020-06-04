@@ -61,6 +61,8 @@ class FilterHintApi(remote.Service):
       return self._ListHosts()
     elif request.type == common.FilterHintType.TEST_HARNESS:
       return self._ListTestHarness()
+    elif request.type == common.FilterHintType.TEST_HARNESS_VERSION:
+      return self._ListTestHarnessVersion()
     else:
       raise endpoints.BadRequestException("Invalid type: %s" % request.type)
 
@@ -104,6 +106,18 @@ class FilterHintApi(remote.Service):
             datastore_entities.HostInfo.hidden == False).fetch(                  projection=[datastore_entities.HostInfo.test_runner])
     infos = [
         api_messages.FilterHintMessage(value=item.test_runner)
+        for item in entities
+    ]
+    return api_messages.FilterHintCollection(filter_hints=infos)
+
+  def _ListTestHarnessVersion(self):
+    """Fetches a list of test harness version."""
+    entities = datastore_entities.HostInfo.query(
+        projection=[datastore_entities.HostInfo.test_runner_version],
+        distinct=True).filter(
+            datastore_entities.HostInfo.hidden == False).fetch(                  projection=[datastore_entities.HostInfo.test_runner_version])
+    infos = [
+        api_messages.FilterHintMessage(value=item.test_runner_version)
         for item in entities
     ]
     return api_messages.FilterHintCollection(filter_hints=infos)

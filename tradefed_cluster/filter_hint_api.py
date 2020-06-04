@@ -63,6 +63,8 @@ class FilterHintApi(remote.Service):
       return self._ListTestHarness()
     elif request.type == common.FilterHintType.TEST_HARNESS_VERSION:
       return self._ListTestHarnessVersion()
+    elif request.type == common.FilterHintType.HOST_STATE:
+      return self._ListHostStates()
     else:
       raise endpoints.BadRequestException("Invalid type: %s" % request.type)
 
@@ -119,5 +121,13 @@ class FilterHintApi(remote.Service):
     infos = [
         api_messages.FilterHintMessage(value=item.test_runner_version)
         for item in entities
+    ]
+    return api_messages.FilterHintCollection(filter_hints=infos)
+
+  def _ListHostStates(self):
+    """Fetches a list of host state."""
+    infos = [
+        api_messages.FilterHintMessage(value=state.name)
+        for state in api_messages.HostState
     ]
     return api_messages.FilterHintCollection(filter_hints=infos)

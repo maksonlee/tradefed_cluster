@@ -187,6 +187,22 @@ class FilterHintApiTest(api_test.ApiTest):
     self.assertEqual(test_harness_versions[0].value, '1234')
     self.assertEqual(test_harness_versions[1].value, '3.0.1')
 
+  def testListHostStates(self):
+    """Tests ListHostStates."""
+    api_request = {'type': 'HOST_STATE'}
+    api_response = self.testapp.post_json(
+        '/_ah/api/FilterHintApi.ListFilterHints', api_request)
+    host_state_collection = protojson.decode_message(
+        api_messages.FilterHintCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(5, len(host_state_collection.filter_hints))
+    states = list(host_state_collection.filter_hints)
+    self.assertEqual(states[0].value, api_messages.HostState.UNKNOWN.name)
+    self.assertEqual(states[1].value, api_messages.HostState.GONE.name)
+    self.assertEqual(states[2].value, api_messages.HostState.RUNNING.name)
+    self.assertEqual(states[3].value, api_messages.HostState.QUITTING.name)
+    self.assertEqual(states[4].value, api_messages.HostState.KILLING.name)
+
 
 if __name__ == '__main__':
   unittest.main()

@@ -217,3 +217,4 @@ class FilterHintType(messages.Enum):
   HOST = 3
   TEST_HARNESS = 4
   TEST_HARNESS_VERSION = 5
+  HOST_STATE = 7

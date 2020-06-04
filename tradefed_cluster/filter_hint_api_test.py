@@ -109,6 +109,22 @@ class FilterHintApiTest(api_test.ApiTest):
         device_serial='device_3',
         run_target='hammerhead')
 
+  def testListHostnames(self):
+    """Tests ListHosts returns all visible hostnames."""
+    host_list = [
+        datastore_test_util.CreateHost(cluster='paid', hostname='host_0'),
+        datastore_test_util.CreateHost(cluster='free', hostname='host_1')
+    ]
+    api_request = {'type': 'HOST'}
+    api_response = self.testapp.post_json(
+        '/_ah/api/FilterHintApi.ListFilterHints', api_request)
+    host_collection = protojson.decode_message(
+        api_messages.FilterHintCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(2, len(host_collection.filter_hints))
+    hosts = list(host_collection.filter_hints)
+    self.assertEqual(hosts[0].value, host_list[0].hostname)
+    self.assertEqual(hosts[1].value, host_list[1].hostname)
 
 if __name__ == '__main__':
   unittest.main()

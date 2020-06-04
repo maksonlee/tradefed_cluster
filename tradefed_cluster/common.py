@@ -214,3 +214,5 @@ class FilterHintType(messages.Enum):
   POOL = 0
   LAB = 1
   RUN_TARGET = 2
+  HOST = 3
+

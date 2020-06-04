@@ -57,6 +57,8 @@ class FilterHintApi(remote.Service):
       return self._ListLabs()
     elif request.type == common.FilterHintType.RUN_TARGET:
       return self._ListRunTargets()
+    elif request.type == common.FilterHintType.HOST:
+      return self._ListHosts()
     else:
       raise endpoints.BadRequestException("Invalid type: %s" % request.type)
 
@@ -81,5 +83,13 @@ class FilterHintApi(remote.Service):
     entities = device_manager.GetRunTargetsFromNDB()
     infos = [
         api_messages.FilterHintMessage(value=item) for item in entities
+    ]
+    return api_messages.FilterHintCollection(filter_hints=infos)
+
+  def _ListHosts(self):
+    """Fetches a list of hostnames."""
+    entities = datastore_entities.HostInfo.query().filter(
+        datastore_entities.HostInfo.hidden == False).fetch(keys_only=True)      infos = [
+        api_messages.FilterHintMessage(value=item.id()) for item in entities
     ]
     return api_messages.FilterHintCollection(filter_hints=infos)

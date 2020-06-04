@@ -184,12 +184,12 @@ def NotifyRequestState(request_id, force=False):
   """
   request = GetRequest(request_id)
   if not request:
-    logging.warn("Could not find request for request_id %s", request_id)
+    logging.warning("Could not find request for request_id %s", request_id)
     return None
   if not(force or request.notify_state_change):
-    logging.warn("Skipping notification for request_id %s because it is not"
-                 " dirty and we are not forcing notification.",
-                 request.key.id())
+    logging.warning("Skipping notification for request_id %s because it is not"
+                    " dirty and we are not forcing notification.",
+                    request.key.id())
     return request
   logging.debug(
       "NotifyRequestState notify request %s to %s state with reason %s",
@@ -231,6 +231,7 @@ def CreateRequestEventMessage(request):
   failed_test_count = 0
   passed_test_count = 0
   failed_test_run_count = 0
+  device_lost_detected = 0
   result_links = set()
   total_run_time_sec = 0
   error_type = None
@@ -249,6 +250,10 @@ def CreateRequestEventMessage(request):
       summary = attempt.summary or "No summary available."
       result_match = re.match(SPONGE_URI_PATTERN, summary)
       result_link = result_match.group(1) if result_match else ""
+
+      if attempt.device_lost_detected:
+        # Count devices lost regardless of the state of the attempt
+        device_lost_detected += attempt.device_lost_detected
 
       if run_count > 0 and attempt.state == common.CommandState.COMPLETED:
         if attempt.total_test_count:
@@ -297,7 +302,8 @@ def CreateRequestEventMessage(request):
       error_reason=error_reason,
       error_type=error_type,
       event_time=common.Now(),
-      failed_test_run_count=failed_test_run_count)
+      failed_test_run_count=failed_test_run_count,
+      device_lost_detected=device_lost_detected)
   return message
 
 
@@ -363,9 +369,9 @@ def GetRequestSummary(request_id):
       else:
         summary.end_time = max(command.end_time, summary.end_time)
 
-  command_map_str = '\n\t'.join(
-      '{}: {}'.format(state, ids) for state, ids in command_state_map.items())
-  logging.debug('Request summary:\n\t%s', command_map_str)
+  command_map_str = "\n\t".join(
+      "{}: {}".format(state, ids) for state, ids in command_state_map.items())
+  logging.debug("Request summary:\n\t%s", command_map_str)
   return summary
 
 

@@ -203,6 +203,7 @@ class CommandAttemptMessage(messages.Message):
     error_type: Error type get from error. See common.CommandErrorType.
     failed_test_run_count: Number of failed test run.
     device_serials: a list of device serials that the command attempt uses.
+    device_lost_detected: Number of devices lost.
   """
   request_id = messages.StringField(1, required=True)
   command_id = messages.StringField(2, required=True)
@@ -226,6 +227,7 @@ class CommandAttemptMessage(messages.Message):
   error_type = messages.EnumField(common.CommandErrorType, 19)
   failed_test_run_count = messages.IntegerField(20)
   device_serials = messages.StringField(21, repeated=True)
+  device_lost_detected = messages.IntegerField(22)
 
 
 class CommandAttemptMessageCollection(messages.Message):
@@ -352,6 +354,7 @@ class RequestEventMessage(messages.Message):
     error_reason: first error reason string in all attempts.
     error_type: first error type enum in all attempts.
     failed_test_run_count: failed test run count.
+    device_lost_detected: Number of devices lost.
 
   This is used in notifier when publishing request events.
   """
@@ -369,6 +372,7 @@ class RequestEventMessage(messages.Message):
   error_type = messages.EnumField(common.CommandErrorType, 12)
   event_time = message_types.DateTimeField(13)
   failed_test_run_count = messages.IntegerField(14)
+  device_lost_detected = messages.IntegerField(15)
 
 
 class Note(messages.Message):

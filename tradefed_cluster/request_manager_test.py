@@ -928,6 +928,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         failed_test_count=3,
         passed_test_count=2,
         failed_test_run_count=1,
+        device_lost_detected=2,
         start_time=datetime.datetime(2016, 12, 1, 0, 0, 0),
         end_time=datetime.datetime(2016, 12, 1, 0, 0, 1))
     request_manager.NotifyRequestState(REQUEST_ID, force=True)
@@ -942,6 +943,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         failed_test_count=3,
         passed_test_count=2,
         failed_test_run_count=1,
+        device_lost_detected=2,
         result_links=[self.v1_result_link],
         total_run_time_sec=1,
         event_time=self.END_TIME)
@@ -974,6 +976,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         failed_test_count=3,
         passed_test_count=2,
         failed_test_run_count=1,
+        device_lost_detected=0,
         result_links=[self.v2_result_link],
         total_run_time_sec=1,
         event_time=self.END_TIME)
@@ -991,6 +994,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         failed_test_count=3,
         passed_test_count=2,
         failed_test_run_count=1,
+        device_lost_detected=2,
         start_time=datetime.datetime(2016, 12, 1, 0, 0, 0),
         end_time=datetime.datetime(2016, 12, 1, 0, 0, 1))
     command_attempt2 = self._CreateTestCommandAttempt(
@@ -1000,6 +1004,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         failed_test_count=5,
         passed_test_count=5,
         failed_test_run_count=3,
+        device_lost_detected=3,
         start_time=datetime.datetime(2016, 12, 1, 0, 0, 0),
         end_time=datetime.datetime(2016, 12, 1, 0, 0, 1))
     request_manager.NotifyRequestState(REQUEST_ID, force=True)
@@ -1014,6 +1019,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         failed_test_count=command_attempt2.failed_test_count,
         passed_test_count=command_attempt2.passed_test_count,
         failed_test_run_count=command_attempt2.failed_test_run_count,
+        device_lost_detected=5,
         result_links=[self.v1_result_link],
         total_run_time_sec=2,
         event_time=self.END_TIME)
@@ -1029,6 +1035,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
       attempt = self._CreateTestCommandAttempt(
           command,
           state=common.CommandState.ERROR,
+          device_lost_detected=1,
           start_time=datetime.datetime(2016, 12, 1, 0, 0, 0),
           end_time=datetime.datetime(2016, 12, 1, 0, 0, 1))
       attempts.append(attempt)
@@ -1045,6 +1052,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         failed_test_count=0,
         passed_test_count=0,
         failed_test_run_count=0,
+        device_lost_detected=3,
         result_links=[self.v1_result_link],
         total_run_time_sec=3,
         error_reason="UnknownErrorReason",
@@ -1078,6 +1086,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         failed_test_count=0,
         passed_test_count=0,
         failed_test_run_count=0,
+        device_lost_detected=0,
         result_links=[self.v1_result_link],
         total_run_time_sec=1,
         error_reason="ConfigurationError",
@@ -1112,6 +1121,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         failed_test_count=0,
         passed_test_count=0,
         failed_test_run_count=0,
+        device_lost_detected=0,
         result_links=[self.v1_result_link],
         total_run_time_sec=3,
         error_reason="BuildRetrievalError",
@@ -1135,6 +1145,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
           failed_test_count=i,
           passed_test_count=5-i,
           failed_test_run_count=i,
+          device_lost_detected=1,
           start_time=datetime.datetime(2016, 12, 1, 0, 0, 0),
           end_time=datetime.datetime(2016, 12, 1, 0, 0, 1))
       attempts.append(attempt)
@@ -1151,6 +1162,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         failed_test_count=1,
         passed_test_count=9,
         failed_test_run_count=1,
+        device_lost_detected=2,
         result_links=[self.v1_result_link],
         total_run_time_sec=2,
         event_time=self.END_TIME)
@@ -1172,6 +1184,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
           failed_test_count=1,
           passed_test_count=1,
           failed_test_run_count=1,
+          device_lost_detected=1,
           start_time=datetime.datetime(2016, 12, 1, 0, 0, 0),
           end_time=datetime.datetime(2016, 12, 1, 0, 0, 1))
       attempts.append(attempt)
@@ -1188,6 +1201,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         failed_test_count=2,
         passed_test_count=2,
         failed_test_run_count=2,
+        device_lost_detected=2,
         result_links=[self.v1_result_link],
         total_run_time_sec=2,
         event_time=self.END_TIME)
@@ -1208,6 +1222,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     attempt.failed_test_count = None
     attempt.passed_test_count = None
     attempt.failed_test_run_count = None
+    attempt.device_lost_detected = None
     attempt.put()
     request_manager.NotifyRequestState(REQUEST_ID, force=True)
 
@@ -1221,6 +1236,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         failed_test_count=0,
         passed_test_count=0,
         failed_test_run_count=0,
+        device_lost_detected=0,
         total_run_time_sec=1,
         event_time=self.END_TIME)
     self._AssertRequestEventMessageInQueue(msg)
@@ -1247,6 +1263,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         total_test_count=0,
         failed_test_count=0,
         passed_test_count=0,
+        device_lost_detected=0,
         result_links=[self.v1_result_link],
         total_run_time_sec=0,
         event_time=self.END_TIME,
@@ -1284,10 +1301,17 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self._command_id += 1
     return command
 
-  def _CreateTestCommandAttempt(self, command, state, total_test_count=1,
-                                failed_test_count=1, passed_test_count=0,
-                                failed_test_run_count=1, start_time=None,
-                                end_time=None, result_link=None):
+  def _CreateTestCommandAttempt(self,
+                                command,
+                                state,
+                                total_test_count=1,
+                                failed_test_count=1,
+                                passed_test_count=0,
+                                failed_test_run_count=1,
+                                device_lost_detected=0,
+                                start_time=None,
+                                end_time=None,
+                                result_link=None):
     """Creates a CommandAttempt associated with a Command."""
     if not result_link:
       result_link = self.v1_result_link
@@ -1304,6 +1328,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         failed_test_count=failed_test_count,
         passed_test_count=passed_test_count,
         failed_test_run_count=failed_test_run_count,
+        device_lost_detected=device_lost_detected,
         start_time=start_time,
         end_time=end_time)
     command_attempt.put()
@@ -1331,6 +1356,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(queue_message.passed_test_count, message.passed_test_count)
     self.assertEqual(queue_message.failed_test_run_count,
                      message.failed_test_run_count)
+    self.assertEqual(queue_message.device_lost_detected,
+                     message.device_lost_detected)
     self.assertEqual(queue_message.result_links, message.result_links)
     self.assertEqual(queue_message.total_run_time_sec,
                      message.total_run_time_sec)

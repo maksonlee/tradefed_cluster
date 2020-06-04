@@ -81,8 +81,7 @@ class FilterHintApiTest(api_test.ApiTest):
     self.assertEqual(run_targets[1].value, 'shamu')
 
   def _setUpRunTarget(self):
-    datastore_test_util.CreateHost(
-        cluster='free', hostname='host_0')
+    datastore_test_util.CreateHost(cluster='free', hostname='host_0')
     datastore_test_util.CreateDevice(
         cluster='free',
         hostname='host_0',
@@ -94,15 +93,13 @@ class FilterHintApiTest(api_test.ApiTest):
         device_serial='device_1',
         run_target='shamu')
 
-    datastore_test_util.CreateHost(
-        cluster='free', hostname='host_1')
+    datastore_test_util.CreateHost(cluster='free', hostname='host_1')
     datastore_test_util.CreateDevice(
         cluster='free',
         hostname='host_1',
         device_serial='device_2',
         run_target='hammerhead')
-    datastore_test_util.CreateHost(
-        cluster='presubmit', hostname='host_2')
+    datastore_test_util.CreateHost(cluster='presubmit', hostname='host_2')
     datastore_test_util.CreateDevice(
         cluster='presubmit',
         hostname='host_2',
@@ -125,6 +122,38 @@ class FilterHintApiTest(api_test.ApiTest):
     hosts = list(host_collection.filter_hints)
     self.assertEqual(hosts[0].value, host_list[0].hostname)
     self.assertEqual(hosts[1].value, host_list[1].hostname)
+
+  def testListTestHarness(self):
+    """Tests ListTestHarness."""
+    datastore_test_util.CreateHost(
+        cluster='free',
+        hostname='host_0',
+        timestamp=self.TIMESTAMP,
+    )
+    datastore_test_util.CreateHost(
+        cluster='paid',
+        hostname='host_1',
+        timestamp=self.TIMESTAMP,
+        test_runner='mobile harness',
+        test_runner_version='3.0.1',
+    )
+    datastore_test_util.CreateHost(
+        cluster='free',
+        hostname='host_2',
+        lab_name='alab',
+        assignee='auser',
+        hidden=True,
+    )
+    api_request = {'type': 'TEST_HARNESS'}
+    api_response = self.testapp.post_json(
+        '/_ah/api/FilterHintApi.ListFilterHints', api_request)
+    test_harness_collection = protojson.decode_message(
+        api_messages.FilterHintCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(2, len(test_harness_collection.filter_hints))
+    harness = list(test_harness_collection.filter_hints)
+    self.assertEqual(harness[0].value, 'mobile harness')
+    self.assertEqual(harness[1].value, 'tradefed')
 
 if __name__ == '__main__':
   unittest.main()

@@ -524,7 +524,9 @@ def CommandAttemptToMessage(command_attempt):
       failed_test_run_count=command_attempt.failed_test_run_count,
       create_time=command_attempt.create_time,
       update_time=command_attempt.update_time,
-      device_serials=command_attempt.device_serials)
+      device_serials=command_attempt.device_serials,
+      run_index=command_attempt.run_index,
+      attempt_index=command_attempt.attempt_index)
 
 
 class Note(ndb.Model):

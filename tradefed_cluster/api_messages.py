@@ -204,6 +204,10 @@ class CommandAttemptMessage(messages.Message):
     failed_test_run_count: Number of failed test run.
     device_serials: a list of device serials that the command attempt uses.
     device_lost_detected: Number of devices lost.
+    run_index: run index from [0, run_count). The (run_index, attempt_index)
+      tuple should be unique for a given command.
+    attempt_index: attempt index. The (run_index, attempt_index) tuple should be
+      unique for a given command.
   """
   request_id = messages.StringField(1, required=True)
   command_id = messages.StringField(2, required=True)
@@ -228,6 +232,8 @@ class CommandAttemptMessage(messages.Message):
   failed_test_run_count = messages.IntegerField(20)
   device_serials = messages.StringField(21, repeated=True)
   device_lost_detected = messages.IntegerField(22)
+  run_index = messages.IntegerField(23)
+  attempt_index = messages.IntegerField(24)
 
 
 class CommandAttemptMessageCollection(messages.Message):

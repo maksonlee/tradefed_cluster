@@ -546,7 +546,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         request_id, command_id, "0", "InvocationInitiated")
     queried_command = command_manager.GetCommand(request_id, command_id)
     self.assertNotEqual(common.CommandState.RUNNING, queried_command.state)
-    mock_get_active_task_count.return_value = 1
+    mock_get_active_task_count.return_value = 2
     command_event_test_util.CreateCommandAttempt(
         self.command, "0", state=common.CommandState.UNKNOWN)
     command_event_handler.ProcessCommandEvent(invocation_started_event)
@@ -586,7 +586,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         request_id, command_id, "0", "InvocationStarted")
     queried_command = command_manager.GetCommand(request_id, command_id)
     self.assertNotEqual(common.CommandState.RUNNING, queried_command.state)
-    mock_get_active_task_count.return_value = 1
+    mock_get_active_task_count.return_value = 2
     command_event_test_util.CreateCommandAttempt(
         self.command, "0", state=common.CommandState.UNKNOWN)
     command_event_handler.ProcessCommandEvent(invocation_started_event)
@@ -620,7 +620,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         device_serials=["d1", "d2"])
     queried_command = command_manager.GetCommand(request_id, command_id)
     self.assertNotEqual(common.CommandState.RUNNING, queried_command.state)
-    mock_get_active_task_count.return_value = 1
+    mock_get_active_task_count.return_value = 2
     command_event_test_util.CreateCommandAttempt(
         self.command, "0", state=common.CommandState.UNKNOWN)
     command_event_handler.ProcessCommandEvent(invocation_started_event)
@@ -663,7 +663,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         request_id, command_id, "0", "TestRunInProgress")
     queried_command = command_manager.GetCommand(request_id, command_id)
     self.assertNotEqual(common.CommandState.RUNNING, queried_command.state)
-    mock_get_active_task_count.return_value = 1
+    mock_get_active_task_count.return_value = 2
     command_event_test_util.CreateCommandAttempt(
         self.command, "0", state=common.CommandState.UNKNOWN)
     command_event_handler.ProcessCommandEvent(test_run_started_event)
@@ -704,7 +704,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         request_id, command_id, "0", "InvocationEnded")
     queried_command = command_manager.GetCommand(request_id, command_id)
     self.assertNotEqual(common.CommandState.RUNNING, queried_command.state)
-    mock_get_active_task_count.return_value = 1
+    mock_get_active_task_count.return_value = 2
     command_event_test_util.CreateCommandAttempt(
         self.command, "0", state=common.CommandState.UNKNOWN)
     command_event_handler.ProcessCommandEvent(invocation_ended_event)

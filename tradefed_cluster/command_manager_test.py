@@ -1267,7 +1267,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
   @mock.patch.object(request_manager, "EvaluateState")
   @mock.patch.object(command_manager, "DeleteTask")
   @mock.patch.object(command_manager, "RescheduleTask")
-  @mock.patch.object(command_manager, "GetActiveTaskCount", return_value=1)
+  @mock.patch.object(command_manager, "GetActiveTaskCount", return_value=2)
   @mock.patch.object(command_manager, "UpdateCommandAttempt", return_value=True)
   def testProcessCommandEvent_nonFinal_delete(
       self, update, task_count, reschedule, delete, eval_req,

@@ -459,9 +459,11 @@ def _RescheduleOrDeleteTask(
       "command.state = %s, command.run_count = %r, completed_count = %r.",
       command.state.name, command.run_count, completed_count)
 
-  if active_task_count + completed_count < command.run_count:
+  # Since the task to rescheduled is active, we reschedule even if the active
+  # tasks and completed runs are equal to the run_count.
+  if active_task_count + completed_count <= command.run_count:
     logging.debug(
-        "active_task_count %r + completed_count %r < run_count %r, "
+        "active_task_count %r + completed_count %r <= run_count %r, "
         "reschedule %r.",
         active_task_count, completed_count, command.run_count, task_id)
     RescheduleTask(task_id, command, run_index, attempt_index)

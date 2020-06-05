@@ -174,6 +174,8 @@ class CommandTaskApi(remote.Service):
               device_serials=[match.device_serial for match in matched_devices],
               shard_count=task.shard_count,
               shard_index=task.shard_index,
+              run_index=task.run_index,
+              attempt_index=task.attempt_index,
               plugin_data=plugin_data_))
       # b/27136167: Touch command to prevent coordinator from cancelling
       # during task lease.

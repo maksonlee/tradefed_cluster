@@ -452,6 +452,8 @@ def _RescheduleOrDeleteTask(
   attempt_index = 0
   if summary:
     completed_count = summary.completed_count
+    if summary.completed_fail_count <= max_retry_on_test_failures:
+      completed_count -= summary.completed_fail_count
     run_index, attempt_index = summary.ScheduleTask(
         max_retry_on_test_failures=max_retry_on_test_failures)
 

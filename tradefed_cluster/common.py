@@ -115,6 +115,16 @@ class DeviceState(object):
   UNAVAILABLE = "Unavailable"
   UNKNOWN = "Unknown"
 
+DEVICE_ALL_STATES = (
+    DeviceState.ALLOCATED,
+    DeviceState.AVAILABLE,
+    DeviceState.CHECKING,
+    DeviceState.FASTBOOT,
+    DeviceState.GONE,
+    DeviceState.IGNORED,
+    DeviceState.UNAVAILABLE,
+    DeviceState.UNKNOWN
+)
 
 DEVICE_ONLINE_STATES = (
     DeviceState.ALLOCATED,
@@ -217,4 +227,5 @@ class FilterHintType(messages.Enum):
   HOST = 3
   TEST_HARNESS = 4
   TEST_HARNESS_VERSION = 5
+  DEVICE_STATE = 6
   HOST_STATE = 7

@@ -20,6 +20,7 @@ from protorpc import protojson
 
 from tradefed_cluster import api_messages
 from tradefed_cluster import api_test
+from tradefed_cluster import common
 from tradefed_cluster import datastore_test_util
 
 
@@ -202,6 +203,25 @@ class FilterHintApiTest(api_test.ApiTest):
     self.assertEqual(states[2].value, api_messages.HostState.RUNNING.name)
     self.assertEqual(states[3].value, api_messages.HostState.QUITTING.name)
     self.assertEqual(states[4].value, api_messages.HostState.KILLING.name)
+
+  def testListDeviceStates(self):
+    """Tests ListDeviceStates."""
+    api_request = {'type': 'DEVICE_STATE'}
+    api_response = self.testapp.post_json(
+        '/_ah/api/FilterHintApi.ListFilterHints', api_request)
+    device_state_collection = protojson.decode_message(
+        api_messages.FilterHintCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(8, len(device_state_collection.filter_hints))
+    states = list(device_state_collection.filter_hints)
+    self.assertEqual(states[0].value, common.DeviceState.ALLOCATED)
+    self.assertEqual(states[1].value, common.DeviceState.AVAILABLE)
+    self.assertEqual(states[2].value, common.DeviceState.CHECKING)
+    self.assertEqual(states[3].value, common.DeviceState.FASTBOOT)
+    self.assertEqual(states[4].value, common.DeviceState.GONE)
+    self.assertEqual(states[5].value, common.DeviceState.IGNORED)
+    self.assertEqual(states[6].value, common.DeviceState.UNAVAILABLE)
+    self.assertEqual(states[7].value, common.DeviceState.UNKNOWN)
 
 
 if __name__ == '__main__':

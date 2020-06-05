@@ -65,6 +65,8 @@ class FilterHintApi(remote.Service):
       return self._ListTestHarnessVersion()
     elif request.type == common.FilterHintType.HOST_STATE:
       return self._ListHostStates()
+    elif request.type == common.FilterHintType.DEVICE_STATE:
+      return self._ListDeviceStates()
     else:
       raise endpoints.BadRequestException("Invalid type: %s" % request.type)
 
@@ -131,3 +133,13 @@ class FilterHintApi(remote.Service):
         for state in api_messages.HostState
     ]
     return api_messages.FilterHintCollection(filter_hints=infos)
+
+  def _ListDeviceStates(self):
+    """Fetches a list of device state."""
+    entities = list(common.DEVICE_ALL_STATES)
+    infos = [
+        api_messages.FilterHintMessage(value=state)
+        for state in entities
+    ]
+    return api_messages.FilterHintCollection(filter_hints=infos)
+

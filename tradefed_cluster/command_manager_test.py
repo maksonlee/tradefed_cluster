@@ -1710,30 +1710,6 @@ class CommandSummaryTest(unittest.TestCase):
     state = self.summary.GetState(common.CommandState.UNKNOWN)
     self.assertEqual(state, common.CommandState.QUEUED)
 
-  def testRemainingRunCount_no_retry_on_test_failure(self):
-    # Command has run_count = 3
-    self.summary.total_count = 3
-    self.summary.completed_count = 3
-    self.summary.completed_fail_count = 3
-    run_count = self.summary.RemainingRunCount()
-    self.assertEqual(run_count, 0)
-
-  def testRemainingRunCount_retry_on_test_failure(self):
-    # Command has run_count = 3
-    self.summary.total_count = 3
-    self.summary.completed_count = 3
-    self.summary.completed_fail_count = 3
-    run_count = self.summary.RemainingRunCount(max_retry_on_test_failures=2)
-    self.assertEqual(run_count, 0)
-
-  def testRemainingRunCount_more_retry_on_test_failure(self):
-    # Command has run_count = 3
-    self.summary.total_count = 3
-    self.summary.completed_count = 3
-    self.summary.completed_fail_count = 3
-    run_count = self.summary.RemainingRunCount(max_retry_on_test_failures=4)
-    self.assertEqual(run_count, 3)
-
 
 if __name__ == "__main__":
   unittest.main()

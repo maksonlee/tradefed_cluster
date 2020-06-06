@@ -242,24 +242,6 @@ class CommandSummary(object):
       return common.CommandState.RUNNING
     return common.CommandState.QUEUED
 
-  def RemainingRunCount(self, max_retry_on_test_failures=0):
-    """The number of successful CommandAttempts needed to complete the Command.
-
-    Args:
-      max_retry_on_test_failures: The max number of attempts with test failures
-        to retry.
-
-    Returns:
-      The number of CommandAttempts which would need to complete successfully in
-        order for the Command to be considered complete.
-    """
-    # If max_retry_on_test_failures is set, ignore failed attempts up to
-    # the number.
-    completed_count = self.completed_count
-    if self.completed_fail_count <= max_retry_on_test_failures:
-      completed_count -= self.completed_fail_count
-    return len(self.runs) - completed_count
-
 
 class RunSummary(object):
   """Run summary for a particular run index of a command's attempts."""

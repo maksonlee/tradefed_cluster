@@ -141,18 +141,19 @@ def RescheduleTask(task_id, run_index, attempt_index):
     attempt_index: the new attempt index
   """
   task = _Key(task_id).get()
-  if task.leasable:
-    # Ignore leasable tasks
-    return
 
   if task:
+    if task.leasable:
+      # Ignore leasable tasks
+      logging.info('%s isn\'t leasable, don\'t reschedule', str(task_id))
+      return
     task.leasable = True
     task.run_index = run_index
     task.attempt_index = attempt_index
     task.put()
   else:
-    logging.warn('%s doesn\'t exist in task store, don\'t reschedule',
-                 str(task_id))
+    logging.warning(
+        '%s doesn\'t exist in task store, don\'t reschedule', str(task_id))
 
 
 def GetLeasableTasks(cluster, run_targets):

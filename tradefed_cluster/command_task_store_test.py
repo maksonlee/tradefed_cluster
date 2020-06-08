@@ -56,8 +56,6 @@ class TaskStoreTest(testbed_dependent_test.TestbedDependentTest):
         task_id='task_id1',
         command_line='command_line1',
         run_count=1,
-        run_index=0,
-        attempt_index=0,
         shard_count=None,
         shard_index=None,
         cluster='cluster',
@@ -71,8 +69,6 @@ class TaskStoreTest(testbed_dependent_test.TestbedDependentTest):
         task_id='task_id2',
         command_line='command_line2',
         run_count=1,
-        run_index=0,
-        attempt_index=0,
         shard_count=None,
         shard_index=None,
         cluster='cluster',
@@ -125,8 +121,6 @@ class TaskStoreTest(testbed_dependent_test.TestbedDependentTest):
         task_id='task_id3',
         command_line=command_line,
         run_count=1,
-        run_index=0,
-        attempt_index=0,
         shard_count=None,
         shard_index=None,
         cluster='cluster',
@@ -201,11 +195,9 @@ class TaskStoreTest(testbed_dependent_test.TestbedDependentTest):
     self.assertTrue(command_task_store.LeaseTask('task_id1'))
     task = command_task_store._Key('task_id1').get()
     self.assertFalse(task.leasable)
-    command_task_store.RescheduleTask('task_id1', 1, 2)
+    command_task_store.RescheduleTask('task_id1')
     task = command_task_store._Key('task_id1').get()
     self.assertTrue(task.leasable)
-    self.assertEqual(1, task.run_index)
-    self.assertEqual(2, task.attempt_index)
 
   def testGetActiveTaskCount(self):
     count = command_task_store.GetActiveTaskCount([

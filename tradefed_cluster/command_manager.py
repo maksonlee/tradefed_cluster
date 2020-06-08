@@ -242,6 +242,24 @@ class CommandSummary(object):
       return common.CommandState.RUNNING
     return common.CommandState.QUEUED
 
+  def RemainingRunCount(self, max_retry_on_test_failures=0):
+    """The number of successful CommandAttempts needed to complete the Command.
+
+    Args:
+      max_retry_on_test_failures: The max number of attempts with test failures
+        to retry.
+
+    Returns:
+      The number of CommandAttempts which would need to complete successfully in
+        order for the Command to be considered complete.
+    """
+    # If max_retry_on_test_failures is set, ignore failed attempts up to
+    # the number.
+    completed_count = self.completed_count
+    if self.completed_fail_count <= max_retry_on_test_failures:
+      completed_count -= self.completed_fail_count
+    return len(self.runs) - completed_count
+
 
 class RunSummary(object):
   """Run summary for a particular run index of a command's attempts."""
@@ -314,8 +332,7 @@ def EnsureLeasable(command):
         create_timestamp=command.create_time,
         command_action=metric.CommandAction.ENSURE_LEASABLE,
         count=True)
-    command_task_store.RescheduleTask(
-        task_id, task.run_index, task.attempt_index)
+    command_task_store.RescheduleTask(task_id)
     logging.info("Done rescheduling task %s", task_id)
     has_tasks = True
   if not has_tasks:
@@ -324,23 +341,31 @@ def EnsureLeasable(command):
     raise CommandTaskNotFoundError("Command %s is not leasable" % command)
 
 
-@ndb.transactional(xg=True)
+def EvaluateState(request_id, command_id, force=False):
+  """Evaluate command state with its attempts.
+
+  Args:
+    request_id: request id
+    command_id: command id
+    force: Whether to force the update regardless of the dirty bit.
+  Returns:
+    command: a command entity, read only
+    remaining_run_count: a remaining run count towards the command completion,
+  """
+  return _UpdateState(request_id, command_id, force=force)
+
+
+@ndb.transactional
 def _UpdateState(
-    request_id, command_id, state=None, force=False, cancel_reason=None,
-    task_id=None):
+    request_id, command_id, state=None, force=False, cancel_reason=None):
   """Updates state of the command based on state of the command attempts.
 
   Attempts to update the state of a command to a new state, based on the
   command's current state and the states of the command attempts. Depending
   on those factors, the state may not change, or may even change to a state
   different from the input.
-
   It may update command's request's dirty bit, but it will not update any other
   field for the request.
-
-  It may reschedule a task, setting the appropritate run_index and attempt_index
-  based on the previous command attempts.
-
   Use in a function within a transaction
 
   Args:
@@ -349,9 +374,9 @@ def _UpdateState(
     state: The new state the command should attempt to transition to.
     force: Whether to force the update regardless of the dirty bit.
     cancel_reason: cancel reason
-    task_id: the task id to reschedule
   Returns:
     command: a updated command entity, read only
+    remaining_run_count: a remaining run count towards the command completion,
   """
   entities_to_update = []
   request = request_manager.GetRequest(request_id)
@@ -361,25 +386,27 @@ def _UpdateState(
                " to %s" % state.name if state is not None else "")
   summary = GetCommandSummary(request_id, command_id, command.run_count)
 
-  max_retry_on_test_failures = request.max_retry_on_test_failures or 0
+  max_retries_on_failure = request.max_retry_on_test_failures or 0
   if not (force or command.dirty):
     logging.info("%s doesn't need to be updated", command.key.id())
-    _RescheduleOrDeleteTask(
-        task_id, command, summary,
-        max_retry_on_test_failures=max_retry_on_test_failures)
-    return command
+    if summary:
+      return command, summary.RemainingRunCount(max_retries_on_failure)
+    return command, 0
   state = state or command.state
   start_time = None
   end_time = None
+  remaining_run_count = 0
 
   if summary:
     state = summary.GetState(
         state,
-        max_retry_on_test_failures=max_retry_on_test_failures,
+        max_retry_on_test_failures=max_retries_on_failure,
         max_canceled_count=_GetCommandMaxCancelCount(command),
         max_error_count=_GetCommandMaxErrorCount(command))
     start_time = summary.start_time
     end_time = summary.end_time
+    remaining_run_count = summary.RemainingRunCount(
+        max_retry_on_test_failures=max_retries_on_failure)
 
   if state and state != command.state:
     command.state = state
@@ -392,17 +419,12 @@ def _UpdateState(
       cancel_reason is not None):
     command.cancel_reason = cancel_reason
 
-  if task_id and not common.IsFinalCommandState(command.state):
-    _RescheduleOrDeleteTask(
-        task_id, command, summary,
-        max_retry_on_test_failures=max_retry_on_test_failures)
-
   command.start_time = start_time or command.start_time
   command.end_time = end_time or command.end_time
   command.dirty = False
   entities_to_update.append(command)
   ndb.put_multi(entities_to_update)
-  return command
+  return command, remaining_run_count
 
 
 def _GetCommandMaxCancelCount(command):
@@ -414,45 +436,6 @@ def _GetCommandMaxCancelCount(command):
 def _GetCommandMaxErrorCount(command):
   """Get a command's max error count."""
   return MAX_ERROR_COUNT_BASE + int(command.run_count * MAX_ERROR_COUNT_RATIO)
-
-
-def _RescheduleOrDeleteTask(
-    task_id, command, summary, max_retry_on_test_failures=0):
-  """Reschdules a task if more tasks are needed, or deletes it.
-
-  Args:
-    task_id: the id of the task to schedule
-    command: the command
-    summary: the CommandSummary, needed for the next run_index and
-      attempt_index. If none, will fall back to 0, 0.
-    max_retry_on_test_failures: The max number of attempts with test failures
-      to retry.
-  """
-  active_task_count = GetActiveTaskCount(command)
-  completed_count = 0
-  run_index = 0
-  attempt_index = 0
-  if summary:
-    completed_count = summary.completed_count
-    if summary.completed_fail_count <= max_retry_on_test_failures:
-      completed_count -= summary.completed_fail_count
-    run_index, attempt_index = summary.ScheduleTask(
-        max_retry_on_test_failures=max_retry_on_test_failures)
-
-  logging.info(
-      "command.state = %s, command.run_count = %r, completed_count = %r.",
-      command.state.name, command.run_count, completed_count)
-
-  # Since the task to rescheduled is active, we reschedule even if the active
-  # tasks and completed runs are equal to the run_count.
-  if active_task_count + completed_count <= command.run_count:
-    logging.debug(
-        "active_task_count %r + completed_count %r <= run_count %r, "
-        "reschedule %r.",
-        active_task_count, completed_count, command.run_count, task_id)
-    RescheduleTask(task_id, command, run_index, attempt_index)
-  else:
-    DeleteTask(task_id)
 
 
 def AddToSyncCommandAttemptQueue(attempt):
@@ -616,10 +599,23 @@ def ProcessCommandEvent(event):
         state=event.attempt_state.name)
 
   # Update command.
-  command = _UpdateState(
-      event.request_id, event.command_id, task_id=event.task_id)
+  command, remaining_run_count = EvaluateState(
+      event.request_id, event.command_id)
+  logging.info("command.state = %s and remaining run count is %r.",
+               command.state.name, remaining_run_count)
 
-  if common.IsFinalCommandState(command.state):
+  if not common.IsFinalCommandState(command.state):
+    # If the task is done, decide whether to delete or reschedule it
+    if common.IsFinalCommandState(event.attempt_state):
+      active_task_count = GetActiveTaskCount(command)
+      if active_task_count <= remaining_run_count:
+        logging.debug(
+            "Active task count %r <= remaining_run_count %r, reschedule %r.",
+            active_task_count, remaining_run_count, event.task_id)
+        RescheduleTask(event.task_id, command)
+      else:
+        DeleteTask(event.task_id)
+  else:
     # Deschedule command since the state indicates that it is not supposed
     # to run anymore.
     logging.debug("Command %r is finalized, delete all its tasks.",
@@ -663,15 +659,13 @@ def _ScheduleTasksToCommandTaskStore(command):
   Args:
     command: command to schedule tasks, read only
   """
-  for i, task_id in enumerate(_GetCommandTaskIds(command)):
+  for task_id in _GetCommandTaskIds(command):
     command_task_args = command_task_store.CommandTaskArgs(
         request_id=command.request_id,
         command_id=command.key.id(),
         task_id=task_id,
         command_line=command.command_line,
         run_count=command.run_count,
-        run_index=i,
-        attempt_index=0,
         shard_count=command.shard_count,
         shard_index=command.shard_index,
         cluster=command.cluster,
@@ -683,18 +677,16 @@ def _ScheduleTasksToCommandTaskStore(command):
       logging.warn("task %s already exists", task_id)
 
 
-def RescheduleTask(task_id, command, run_index, attempt_index):
+def RescheduleTask(task_id, command):
   """Reschedules a command task.
 
   Args:
     task_id: a command task ID.
     command: a command entity, read only
-    run_index: the new run index fo the task
-    attempt_index: the new attempt index for the task
   Raises:
     CommandTaskNotFoundError: a task is not found.
   """
-  command_task_store.RescheduleTask(task_id, run_index, attempt_index)
+  command_task_store.RescheduleTask(task_id)
   metric.RecordCommandTimingMetric(
       cluster_id=command.cluster,
       run_target=command.run_target,
@@ -711,7 +703,8 @@ def _GetCommandTaskIds(command):
   # completed tasks will be rescheduled as needed.
   task_count = min(command.run_count, MAX_TASK_COUNT)
   _, request_id, _, command_id = command.key.flat()
-  return ["%s-%s-%s" % (request_id, command_id, i) for i in range(task_count)]
+  return ["%s-%s-%s" % (request_id, command_id, i)
+          for i in range(task_count)]
 
 
 def CreateCommands(request_id,
@@ -969,7 +962,7 @@ def Cancel(request_id, command_id, cancel_reason=None):
     command: a command entity, read only
   """
   command = GetCommand(request_id, command_id)
-  command = _UpdateState(
+  command, _ = _UpdateState(
       request_id, command_id,
       common.CommandState.CANCELED,
       force=True,

@@ -338,8 +338,6 @@ class CommandTaskApiTest(api_test.ApiTest):
             command_id='2',
             command_line='command',
             device_serials=['d1'],
-            run_index=0,
-            attempt_index=0,
             plugin_data=[
                 api_messages.KeyValuePair(key='ants_invocation_id',
                                           value='i123'),
@@ -352,8 +350,6 @@ class CommandTaskApiTest(api_test.ApiTest):
             command_id='3',
             command_line='command',
             device_serials=['d3'],
-            run_index=0,
-            attempt_index=0,
             plugin_data=[
                 api_messages.KeyValuePair(key='ants_invocation_id',
                                           value=''),

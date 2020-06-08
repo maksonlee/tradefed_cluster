@@ -74,8 +74,6 @@ def CreateCommandAttempt(command,
                          start_time=None,
                          end_time=None,
                          update_time=None,
-                         attempt_index=0,
-                         run_index=0,
                          task_id=TASK_ID):
   """Helper to create a command attempt."""
   command_attempt = datastore_entities.CommandAttempt(
@@ -90,8 +88,6 @@ def CreateCommandAttempt(command,
       state=state,
       start_time=start_time,
       end_time=end_time,
-      update_time=update_time,
-      attempt_index=attempt_index,
-      run_index=run_index)
+      update_time=update_time)
   command_attempt.put()
   return command_attempt

@@ -76,12 +76,6 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
         command_lines=[command_line])[0]
     return command
 
-  def _CreateCommands(self):
-    self._CreateCommand("1001", command_line="command_line1")
-    self._CreateCommand("1002", command_line="command_line2")
-    self._CreateCommand("1003", command_line="command_line3")
-    self._CreateCommand("1004", command_line="command_line4")
-
   def testCreateCommands(self):
     commands = command_manager.CreateCommands(
         request_id=REQUEST_ID,
@@ -161,8 +155,6 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
             task_id="1-1-0",
             command_line=command.command_line,
             run_count=command.run_count,
-            run_index=0,
-            attempt_index=0,
             shard_count=command.shard_count,
             shard_index=command.shard_index,
             cluster=command.cluster,
@@ -176,8 +168,6 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
             task_id="1-1-1",
             command_line=command.command_line,
             run_count=command.run_count,
-            run_index=1,
-            attempt_index=0,
             shard_count=command.shard_count,
             shard_index=command.shard_index,
             cluster=command.cluster,
@@ -229,8 +219,6 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
               task_id="%s-%s-0" % (command.request_id, command.key.id()),
               command_line=command.command_line,
               run_count=command.run_count,
-              run_index=0,
-              attempt_index=0,
               shard_count=command.shard_count,
               shard_index=command.shard_index,
               cluster=command.cluster,
@@ -271,7 +259,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     command = self._CreateCommand()
     command_manager.ScheduleTasks([command])
     command_manager.EnsureLeasable(command)
-    reschedule_task.assert_called_once_with("1-1-0", 0, 0)
+    reschedule_task.assert_called_once_with("1-1-0")
 
   @mock.patch.object(command_task_store, "RescheduleTask")
   def testEnsureLeasable_invalidTask(self, reschedule_task):
@@ -286,7 +274,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     command_manager.ScheduleTasks([command])
     command_task_store.DeleteTask("1-1-0")
     command_manager.EnsureLeasable(command)
-    reschedule_task.assert_called_once_with("1-1-1", 1, 0)
+    reschedule_task.assert_called_once_with("1-1-1")
 
   def testGetActiveTaskCount(self):
     command = self._CreateCommand(run_count=2)
@@ -299,8 +287,8 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     command = self._CreateCommand()
     command_manager.ScheduleTasks([command])
     task_id = "1-1-0"
-    command_manager.RescheduleTask(task_id, command, 0, 0)
-    reschedule_task.assert_called_once_with(task_id, 0, 0)
+    command_manager.RescheduleTask(task_id, command)
+    reschedule_task.assert_called_once_with(task_id)
 
   def testGetCommandSummary_noCommandAttempts(self):
     """Tests command_manager.GetCommandSummary() with no command attempts."""
@@ -386,10 +374,8 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(datetime_2, summary.start_time)
     self.assertEqual(datetime_3, summary.end_time)
 
-  @mock.patch.object(command_manager, "DeleteTask")
-  @mock.patch.object(command_manager, "RescheduleTask")
-  def testUpdateState(self, reschedule, delete):
-    """Tests command_manager._UpdateState."""
+  def testEvaluateState(self):
+    """Tests command_manager.EvaluateState."""
     datetime_0 = datetime.datetime(2015, 1, 1)
     datetime_1 = datetime.datetime(2015, 7, 18)
 
@@ -420,10 +406,9 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.CommandState.UNKNOWN, command.state)
     self.assertTrue(command.dirty)
 
-    command = command_manager._UpdateState(request_id, command_id)
-
-    reschedule.assert_not_called()
-    delete.assert_not_called()
+    command, remaining_run_count = command_manager.EvaluateState(
+        request_id, command_id)
+    self.assertEqual(0, remaining_run_count)
     self.assertEqual(common.CommandState.COMPLETED, command.state)
     self.assertEqual(datetime_0, command.start_time)
     self.assertEqual(datetime_1, command.end_time)
@@ -486,9 +471,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     # Thread1 first transcation failed, and the second attempt succeeded.
     self.assertEqual(2, counts["thread1"])
 
-  @mock.patch.object(command_manager, "DeleteTask")
-  @mock.patch.object(command_manager, "RescheduleTask")
-  def testUpdateState_commandAttemptCompletion(self, reschedule, delete):
+  def testEvaluateState_commandAttemptCompletion(self):
     """Update a command up to completion."""
     start_time = datetime.datetime(2015, 1, 1)
     end_time = datetime.datetime(2015, 5, 6)
@@ -509,8 +492,9 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.CommandState.UNKNOWN, command.state)
     self.assertTrue(command.dirty)
 
-    command = command_manager._UpdateState(
+    command, remaining_run_count = command_manager.EvaluateState(
         request_id, command_id)
+    self.assertEqual(1, remaining_run_count)
     self.assertEqual(common.CommandState.RUNNING, command.state)
     self.assertEqual(start_time, command.start_time)
     self.assertEqual(None, command.end_time)
@@ -524,11 +508,9 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
         time=end_time)
     command_manager.UpdateCommandAttempt(event2)
 
-    command = command_manager._UpdateState(
+    command, remaining_run_count = command_manager.EvaluateState(
         request_id, command_id)
-
-    reschedule.assert_not_called()
-    delete.assert_not_called()
+    self.assertEqual(0, remaining_run_count)
     self.assertEqual(common.CommandState.COMPLETED, command.state)
     self.assertEqual(start_time, command.start_time)
     self.assertEqual(end_time, command.end_time)
@@ -548,9 +530,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     request = request_manager.GetRequest(request_id)
     self.assertTrue(request.dirty)
 
-  @mock.patch.object(command_manager, "DeleteTask")
-  @mock.patch.object(command_manager, "RescheduleTask")
-  def testUpdateState_cancelCompletedCommand(self, reschedule, delete):
+  def testEvaluateState_cancelCompletedCommand(self):
     """Cancelling a completed command won't change its state."""
     end_time = datetime.datetime(2015, 5, 6)
     command = self._CreateCommand()
@@ -567,10 +547,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
         command, "attempt_id", state=common.CommandState.RUNNING)
     command_manager.UpdateCommandAttempt(event1)
 
-    command = command_manager._UpdateState(request_id, command_id)
-
-    reschedule.assert_not_called()
-    delete.assert_not_called()
+    command, _ = command_manager.EvaluateState(request_id, command_id)
     self.assertEqual(common.CommandState.COMPLETED, command.state)
     self.assertEqual(end_time, command.end_time)
 
@@ -578,9 +555,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.CommandState.COMPLETED, command.state)
     self.assertEqual(end_time, command.end_time)
 
-  @mock.patch.object(command_manager, "DeleteTask")
-  @mock.patch.object(command_manager, "RescheduleTask")
-  def testUpdateState_completeCancelledCommand(self, reschedule, delete):
+  def testEvaluateState_completeCancelledCommand(self):
     """Completing a cancelled command triggers a state update."""
     start_time = datetime.datetime(2015, 1, 1)
     end_time = datetime.datetime(2015, 5, 6)
@@ -597,11 +572,9 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
         common.InvocationEventType.INVOCATION_STARTED,
         time=start_time)
     command_manager.UpdateCommandAttempt(event1)
-    command = command_manager._UpdateState(
+    command, remaining_run_count = command_manager.EvaluateState(
         request_id, command_id)
-
-    reschedule.assert_not_called()
-    delete.assert_not_called()
+    self.assertEqual(1, remaining_run_count)
     self.assertEqual(common.CommandState.RUNNING, command.state)
     self.assertEqual(start_time, command.start_time)
     self.assertEqual(None, command.end_time)
@@ -619,20 +592,16 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
         common.InvocationEventType.INVOCATION_COMPLETED,
         time=end_time)
     command_manager.UpdateCommandAttempt(event2)
-    command = command_manager._UpdateState(
+    command, remaining_run_count = command_manager.EvaluateState(
         request_id, command_id)
-
-    reschedule.assert_not_called()
-    delete.assert_not_called()
+    self.assertEqual(0, remaining_run_count)
     self.assertEqual(common.CommandState.COMPLETED, command.state)
     self.assertEqual(start_time, command.start_time)
     self.assertEqual(end_time, command.end_time)
     request = request_manager.GetRequest(request_id)
     self.assertTrue(request.dirty)
 
-  @mock.patch.object(command_manager, "DeleteTask")
-  @mock.patch.object(command_manager, "RescheduleTask")
-  def testUpdateState_cancelledCommandAttempts(self, reschedule, delete):
+  def testEvaluateState_cancelledCommandAttempts(self):
     """Commands with cancelled attempts should eventually get cancelled."""
     start_time = datetime.datetime(2015, 1, 1)
     command = self._CreateCommand()
@@ -652,11 +621,8 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
           common.InvocationEventType.ALLOCATION_FAILED,
           time=start_time)
       command_manager.UpdateCommandAttempt(event)
-      command = command_manager._UpdateState(
+      command, _ = command_manager.EvaluateState(
           request_id, command_id, force=True)
-
-    reschedule.assert_not_called()
-    delete.assert_not_called()
     self.assertEqual(common.CommandState.CANCELED, command.state)
 
   def testCommandUpdateCommandAttempt_noAttempt(self):
@@ -719,7 +685,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
         "Attempt update time %s was changed to before %s" %
         (attempts[0].update_time, update_time))
     # State should be queued because 1 (completed attempts) < 2 (run count)
-    command_manager._UpdateState(request_id, command_id)
+    command_manager.EvaluateState(request_id, command_id)
     self.assertEqual(common.CommandState.QUEUED, command.key.get().state)
 
   def testCommandUpdateCommandAttempt_laterTimestamp(self):
@@ -911,6 +877,12 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     """Tests getting a non existing command."""
     command = command_manager.GetCommand("1001", "invalid")
     self.assertIsNone(command)
+
+  def _CreateCommands(self):
+    self._CreateCommand("1001", command_line="command_line1")
+    self._CreateCommand("1002", command_line="command_line2")
+    self._CreateCommand("1003", command_line="command_line3")
+    self._CreateCommand("1004", command_line="command_line4")
 
   def testGetCommands_byExistingRequestId(self):
     """Tests getting all commands for given request id."""
@@ -1147,7 +1119,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
   @mock.patch.object(request_manager, "EvaluateState")
   @mock.patch.object(command_manager, "DeleteTask")
   @mock.patch.object(command_manager, "RescheduleTask")
-  @mock.patch.object(command_manager, "_UpdateState")
+  @mock.patch.object(command_manager, "EvaluateState")
   @mock.patch.object(
       command_manager, "UpdateCommandAttempt", return_value=False)
   @mock.patch.object(env_config.CONFIG, "plugin")
@@ -1161,7 +1133,6 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
         request_id, command_id, "attempt0",
         common.InvocationEventType.INVOCATION_STARTED, time=TIMESTAMP)
     command_manager.ProcessCommandEvent(event)
-
     eval_cmd.assert_not_called()
     reschedule.assert_not_called()
     delete.assert_not_called()
@@ -1185,19 +1156,19 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
   @mock.patch.object(request_manager, "EvaluateState")
   @mock.patch.object(command_manager, "DeleteTasks")
   @mock.patch.object(command_manager, "GetActiveTaskCount")
-  @mock.patch.object(command_manager, "_UpdateState")
+  @mock.patch.object(command_manager, "EvaluateState")
   @mock.patch.object(
       command_manager, "UpdateCommandAttempt", return_value=False)
   @mock.patch.object(env_config.CONFIG, "plugin")
-  def testProcessCommandEvent_notUpdatedButFinal(
-      self, plugin, update, eval_cmd, task_count, delete_tasks, eval_req,
-      attempt_metric):
+  def testProcessCommandEvent_notUpdatedButFinal(self, plugin, update, eval_cmd,
+                                                 task_count, delete_tasks,
+                                                 eval_req, attempt_metric):
     command = self._CreateCommand()
     _, request_id, _, command_id = command.key.flat()
     command.state = common.CommandState.ERROR
     attempt = command_event_test_util.CreateCommandAttempt(
         command, "attempt0", state=common.CommandState.RUNNING)
-    eval_cmd.return_value = command
+    eval_cmd.return_value = (command, 0)
     event = command_event_test_util.CreateTestCommandEvent(
         request_id,
         command_id,
@@ -1206,8 +1177,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
         error="error",
         time=TIMESTAMP)
     command_manager.ProcessCommandEvent(event)
-
-    eval_cmd.assert_called_once_with(request_id, command_id, task_id="1-1-0")
+    eval_cmd.assert_called_once_with(request_id, command_id)
     task_count.assert_not_called()
     delete_tasks.assert_called_once_with(command)
     eval_req.assert_called_once_with(request_id)
@@ -1236,25 +1206,27 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
   @mock.patch.object(command_manager, "DeleteTask")
   @mock.patch.object(command_manager, "RescheduleTask")
   @mock.patch.object(command_manager, "GetActiveTaskCount", return_value=0)
+  @mock.patch.object(command_manager, "EvaluateState")
   @mock.patch.object(command_manager, "UpdateCommandAttempt", return_value=True)
   def testProcessCommandEvent_nonFinal_reschedule(
-      self, update, task_count, reschedule, delete, eval_req,
+      self, update, eval_cmd, task_count, reschedule, delete, eval_req,
       attempt_metric):
     # Test ProcessCommandEvent for a non-final state with rescheduling
     command = self._CreateCommand()
     _, request_id, _, command_id = command.key.flat()
+    command.state = common.CommandState.RUNNING
     command_event_test_util.CreateCommandAttempt(
         command, "attempt0", state=common.CommandState.RUNNING)
+    eval_cmd.return_value = (command, 1)
     event = command_event_test_util.CreateTestCommandEvent(
         request_id, command_id, "attempt0",
         common.InvocationEventType.INVOCATION_COMPLETED,
-        error="error",
-        time=TIMESTAMP)
+        error="error", time=TIMESTAMP)
     command_manager.ProcessCommandEvent(event)
-
+    eval_cmd.assert_called_once_with(request_id, command_id)
     task_count.assert_called_once_with(command)
     reschedule.assert_called_once_with(
-        "%s-%s-0" % (request_id, command_id), command, 0, 1)
+        "%s-%s-0" % (request_id, command_id), command)
     delete.assert_not_called()
     eval_req.assert_called_once_with(request_id)
     attempt_metric.assert_called_once_with(
@@ -1267,26 +1239,30 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
   @mock.patch.object(request_manager, "EvaluateState")
   @mock.patch.object(command_manager, "DeleteTask")
   @mock.patch.object(command_manager, "RescheduleTask")
-  @mock.patch.object(command_manager, "GetActiveTaskCount", return_value=2)
+  @mock.patch.object(command_manager, "GetActiveTaskCount", return_value=1)
+  @mock.patch.object(command_manager, "EvaluateState")
   @mock.patch.object(command_manager, "UpdateCommandAttempt", return_value=True)
   def testProcessCommandEvent_nonFinal_delete(
-      self, update, task_count, reschedule, delete, eval_req,
+      self, update, eval_cmd, task_count, reschedule, delete, eval_req,
       attempt_metric):
     # Test ProcessCommandEvent for a non-final state with deletion
     command = self._CreateCommand()
     _, request_id, _, command_id = command.key.flat()
+    command.state = common.CommandState.RUNNING
     command_event_test_util.CreateCommandAttempt(
         command, "attempt0", state=common.CommandState.RUNNING)
+    eval_cmd.return_value = (command, 0)
     event = command_event_test_util.CreateTestCommandEvent(
         request_id, command_id, "attempt0",
         common.InvocationEventType.INVOCATION_COMPLETED,
-        error="error",
-        time=TIMESTAMP)
+        error="error", time=TIMESTAMP)
     command_manager.ProcessCommandEvent(event)
 
+    eval_cmd.assert_called_once_with(request_id, command_id)
     task_count.assert_called_once_with(command)
     reschedule.assert_not_called()
-    delete.assert_called_once_with("%s-%s-0" % (request_id, command_id))
+    delete.assert_called_once_with(
+        "%s-%s-0" % (request_id, command_id))
     eval_req.assert_called_once_with(request_id)
     attempt_metric.assert_called_once_with(
         cluster_id=command.cluster,
@@ -1298,7 +1274,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
   @mock.patch.object(request_manager, "EvaluateState")
   @mock.patch.object(command_manager, "DeleteTasks")
   @mock.patch.object(command_manager, "GetActiveTaskCount")
-  @mock.patch.object(command_manager, "_UpdateState")
+  @mock.patch.object(command_manager, "EvaluateState")
   @mock.patch.object(command_manager, "UpdateCommandAttempt", return_value=True)
   @mock.patch.object(env_config.CONFIG, "plugin")
   def testProcessCommandEvent_final(
@@ -1310,15 +1286,14 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     command.state = common.CommandState.ERROR
     attempt = command_event_test_util.CreateCommandAttempt(
         command, "attempt0", state=common.CommandState.RUNNING)
-    eval_cmd.return_value = command
+    eval_cmd.return_value = (command, 0)
     event = command_event_test_util.CreateTestCommandEvent(
         request_id, command_id, "attempt0",
         common.InvocationEventType.INVOCATION_COMPLETED,
         error="error",
         time=TIMESTAMP)
     command_manager.ProcessCommandEvent(event)
-
-    eval_cmd.assert_called_once_with(request_id, command_id, task_id="1-1-0")
+    eval_cmd.assert_called_once_with(request_id, command_id)
     task_count.assert_not_called()
     delete_tasks.assert_called_once_with(command)
     eval_req.assert_called_once_with(request_id)
@@ -1709,6 +1684,30 @@ class CommandSummaryTest(unittest.TestCase):
     self.summary.running_count = 0
     state = self.summary.GetState(common.CommandState.UNKNOWN)
     self.assertEqual(state, common.CommandState.QUEUED)
+
+  def testRemainingRunCount_no_retry_on_test_failure(self):
+    # Command has run_count = 3
+    self.summary.total_count = 3
+    self.summary.completed_count = 3
+    self.summary.completed_fail_count = 3
+    run_count = self.summary.RemainingRunCount()
+    self.assertEqual(run_count, 0)
+
+  def testRemainingRunCount_retry_on_test_failure(self):
+    # Command has run_count = 3
+    self.summary.total_count = 3
+    self.summary.completed_count = 3
+    self.summary.completed_fail_count = 3
+    run_count = self.summary.RemainingRunCount(max_retry_on_test_failures=2)
+    self.assertEqual(run_count, 0)
+
+  def testRemainingRunCount_more_retry_on_test_failure(self):
+    # Command has run_count = 3
+    self.summary.total_count = 3
+    self.summary.completed_count = 3
+    self.summary.completed_fail_count = 3
+    run_count = self.summary.RemainingRunCount(max_retry_on_test_failures=4)
+    self.assertEqual(run_count, 3)
 
 
 if __name__ == "__main__":

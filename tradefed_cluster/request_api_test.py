@@ -22,7 +22,7 @@ import zlib
 import mock
 from protorpc import protojson
 
-from google.appengine.ext import ndb
+from tradefed_cluster.util import ndb_shim as ndb
 
 from tradefed_cluster import api_messages
 from tradefed_cluster import api_test

@@ -23,7 +23,6 @@ import lazy_object_proxy
 from protorpc import protojson
 import webapp2
 
-from google.appengine.ext import ndb
 
 from tradefed_cluster import api_messages
 from tradefed_cluster import datastore_entities
@@ -32,6 +31,7 @@ from tradefed_cluster import device_manager
 from tradefed_cluster import env_config
 from tradefed_cluster import metric
 from tradefed_cluster.util import metric_util
+from tradefed_cluster.util import ndb_shim as ndb
 from tradefed_cluster.util import pubsub_client
 
 

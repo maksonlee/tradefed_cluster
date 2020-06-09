@@ -21,7 +21,7 @@ from tradefed_cluster import command_event
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 
-from google.appengine.ext import ndb
+from tradefed_cluster.util import ndb_shim as ndb
 
 TIMESTAMP_INT = 1489010400
 TIMESTAMP = datetime.datetime.utcfromtimestamp(TIMESTAMP_INT)

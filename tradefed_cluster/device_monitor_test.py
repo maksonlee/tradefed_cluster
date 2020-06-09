@@ -22,8 +22,6 @@ import mock
 from protorpc import protojson
 import webtest
 
-from google.appengine.ext import ndb
-
 from tradefed_cluster import api_messages
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
@@ -33,6 +31,7 @@ from tradefed_cluster import device_monitor
 from tradefed_cluster import metric
 from tradefed_cluster import testbed_dependent_test
 from tradefed_cluster.util import metric_util
+from tradefed_cluster.util import ndb_shim as ndb
 
 
 class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):

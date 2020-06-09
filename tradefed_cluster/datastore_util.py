@@ -14,7 +14,7 @@
 """Util for datastore query."""
 import logging
 
-from google.appengine.ext import ndb
+from tradefed_cluster.util import ndb_shim as ndb
 
 
 def FetchPage(query, page_size, page_cursor=None, backwards=False):

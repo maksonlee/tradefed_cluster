@@ -22,7 +22,6 @@ import mock
 import webtest
 
 from google.appengine.ext import db
-from google.appengine.ext import ndb
 
 from tradefed_cluster import command_event_handler
 from tradefed_cluster import command_event_test_util
@@ -31,6 +30,7 @@ from tradefed_cluster import common
 from tradefed_cluster import env_config  from tradefed_cluster import metric
 from tradefed_cluster import request_manager
 from tradefed_cluster import testbed_dependent_test
+from tradefed_cluster.util import ndb_shim as ndb
 
 
 TIMESTAMP_INT = command_event_test_util.TIMESTAMP_INT

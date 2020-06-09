@@ -21,7 +21,7 @@ import lazy_object_proxy
 
 from protorpc import protojson
 
-from google.appengine.ext import ndb
+from tradefed_cluster.util import ndb_shim as ndb
 
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities

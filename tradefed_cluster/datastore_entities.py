@@ -16,11 +16,10 @@
 
 import datetime
 
-from google.appengine.ext import ndb
-from google.appengine.ext.ndb import msgprop
 
 from tradefed_cluster import api_messages
 from tradefed_cluster import common
+from tradefed_cluster.util import ndb_shim as ndb
 
 # Constant to hold a time of 0 (0 hours, 0 minutes, 0 seconds)
 ZERO_TIME = datetime.time()
@@ -152,14 +151,14 @@ class Request(ndb.Model):
         notified.
     plugin_data: the plugin data.
   """
-  type = msgprop.EnumProperty(api_messages.RequestType)
+  type = ndb.EnumProperty(api_messages.RequestType)
   user = ndb.StringProperty()
   command_line = ndb.TextProperty()
   # priority should be an integer. The larger, the higher priority.
   # The lowest priority is 0, it's the default priority.
   priority = ndb.IntegerProperty()
   queue_timeout_seconds = ndb.IntegerProperty()
-  cancel_reason = msgprop.EnumProperty(common.CancelReason)
+  cancel_reason = ndb.EnumProperty(common.CancelReason)
   cluster = ndb.StringProperty()
   run_target = ndb.StringProperty()
   run_count = ndb.IntegerProperty()
@@ -167,8 +166,8 @@ class Request(ndb.Model):
   max_retry_on_test_failures = ndb.IntegerProperty()
   prev_test_context = ndb.LocalStructuredProperty(TestContext)
 
-  state = msgprop.EnumProperty(common.RequestState,
-                               default=common.RequestState.UNKNOWN)
+  state = ndb.EnumProperty(common.RequestState,
+                           default=common.RequestState.UNKNOWN)
   start_time = ndb.DateTimeProperty()
   end_time = ndb.DateTimeProperty()
   create_time = ndb.DateTimeProperty(auto_now_add=True)
@@ -215,7 +214,7 @@ def RequestToMessage(request, command_attempts=None, commands=None):
 
 class TradefedConfigObject(ndb.Model):
   """A Tradefed config object entity."""
-  type = msgprop.EnumProperty(api_messages.TradefedConfigObjectType)
+  type = ndb.EnumProperty(api_messages.TradefedConfigObjectType)
   class_name = ndb.StringProperty()
   option_values = ndb.JsonProperty()
 
@@ -255,7 +254,7 @@ class TestEnvironment(ndb.Model):
   context_file_pattern = ndb.StringProperty()
   extra_context_files = ndb.StringProperty(repeated=True)
   retry_command_line = ndb.StringProperty()
-  log_level = msgprop.EnumProperty(common.LogLevel)
+  log_level = ndb.EnumProperty(common.LogLevel)
   tradefed_config_objects = ndb.LocalStructuredProperty(
       TradefedConfigObject, repeated=True)
 
@@ -341,8 +340,8 @@ class Command(ndb.Model):
   cluster = ndb.StringProperty()
   run_target = ndb.StringProperty()
   run_count = ndb.IntegerProperty()
-  state = msgprop.EnumProperty(common.CommandState,
-                               default=common.CommandState.UNKNOWN)
+  state = ndb.EnumProperty(common.CommandState,
+                           default=common.CommandState.UNKNOWN)
   start_time = ndb.DateTimeProperty()
   end_time = ndb.DateTimeProperty()
   create_time = ndb.DateTimeProperty(auto_now_add=True)
@@ -350,8 +349,8 @@ class Command(ndb.Model):
   dirty = ndb.BooleanProperty(default=False)
   priority = ndb.IntegerProperty()
   queue_timeout_seconds = ndb.IntegerProperty()
-  request_type = msgprop.EnumProperty(api_messages.RequestType)
-  cancel_reason = msgprop.EnumProperty(common.CancelReason)
+  request_type = ndb.EnumProperty(api_messages.RequestType)
+  cancel_reason = ndb.EnumProperty(common.CancelReason)
   shard_count = ndb.IntegerProperty()
   shard_index = ndb.IntegerProperty()
   plugin_data = ndb.JsonProperty()
@@ -473,8 +472,8 @@ class CommandAttempt(ndb.Model):
   command_id = ndb.StringProperty()
   task_id = ndb.StringProperty()
   attempt_id = ndb.StringProperty()
-  state = msgprop.EnumProperty(common.CommandState,
-                               default=common.CommandState.UNKNOWN)
+  state = ndb.EnumProperty(common.CommandState,
+                           default=common.CommandState.UNKNOWN)
   hostname = ndb.StringProperty()
   # TODO Deprecated.
   device_serial = ndb.StringProperty()
@@ -491,7 +490,7 @@ class CommandAttempt(ndb.Model):
   failed_test_run_count = ndb.IntegerProperty()
   device_lost_detected = ndb.IntegerProperty()
   error_reason = ndb.StringProperty()
-  error_type = msgprop.EnumProperty(
+  error_type = ndb.EnumProperty(
       common.CommandErrorType,
       default=common.CommandErrorType.UNKNOWN)
   last_event_time = ndb.DateTimeProperty()
@@ -540,6 +539,7 @@ class Note(ndb.Model):
     message: Message of the note.
     offline_reason: The reason that a cluster/host/device get offline.
     recovery_action: The recovery action.
+    type: The type of note -> common.NoteType
     cluster_id: The cluster id, if the note is attached to a cluster.
     hostname: The hostname, if the note is attached to a host.
     device_serial: The device serial, if the note is attached to a device.
@@ -549,7 +549,7 @@ class Note(ndb.Model):
   message = ndb.TextProperty()
   offline_reason = ndb.StringProperty()
   recovery_action = ndb.StringProperty()
-  type = msgprop.EnumProperty(common.NoteType)
+  type = ndb.EnumProperty(common.NoteType)
   cluster_id = ndb.StringProperty()
   hostname = ndb.StringProperty()
   device_serial = ndb.StringProperty()
@@ -642,7 +642,7 @@ class PredefinedMessage(ndb.Model):
     used_count: int, how many times the message is used.
   """
   lab_name = ndb.StringProperty(required=True)
-  type = msgprop.EnumProperty(common.PredefinedMessageType, required=True)
+  type = ndb.EnumProperty(common.PredefinedMessageType, required=True)
   content = ndb.StringProperty(required=True)
   create_timestamp = ndb.DateTimeProperty()
   used_count = ndb.IntegerProperty(default=0)
@@ -831,7 +831,7 @@ class HostInfo(ndb.Expando):
   # TODO: change timestamp to last_event_time.
   timestamp = ndb.DateTimeProperty()
   hidden = ndb.BooleanProperty(default=False)
-  host_state = msgprop.EnumProperty(
+  host_state = ndb.EnumProperty(
       api_messages.HostState, default=api_messages.HostState.UNKNOWN)
   # josn of host config, only contains path currently
   host_config = ndb.LocalStructuredProperty(HostConfig)
@@ -915,7 +915,7 @@ class HostStateHistory(ndb.Model):
   """
   hostname = ndb.StringProperty()
   timestamp = ndb.DateTimeProperty()
-  state = msgprop.EnumProperty(api_messages.HostState)
+  state = ndb.EnumProperty(api_messages.HostState)
 
 
 @MessageConverter(HostStateHistory)
@@ -987,7 +987,7 @@ class DeviceInfo(ndb.Expando):
   hostname = ndb.StringProperty()
   timestamp = ndb.DateTimeProperty()
   hidden = ndb.BooleanProperty(default=False)
-  device_type = msgprop.EnumProperty(api_messages.DeviceTypeMessage)
+  device_type = ndb.EnumProperty(api_messages.DeviceTypeMessage)
   extra_info = ndb.JsonProperty()
 
   # TODO: remove the following fields once
@@ -1239,7 +1239,7 @@ class CommandTask(ndb.Model):
   lease_expiration_timestamp = ndb.DateTimeProperty()
   create_timestamp = ndb.DateTimeProperty(auto_now_add=True)
   update_timestamp = ndb.DateTimeProperty(auto_now=True)
-  request_type = msgprop.EnumProperty(api_messages.RequestType)
+  request_type = ndb.EnumProperty(api_messages.RequestType)
   plugin_data = ndb.JsonProperty()
 
 
@@ -1253,4 +1253,4 @@ class CommandErrorConfigMapping(ndb.Model):
   """
   error_message = ndb.StringProperty(required=True)
   reason = ndb.StringProperty()
-  type_code = msgprop.EnumProperty(common.CommandErrorType)
+  type_code = ndb.EnumProperty(common.CommandErrorType)

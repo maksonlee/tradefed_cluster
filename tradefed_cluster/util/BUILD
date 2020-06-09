@@ -109,3 +109,15 @@ filegroup(
         "testdata/**",
     ]),
 )
+
+py_appengine_library(
+    name = "ndb_shim_lib",
+    srcs = [
+        "ndb_shim.py",
+    ],
+    srcs_version = "PY2AND3",
+    deps = [
+        third_party("multitest_transport:google_import_fixer"),
+        third_party("google/cloud/ndb"),
+    ],
+)

@@ -18,10 +18,10 @@ import os
 import unittest
 
 from google.appengine.datastore import datastore_stub_util
-from google.appengine.ext import ndb
 from google.appengine.ext import testbed
 
 from tradefed_cluster import api_common
+from tradefed_cluster.util import ndb_shim as ndb
 
 
 class TestbedDependentTest(unittest.TestCase):

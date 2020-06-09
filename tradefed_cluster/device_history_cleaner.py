@@ -20,9 +20,9 @@ import logging
 import webapp2
 
 from google.appengine.ext import db
-from google.appengine.ext import ndb
 
 from tradefed_cluster import datastore_entities
+from tradefed_cluster.util import ndb_shim as ndb
 
 DEVICE_HISTORY_RENTENTION_DAYS = 100
 BATCH_SIZE = 200

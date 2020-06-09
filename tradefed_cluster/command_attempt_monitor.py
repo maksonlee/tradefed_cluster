@@ -20,12 +20,11 @@ import logging
 
 import webapp2
 
-from google.appengine.ext import ndb
-
 from tradefed_cluster import command_event
 from tradefed_cluster import command_manager
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
+from tradefed_cluster.util import ndb_shim as ndb
 
 
 def Now():

@@ -22,7 +22,6 @@ import hamcrest
 import mock
 import webtest
 
-from google.appengine.ext import ndb
 
 from tradefed_cluster import command_manager
 from tradefed_cluster import command_monitor
@@ -31,6 +30,7 @@ from tradefed_cluster import datastore_entities
 from tradefed_cluster import env_config  from tradefed_cluster import request_manager
 from tradefed_cluster import testbed_dependent_test
 from tradefed_cluster.services import task_scheduler
+from tradefed_cluster.util import ndb_shim as ndb
 
 
 class CommandMonitorTest(testbed_dependent_test.TestbedDependentTest):

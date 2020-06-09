@@ -19,7 +19,7 @@ import unittest
 import hamcrest
 import mock
 
-from google.appengine.ext import ndb
+from tradefed_cluster.util import ndb_shim as ndb
 
 from tradefed_cluster import api_test
 from tradefed_cluster import command_manager

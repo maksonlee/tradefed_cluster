@@ -22,7 +22,7 @@ import endpoints
 from protorpc import messages
 from protorpc import remote
 
-from google.appengine.ext import ndb
+from tradefed_cluster.util import ndb_shim as ndb
 
 from tradefed_cluster import api_common
 from tradefed_cluster import api_messages

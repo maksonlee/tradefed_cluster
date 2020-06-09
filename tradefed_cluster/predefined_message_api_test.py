@@ -21,7 +21,7 @@ from protorpc import protojson
 from tradefed_cluster import api_messages
 from tradefed_cluster import api_test
 from tradefed_cluster import datastore_entities
-from google.appengine.ext import ndb
+from tradefed_cluster.util import ndb_shim as ndb
 
 
 class PredefinedMessageApiTest(api_test.ApiTest):

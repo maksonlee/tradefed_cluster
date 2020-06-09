@@ -19,10 +19,10 @@ import logging
 import cloudstorage
 import webapp2
 
-from google.appengine.ext import ndb
 
 from tradefed_cluster import datastore_entities
 from tradefed_cluster.configs import lab_config
+from tradefed_cluster.util import ndb_shim as ndb
 
 BUCKET_NAME = 'tradefed_lab_configs'
 LAB_CONFIG_DIR_PATH = '/{}/lab_configs/'.format(BUCKET_NAME)

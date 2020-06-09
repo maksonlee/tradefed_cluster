@@ -95,6 +95,7 @@ py_appengine_test(
     deps = [
         ":api_messages_lib",
         ":datastore_entities_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -182,6 +183,7 @@ py_appengine_library(
         ":common_lib",
         ":datastore_entities_lib",
         ":datastore_util_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
         third_party("pytz"),
     ],
 )
@@ -196,7 +198,8 @@ py_appengine_test(
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
-        "//third_party/py/mock",
+        third_party("mock"),
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -214,6 +217,7 @@ py_appengine_library(
         ":datastore_util_lib",
         ":device_manager_lib",
         third_party("pytz"),
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -227,6 +231,7 @@ py_appengine_test(
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -282,6 +287,7 @@ py_appengine_test(
     use_public_sdk = 1,
     deps = [
         ":api_test_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -298,6 +304,7 @@ py_appengine_test(
         third_party("hamcrest"),
         third_party("mock"),
         third_party("webtest"),
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -378,6 +385,7 @@ py_appengine_test(
         third_party("hamcrest"),
         third_party("mock"),
         third_party("webtest"),
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -416,6 +424,7 @@ py_appengine_library(
     envs = PY_APPENGINE_ENVS,
     deps = [
         ":command_event_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -441,6 +450,7 @@ py_appengine_library(
         third_party("httplib2"),
         third_party("oauth2client_1_4_12_plus"),
         "//tradefed_cluster/util:command_util",
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -463,6 +473,7 @@ py_appengine_test(
         ":request_lib",
         ":testbed_dependent_test_lib",
         third_party("mock"),
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -478,6 +489,7 @@ py_appengine_test(
         third_party("hamcrest"),
         third_party("mock"),
         third_party("webtest"),
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -497,6 +509,7 @@ py_appengine_library(
         ":datastore_entities_lib",
         ":metric_lib",
         "//tradefed_cluster/util:command_util",
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -509,6 +522,7 @@ py_appengine_test(
     use_public_sdk = 1,
     deps = [
         ":api_test_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -545,6 +559,7 @@ py_appengine_library(
     deps = [
         ":common_lib",
         ":datastore_entities_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -623,6 +638,7 @@ py_appengine_library(
     deps = [
         ":datastore_entities_lib",
         "//tradefed_cluster/configs:lab_config_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -668,6 +684,7 @@ py_appengine_test(
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -679,6 +696,7 @@ py_appengine_library(
     deps = [
         ":api_messages_lib",
         ":common_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -692,6 +710,7 @@ py_appengine_test(
         ":common_lib",
         ":datastore_entities_lib",
         ":testbed_dependent_test_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -701,6 +720,9 @@ py_appengine_library(
         "datastore_util.py",
     ],
     visibility = ["//visibility:public"],
+    deps = [
+        "//tradefed_cluster/util:ndb_shim_lib",
+    ],
 )
 
 py_appengine_test(
@@ -714,6 +736,7 @@ py_appengine_test(
         ":datastore_test_util_lib",
         ":datastore_util_lib",
         ":testbed_dependent_test_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -728,6 +751,7 @@ py_appengine_library(
         ":api_messages_lib",
         ":common_lib",
         ":datastore_entities_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -740,6 +764,7 @@ py_appengine_library(
     deps = [
         ":common_lib",
         ":datastore_entities_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -803,6 +828,7 @@ py_appengine_library(
         ":host_event_lib",
         ":metric_lib",
         "//tradefed_cluster/services:task_scheduler_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -818,6 +844,7 @@ py_appengine_test(
         ":device_manager_lib",
         ":testbed_dependent_test_lib",
         third_party("hamcrest"),
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -836,6 +863,7 @@ py_appengine_library(
         ":metric_lib",
         third_party("lazy_object_proxy"),
         "//tradefed_cluster/services:task_scheduler_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
         "//tradefed_cluster/util:pubsub_client_lib",
     ],
 )
@@ -854,6 +882,7 @@ py_appengine_test(
         third_party("mock"),
         third_party("webapp2"),
         third_party("webtest"),
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -1021,6 +1050,7 @@ py_appengine_library(
         ":datastore_entities_lib",
         ":env_config_lib",
         third_party("lazy_object_proxy"),
+        "//tradefed_cluster/util:ndb_shim_lib",
         "//tradefed_cluster/util:pubsub_client_lib",
     ],
 )
@@ -1036,6 +1066,7 @@ py_appengine_test(
         ":datastore_test_util_lib",
         ":note_manager_lib",
         ":testbed_dependent_test_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -1111,6 +1142,7 @@ py_appengine_library(
         ":device_manager_lib",
         ":note_manager_lib",
         third_party("pytz"),
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -1123,6 +1155,7 @@ py_appengine_test(
     use_public_sdk = 1,
     deps = [
         ":api_test_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -1165,6 +1198,7 @@ py_appengine_library(
         ":common_lib",
         ":datastore_entities_lib",
         third_party("pytz"),
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -1177,6 +1211,7 @@ py_appengine_test(
     use_public_sdk = 1,
     deps = [
         ":api_test_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -1194,6 +1229,7 @@ py_appengine_library(
         ":env_config_lib",
         "//tradefed_cluster/services:task_scheduler_lib",
         "//tradefed_cluster/util:command_util",
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -1210,6 +1246,7 @@ py_appengine_test(
         ":testbed_dependent_test_lib",
         third_party("hamcrest"),
         third_party("mock"),
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -1255,6 +1292,7 @@ py_appengine_library(
         ":api_common_lib",
         ":common_lib",
         third_party("mock"),
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 

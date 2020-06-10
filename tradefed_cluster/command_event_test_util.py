@@ -29,12 +29,12 @@ TASK_ID = "task_id"
 
 
 def CreateTestCommandEventJson(
-    request_id, command_id, attempt_id, type_, run_index=0,
+    request_id, command_id, attempt_id, type_,
     error=None, data=None, device_serials=None, invocation_status=None,
-    time=TIMESTAMP_INT):
+    task=None, time=TIMESTAMP_INT):
   """Create command event json for unit test."""
   event = {
-      "task_id": "%s-%s-%d" % (request_id, command_id, run_index),
+      "task_id": "%s-%s-0" % (request_id, command_id),
       "attempt_id": attempt_id,
       "type": type_,
       "time": time,
@@ -42,6 +42,8 @@ def CreateTestCommandEventJson(
       "device_serial": "0123456789ABCDEF",
       "data": {}
   }
+  if task:
+    event["task_id"] = task.task_id
   if device_serials:
     event["device_serials"] = device_serials
   if invocation_status:
@@ -68,13 +70,9 @@ def CreateTestCommandEvent(*args, **kwargs):
   return command_event.CommandEvent(**event)
 
 
-def CreateCommandAttempt(command,
-                         attempt_id,
-                         state,
-                         start_time=None,
-                         end_time=None,
-                         update_time=None,
-                         task_id=TASK_ID):
+def CreateCommandAttempt(
+    command, attempt_id, state,
+    start_time=None, end_time=None, update_time=None, task=None):
   """Helper to create a command attempt."""
   command_attempt = datastore_entities.CommandAttempt(
       key=ndb.Key(
@@ -84,7 +82,7 @@ def CreateCommandAttempt(command,
           namespace=common.NAMESPACE),
       attempt_id=attempt_id,
       command_id=command.key.id(),
-      task_id=task_id,
+      task_id=task.task_id if task else TASK_ID,
       state=state,
       start_time=start_time,
       end_time=end_time,

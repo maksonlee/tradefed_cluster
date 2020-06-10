@@ -308,6 +308,19 @@ def GetActiveTaskCount(command):
   return count
 
 
+def GetActiveTasks(command):
+  """Returns the active command tasks.
+
+  Args:
+    command: a command entity, read only
+
+  Returns:
+    the active command tasks.
+  """
+  tasks = command_task_store.GetTasks(_GetCommandTaskIds(command))
+  return [t for t in tasks if t]
+
+
 def EnsureLeasable(command):
   """Ensure a command is leasable.
 

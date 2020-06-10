@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 """Unit tests for command_event_handler module."""
 
 import datetime
+import logging
 import unittest
 
 import hamcrest
@@ -26,6 +27,7 @@ from google.appengine.ext import db
 from tradefed_cluster import command_event_handler
 from tradefed_cluster import command_event_test_util
 from tradefed_cluster import command_manager
+from tradefed_cluster import command_task_store
 from tradefed_cluster import common
 from tradefed_cluster import env_config  from tradefed_cluster import metric
 from tradefed_cluster import request_manager
@@ -49,12 +51,6 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     self.request = request_manager.CreateRequest(
         request_id="1001", user="user1", command_line="command_line",
         cluster="cluster", run_target="run_target")
-    self.request_2 = request_manager.CreateRequest(
-        request_id="1002", user="user1", command_line="command_line",
-        cluster="cluster", run_target="run_target")
-    self.request_3 = request_manager.CreateRequest(
-        request_id="1003", user="user1", command_line="command_line",
-        cluster="cluster", run_target="run_target")
     self.command = command_manager.CreateCommands(
         request_id=self.request.key.id(),
         command_lines=["long command line"],
@@ -67,18 +63,6 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
             "ants_work_unit_id": "w123"
         },
         cluster="foobar")[0]
-    self.command_2 = command_manager.CreateCommands(
-        request_id=self.request_2.key.id(),
-        command_lines=["command_line"],
-        shard_indexes=range(1),
-        shard_count=1,
-        run_target="run_target",
-        run_count=3,
-        request_plugin_data={
-            "ants_invocation_id": "i123",
-            "ants_work_unit_id": "w123"
-        },
-        cluster="cluster")[0]
     # Clear Datastore cache
     ndb.get_context().clear_cache()
 
@@ -97,96 +81,111 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         "foo...(total 3072 chars)",
         command_event_handler._Truncate("foo" * 1024, 3))
 
-  @mock.patch.object(command_event_handler, "ProcessCommandEvent")
-  def testEnqueueCommandEvents(self, mock_process):
+  def testEnqueueCommandEvents(self):
+    _, request_id, _, command_id = self.command.key.flat()
+    command_event_test_util.CreateCommandAttempt(
+        self.command, "aid", common.CommandState.QUEUED)
     event = command_event_test_util.CreateTestCommandEventJson(
-        "rid", "cid", "aid", "InvocationCompleted")
+        request_id, command_id, "aid", "InvocationCompleted")
+
     command_event_handler.EnqueueCommandEvents([event])
     tasks = self.taskqueue_stub.get_filtered_tasks()
     self.assertEqual(len(tasks), 1)
-    self.testapp.post(command_event_handler.COMMAND_EVENT_HANDLER_PATH,
-                      tasks[0].payload)
-    mock_process.assert_called_with(
-        hamcrest.match_equality(
-            hamcrest.has_property("task_id", event["task_id"])))
+    self.testapp.post(
+        command_event_handler.COMMAND_EVENT_HANDLER_PATH, tasks[0].payload)
+
+    command_attempts = command_manager.GetCommandAttempts(
+        request_id, command_id)
+    self.assertEqual(len(command_attempts), 1)
+    self.assertEqual(common.CommandState.COMPLETED, command_attempts[0].state)
 
   @mock.patch.object(command_event_handler, "ProcessCommandEvent")
   def testEnqueueCommandEvents_oldCommandEvents(self, mock_process):
+    _, request_id, _, command_id = self.command.key.flat()
+    command_event_test_util.CreateCommandAttempt(
+        self.command, "aid", common.CommandState.QUEUED)
     event = command_event_test_util.CreateTestCommandEventJson(
-        "rid", "cid", "aid", "InvocationCompleted")
+        request_id, command_id, "aid", "InvocationCompleted")
     self.mock_now.return_value = (
         TIMESTAMP + datetime.timedelta(
             days=command_event_handler.COMMAND_EVENT_TIMEOUT_DAYS + 1))
+
     command_event_handler.EnqueueCommandEvents([event])
     tasks = self.taskqueue_stub.get_filtered_tasks()
     self.assertEqual(len(tasks), 1)
-    self.testapp.post(command_event_handler.COMMAND_EVENT_HANDLER_PATH,
-                      tasks[0].payload)
+    self.testapp.post(
+        command_event_handler.COMMAND_EVENT_HANDLER_PATH, tasks[0].payload)
     # Old command event is ignored.
     self.assertFalse(mock_process.called)
 
-  @mock.patch.object(command_event_handler, "ProcessCommandEvent")
-  def testEnqueueCommandEvents_multipleEvents(self, mock_process):
+  def testEnqueueCommandEvents_multipleEvents(self):
+    self.request = request_manager.CreateRequest(
+        request_id="9999", user="user1", command_line="command_line",
+        cluster="cluster", run_target="run_target", shard_count=2)
+    command_1, command_2 = command_manager.CreateCommands(
+        request_id=self.request.key.id(),
+        command_lines=["long command line %d" % i for i in range(2)],
+        shard_indexes=range(2),
+        run_target="foo",
+        run_count=1,
+        shard_count=2,
+        cluster="foobar")
+    _, request_id, _, command_1_id = command_1.key.flat()
+    _, _, _, command_2_id = command_2.key.flat()
+    command_event_test_util.CreateCommandAttempt(
+        command_1, "aid", common.CommandState.QUEUED)
+    command_event_test_util.CreateCommandAttempt(
+        command_2, "aid", common.CommandState.QUEUED)
+
     event = command_event_test_util.CreateTestCommandEventJson(
-        "rid", "cid", "aid", "InvocationStarted")
+        request_id, command_1_id, "aid", "InvocationStarted")
     event2 = command_event_test_util.CreateTestCommandEventJson(
-        "rid", "cid2", "aid", "InvocationStarted")
+        request_id, command_2_id, "aid", "InvocationStarted")
     event3 = command_event_test_util.CreateTestCommandEventJson(
-        "rid", "cid", "aid", "InvocationCompleted")
+        request_id, command_1_id, "aid", "InvocationCompleted")
     event4 = command_event_test_util.CreateTestCommandEventJson(
-        "rid", "cid2", "aid", "InvocationCompleted")
+        request_id, command_2_id, "aid", "InvocationCompleted")
     command_event_handler.EnqueueCommandEvents([event, event2, event3, event4])
+
     tasks = self.taskqueue_stub.get_filtered_tasks()
     self.assertEqual(len(tasks), 2)
-    self.testapp.post(command_event_handler.COMMAND_EVENT_HANDLER_PATH,
-                      tasks[0].payload)
-    mock_process.assert_has_calls([
-        mock.call(
-            hamcrest.match_equality(
-                hamcrest.all_of(
-                    hamcrest.has_property("task_id", event["task_id"]),
-                    hamcrest.has_property("type", event["type"])))),
-        mock.call(
-            hamcrest.match_equality(
-                hamcrest.all_of(
-                    hamcrest.has_property("task_id", event3["task_id"]),
-                    hamcrest.has_property("type", event3["type"]))))
-    ])
-    self.testapp.post(command_event_handler.COMMAND_EVENT_HANDLER_PATH,
-                      tasks[1].payload)
-    mock_process.assert_has_calls([
-        mock.call(
-            hamcrest.match_equality(
-                hamcrest.all_of(
-                    hamcrest.has_property("task_id", event2["task_id"]),
-                    hamcrest.has_property("type", event2["type"])))),
-        mock.call(
-            hamcrest.match_equality(
-                hamcrest.all_of(
-                    hamcrest.has_property("task_id", event4["task_id"]),
-                    hamcrest.has_property("type", event4["type"]))))
-    ])
+    self.testapp.post(
+        command_event_handler.COMMAND_EVENT_HANDLER_PATH, tasks[0].payload)
+    self.testapp.post(
+        command_event_handler.COMMAND_EVENT_HANDLER_PATH, tasks[1].payload)
 
-  @mock.patch.object(command_event_handler, "ProcessCommandEvent")
-  def testEnqueueCommandEvents_malformedEvents(self, mock_process):
+    command_attempts = command_manager.GetCommandAttempts(
+        request_id, command_1_id)
+    self.assertEqual(len(command_attempts), 1)
+    self.assertEqual(common.CommandState.COMPLETED, command_attempts[0].state)
+    command_attempts = command_manager.GetCommandAttempts(
+        request_id, command_2_id)
+    self.assertEqual(len(command_attempts), 1)
+    self.assertEqual(common.CommandState.COMPLETED, command_attempts[0].state)
+
+  def testEnqueueCommandEvents_malformedEvents(self):
     """A malformed event should not lose all events."""
+    _, request_id, _, command_id = self.command.key.flat()
+    command_event_test_util.CreateCommandAttempt(
+        self.command, "aid", common.CommandState.QUEUED)
     event = command_event_test_util.CreateTestCommandEventJson(
-        "rid", "cid", "aid", "InvocationStarted")
+        request_id, command_id, "aid", "InvocationStarted")
     malformed_event = {
         "data": {"total_test_count": 1, "exec_test_count": 1},
         "time": TIMESTAMP_INT,
         "type": "TestRunInProgress",
     }
+
     command_event_handler.EnqueueCommandEvents([event, malformed_event])
     tasks = self.taskqueue_stub.get_filtered_tasks()
     self.assertEqual(len(tasks), 1)
     self.testapp.post(command_event_handler.COMMAND_EVENT_HANDLER_PATH,
                       tasks[0].payload)
-    mock_process.assert_called_once_with(
-        hamcrest.match_equality(
-            hamcrest.all_of(
-                hamcrest.has_property("task_id", event["task_id"]),
-                hamcrest.has_property("type", event["type"]))))
+
+    command_attempts = command_manager.GetCommandAttempts(
+        request_id, command_id)
+    self.assertEqual(len(command_attempts), 1)
+    self.assertEqual(common.CommandState.RUNNING, command_attempts[0].state)
 
   @mock.patch.object(command_event_handler, "ProcessCommandEvent")
   def testEnqueueCommandEvents_partTransactionError(self, mock_process):
@@ -402,36 +401,39 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         latency_secs=10.5)
 
   @mock.patch.object(metric, "command_event_type_count")
-  @mock.patch.object(command_manager, "RescheduleTask")
   def testProcessCommandEvent_allocationFailed(
-      self, mock_reschedule, mock_command_event_type_count):
+      self, mock_command_event_type_count):
     """Should reschedule tasks that send AllocationFailed events.
 
     Args:
-      mock_reschedule: mock function to reschedule tasks.
       mock_command_event_type_count: mock command event type count metric
     """
     _, request_id, _, command_id = self.command.key.flat()
-    event = command_event_test_util.CreateTestCommandEvent(
-        request_id, command_id, "0000000000000000", "AllocationFailed")
+    command_manager.ScheduleTasks([self.command])
 
-    # Command should stay queued even after 3 different attempts result in an
-    # AllocationFailed error.
+    # Command should stay queued even after MAX_CANCELED_COUNT_BASE different
+    # attempts result in an AllocationFailed error.
     num_attempts = command_manager.MAX_CANCELED_COUNT_BASE
     for i in range(num_attempts):
+      tasks = command_manager.GetActiveTasks(self.command)
+      self.assertEqual(len(tasks), 1)
+      command_task_store.LeaseTask(tasks[0].task_id)
       command_event_test_util.CreateCommandAttempt(
-          self.command, str(i), state=common.CommandState.UNKNOWN)
+          self.command, str(i), common.CommandState.UNKNOWN, task=tasks[0])
       queried_command = command_manager.GetCommand(request_id, command_id)
       self.assertNotEqual(common.CommandState.ERROR, queried_command.state)
-      event.attempt_id = str(i)
+      event = command_event_test_util.CreateTestCommandEvent(
+          request_id, command_id, str(i), "AllocationFailed", task=tasks[0])
       command_event_handler.ProcessCommandEvent(event)
+
     queried_command = command_manager.GetCommand(request_id, command_id)
     self.assertEqual(common.CommandState.CANCELED, queried_command.state)
-
-    mock_reschedule.assert_called_with(
-        event.task_id,
-        hamcrest.match_equality(
-            hamcrest.has_property("key", self.command.key)))
+    tasks = command_manager.GetActiveTasks(self.command)
+    self.assertEqual(len(tasks), 0)
+    command_attempts = command_manager.GetCommandAttempts(
+        request_id, command_id)
+    self.assertEqual(
+        len(command_attempts), command_manager.MAX_CANCELED_COUNT_BASE)
     expected_metric_fields = {
         metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "AllocationFailed"
@@ -440,38 +442,35 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         [mock.call(expected_metric_fields)] * num_attempts)
 
   @mock.patch.object(metric, "command_event_type_count")
-  @mock.patch.object(command_manager, "DeleteTasks")
-  @mock.patch.object(command_manager, "RescheduleTask")
-  @mock.patch.object(command_manager, "GetActiveTaskCount")
   @mock.patch.object(request_manager, "NotifyRequestState")
-  def testProcessCommandEvent_FetchFailed(
-      self, mock_notify, mock_get_active_task_count, mock_reschedule,
-      mock_delete_tasks, mock_command_event_type_count):
+  def testProcessCommandEvent_fetchFailed(
+      self, mock_notify, mock_command_event_type_count):
     """Should error commands from FetchFailed events."""
     _, request_id, _, command_id = self.command.key.flat()
-    event = command_event_test_util.CreateTestCommandEvent(
-        request_id, command_id, "0", "FetchFailed")
-    mock_get_active_task_count.return_value = 1
+    command_manager.ScheduleTasks([self.command])
 
+    # It should be marked as error at the MAX_ERROR_COUNT_BASE attempt.
     for i in range(command_manager.MAX_ERROR_COUNT_BASE):
+      tasks = command_manager.GetActiveTasks(self.command)
+      self.assertEqual(len(tasks), 1)
+      command_task_store.LeaseTask(tasks[0].task_id)
       command_event_test_util.CreateCommandAttempt(
-          self.command, str(i + 1), state=common.CommandState.UNKNOWN)
-      # It should be marked as error at the MAX_ERROR_COUNT_BASE attempt.
+          self.command, str(i), common.CommandState.UNKNOWN, task=tasks[0])
       queried_command = command_manager.GetCommand(request_id, command_id)
-      event.attempt_id = str(int(event.attempt_id) + 1)
       self.assertNotEqual(common.CommandState.ERROR, queried_command.state)
+      event = command_event_test_util.CreateTestCommandEvent(
+          request_id, command_id, str(i), "FetchFailed", task=tasks[0])
       command_event_handler.ProcessCommandEvent(event)
 
     queried_command = command_manager.GetCommand(request_id, command_id)
     self.assertEqual(common.CommandState.ERROR, queried_command.state)
-    mock_reschedule.assert_called_with(
-        event.task_id,
-        hamcrest.match_equality(
-            hamcrest.has_property("key", self.command.key)))
+    tasks = command_manager.GetActiveTasks(self.command)
+    self.assertEqual(len(tasks), 0)
+    command_attempts = command_manager.GetCommandAttempts(
+        request_id, command_id)
+    self.assertEqual(
+        len(command_attempts), command_manager.MAX_ERROR_COUNT_BASE)
     mock_notify.assert_called_with(request_id)
-    mock_delete_tasks.assert_called_with(
-        hamcrest.match_equality(
-            hamcrest.has_property("key", self.command.key)))
     expected_metric_fields = {
         metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "FetchFailed"
@@ -481,39 +480,35 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         ] * command_manager.MAX_ERROR_COUNT_BASE)
 
   @mock.patch.object(metric, "command_event_type_count")
-  @mock.patch.object(command_manager, "DeleteTasks")
-  @mock.patch.object(command_manager, "RescheduleTask")
-  @mock.patch.object(command_manager, "GetActiveTaskCount")
   @mock.patch.object(request_manager, "NotifyRequestState")
-  def testProcessCommandEvent_ExecuteFailed(
-      self, mock_notify, mock_get_active_task_count, mock_reschedule,
-      mock_delete_tasks, mock_command_event_type_count):
+  def testProcessCommandEvent_executeFailed(
+      self, mock_notify, mock_command_event_type_count):
     """Should error commands from ExecuteFailed events."""
     _, request_id, _, command_id = self.command.key.flat()
-    event = command_event_test_util.CreateTestCommandEvent(
-        request_id, command_id, "0000000000000000", "ExecuteFailed")
-    mock_get_active_task_count.return_value = 1
+    command_manager.ScheduleTasks([self.command])
 
+    # It should be marked as error at the MAX_ERROR_COUNT_BASE attempt.
     for i in range(command_manager.MAX_ERROR_COUNT_BASE):
-      # It should be marked as error at the MAX_ERROR_COUNT_BASE attempt.
+      tasks = command_manager.GetActiveTasks(self.command)
+      self.assertEqual(len(tasks), 1)
+      command_task_store.LeaseTask(tasks[0].task_id)
       command_event_test_util.CreateCommandAttempt(
-          self.command, str(i + 1), state=common.CommandState.UNKNOWN)
+          self.command, str(i), common.CommandState.UNKNOWN, task=tasks[0])
       queried_command = command_manager.GetCommand(request_id, command_id)
-      event.attempt_id = str(int(event.attempt_id) + 1)
       self.assertNotEqual(common.CommandState.ERROR, queried_command.state)
+      event = command_event_test_util.CreateTestCommandEvent(
+          request_id, command_id, str(i), "ExecuteFailed", task=tasks[0])
       command_event_handler.ProcessCommandEvent(event)
 
     queried_command = command_manager.GetCommand(request_id, command_id)
     self.assertEqual(common.CommandState.ERROR, queried_command.state)
-    mock_get_active_task_count.assert_called()
-    mock_reschedule.assert_called_with(
-        event.task_id,
-        hamcrest.match_equality(
-            hamcrest.has_property("key", self.command.key)))
+    tasks = command_manager.GetActiveTasks(self.command)
+    self.assertEqual(len(tasks), 0)
     mock_notify.assert_called_with(request_id)
-    mock_delete_tasks.assert_called_with(
-        hamcrest.match_equality(
-            hamcrest.has_property("key", self.command.key)))
+    command_attempts = command_manager.GetCommandAttempts(
+        request_id, command_id)
+    self.assertEqual(
+        len(command_attempts), command_manager.MAX_ERROR_COUNT_BASE)
     expected_metric_fields = {
         metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "ExecuteFailed"
@@ -523,35 +518,37 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         ] * command_manager.MAX_ERROR_COUNT_BASE)
 
   @mock.patch.object(metric, "command_event_type_count")
-  @mock.patch.object(command_manager, "DeleteTasks")
-  @mock.patch.object(command_manager, "RescheduleTask")
   @mock.patch.object(request_manager, "NotifyRequestState")
-  def testProcessCommandEvent_InvocationInitiated(
-      self, mock_notify, mock_reschedule, mock_delete_tasks,
-      mock_command_event_type_count):
+  def testProcessCommandEvent_invocationInitiated(
+      self, mock_notify, mock_command_event_type_count):
     """Should update command state for InvocationInitiated events.
 
     State should become RUNNING if it isn't already.
 
     Args:
       mock_notify: mock function to notify request state changes.
-      mock_reschedule: mock function to reschedule tasks.
-      mock_delete_tasks: mock function to delete tasks.
       mock_command_event_type_count: mock command event type count metric
     """
     _, request_id, _, command_id = self.command.key.flat()
-    invocation_started_event = command_event_test_util.CreateTestCommandEvent(
-        request_id, command_id, "0", "InvocationInitiated")
+    command_manager.ScheduleTasks([self.command])
+
+    tasks = command_manager.GetActiveTasks(self.command)
+    self.assertEqual(len(tasks), 1)
+    command_task_store.LeaseTask(tasks[0].task_id)
+    command_event_test_util.CreateCommandAttempt(
+        self.command, "0", common.CommandState.UNKNOWN, task=tasks[0])
     queried_command = command_manager.GetCommand(request_id, command_id)
     self.assertNotEqual(common.CommandState.RUNNING, queried_command.state)
-    command_event_test_util.CreateCommandAttempt(
-        self.command, "0", state=common.CommandState.UNKNOWN)
-    command_event_handler.ProcessCommandEvent(invocation_started_event)
+    event = command_event_test_util.CreateTestCommandEvent(
+        request_id, command_id, "0", "InvocationInitiated", task=tasks[0])
+    command_event_handler.ProcessCommandEvent(event)
+
     queried_command = command_manager.GetCommand(request_id, command_id)
     self.assertEqual(common.CommandState.RUNNING, queried_command.state)
-    self.assertFalse(mock_reschedule.called)
+    tasks = command_manager.GetActiveTasks(self.command)
+    self.assertEqual(len(tasks), 1)
+    self.assertEqual(tasks[0].leasable, False)
     mock_notify.assert_called_with(request_id)
-    self.assertFalse(mock_delete_tasks.called)
     expected_metric_fields = {
         metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "InvocationInitiated"
@@ -560,38 +557,40 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         expected_metric_fields)
 
   @mock.patch.object(metric, "command_event_type_count")
-  @mock.patch.object(command_manager, "DeleteTasks")
-  @mock.patch.object(command_manager, "RescheduleTask")
   @mock.patch.object(request_manager, "NotifyRequestState")
   def testProcessCommandEvent_InvocationStarted(
-      self, mock_notify, mock_reschedule, mock_delete_tasks,
-      mock_command_event_type_count):
+      self, mock_notify, mock_command_event_type_count):
     """Should update command state for InvocationStarted events.
 
     State should become RUNNING if it isn't already.
 
     Args:
       mock_notify: mock function to notify request state changes.
-      mock_reschedule: mock function to reschedule tasks.
-      mock_delete_tasks: mock function to delete tasks.
       mock_command_event_type_count: mock command event type count metric
     """
     _, request_id, _, command_id = self.command.key.flat()
-    invocation_started_event = command_event_test_util.CreateTestCommandEvent(
-        request_id, command_id, "0", "InvocationStarted")
+    command_manager.ScheduleTasks([self.command])
+
+    tasks = command_manager.GetActiveTasks(self.command)
+    self.assertEqual(len(tasks), 1)
+    command_task_store.LeaseTask(tasks[0].task_id)
+    command_event_test_util.CreateCommandAttempt(
+        self.command, "0", common.CommandState.UNKNOWN, task=tasks[0])
     queried_command = command_manager.GetCommand(request_id, command_id)
     self.assertNotEqual(common.CommandState.RUNNING, queried_command.state)
-    command_event_test_util.CreateCommandAttempt(
-        self.command, "0", state=common.CommandState.UNKNOWN)
-    command_event_handler.ProcessCommandEvent(invocation_started_event)
+    event = command_event_test_util.CreateTestCommandEvent(
+        request_id, command_id, "0", "InvocationStarted", task=tasks[0])
+    command_event_handler.ProcessCommandEvent(event)
+
     queried_command = command_manager.GetCommand(request_id, command_id)
     self.assertEqual(common.CommandState.RUNNING, queried_command.state)
+    tasks = command_manager.GetActiveTasks(self.command)
+    self.assertEqual(len(tasks), 1)
+    self.assertEqual(tasks[0].leasable, False)
     attempts = command_manager.GetCommandAttempts(request_id, command_id)
     self.assertEqual(1, len(attempts))
     self.assertEqual(["0123456789ABCDEF"], attempts[0].device_serials)
-    self.assertFalse(mock_reschedule.called)
     mock_notify.assert_called_with(request_id)
-    self.assertFalse(mock_delete_tasks.called)
     expected_metric_fields = {
         metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "InvocationStarted"
@@ -600,30 +599,34 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         expected_metric_fields)
 
   @mock.patch.object(metric, "command_event_type_count")
-  @mock.patch.object(command_manager, "DeleteTasks")
-  @mock.patch.object(command_manager, "RescheduleTask")
   @mock.patch.object(request_manager, "NotifyRequestState")
   def testProcessCommandEvent_multiDevice(
-      self, mock_notify, mock_reschedule, mock_delete_tasks,
-      mock_command_event_type_count):
+      self, mock_notify, mock_command_event_type_count):
     """Should populate multiple devices."""
     _, request_id, _, command_id = self.command.key.flat()
-    invocation_started_event = command_event_test_util.CreateTestCommandEvent(
-        request_id, command_id, "0", "InvocationStarted",
-        device_serials=["d1", "d2"])
+    command_manager.ScheduleTasks([self.command])
+
+    tasks = command_manager.GetActiveTasks(self.command)
+    self.assertEqual(len(tasks), 1)
+    command_task_store.LeaseTask(tasks[0].task_id)
+    command_event_test_util.CreateCommandAttempt(
+        self.command, "0", common.CommandState.UNKNOWN, task=tasks[0])
     queried_command = command_manager.GetCommand(request_id, command_id)
     self.assertNotEqual(common.CommandState.RUNNING, queried_command.state)
-    command_event_test_util.CreateCommandAttempt(
-        self.command, "0", state=common.CommandState.UNKNOWN)
-    command_event_handler.ProcessCommandEvent(invocation_started_event)
+    event = command_event_test_util.CreateTestCommandEvent(
+        request_id, command_id, "0", "InvocationStarted",
+        task=tasks[0], device_serials=["d1", "d2"])
+    command_event_handler.ProcessCommandEvent(event)
+
     queried_command = command_manager.GetCommand(request_id, command_id)
     self.assertEqual(common.CommandState.RUNNING, queried_command.state)
+    tasks = command_manager.GetActiveTasks(self.command)
+    self.assertEqual(len(tasks), 1)
+    self.assertEqual(tasks[0].leasable, False)
     attempts = command_manager.GetCommandAttempts(request_id, command_id)
     self.assertEqual(1, len(attempts))
     self.assertEqual(["d1", "d2"], attempts[0].device_serials)
-    self.assertFalse(mock_reschedule.called)
     mock_notify.assert_called_with(request_id)
-    self.assertFalse(mock_delete_tasks.called)
     expected_metric_fields = {
         metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "InvocationStarted"
@@ -632,36 +635,37 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         expected_metric_fields)
 
   @mock.patch.object(metric, "command_event_type_count")
-  @mock.patch.object(command_manager, "DeleteTasks")
-  @mock.patch.object(command_manager, "RescheduleTask")
   @mock.patch.object(request_manager, "NotifyRequestState")
-  def testProcessCommandEvent_TestRunInProgress(
-      self, mock_notify, mock_reschedule, mock_delete_tasks,
-      mock_command_event_type_count):
+  def testProcessCommandEvent_testRunInProgress(
+      self, mock_notify, mock_command_event_type_count):
     """Should update command state for TestRunInProgress events.
 
     State should become RUNNING if it isn't already.
 
     Args:
       mock_notify: mock function to notify request state changes.
-      mock_reschedule: mock function to reschedule tasks.
-      mock_delete_tasks: mock function to delete tasks.
       mock_command_event_type_count: mock command event type count metric
     """
     _, request_id, _, command_id = self.command.key.flat()
-    test_run_started_event = command_event_test_util.CreateTestCommandEvent(
-        request_id, command_id, "0", "TestRunInProgress")
+    command_manager.ScheduleTasks([self.command])
+
+    tasks = command_manager.GetActiveTasks(self.command)
+    self.assertEqual(len(tasks), 1)
+    command_task_store.LeaseTask(tasks[0].task_id)
+    command_event_test_util.CreateCommandAttempt(
+        self.command, "0", common.CommandState.UNKNOWN, task=tasks[0])
     queried_command = command_manager.GetCommand(request_id, command_id)
     self.assertNotEqual(common.CommandState.RUNNING, queried_command.state)
-    command_event_test_util.CreateCommandAttempt(
-        self.command, "0", state=common.CommandState.UNKNOWN)
-    command_event_handler.ProcessCommandEvent(test_run_started_event)
-    queried_command = command_manager.GetCommand(request_id, command_id)
+    event = command_event_test_util.CreateTestCommandEvent(
+        request_id, command_id, "0", "TestRunInProgress", task=tasks[0])
+    command_event_handler.ProcessCommandEvent(event)
 
+    queried_command = command_manager.GetCommand(request_id, command_id)
     self.assertEqual(common.CommandState.RUNNING, queried_command.state)
-    self.assertFalse(mock_reschedule.called)
+    tasks = command_manager.GetActiveTasks(self.command)
+    self.assertEqual(len(tasks), 1)
+    self.assertEqual(tasks[0].leasable, False)
     mock_notify.assert_called_with(request_id)
-    self.assertFalse(mock_delete_tasks.called)
     expected_metric_fields = {
         metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "TestRunInProgress"
@@ -670,35 +674,37 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         expected_metric_fields)
 
   @mock.patch.object(metric, "command_event_type_count")
-  @mock.patch.object(command_manager, "DeleteTasks")
-  @mock.patch.object(command_manager, "RescheduleTask")
   @mock.patch.object(request_manager, "NotifyRequestState")
-  def testProcessCommandEvent_InvocationEnded(
-      self, mock_notify, mock_reschedule, mock_delete_tasks,
-      mock_command_event_type_count):
+  def testProcessCommandEvent_invocationEnded(
+      self, mock_notify, mock_command_event_type_count):
     """Should update command state for InvocationEnded events.
 
     State should become RUNNING if it isn't already.
 
     Args:
       mock_notify: mock function to notify request state changes.
-      mock_reschedule: mock function to reschedule tasks.
-      mock_delete_tasks: mock function to delete tasks.
       mock_command_event_type_count: mock command event type count metric
     """
     _, request_id, _, command_id = self.command.key.flat()
-    invocation_ended_event = command_event_test_util.CreateTestCommandEvent(
-        request_id, command_id, "0", "InvocationEnded")
+    command_manager.ScheduleTasks([self.command])
+
+    tasks = command_manager.GetActiveTasks(self.command)
+    self.assertEqual(len(tasks), 1)
+    command_task_store.LeaseTask(tasks[0].task_id)
+    command_event_test_util.CreateCommandAttempt(
+        self.command, "0", common.CommandState.UNKNOWN, task=tasks[0])
     queried_command = command_manager.GetCommand(request_id, command_id)
     self.assertNotEqual(common.CommandState.RUNNING, queried_command.state)
-    command_event_test_util.CreateCommandAttempt(
-        self.command, "0", state=common.CommandState.UNKNOWN)
-    command_event_handler.ProcessCommandEvent(invocation_ended_event)
+    event = command_event_test_util.CreateTestCommandEvent(
+        request_id, command_id, "0", "InvocationEnded", task=tasks[0])
+    command_event_handler.ProcessCommandEvent(event)
+
     queried_command = command_manager.GetCommand(request_id, command_id)
     self.assertEqual(common.CommandState.RUNNING, queried_command.state)
-    self.assertFalse(mock_reschedule.called)
+    tasks = command_manager.GetActiveTasks(self.command)
+    self.assertEqual(len(tasks), 1)
+    self.assertEqual(tasks[0].leasable, False)
     mock_notify.assert_called_with(request_id)
-    self.assertFalse(mock_delete_tasks.called)
     expected_metric_fields = {
         metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "InvocationEnded"
@@ -707,42 +713,40 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         expected_metric_fields)
 
   @mock.patch.object(metric, "command_event_type_count")
-  @mock.patch.object(command_manager, "DeleteTasks")
-  @mock.patch.object(command_manager, "RescheduleTask")
   @mock.patch.object(request_manager, "NotifyRequestState")
-  def testProcessCommandEvent_InvocationCompleted(
-      self, mock_notify, mock_reschedule, mock_delete_tasks,
-      mock_command_event_type_count):
+  def testProcessCommandEvent_invocationCompleted(
+      self, mock_notify, mock_command_event_type_count):
     """Should complete command state for InvocationCompleted events.
 
     Args:
       mock_notify: mock function to notify request state changes.
-      mock_reschedule: mock function to reschedule tasks.
-      mock_delete_tasks: mock function to delete tasks.
       mock_command_event_type_count: mock command event type count metric
     """
     _, request_id, _, command_id = self.command.key.flat()
-    invocation_completed_event = command_event_test_util.CreateTestCommandEvent(
-        request_id, command_id, "aid", "InvocationCompleted")
+    command_manager.ScheduleTasks([self.command])
+
+    tasks = command_manager.GetActiveTasks(self.command)
+    self.assertEqual(len(tasks), 1)
+    command_task_store.LeaseTask(tasks[0].task_id)
+    command_event_test_util.CreateCommandAttempt(
+        self.command, "0", common.CommandState.UNKNOWN, task=tasks[0])
     queried_command = command_manager.GetCommand(request_id, command_id)
     self.assertNotEqual(common.CommandState.COMPLETED, queried_command.state)
-    command_event_test_util.CreateCommandAttempt(
-        self.command, "aid", state=common.CommandState.UNKNOWN)
-    command_event_handler.ProcessCommandEvent(invocation_completed_event)
+    event = command_event_test_util.CreateTestCommandEvent(
+        request_id, command_id, "0", "InvocationCompleted", task=tasks[0])
+    command_event_handler.ProcessCommandEvent(event)
+
     queried_command = command_manager.GetCommand(request_id, command_id)
     self.assertEqual(common.CommandState.COMPLETED, queried_command.state)
+    tasks = command_manager.GetActiveTasks(self.command)
+    self.assertEqual(len(tasks), 0)
     attempts = command_manager.GetCommandAttempts(request_id, command_id)
     self.assertEqual(1, len(attempts))
     self.assertEqual("summary", attempts[0].summary)
     self.assertEqual(1000, attempts[0].total_test_count)
     self.assertEqual(100, attempts[0].failed_test_count)
     self.assertEqual(10, attempts[0].failed_test_run_count)
-
-    self.assertFalse(mock_reschedule.called)
     mock_notify.assert_called_with(request_id)
-    mock_delete_tasks.assert_called_with(
-        hamcrest.match_equality(
-            hamcrest.has_property("key", self.command.key)))
     expected_metric_fields = {
         metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "InvocationCompleted"
@@ -750,63 +754,50 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     mock_command_event_type_count.Increment.assert_called_once_with(
         expected_metric_fields)
 
-  @mock.patch.object(command_manager, "DeleteTasks")
-  @mock.patch.object(command_manager, "DeleteTask")
-  @mock.patch.object(command_manager, "RescheduleTask")
-  @mock.patch.object(command_manager, "GetActiveTaskCount")
   @mock.patch.object(request_manager, "NotifyRequestState")
   def testProcessCommandEvent_InvocationCompleted_multipleRuns(
-      self, mock_notify, mock_get_active_task_count, mock_reschedule,
-      mock_delete_task, mock_delete_tasks):
+      self, mock_notify):
     """Should complete command state for InvocationCompleted events.
 
     It should only be set as COMPLETE if all runs are executed.
 
     Args:
       mock_notify: mock function to notify request state changes.
-      mock_get_active_task_count: mock Command.GetActiveTaskCount function.
-      mock_reschedule: mock Command.RescheduleTask function
-      mock_delete_task: mock Command.DeleteTask function.
-      mock_delete_tasks: mock Command.DeleteTasks function.
     """
     run_count = 3
     _, request_id, _, command_id = self.command.key.flat()
     self.command.run_count = run_count
     self.command.put()
+    command_manager.ScheduleTasks([self.command])
 
     for i in range(run_count):
+      tasks = command_manager.GetActiveTasks(self.command)
+      self.assertEqual(
+          len(tasks), run_count - i)
+      next_leasable_task = next((t for t in tasks if t.leasable), None)
+      command_task_store.LeaseTask(next_leasable_task.task_id)
       command_event_test_util.CreateCommandAttempt(
-          self.command, str(i), state=common.CommandState.UNKNOWN)
-      invocation_completed_event = (
-          command_event_test_util.CreateTestCommandEvent(
-              request_id, command_id, str(i), "InvocationCompleted",
-              run_index=i))
+          self.command, str(i), common.CommandState.UNKNOWN,
+          task=next_leasable_task)
       queried_command = command_manager.GetCommand(request_id, command_id)
       self.assertNotEqual(common.CommandState.COMPLETED, queried_command.state)
-      mock_get_active_task_count.return_value = run_count - i
-      command_event_handler.ProcessCommandEvent(invocation_completed_event)
+      event = command_event_test_util.CreateTestCommandEvent(
+          request_id, command_id, str(i), "InvocationCompleted",
+          task=next_leasable_task)
+      command_event_handler.ProcessCommandEvent(event)
 
     queried_command = command_manager.GetCommand(request_id, command_id)
     self.assertEqual(common.CommandState.COMPLETED, queried_command.state)
-    mock_get_active_task_count.assert_called_with(
-        hamcrest.match_equality(
-            hamcrest.has_property("key", self.command.key)))
-    mock_delete_task.assert_has_calls(
-        [mock.call("%s-%s-%d" % (request_id, command_id, 0)),
-         mock.call("%s-%s-%d" % (request_id, command_id, 1))])
+    tasks = command_manager.GetActiveTasks(self.command)
+    self.assertEqual(len(tasks), 0)
+    command_attempts = command_manager.GetCommandAttempts(
+        request_id, command_id)
+    self.assertEqual(len(command_attempts), run_count)
     mock_notify.assert_called_with(request_id)
-    mock_delete_tasks.assert_called_with(
-        hamcrest.match_equality(
-            hamcrest.has_property("key", self.command.key)))
 
-  @mock.patch.object(command_manager, "DeleteTasks")
-  @mock.patch.object(command_manager, "DeleteTask")
-  @mock.patch.object(command_manager, "RescheduleTask")
-  @mock.patch.object(command_manager, "GetActiveTaskCount")
   @mock.patch.object(request_manager, "NotifyRequestState")
-  def testProcessCommandEvent_InvocationCompleted_multipleRuns_20(
-      self, mock_notify, mock_get_active_task_count, mock_reschedule,
-      mock_delete_task, mock_delete_tasks):
+  def testProcessCommandEvent_invocationCompleted_multipleRuns_20(
+      self, mock_notify):
     """Should complete command state for InvocationCompleted events.
 
     This tests a case when a run count is greater than
@@ -814,74 +805,41 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
 
     Args:
       mock_notify: mock function to notify request state changes.
-      mock_get_active_task_count: mock Command.GetActiveTaskCount function.
-      mock_reschedule: mock Command.RescheduleTask function
-      mock_delete_task: mock Command.DeleteTask function.
-      mock_delete_tasks: mock Command.DeleteTasks function.
     """
     run_count = 100
     _, request_id, _, command_id = self.command.key.flat()
     self.command.run_count = run_count
     self.command.put()
+    command_manager.ScheduleTasks([self.command])
 
-    attempt_id = 0
     for i in range(run_count):
+      tasks = command_manager.GetActiveTasks(self.command)
+      self.assertEqual(
+          len(tasks), min(run_count - i, command_manager.MAX_TASK_COUNT))
+      next_leasable_task = next((t for t in tasks if t.leasable), None)
+      command_task_store.LeaseTask(next_leasable_task.task_id)
+      queried_command = command_manager.GetCommand(request_id, command_id)
+      self.assertNotEqual(common.CommandState.COMPLETED, queried_command.state)
       command_event_test_util.CreateCommandAttempt(
-          self.command, str(i), state=common.CommandState.UNKNOWN)
-
-    for i in range(run_count - command_manager.MAX_TASK_COUNT):
-      invocation_completed_event = (
-          command_event_test_util.CreateTestCommandEvent(
-              request_id, command_id, str(attempt_id),
-              "InvocationCompleted", run_index=0))
-      attempt_id += 1
-      # It should be marked as error at the MAX_ERROR_COUNT attempt.
-      queried_command = command_manager.GetCommand(request_id, command_id)
-      self.assertNotEqual(common.CommandState.COMPLETED, queried_command.state)
-      mock_get_active_task_count.return_value = command_manager.MAX_TASK_COUNT
-      command_event_handler.ProcessCommandEvent(invocation_completed_event)
-
-    for i in range(command_manager.MAX_TASK_COUNT):
-      invocation_completed_event = (
-          command_event_test_util.CreateTestCommandEvent(
-              request_id, command_id, str(attempt_id),
-              "InvocationCompleted", run_index=i))
-      attempt_id += 1
-      queried_command = command_manager.GetCommand(request_id, command_id)
-      self.assertNotEqual(common.CommandState.COMPLETED, queried_command.state)
-      mock_get_active_task_count.return_value = (
-          command_manager.MAX_TASK_COUNT - i)
-      command_event_handler.ProcessCommandEvent(invocation_completed_event)
+          self.command, str(i), common.CommandState.UNKNOWN,
+          task=next_leasable_task)
+      event = command_event_test_util.CreateTestCommandEvent(
+          request_id, command_id, str(i), "InvocationCompleted",
+          task=next_leasable_task)
+      command_event_handler.ProcessCommandEvent(event)
 
     queried_command = command_manager.GetCommand(request_id, command_id)
-
     self.assertEqual(common.CommandState.COMPLETED, queried_command.state)
-    mock_get_active_task_count.assert_called_with(
-        hamcrest.match_equality(
-            hamcrest.has_property("key", self.command.key)))
-
-    mock_reschedule.assert_has_calls([
-        mock.call("%s-%s-%d" % (request_id, command_id, 0),
-                  hamcrest.match_equality(
-                      hamcrest.has_property("key", self.command.key)))
-    ] * (run_count - command_manager.MAX_TASK_COUNT))
-    mock_delete_task.assert_has_calls([
-        mock.call("%s-%s-%d" % (request_id, command_id, i))
-        for i in range(command_manager.MAX_TASK_COUNT - 1)
-    ])
+    tasks = command_manager.GetActiveTasks(self.command)
+    self.assertEqual(len(tasks), 0)
+    command_attempts = command_manager.GetCommandAttempts(
+        request_id, command_id)
+    self.assertEqual(len(command_attempts), run_count)
     mock_notify.assert_called_with(request_id)
-    mock_delete_tasks.assert_called_with(
-        hamcrest.match_equality(
-            hamcrest.has_property("key", self.command.key)))
 
-  @mock.patch.object(command_manager, "DeleteTasks")
-  @mock.patch.object(command_manager, "DeleteTask")
-  @mock.patch.object(command_manager, "RescheduleTask")
-  @mock.patch.object(command_manager, "GetActiveTaskCount")
   @mock.patch.object(request_manager, "NotifyRequestState")
-  def testProcessCommandEvent_InvocationCompleted_multipleRunsWithErrors(
-      self, mock_notify, mock_get_active_task_count, mock_reschedule,
-      mock_delete_task, mock_delete_tasks):
+  def testProcessCommandEvent_invocationCompleted_multipleRunsWithErrors(
+      self, mock_notify):
     """Should complete command state for InvocationCompleted events.
 
     This tests a case when a run count is greater than
@@ -889,101 +847,96 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
 
     Args:
       mock_notify: mock function to notify request state changes.
-      mock_get_active_task_count: mock Command.GetActiveTaskCount function.
-      mock_reschedule: mock Command.RescheduleTask function
-      mock_delete_task: mock Command.DeleteTask function.
-      mock_delete_tasks: mock Command.DeleteTasks function.
     """
     run_count = 100
     _, request_id, _, command_id = self.command.key.flat()
     self.command.run_count = run_count
     self.command.put()
+    command_manager.ScheduleTasks([self.command])
 
     max_error_count = (
         command_manager.MAX_ERROR_COUNT_BASE +
         int(run_count * command_manager.MAX_ERROR_COUNT_RATIO))
     for i in range(max_error_count):
+      tasks = command_manager.GetActiveTasks(self.command)
+      self.assertEqual(
+          len(tasks), min(run_count - i, command_manager.MAX_TASK_COUNT))
+      next_leasable_task = next((t for t in tasks if t.leasable), None)
+      command_task_store.LeaseTask(next_leasable_task.task_id)
       command_event_test_util.CreateCommandAttempt(
-          self.command, str(i), state=common.CommandState.UNKNOWN)
-      invocation_completed_event = (
-          command_event_test_util.CreateTestCommandEvent(
-              request_id, command_id, str(i), "InvocationCompleted",
-              error="error"))
+          self.command, str(i), common.CommandState.UNKNOWN,
+          task=next_leasable_task)
       # It should be marked as error at the max error count attempts.
       queried_command = command_manager.GetCommand(request_id, command_id)
       self.assertNotEqual(common.CommandState.ERROR, queried_command.state)
-      mock_get_active_task_count.return_value = command_manager.MAX_TASK_COUNT
-      command_event_handler.ProcessCommandEvent(invocation_completed_event)
+      event = command_event_test_util.CreateTestCommandEvent(
+          request_id, command_id, str(i), "InvocationCompleted",
+          task=next_leasable_task, error="error")
+      command_event_handler.ProcessCommandEvent(event)
 
     queried_command = command_manager.GetCommand(request_id, command_id)
     self.assertEqual(common.CommandState.ERROR, queried_command.state)
-    mock_get_active_task_count.assert_called_with(
-        hamcrest.match_equality(
-            hamcrest.has_property("key", self.command.key)))
-    mock_reschedule.assert_has_calls([
-        mock.call("%s-%s-0" % (request_id, command_id),
-                  hamcrest.match_equality(
-                      hamcrest.has_property("key", self.command.key)))
-    ] * (max_error_count - 1))
+    tasks = command_manager.GetActiveTasks(self.command)
+    self.assertEqual(len(tasks), 0)
+    command_attempts = command_manager.GetCommandAttempts(
+        request_id, command_id)
+    self.assertEqual(len(command_attempts), max_error_count)
     mock_notify.assert_called_with(request_id)
-    mock_delete_tasks.assert_called_with(
-        hamcrest.match_equality(
-            hamcrest.has_property("key", self.command.key)))
 
-  @mock.patch.object(command_manager, "DeleteTasks")
-  @mock.patch.object(command_manager, "RescheduleTask")
   @mock.patch.object(request_manager, "NotifyRequestState")
-  def testProcessCommandEvent_UnknownEvent(
-      self, mock_notify, mock_reschedule, mock_delete_tasks):
-    """Should update command state for unknown events.
-
-    Args:
-      mock_notify: mock function to notify request state changes.
-      mock_reschedule: mock function to reschedule tasks.
-      mock_delete_tasks: mock function to delete tasks.
-    """
+  def testProcessCommandEvent_unknownEvent(self, mock_notify):
+    """Should update command state for unknown events."""
     _, request_id, _, command_id = self.command.key.flat()
-    unknown_event = command_event_test_util.CreateTestCommandEvent(
-        request_id, command_id, "0", "SomeRandomInexistentType")
-    command_event_handler.ProcessCommandEvent(unknown_event)
+    command_manager.ScheduleTasks([self.command])
+
+    tasks = command_manager.GetActiveTasks(self.command)
+    self.assertEqual(len(tasks), 1)
+    command_task_store.LeaseTask(tasks[0].task_id)
+    command_event_test_util.CreateCommandAttempt(
+        self.command, "0", common.CommandState.UNKNOWN, task=tasks[0])
     queried_command = command_manager.GetCommand(request_id, command_id)
-    self.assertEqual(common.CommandState.UNKNOWN, queried_command.state)
-    self.assertFalse(mock_reschedule.called)
-    self.assertFalse(mock_delete_tasks.called)
+    self.assertEqual(common.CommandState.QUEUED, queried_command.state)
+    event = command_event_test_util.CreateTestCommandEvent(
+        request_id, command_id, "0", "SomeRandomInexistentType", task=tasks[0])
+    command_event_handler.ProcessCommandEvent(event)
+
+    queried_command = command_manager.GetCommand(request_id, command_id)
+    self.assertEqual(common.CommandState.QUEUED, queried_command.state)
+    tasks = command_manager.GetActiveTasks(self.command)
+    self.assertEqual(len(tasks), 1)
+    mock_notify.not_called()
 
   @mock.patch.object(metric, "command_event_type_count")
-  @mock.patch.object(command_manager, "DeleteTasks")
-  @mock.patch.object(command_manager, "RescheduleTask")
   @mock.patch.object(request_manager, "NotifyRequestState")
-  def testProcessCommandEvent_FatalEvent(
-      self, mock_notify, mock_reschedule, mock_delete_tasks,
-      mock_command_event_type_count):
+  def testProcessCommandEvent_fatalEvent(
+      self, mock_notify, mock_command_event_type_count):
     """Should not reschedule a configuration error, request should error out.
 
     Args:
       mock_notify: mock function to notify request state changes.
-      mock_reschedule: mock function to reschedule tasks.
-      mock_delete_tasks: mock function to delete tasks.
       mock_command_event_type_count: mock command event type count metric
     """
     _, request_id, _, command_id = self.command.key.flat()
-    fatal_event = command_event_test_util.CreateTestCommandEvent(
-        request_id, command_id, "0", "ConfigurationError")
+    command_manager.ScheduleTasks([self.command])
+
+    tasks = command_manager.GetActiveTasks(self.command)
+    self.assertEqual(len(tasks), 1)
+    command_task_store.LeaseTask(tasks[0].task_id)
+    command_event_test_util.CreateCommandAttempt(
+        self.command, "0", common.CommandState.UNKNOWN, task=tasks[0])
     queried_command = command_manager.GetCommand(request_id, command_id)
     self.assertNotEqual(common.CommandState.FATAL, queried_command.state)
-    command_event_test_util.CreateCommandAttempt(
-        self.command, "0", state=common.CommandState.UNKNOWN)
-    command_event_handler.ProcessCommandEvent(fatal_event)
+    event = command_event_test_util.CreateTestCommandEvent(
+        request_id, command_id, "0", "ConfigurationError", task=tasks[0])
+    command_event_handler.ProcessCommandEvent(event)
+
     queried_command = command_manager.GetCommand(request_id, command_id)
     self.assertEqual(common.CommandState.FATAL, queried_command.state)
+    tasks = command_manager.GetActiveTasks(self.command)
+    self.assertEqual(len(tasks), 0)
     attempts = command_manager.GetCommandAttempts(request_id, command_id)
     self.assertEqual(1, len(attempts))
-
-    self.assertFalse(mock_reschedule.called)
     mock_notify.assert_called_with(request_id)
-    mock_delete_tasks.assert_called_with(
-        hamcrest.match_equality(
-            hamcrest.has_property("key", self.command.key)))
     expected_metric_fields = {
         metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "ConfigurationError"
@@ -992,48 +945,32 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         expected_metric_fields)
 
   @mock.patch.object(metric, "command_event_type_count")
-  @mock.patch.object(command_manager, "DeleteTasks")
-  @mock.patch.object(command_manager, "RescheduleTask")
-  @mock.patch.object(command_manager, "GetActiveTaskCount")
   @mock.patch.object(request_manager, "NotifyRequestState")
   def testProcessCommandEvent_TFShutdown(
-      self, mock_notify, mock_get_active_task_count, mock_reschedule,
-      mock_delete_tasks, mock_command_event_type_count):
-    """Mark command events that were terminated by TF shutdown as CANCELED.
-
-    Args:
-      mock_notify: mock function to notify request state changes.
-      mock_get_active_task_count: mock Command.GetActiveTaskCount function.
-      mock_reschedule: mock function to reschedule tasks.
-      mock_delete_tasks: mock function to delete tasks.
-      mock_command_event_type_count: mock command event type count metric
-    """
+      self, mock_notify, mock_command_event_type_count):
+    """Mark command events that were terminated by TF shutdown as CANCELED."""
     _, request_id, _, command_id = self.command.key.flat()
+    command_manager.ScheduleTasks([self.command])
     error = "RunInterruptedException: Tradefed is shutting down."
-    cancelled_events = [
-        command_event_test_util.CreateTestCommandEvent(
-            request_id,
-            command_id,
-            str(i),
-            "InvocationCompleted",
-            data={"error": error})
-        for i in range(3)
-    ]
 
-    mock_get_active_task_count.return_value = 0
-    counter = 0
-    for cancelled_event in cancelled_events:
+    for i in range(3):
+      tasks = command_manager.GetActiveTasks(self.command)
+      self.assertEqual(len(tasks), 1)
+      command_task_store.LeaseTask(tasks[0].task_id)
       command_event_test_util.CreateCommandAttempt(
-          self.command, str(counter), state=common.CommandState.UNKNOWN)
-      counter += 1
-      command_event_handler.ProcessCommandEvent(cancelled_event)
+          self.command, str(i), common.CommandState.UNKNOWN, task=tasks[0])
+      event = command_event_test_util.CreateTestCommandEvent(
+          request_id, command_id, str(i), "InvocationCompleted",
+          task=tasks[0], data={"error": error})
+      command_event_handler.ProcessCommandEvent(event)
 
     # After three cancelled attempts, the command should still be queued.
     queried_command = self.command.key.get()
     self.assertEqual(common.CommandState.QUEUED, queried_command.state)
+    tasks = command_manager.GetActiveTasks(self.command)
+    self.assertEqual(len(tasks), 1)
     attempts = command_manager.GetCommandAttempts(request_id, command_id)
     self.assertEqual(3, len(attempts))
-    self.assertEqual(3, mock_reschedule.call_count)
     mock_notify.assert_called_with(request_id)
     expected_metric_fields = {
         metric.METRIC_FIELD_HOSTNAME: "hostname",
@@ -1043,32 +980,26 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         [mock.call(expected_metric_fields)] * 3)
 
   @mock.patch.object(metric, "command_event_type_count")
-  @mock.patch.object(command_manager, "DeleteTasks")
-  @mock.patch.object(command_manager, "RescheduleTask")
   @mock.patch.object(request_manager, "NotifyRequestState")
   def testProcessCommandEvent_ignoreOutOfDateEvent(
-      self, mock_notify, mock_reschedule, mock_delete_tasks,
-      mock_command_event_type_count):
-    """Should complete command state for InvocationCompleted events.
-
-    Args:
-      mock_notify: mock function to notify request state changes.
-      mock_reschedule: mock function to reschedule tasks.
-      mock_delete_tasks: mock function to delete tasks.
-      mock_command_event_type_count: mock command event type count metric
-    """
-    command_event_test_util.CreateCommandAttempt(
-        self.command, "0", state=common.CommandState.UNKNOWN)
+      self, mock_notify, mock_command_event_type_count):
+    """Should complete command state for InvocationCompleted events."""
     _, request_id, _, command_id = self.command.key.flat()
+    command_manager.ScheduleTasks([self.command])
+
+    tasks = command_manager.GetActiveTasks(self.command)
+    command_task_store.LeaseTask(tasks[0].task_id)
+    command_event_test_util.CreateCommandAttempt(
+        self.command, "0", common.CommandState.UNKNOWN, task=tasks[0])
     invocation_completed_event = command_event_test_util.CreateTestCommandEvent(
         request_id, command_id, "0", "InvocationCompleted",
-        time=TIMESTAMP_INT + 60)
+        task=tasks[0], time=TIMESTAMP_INT + 60)
     invocation_started_event = command_event_test_util.CreateTestCommandEvent(
         request_id, command_id, "0", "InvocationStarted",
-        time=TIMESTAMP_INT + 30)
+        task=tasks[0], time=TIMESTAMP_INT + 30)
 
     queried_command = command_manager.GetCommand(request_id, command_id)
-    self.assertEqual(common.CommandState.UNKNOWN, queried_command.state)
+    self.assertEqual(common.CommandState.QUEUED, queried_command.state)
 
     command_event_handler.ProcessCommandEvent(invocation_completed_event)
     queried_command = command_manager.GetCommand(request_id, command_id)
@@ -1078,6 +1009,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         TIMESTAMP + datetime.timedelta(seconds=60),
         command_attempt.last_event_time)
     self.assertEqual(common.CommandState.COMPLETED, queried_command.state)
+
     # The second event is ignored.
     command_event_handler.ProcessCommandEvent(invocation_started_event)
     queried_command = command_manager.GetCommand(request_id, command_id)
@@ -1088,18 +1020,15 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         command_attempt.last_event_time)
     self.assertEqual(common.CommandState.COMPLETED, queried_command.state)
 
+    tasks = command_manager.GetActiveTasks(self.command)
+    self.assertEqual(len(tasks), 0)
     attempts = command_manager.GetCommandAttempts(
         request_id, command_id)
     self.assertEqual(1, len(attempts))
     self.assertEqual("summary", attempts[0].summary)
     self.assertEqual(1000, attempts[0].total_test_count)
     self.assertEqual(100, attempts[0].failed_test_count)
-
-    self.assertFalse(mock_reschedule.called)
     mock_notify.assert_called_with(request_id)
-    mock_delete_tasks.assert_called_with(
-        hamcrest.match_equality(
-            hamcrest.has_property("key", self.command.key)))
     # Metrics should still be logged for out of order events
     started_metric_fields = {
         metric.METRIC_FIELD_HOSTNAME: "hostname",
@@ -1115,4 +1044,5 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
 
 
 if __name__ == "__main__":
+  logging.getLogger().setLevel(logging.DEBUG)
   unittest.main()

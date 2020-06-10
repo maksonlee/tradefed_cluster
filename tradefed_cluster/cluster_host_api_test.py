@@ -397,6 +397,25 @@ class ClusterHostApiTest(api_test.ApiTest):
     for host in host_collection.host_infos:
       self.assertEqual('paid', host.host_group)
 
+  def testListHosts_filterByHostStates(self):
+    """Tests ListHosts returns hosts the under host states."""
+    host_4 = datastore_test_util.CreateHost(
+        cluster='paid',
+        hostname='host_4',
+        lab_name='alab',
+        host_state=api_messages.HostState.KILLING,
+    )
+    host_4.put()
+    api_request = {'host_states': ['KILLING', 'RUNNING']}
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
+                                          api_request)
+    host_collection = protojson.decode_message(api_messages.HostInfoCollection,
+                                               api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(2, len(host_collection.host_infos))
+    self.assertEqual('RUNNING', host_collection.host_infos[0].host_state)
+    self.assertEqual('KILLING', host_collection.host_infos[1].host_state)
+
   @mock.patch.object(note_manager, 'PublishMessage')
   def testAddOrUpdateHostNote_addWithTextOfflineReasonAndRecoveryAction(
       self, mock_publish_host_note_message):

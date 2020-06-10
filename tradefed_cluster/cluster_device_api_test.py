@@ -260,6 +260,26 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual(2, len(device_collection.device_infos))
     self.assertFalse(device_collection.more)
 
+  def testListDevices_filterRunTargets(self):
+    """Tests ListDevices returns devices filtered by run targets."""
+    datastore_test_util.CreateDevice('cluster_01', 'host_01', 'device_01',
+                                     run_target='run_target_01')
+    datastore_test_util.CreateDevice('cluster_01', 'host_01', 'device_02',
+                                     run_target='run_target_02')
+    datastore_test_util.CreateDevice('cluster_01', 'host_01', 'device_03',
+                                     run_target='run_target_03')
+    api_request = {'run_targets': ['run_target_01', 'run_target_02']}
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterDeviceApi.ListDevices', api_request)
+    device_collection = protojson.decode_message(
+        api_messages.DeviceInfoCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(2, len(device_collection.device_infos))
+    self.assertEqual('run_target_01',
+                     device_collection.device_infos[0].run_target)
+    self.assertEqual('run_target_02',
+                     device_collection.device_infos[1].run_target)
+
   def testBatchGetLastestNotesByDevice(self):
     """Tests ListDevices returns all devices."""
     note_entities = [

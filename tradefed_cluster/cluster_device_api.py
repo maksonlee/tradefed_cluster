@@ -59,6 +59,7 @@ class ClusterDeviceApi(remote.Service):
           default=_DEFAULT_LIST_DEVICE_COUNT),
       product=messages.StringField(9),
       test_harness=messages.StringField(10, repeated=True),
+      run_targets=messages.StringField(11, repeated=True),
   )
 
   @endpoints.method(
@@ -114,6 +115,10 @@ class ClusterDeviceApi(remote.Service):
     if request.device_types:
       query = query.filter(
           datastore_entities.DeviceInfo.device_type.IN(request.device_types))
+
+    if request.run_targets:
+      query = query.filter(
+          datastore_entities.DeviceInfo.run_target.IN(request.run_targets))
 
     start_time = time.time()
     devices, prev_cursor, next_cursor = datastore_util.FetchPage(

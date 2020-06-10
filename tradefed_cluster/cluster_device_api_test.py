@@ -151,6 +151,29 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual(1, len(device_collection.device_infos))
     self.assertEqual('mh', device_collection.device_infos[0].test_harness)
 
+  def testListDevices_filterMultiTestHarness(self):
+    """Tests ListDevices returns devices filtered by multiple test harness."""
+    datastore_test_util.CreateDevice(
+        'mh_cluster',
+        'mh_host',
+        'mh_device',
+        test_harness='mh')
+    datastore_test_util.CreateDevice(
+        'goats_cluster',
+        'goats_host',
+        'goats_device',
+        test_harness='goats')
+    api_request = {'test_harness': ['mh', 'goats']}
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterDeviceApi.ListDevices', api_request)
+    device_collection = protojson.decode_message(
+        api_messages.DeviceInfoCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    # It will not get the hidden device.
+    self.assertEqual(2, len(device_collection.device_infos))
+    self.assertEqual('goats', device_collection.device_infos[0].test_harness)
+    self.assertEqual('mh', device_collection.device_infos[1].test_harness)
+
   def testListDevices_filterHostname(self):
     """Tests ListDevices returns devices filtered by hostname."""
     api_request = {'hostname': 'host_1'}

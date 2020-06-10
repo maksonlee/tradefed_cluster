@@ -58,7 +58,7 @@ class ClusterDeviceApi(remote.Service):
           8, variant=messages.Variant.INT32,
           default=_DEFAULT_LIST_DEVICE_COUNT),
       product=messages.StringField(9),
-      test_harness=messages.StringField(10),
+      test_harness=messages.StringField(10, repeated=True),
   )
 
   @endpoints.method(
@@ -87,7 +87,7 @@ class ClusterDeviceApi(remote.Service):
                 datastore_entities.DeviceInfo.key)
     if request.test_harness:
       query = query.filter(
-          datastore_entities.DeviceInfo.test_harness == request.test_harness)
+          datastore_entities.DeviceInfo.test_harness.IN(request.test_harness))
     if request.lab_name:
       query = query.filter(
           datastore_entities.DeviceInfo.lab_name == request.lab_name)

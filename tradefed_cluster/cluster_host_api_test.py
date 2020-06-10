@@ -307,6 +307,18 @@ class ClusterHostApiTest(api_test.ApiTest):
     for host in host_collection.host_infos:
       self.assertEqual('paid', host.host_group)
 
+  def testListHosts_filterByHostnames(self):
+    """Tests ListHosts returns hosts the under hostnames."""
+    api_request = {'hostnames': ['host_2']}
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
+                                          api_request)
+    host_collection = protojson.decode_message(api_messages.HostInfoCollection,
+                                               api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(1, len(host_collection.host_infos))
+    for host in host_collection.host_infos:
+      self.assertEqual('host_2', host.hostname)
+
   def testListHosts_filterByTestHarness(self):
     """Tests ListHosts returns hosts the under a test harness."""
     mh_host = datastore_test_util.CreateHost(

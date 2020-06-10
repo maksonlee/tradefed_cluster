@@ -47,11 +47,12 @@ class ClusterHostApi(remote.Service):
       include_devices=messages.BooleanField(3, default=False),
       assignee=messages.StringField(4),
       is_bad=messages.BooleanField(5),
-      host_groups=messages.StringField(6, repeated=True),
-      test_harness=messages.StringField(7),
-      cursor=messages.StringField(8),
+      hostnames=messages.StringField(6, repeated=True),
+      host_groups=messages.StringField(7, repeated=True),
+      test_harness=messages.StringField(8),
+      cursor=messages.StringField(9),
       count=messages.IntegerField(
-          9, variant=messages.Variant.INT32, default=_DEFAULT_LIST_HOST_COUNT))
+          10, variant=messages.Variant.INT32, default=_DEFAULT_LIST_HOST_COUNT))
 
   @endpoints.method(
       HOST_LIST_RESOURCE,
@@ -82,6 +83,10 @@ class ClusterHostApi(remote.Service):
 
     if not request.include_hidden:
       query = query.filter(datastore_entities.HostInfo.hidden == False)  
+    if request.hostnames:
+      query = query.filter(
+          datastore_entities.HostInfo.hostname.IN(request.hostnames))
+
     if request.host_groups:
       query = query.filter(
           datastore_entities.HostInfo.host_group.IN(request.host_groups))

@@ -49,7 +49,7 @@ class ClusterHostApi(remote.Service):
       is_bad=messages.BooleanField(5),
       hostnames=messages.StringField(6, repeated=True),
       host_groups=messages.StringField(7, repeated=True),
-      test_harness=messages.StringField(8),
+      test_harness=messages.StringField(8, repeated=True),
       cursor=messages.StringField(9),
       count=messages.IntegerField(
           10, variant=messages.Variant.INT32, default=_DEFAULT_LIST_HOST_COUNT))
@@ -94,7 +94,10 @@ class ClusterHostApi(remote.Service):
     if request.test_harness:
       # TODO: Change test_runner to test_harness.
       query = query.filter(
-          datastore_entities.HostInfo.test_runner == request.test_harness)
+          datastore_entities.HostInfo.test_runner.IN(
+              request.test_harness))
+
+    query = query.order(datastore_entities.HostInfo.key)
 
     hosts, prev_cursor, next_cursor = datastore_util.FetchPage(
         query, request.count, page_cursor=request.cursor)

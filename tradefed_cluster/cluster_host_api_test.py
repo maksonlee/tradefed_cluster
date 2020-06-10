@@ -361,6 +361,30 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(4, len(host_collection.host_infos))
 
+  def testListHosts_filterByMultiTestHarnessVersions(self):
+    """Tests ListHosts returns hosts the under multi test harness versions."""
+    mh_host = datastore_test_util.CreateHost(
+        cluster='mh_cluster',
+        hostname='mh_host',
+        lab_name='mh_lab',
+        test_runner='MH',
+        test_runner_version='v1')
+    mh_host.put()
+    goats_host = datastore_test_util.CreateHost(
+        cluster='goats_cluster',
+        hostname='goats_host',
+        lab_name='goats_lab',
+        test_runner='GOATS',
+        test_runner_version='v3.2')
+    goats_host.put()
+    api_request = {'test_harness_versions': ['v1', 'v3.2']}
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
+                                          api_request)
+    host_collection = protojson.decode_message(api_messages.HostInfoCollection,
+                                               api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(2, len(host_collection.host_infos))
+
   @mock.patch.object(note_manager, 'PublishMessage')
   def testAddOrUpdateHostNote_addWithTextOfflineReasonAndRecoveryAction(
       self, mock_publish_host_note_message):

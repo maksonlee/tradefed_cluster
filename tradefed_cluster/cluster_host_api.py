@@ -50,9 +50,10 @@ class ClusterHostApi(remote.Service):
       hostnames=messages.StringField(6, repeated=True),
       host_groups=messages.StringField(7, repeated=True),
       test_harness=messages.StringField(8, repeated=True),
-      cursor=messages.StringField(9),
+      test_harness_versions=messages.StringField(9, repeated=True),
+      cursor=messages.StringField(10),
       count=messages.IntegerField(
-          10, variant=messages.Variant.INT32, default=_DEFAULT_LIST_HOST_COUNT))
+          11, variant=messages.Variant.INT32, default=_DEFAULT_LIST_HOST_COUNT))
 
   @endpoints.method(
       HOST_LIST_RESOURCE,
@@ -96,6 +97,11 @@ class ClusterHostApi(remote.Service):
       query = query.filter(
           datastore_entities.HostInfo.test_runner.IN(
               request.test_harness))
+
+    if request.test_harness_versions:
+      query = query.filter(
+          datastore_entities.HostInfo.test_runner_version.IN(
+              request.test_harness_versions))
 
     query = query.order(datastore_entities.HostInfo.key)
 

@@ -385,6 +385,18 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(2, len(host_collection.host_infos))
 
+  def testListHosts_filterByPools(self):
+    """Tests ListHosts returns hosts the under pools."""
+    api_request = {'pools': ['paid']}
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
+                                          api_request)
+    host_collection = protojson.decode_message(api_messages.HostInfoCollection,
+                                               api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(1, len(host_collection.host_infos))
+    for host in host_collection.host_infos:
+      self.assertEqual('paid', host.host_group)
+
   @mock.patch.object(note_manager, 'PublishMessage')
   def testAddOrUpdateHostNote_addWithTextOfflineReasonAndRecoveryAction(
       self, mock_publish_host_note_message):

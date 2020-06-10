@@ -187,6 +187,22 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     for device in device_collection.device_infos:
       self.assertEqual('host_1', device.hostname)
 
+  def testListDevices_filterHostnames(self):
+    """Tests ListDevices returns devices filtered by hostnames."""
+    api_request = {'hostnames': ['host_0', 'host_1']}
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterDeviceApi.ListDevices', api_request)
+    device_collection = protojson.decode_message(
+        api_messages.DeviceInfoCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(3, len(device_collection.device_infos))
+    self.assertEqual(self.ndb_device_0.device_serial,
+                     device_collection.device_infos[0].device_serial)
+    self.assertEqual(self.ndb_device_1.device_serial,
+                     device_collection.device_infos[1].device_serial)
+    self.assertEqual(self.ndb_device_3.device_serial,
+                     device_collection.device_infos[2].device_serial)
+
   def testListDevices_includeHidden(self):
     """Tests ListDevices returns both hidden and non-hidden devices."""
     api_request = {'include_hidden': True}

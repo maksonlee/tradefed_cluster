@@ -60,6 +60,7 @@ class ClusterDeviceApi(remote.Service):
       product=messages.StringField(9),
       test_harness=messages.StringField(10, repeated=True),
       run_targets=messages.StringField(11, repeated=True),
+      hostnames=messages.StringField(12, repeated=True),
   )
 
   @endpoints.method(
@@ -98,6 +99,9 @@ class ClusterDeviceApi(remote.Service):
     if request.hostname:
       query = query.filter(
           datastore_entities.DeviceInfo.hostname == request.hostname)
+    if request.hostnames:
+      query = query.filter(
+          datastore_entities.DeviceInfo.hostname.IN(request.hostnames))
 
     # We only consider device hidden here, since there is no simple way to do
     # join like operation in datastore. We tried fetching host and use

@@ -117,7 +117,17 @@ py_appengine_library(
     ],
     srcs_version = "PY2AND3",
     deps = [
-        third_party("multitest_transport:google_import_fixer"),
+        ":google_import_fixer",
         third_party("google/cloud/ndb"),
+    ],
+)
+
+py_appengine_library(
+    name = "google_import_fixer",
+    srcs = ["google_import_fixer.py"],
+    srcs_version = "PY2AND3",
+    visibility = [
+        "//third_party/py/multitest_transport:__subpackages__",
+        "//tradefed_cluster:__subpackages__",
     ],
 )

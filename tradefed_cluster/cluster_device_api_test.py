@@ -205,6 +205,22 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual(self.ndb_device_3.device_serial,
                      device_collection.device_infos[2].device_serial)
 
+  def testListDevices_filterPools(self):
+    """Tests ListDevices returns devices filtered by pools."""
+    datastore_test_util.CreateDevice('cluster_01', 'host_01', 'device_01',
+                                     pools='pools_A')
+    datastore_test_util.CreateDevice('cluster_01', 'host_01', 'device_02',
+                                     pools='pools_B')
+    api_request = {'pools': ['pools_A', 'pools_B']}
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterDeviceApi.ListDevices', api_request)
+    device_collection = protojson.decode_message(
+        api_messages.DeviceInfoCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(2, len(device_collection.device_infos))
+    self.assertEqual(['pools_A'], device_collection.device_infos[0].pools)
+    self.assertEqual(['pools_B'], device_collection.device_infos[1].pools)
+
   def testListDevices_includeHidden(self):
     """Tests ListDevices returns both hidden and non-hidden devices."""
     api_request = {'include_hidden': True}

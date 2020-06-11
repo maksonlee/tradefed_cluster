@@ -177,10 +177,14 @@ class ClusterDeviceApi(remote.Service):
 
     # TODO: deprecate "include_notes".
     if request.include_notes:
-      device_notes = datastore_entities.DeviceNote.query()
-      device_notes = device_notes.filter(
-          datastore_entities.DeviceNote.device_serial == device_serial)
-      device_info.notes = self._ExtractDeviceNotes(device_notes)
+      device_notes = (
+          datastore_entities.Note.query().filter(
+              datastore_entities.Note.type == common.NoteType.DEVICE_NOTE)
+          .filter(datastore_entities.Note.device_serial == device_serial).order(
+              -datastore_entities.Note.timestamp))
+      device_info.notes = [
+          datastore_entities.ToMessage(note) for note in device_notes
+      ]
     if request.include_history:
       histories = device_manager.GetDeviceHistory(device.hostname,
                                                   device_serial)
@@ -189,11 +193,6 @@ class ClusterDeviceApi(remote.Service):
       utilization = device_manager.CalculateDeviceUtilization(device_serial)
       device_info.utilization = utilization
     return device_info
-
-  def _ExtractDeviceNotes(self, device_notes):
-    """Extract and convert notes from DeviceNote datastore entity."""
-    notes = [datastore_entities.ToMessage(n.note) for n in device_notes.iter()]
-    return sorted(notes, key=lambda x: x.timestamp, reverse=True)
 
   # TODO: deprecate "NewNote" endpoint.
   NEW_NOTE_RESOURCE = endpoints.ResourceContainer(
@@ -206,6 +205,7 @@ class ClusterDeviceApi(remote.Service):
       recovery_action_id=messages.IntegerField(7),
       lab_name=messages.StringField(8),
       timestamp=message_types.DateTimeField(9, required=True),
+      hostname=messages.StringField(10),
   )
 
   @endpoints.method(
@@ -223,21 +223,21 @@ class ClusterDeviceApi(remote.Service):
     Returns:
       an api_messages.Note object.
     """
-    device_serial = request.device_serial
     timestamp = request.timestamp
     # Datastore only accepts UTC times. Doing a conversion if necessary.
     if timestamp.utcoffset() is not None:
       timestamp = timestamp.replace(tzinfo=None) - timestamp.utcoffset()
     note = datastore_entities.Note(
+        type=common.NoteType.DEVICE_NOTE,
+        hostname=request.hostname,
+        device_serial=request.device_serial,
         user=request.user,
         timestamp=timestamp,
         message=request.message,
         offline_reason=request.offline_reason,
         recovery_action=request.recovery_action)
 
-    device_note = datastore_entities.DeviceNote(device_serial=device_serial)
-    device_note.note = note
-    device_note.put()
+    note.put()
     return datastore_entities.ToMessage(note)
 
   NOTE_ADD_OR_UPDATE_RESOURCE = endpoints.ResourceContainer(

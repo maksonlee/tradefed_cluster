@@ -173,11 +173,14 @@ class ClusterHostApi(remote.Service):
     host_info = datastore_entities.ToMessage(host, devices=devices)
     # TODO: deprecate "include_notes".
     if request.include_notes:
-      host_notes = datastore_entities.HostNote.query()
-      host_notes = host_notes.filter(
-          datastore_entities.HostNote.hostname == hostname)
-      notes = [datastore_entities.ToMessage(n.note) for n in host_notes.iter()]
-      host_info.notes = sorted(notes, key=lambda x: x.timestamp, reverse=True)
+      host_notes = (
+          datastore_entities.Note.query().filter(
+              datastore_entities.Note.type == common.NoteType.HOST_NOTE).filter(
+                  datastore_entities.Note.hostname == hostname).order(
+                      -datastore_entities.Note.timestamp))
+      host_info.notes = [
+          datastore_entities.ToMessage(note) for note in host_notes
+      ]
     if request.include_host_state_history:
       history_states = None
       limit = request.host_state_history_limit
@@ -221,20 +224,19 @@ class ClusterHostApi(remote.Service):
     Returns:
       a VoidMessage
     """
-    hostname = request.hostname
     timestamp = request.timestamp
     # Datastore only accepts UTC times. Doing a conversion if necessary.
     if timestamp.utcoffset() is not None:
       timestamp = timestamp.replace(tzinfo=None) - timestamp.utcoffset()
     note = datastore_entities.Note(
+        type=common.NoteType.HOST_NOTE,
+        hostname=request.hostname,
         user=request.user,
         timestamp=timestamp,
         message=request.message,
         offline_reason=request.offline_reason,
         recovery_action=request.recovery_action)
-    host_note = datastore_entities.HostNote(hostname=hostname)
-    host_note.note = note
-    host_note.put()
+    note.put()
     return datastore_entities.ToMessage(note)
 
   NOTE_ADD_OR_UPDATE_RESOURCE = endpoints.ResourceContainer(

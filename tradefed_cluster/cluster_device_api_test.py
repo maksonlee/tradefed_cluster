@@ -77,7 +77,12 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         'device_4',
         device_type=api_messages.DeviceTypeMessage.NULL)
     self.note = datastore_entities.Note(
-        user='user0', timestamp=self.TIMESTAMP, message='Hello, World')
+        type=common.NoteType.DEVICE_NOTE,
+        device_serial='device_0',
+        user='user0',
+        timestamp=self.TIMESTAMP,
+        message='Hello, World')
+    self.note.put()
 
     self.device_history_0 = datastore_entities.DeviceStateHistory(
         device_serial='device_0',
@@ -92,9 +97,6 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         state='Allocated')
     device_history_1_key = self.device_history_1.put()
     self.history = [device_history_0_key, device_history_1_key]
-    device_note = datastore_entities.DeviceNote(device_serial='device_0')
-    device_note.note = self.note
-    device_note.put()
 
   def testListDevices(self):
     """Tests ListDevices returns all devices."""

@@ -95,10 +95,12 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.ndb_host_3 = datastore_test_util.CreateHost(
         cluster='paid', hostname='host_3', lab_name='alab')
     self.note = datastore_entities.Note(
-        user='user0', timestamp=self.TIMESTAMP, message='Hello, World')
-    host_note = datastore_entities.HostNote(hostname='host_0')
-    host_note.note = self.note
-    host_note.put()
+        type=common.NoteType.HOST_NOTE,
+        hostname='host_0',
+        user='user0',
+        timestamp=self.TIMESTAMP,
+        message='Hello, World')
+    self.note.put()
 
   def AssertEqualHostInfo(self, host_entity, host_message):
     # Helper to compare host entities and messages

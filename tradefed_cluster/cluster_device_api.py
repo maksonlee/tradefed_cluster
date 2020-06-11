@@ -62,6 +62,7 @@ class ClusterDeviceApi(remote.Service):
       run_targets=messages.StringField(11, repeated=True),
       hostnames=messages.StringField(12, repeated=True),
       pools=messages.StringField(13, repeated=True),
+      device_states=messages.StringField(14, repeated=True),
   )
 
   @endpoints.method(
@@ -128,6 +129,10 @@ class ClusterDeviceApi(remote.Service):
     if request.pools:
       query = query.filter(
           datastore_entities.DeviceInfo.pools.IN(request.pools))
+
+    if request.device_states:
+      query = query.filter(
+          datastore_entities.DeviceInfo.state.IN(request.device_states))
 
     start_time = time.time()
     devices, prev_cursor, next_cursor = datastore_util.FetchPage(

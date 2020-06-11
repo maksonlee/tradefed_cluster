@@ -255,6 +255,39 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     for d in device_collection.device_infos:
       self.assertEqual(api_messages.DeviceTypeMessage.NULL, d.device_type)
 
+  def testListDevices_filterHostGroups(self):
+    """Tests ListDevices returns devices filtered by host groups."""
+    datastore_test_util.CreateDevice(
+        'cluster_01',
+        'host_01',
+        'device_01',
+        host_group='hg_01')
+    datastore_test_util.CreateDevice(
+        'cluster_01',
+        'host_01',
+        'device_02',
+        host_group='hg_02')
+    datastore_test_util.CreateDevice(
+        'cluster_01',
+        'host_01',
+        'device_03',
+        host_group='hg_02')
+    datastore_test_util.CreateDevice(
+        'cluster_01',
+        'host_01',
+        'device_04',
+        host_group='hg_03')
+    api_request = {'host_groups': ['hg_01', 'hg_02']}
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterDeviceApi.ListDevices', api_request)
+    device_collection = protojson.decode_message(
+        api_messages.DeviceInfoCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(3, len(device_collection.device_infos))
+    self.assertEqual('hg_01', device_collection.device_infos[0].host_group)
+    self.assertEqual('hg_02', device_collection.device_infos[1].host_group)
+    self.assertEqual('hg_02', device_collection.device_infos[2].host_group)
+
   def testListDevices_withOffset(self):
     """Tests ListDevices returns devices applying a count and offset."""
     api_request = {'include_hidden': True, 'count': '2'}

@@ -28,12 +28,12 @@ from protorpc import protojson
 from protorpc import remote
 
 from google.appengine.api import modules
-from google.appengine.ext import deferred
 
 from tradefed_cluster import api_common
 from tradefed_cluster import api_messages
 from tradefed_cluster import device_manager
 from tradefed_cluster import host_event
+from tradefed_cluster.services import task_scheduler
 
 CHUNK_SIZE = 10
 
@@ -107,10 +107,13 @@ class HostEventApi(remote.Service):
                  len(encoded_message), len(host_events))
     for event_chunk in chunks(host_events, CHUNK_SIZE):
       logging.info("Queuing host event chunk of size %d", len(event_chunk))
-      deferred.defer(self._ProcessHostEventWithNDB, event_chunk,
-                     _queue=host_event.HOST_EVENT_QUEUE_NDB,
-                     _target="%s.%s" % (modules.get_current_version_name(),
-                                        modules.get_current_module_name()))
+      task_scheduler.AddCallableTask(
+          self._ProcessHostEventWithNDB,
+          event_chunk,
+          _queue=host_event.HOST_EVENT_QUEUE_NDB,
+          _target="%s.%s" % (
+              modules.get_current_version_name(),
+              modules.get_current_module_name()))
     logging.debug("Submitted host event message.")
     return message_types.VoidMessage()
 
@@ -129,7 +132,7 @@ class HostEventApi(remote.Service):
     for e in events:
       logging.debug("Processing event: %s.", e)
       if not device_manager.IsHostEventValid(e):
-        logging.warn("Host event is invalid. Ignoring: %s", e)
+        logging.warning("Host event is invalid. Ignoring: %s", e)
         continue
       event = host_event.HostEvent(**e)
       device_manager.HandleDeviceSnapshotWithNDB(event)

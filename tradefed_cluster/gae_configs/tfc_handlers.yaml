@@ -14,10 +14,11 @@
 
 # Main handlers
 
-builtins:
-- deferred: on
-
 handlers:
+# A handler for callable task queues. See tradefed_cluster.services.task_scheduler.
+- url: /_ah/queue/(default|host-event-queue-ndb|notifcation-work-queue)
+  script: tradefed_cluster.services.task_scheduler.APP
+
 - url: /_ah/queue/command-attempt-sync-queue
   script: tradefed_cluster.command_attempt_monitor.APP
 

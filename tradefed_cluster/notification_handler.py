@@ -19,11 +19,11 @@ import logging
 import webapp2
 
 from google.appengine.api import modules
-from google.appengine.ext import deferred
 
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import request_manager
+from tradefed_cluster.services import task_scheduler
 
 NOTIFICATION_TASK_QUEUE = 'notification-work-queue'
 
@@ -43,10 +43,13 @@ def NotifyPendingRequestStateChanges():
                     .filter(datastore_entities.Request.notify_state_change == True)
           .fetch(keys_only=True))
   for k in keys:
-    deferred.defer(NotifyRequestState, request_id=k.id(),
-                   _queue=NOTIFICATION_TASK_QUEUE,
-                   _target='%s.%s' % (modules.get_current_version_name(),
-                                      modules.get_current_module_name()))
+    task_scheduler.AddCallableTask(
+        NotifyRequestState,
+        request_id=k.id(),
+        _queue=NOTIFICATION_TASK_QUEUE,
+        _target='%s.%s' % (
+            modules.get_current_version_name(),
+            modules.get_current_module_name()))
 
 
 def NotifyRequestState(request_id, force=False):

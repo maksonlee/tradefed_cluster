@@ -63,9 +63,9 @@ def _SendEventMessage(encoded_message, pubsub_topic):
     data = base64.urlsafe_b64encode(encoded_message)
     _PubsubClient.PublishMessages(pubsub_topic, [{'data': data}])
   elif queue:
-    task_scheduler.add_task(queue_name=queue, payload=encoded_message)
+    task_scheduler.AddTask(queue_name=queue, payload=encoded_message)
   else:
-    logging.warn(
+    logging.warning(
         'Unabled to notify events: use_google_api=False and queue is null')
 
 

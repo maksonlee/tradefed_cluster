@@ -14,10 +14,10 @@
 
 # API handlers
 
-builtins:
-- deferred: on
-
 handlers:
 - url: /_ah/api/.*
   script: tradefed_cluster.api.APP
   secure: always
+# A handler for callale task queues. See tradefed_cluster.services.task_scheduler.
+- url: /_ah/queue/default
+  script: tradefed_cluster.services.task_scheduler.APP

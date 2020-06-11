@@ -74,7 +74,7 @@ def EnqueueCommandEvents(events):
   # Sort by task_ids to make it easy to test.
   for key in sorted(event_map.keys()):
     payload = zlib.compress(json.dumps(event_map[key]))
-    task_scheduler.add_task(queue_name=COMMAND_EVENT_QUEUE, payload=payload)
+    task_scheduler.AddTask(queue_name=COMMAND_EVENT_QUEUE, payload=payload)
 
 
 def LogCommandEventMetrics(command, event):

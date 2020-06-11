@@ -208,7 +208,7 @@ class CommandMonitorTest(testbed_dependent_test.TestbedDependentTest):
     sync.assert_called_once_with(command_1)
 
   @mock.patch.object(command_monitor, 'Now')
-  @mock.patch.object(task_scheduler, 'add_task')
+  @mock.patch.object(task_scheduler, 'AddTask')
   def testAddToSyncQueue(self, mock_add, mock_now):
     # Create a command that was created 5 minutes ago.
     datastore_entities.Command.update_time._auto_now = False
@@ -241,7 +241,7 @@ class CommandMonitorTest(testbed_dependent_test.TestbedDependentTest):
         eta=now + datetime.timedelta(
             minutes=command_monitor.MAX_COMMAND_EVENT_DELAY_MIN))
 
-  @mock.patch.object(task_scheduler, 'add_task')
+  @mock.patch.object(task_scheduler, 'AddTask')
   def testAddToSyncQueue_CancelDeadline(self, mock_add):
     # Create a command that needs to be cancelled in 1 minute.
     datastore_entities.Command.update_time._auto_now = False
@@ -272,7 +272,7 @@ class CommandMonitorTest(testbed_dependent_test.TestbedDependentTest):
         payload=payload,
         eta=now + datetime.timedelta(minutes=1))
 
-  @mock.patch.object(task_scheduler, 'add_task')
+  @mock.patch.object(task_scheduler, 'AddTask')
   def testAddToSyncQueue_CustomCancelDeadline(self, mock_add):
     # Create a command with a custom 10 hour command timeout that needs to be
     # cancelled in 1 minute.
@@ -306,7 +306,7 @@ class CommandMonitorTest(testbed_dependent_test.TestbedDependentTest):
         eta=now + datetime.timedelta(minutes=1))
 
   @mock.patch.object(command_monitor, 'Now')
-  @mock.patch.object(task_scheduler, 'add_task')
+  @mock.patch.object(task_scheduler, 'AddTask')
   def testAddToSyncQueue_RunningCommand(self, mock_add, mock_now):
     # Create a command that has been running for 3 hours.
     datastore_entities.Command.update_time._auto_now = False

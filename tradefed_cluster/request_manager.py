@@ -206,7 +206,7 @@ def NotifyRequestState(request_id, force=False):
 def SendRequestStateNotification(request_id, message):
   request = GetRequest(request_id)
   payload = zlib.compress(protojson.encode_message(message))
-  task_scheduler.add_task(
+  task_scheduler.AddTask(
       queue_name=common.OBJECT_EVENT_QUEUE, payload=payload, transactional=True)
   request.notify_state_change = False
   request.put()
@@ -500,7 +500,7 @@ def _CreateRequestId():
     if not datastore_entities.Request.get_by_id(
         id_, namespace=common.NAMESPACE):
       return id_
-    logging.warn("Request %r already exist.", id_)
+    logging.warning("Request %r already exist.", id_)
 
 
 def AddToQueue(request):
@@ -518,7 +518,7 @@ def AddToQueue(request):
       "queue_timeout_seconds": request.queue_timeout_seconds
   })
   compressed_payload = zlib.compress(payload)
-  task_scheduler.add_task(
+  task_scheduler.AddTask(
       queue_name=REQUEST_QUEUE, name=task_name, payload=compressed_payload)
 
 
@@ -529,7 +529,7 @@ def DeleteFromQueue(request_id):
     request_id: request id, str
   """
   try:
-    task_scheduler.delete_task(REQUEST_QUEUE, request_id)
+    task_scheduler.DeleteTask(REQUEST_QUEUE, request_id)
   except task_scheduler.Error:
     logging.warning(
         "Failed to delete request %s from the queue.",

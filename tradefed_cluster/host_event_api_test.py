@@ -19,14 +19,12 @@ import unittest
 
 import mock
 
-from google.appengine.ext import deferred
-
 from tradefed_cluster import api_test
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import device_manager
 from tradefed_cluster import host_event
 from tradefed_cluster import host_event_api
-
+from tradefed_cluster.services import task_scheduler
 
 device_info_emulator = {
     'product': 'unknown',
@@ -102,7 +100,7 @@ class HostEventApiTest(api_test.ApiTest):
     tasks = self.taskqueue_stub.get_filtered_tasks(
         queue_names=host_event.HOST_EVENT_QUEUE_NDB)
     self.assertEqual(len(tasks), 1)
-    deferred.run(tasks[0].payload)
+    task_scheduler.RunCallableTask(tasks[0].payload)
     # Verify host info in datastore.
     hosts = datastore_entities.HostInfo.query().fetch()
     timestamp = datetime.datetime.utcfromtimestamp(int(snapshot_event['time']))
@@ -122,7 +120,7 @@ class HostEventApiTest(api_test.ApiTest):
     self.assertEqual(len(tasks), 1)
     host_event_api.HostEventApi._ProcessHostEventWithNDB = (
         MockDefer.ProcessHostEventA)
-    deferred.run(tasks[0].payload)
+    task_scheduler.RunCallableTask(tasks[0].payload)
     event = host_event.HostEvent(**MockDefer.events[0])
     self.assertEqual('HOST_STATE_CHANGED', event.type)
     self.assertEqual('KILLING', event.host_state)
@@ -138,18 +136,18 @@ class HostEventApiTest(api_test.ApiTest):
     tasks = self.taskqueue_stub.get_filtered_tasks(
         queue_names=host_event.HOST_EVENT_QUEUE_NDB)
     self.assertEqual(len(tasks), 3)
-    deferred.run(tasks[0].payload)
+    task_scheduler.RunCallableTask(tasks[0].payload)
     self.assertIsNone(MockDefer.deferred_ran)
     host_event_api.HostEventApi._ProcessHostEventWithNDB = (
         MockDefer.ProcessHostEventA)
-    deferred.run(tasks[1].payload)
+    task_scheduler.RunCallableTask(tasks[1].payload)
     self.assertEqual('A', MockDefer.deferred_ran)
     host_event_api.HostEventApi._ProcessHostEventWithNDB = (
         MockDefer.ProcessHostEventB)
-    deferred.run(tasks[2].payload)
+    task_scheduler.RunCallableTask(tasks[2].payload)
     self.assertEqual('B', MockDefer.deferred_ran)
 
-  @mock.patch.object(deferred, 'defer')
+  @mock.patch.object(task_scheduler, 'AddCallableTask')
   def testSubmitHostEvents_multipleChunks(self, mock_defer):
     """Tests a request with more vents than the chunk size."""
     host_event_api.CHUNK_SIZE = 5

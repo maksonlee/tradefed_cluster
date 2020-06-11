@@ -70,7 +70,7 @@ def AddToSyncQueue(command):
       request_id,
       command_id,
       next_sync)
-  task_scheduler.add_task(
+  task_scheduler.AddTask(
       queue_name=COMMAND_SYNC_QUEUE,
       payload=payload,
       eta=next_sync)

@@ -618,7 +618,7 @@ def StartHostSync(hostname, current_taskname=None):
   payload = json.dumps({
       HOSTNAME_KEY: hostname,
   })
-  task = task_scheduler.add_task(
+  task = task_scheduler.AddTask(
       queue_name=HOST_SYNC_QUEUE,
       payload=payload,
       eta=_Now() + HOST_SYNC_INTERVAL)

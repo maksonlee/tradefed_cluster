@@ -974,6 +974,7 @@ py_appengine_library(
         ":api_messages_lib",
         ":common_lib",
         ":device_manager_lib",
+        "//tradefed_cluster/services:task_scheduler_lib",
         third_party("pytz"),
     ],
 )
@@ -1080,6 +1081,7 @@ py_appengine_library(
     deps = [
         ":notifier_lib",
         ":request_lib",
+        "//tradefed_cluster/services:task_scheduler_lib",
     ],
 )
 

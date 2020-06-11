@@ -472,6 +472,7 @@ py_appengine_test(
         ":metric_lib",
         ":request_lib",
         ":testbed_dependent_test_lib",
+        third_party("hamcrest"),
         third_party("mock"),
         "//tradefed_cluster/util:ndb_shim_lib",
     ],

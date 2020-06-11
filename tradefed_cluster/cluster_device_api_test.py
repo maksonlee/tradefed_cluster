@@ -135,6 +135,18 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     for device in device_collection.device_infos:
       self.assertEqual('alab', device.lab_name)
 
+  def testListDevices_filterDeviceSerial(self):
+    """Tests ListDevices returns device filtered by device serial."""
+    api_request = {'device_serial': self.ndb_device_3.device_serial}
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterDeviceApi.ListDevices', api_request)
+    device_collection = protojson.decode_message(
+        api_messages.DeviceInfoCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(1, len(device_collection.device_infos))
+    self.assertEqual(self.ndb_device_3.device_serial,
+                     device_collection.device_infos[0].device_serial)
+
   def testListDevices_filterTestHarness(self):
     """Tests ListDevices returns devices filtered by test harness."""
     self.ndb_device_0 = datastore_test_util.CreateDevice(

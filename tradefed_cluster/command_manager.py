@@ -389,7 +389,7 @@ def _UpdateState(
   if not (force or command.dirty):
     logging.info("%s doesn't need to be updated", command.key.id())
     _RescheduleOrDeleteTask(
-        task_id, command, summary,
+        task_id, command, summary, attempt_state,
         max_retry_on_test_failures=max_retry_on_test_failures)
     return command
   state = state or command.state
@@ -416,11 +416,9 @@ def _UpdateState(
       cancel_reason is not None):
     command.cancel_reason = cancel_reason
 
-  if (task_id and not common.IsFinalCommandState(command.state) and
-      common.IsFinalCommandState(attempt_state)):
-    _RescheduleOrDeleteTask(
-        task_id, command, summary,
-        max_retry_on_test_failures=max_retry_on_test_failures)
+  _RescheduleOrDeleteTask(
+      task_id, command, summary, attempt_state,
+      max_retry_on_test_failures=max_retry_on_test_failures)
 
   command.start_time = start_time or command.start_time
   command.end_time = end_time or command.end_time
@@ -442,7 +440,7 @@ def _GetCommandMaxErrorCount(command):
 
 
 def _RescheduleOrDeleteTask(
-    task_id, command, summary, max_retry_on_test_failures=0):
+    task_id, command, summary, attempt_state, max_retry_on_test_failures=0):
   """Reschdules a task if more tasks are needed, or deletes it.
 
   Args:
@@ -450,9 +448,22 @@ def _RescheduleOrDeleteTask(
     command: the command
     summary: the CommandSummary, needed for the next run_index and
       attempt_index. If none, will fall back to 0, 0.
+    attempt_state: the state of the attempt, this is used to no-op for non-final
+      command attempts.
     max_retry_on_test_failures: The max number of attempts with test failures
       to retry.
   """
+  if not task_id:
+    return
+
+  if common.IsFinalCommandState(command.state):
+    logging.debug("Command state %s is final.", attempt_state)
+    return
+
+  if not common.IsFinalCommandState(attempt_state):
+    logging.debug("Attempt state %s is not final.", attempt_state)
+    return
+
   active_tasks = GetActiveTasks(command)
   completed_count = 0
   run_index = 0

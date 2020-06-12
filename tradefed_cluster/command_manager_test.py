@@ -136,8 +136,8 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual("foo bar", commands[0].command_line)
     self.assertEqual("cluster", commands[0].cluster)
     self.assertEqual("run_target", commands[0].run_target)
-    self.assertEqual(None, commands[0].shard_count)
-    self.assertEqual(None, commands[0].shard_index)
+    self.assertIsNone(commands[0].shard_count)
+    self.assertIsNone(commands[0].shard_index)
     self.assertEqual(1, commands[0].run_count)
     self.assertEqual(100, commands[0].priority)
     self.assertEqual(1000, commands[0].queue_timeout_seconds)
@@ -277,11 +277,13 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(tasks[0].task_id, task_id)
     self.assertEqual(tasks[0].leasable, False)
 
-    command_manager.RescheduleTask(task_id, command)
+    command_manager.RescheduleTask(task_id, command, 1, 2)
     tasks = command_manager.GetActiveTasks(command)
     self.assertEqual(len(tasks), 1)
     self.assertEqual(tasks[0].task_id, task_id)
     self.assertEqual(tasks[0].leasable, True)
+    self.assertEqual(tasks[0].run_index, 1)
+    self.assertEqual(tasks[0].attempt_index, 2)
 
   def testGetCommandSummary_noCommandAttempts(self):
     """Tests command_manager.GetCommandSummary() with no command attempts."""
@@ -364,41 +366,39 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(datetime_2, summary.start_time)
     self.assertEqual(datetime_3, summary.end_time)
 
-  def testEvaluateState(self):
-    """Tests command_manager.EvaluateState."""
+  def testUpdateState(self):
+    """Tests command_manager._UpdateState."""
     datetime_0 = datetime.datetime(2015, 1, 1)
     datetime_1 = datetime.datetime(2015, 7, 18)
 
     command = self._CreateCommand()
     _, request_id, _, command_id = command.key.flat()
+    command_manager.ScheduleTasks([command])
 
+    tasks = command_manager.GetActiveTasks(command)
+    self.assertEqual(len(tasks), 1)
     command_event_test_util.CreateCommandAttempt(
-        command, "attempt0", common.CommandState.RUNNING)
+        command, "attempt0", common.CommandState.RUNNING, task=tasks[0])
     command_event_test_util.CreateCommandAttempt(
-        command, "attempt1", common.CommandState.RUNNING)
+        command, "attempt1", common.CommandState.RUNNING, task=tasks[0])
     event1 = command_event_test_util.CreateTestCommandEvent(
-        request_id,
-        command_id,
-        "attempt0",
+        request_id, command_id, "attempt0",
         common.InvocationEventType.INVOCATION_STARTED,
-        time=datetime_0)
+        task=tasks[0], time=datetime_0)
     event2 = command_event_test_util.CreateTestCommandEvent(
-        request_id,
-        command_id,
-        "attempt1",
+        request_id, command_id, "attempt1",
         common.InvocationEventType.INVOCATION_COMPLETED,
-        time=datetime_1)
+        task=tasks[0], time=datetime_1)
 
     command_manager.UpdateCommandAttempt(event1)
     command_manager.UpdateCommandAttempt(event2)
 
     command = command_manager.GetCommand(request_id, command_id)
-    self.assertEqual(common.CommandState.UNKNOWN, command.state)
+    self.assertEqual(common.CommandState.QUEUED, command.state)
     self.assertTrue(command.dirty)
 
-    command, remaining_run_count = command_manager.EvaluateState(
+    command = command_manager._UpdateState(
         request_id, command_id)
-    self.assertEqual(0, remaining_run_count)
     self.assertEqual(common.CommandState.COMPLETED, command.state)
     self.assertEqual(datetime_0, command.start_time)
     self.assertEqual(datetime_1, command.end_time)
@@ -459,46 +459,43 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     # Thread1 first transcation failed, and the second attempt succeeded.
     self.assertEqual(2, counts["thread1"])
 
-  def testEvaluateState_commandAttemptCompletion(self):
+  def testUpdateState_commandAttemptCompletion(self):
     """Update a command up to completion."""
     start_time = datetime.datetime(2015, 1, 1)
     end_time = datetime.datetime(2015, 5, 6)
     command = self._CreateCommand()
     _, request_id, _, command_id = command.key.flat()
+    command_manager.ScheduleTasks([command])
 
-    event1 = command_event_test_util.CreateTestCommandEvent(
-        request_id,
-        command_id,
-        "attempt_id",
-        common.InvocationEventType.INVOCATION_STARTED,
-        time=start_time)
+    tasks = command_manager.GetActiveTasks(command)
+    self.assertEqual(len(tasks), 1)
     command_event_test_util.CreateCommandAttempt(
-        command, "attempt_id", common.CommandState.QUEUED)
+        command, "attempt_id", common.CommandState.QUEUED, task=tasks[0])
+    event1 = command_event_test_util.CreateTestCommandEvent(
+        request_id, command_id, "attempt_id",
+        common.InvocationEventType.INVOCATION_STARTED,
+        task=tasks[0], time=start_time)
     command_manager.UpdateCommandAttempt(event1)
 
     command = command_manager.GetCommand(request_id, command_id)
-    self.assertEqual(common.CommandState.UNKNOWN, command.state)
+    self.assertEqual(common.CommandState.QUEUED, command.state)
     self.assertTrue(command.dirty)
 
-    command, remaining_run_count = command_manager.EvaluateState(
+    command = command_manager._UpdateState(
         request_id, command_id)
-    self.assertEqual(1, remaining_run_count)
     self.assertEqual(common.CommandState.RUNNING, command.state)
     self.assertEqual(start_time, command.start_time)
-    self.assertEqual(None, command.end_time)
+    self.assertIsNone(command.end_time)
     self.assertFalse(command.dirty)
 
     event2 = command_event_test_util.CreateTestCommandEvent(
-        request_id,
-        command_id,
-        "attempt_id",
+        request_id, command_id, "attempt_id",
         common.InvocationEventType.INVOCATION_COMPLETED,
-        time=end_time)
+        task=tasks[0], time=end_time)
     command_manager.UpdateCommandAttempt(event2)
 
-    command, remaining_run_count = command_manager.EvaluateState(
+    command = command_manager._UpdateState(
         request_id, command_id)
-    self.assertEqual(0, remaining_run_count)
     self.assertEqual(common.CommandState.COMPLETED, command.state)
     self.assertEqual(start_time, command.start_time)
     self.assertEqual(end_time, command.end_time)
@@ -518,24 +515,24 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     request = request_manager.GetRequest(request_id)
     self.assertTrue(request.dirty)
 
-  def testEvaluateState_cancelCompletedCommand(self):
+  def testUpdateState_cancelCompletedCommand(self):
     """Cancelling a completed command won't change its state."""
     end_time = datetime.datetime(2015, 5, 6)
     command = self._CreateCommand()
     _, request_id, _, command_id = command.key.flat()
+    command_manager.ScheduleTasks([command])
 
-    event1 = command_event_test_util.CreateTestCommandEvent(
-        request_id,
-        command_id,
-        "attempt_id",
-        common.InvocationEventType.INVOCATION_COMPLETED,
-        time=end_time)
-
+    tasks = command_manager.GetActiveTasks(command)
+    self.assertEqual(len(tasks), 1)
     command_event_test_util.CreateCommandAttempt(
-        command, "attempt_id", common.CommandState.RUNNING)
+        command, "attempt_id", common.CommandState.RUNNING, task=tasks[0])
+    event1 = command_event_test_util.CreateTestCommandEvent(
+        request_id, command_id, "attempt_id",
+        common.InvocationEventType.INVOCATION_COMPLETED,
+        task=tasks[0], time=end_time)
     command_manager.UpdateCommandAttempt(event1)
 
-    command, _ = command_manager.EvaluateState(request_id, command_id)
+    command = command_manager._UpdateState(request_id, command_id)
     self.assertEqual(common.CommandState.COMPLETED, command.state)
     self.assertEqual(end_time, command.end_time)
 
@@ -543,29 +540,30 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.CommandState.COMPLETED, command.state)
     self.assertEqual(end_time, command.end_time)
 
-  def testEvaluateState_completeCancelledCommand(self):
+  def testUpdateState_completeCancelledCommand(self):
     """Completing a cancelled command triggers a state update."""
     start_time = datetime.datetime(2015, 1, 1)
     end_time = datetime.datetime(2015, 5, 6)
     command = self._CreateCommand()
-    command_event_test_util.CreateCommandAttempt(
-        command, "attempt_id", common.CommandState.UNKNOWN)
     _, request_id, _, command_id = command.key.flat()
+    command_manager.ScheduleTasks([command])
+
+    tasks = command_manager.GetActiveTasks(command)
+    self.assertEqual(len(tasks), 1)
+    command_task_store.LeaseTask(tasks[0].task_id)
+    command_event_test_util.CreateCommandAttempt(
+        command, "attempt_id", common.CommandState.UNKNOWN, task=tasks[0])
 
     # Command is initially running.
     event1 = command_event_test_util.CreateTestCommandEvent(
-        request_id,
-        command_id,
-        "attempt_id",
+        request_id, command_id, "attempt_id",
         common.InvocationEventType.INVOCATION_STARTED,
-        time=start_time)
+        task=tasks[0], time=start_time)
     command_manager.UpdateCommandAttempt(event1)
-    command, remaining_run_count = command_manager.EvaluateState(
-        request_id, command_id)
-    self.assertEqual(1, remaining_run_count)
+    command = command_manager._UpdateState(request_id, command_id)
     self.assertEqual(common.CommandState.RUNNING, command.state)
     self.assertEqual(start_time, command.start_time)
-    self.assertEqual(None, command.end_time)
+    self.assertIsNone(command.end_time)
 
     # Command is cancelled before command attempt completes.
     command = command_manager.Cancel(
@@ -574,43 +572,43 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
 
     # Command attempt completes
     event2 = command_event_test_util.CreateTestCommandEvent(
-        request_id,
-        command_id,
-        "attempt_id",
+        request_id, command_id, "attempt_id",
         common.InvocationEventType.INVOCATION_COMPLETED,
-        time=end_time)
+        task=tasks[0], time=end_time)
     command_manager.UpdateCommandAttempt(event2)
-    command, remaining_run_count = command_manager.EvaluateState(
-        request_id, command_id)
-    self.assertEqual(0, remaining_run_count)
+    command = command_manager._UpdateState(request_id, command_id)
     self.assertEqual(common.CommandState.COMPLETED, command.state)
     self.assertEqual(start_time, command.start_time)
     self.assertEqual(end_time, command.end_time)
     request = request_manager.GetRequest(request_id)
     self.assertTrue(request.dirty)
 
-  def testEvaluateState_cancelledCommandAttempts(self):
+  def testUpdateState_cancelledCommandAttempts(self):
     """Commands with cancelled attempts should eventually get cancelled."""
     start_time = datetime.datetime(2015, 1, 1)
     command = self._CreateCommand()
     _, request_id, _, command_id = command.key.flat()
-    command.state = common.CommandState.QUEUED
+    command_manager.ScheduleTasks([command])
 
     # Command should remain QUEUED until the number of canceled attempts
     # exceeds the base threshold.
     for i in range(command_manager.MAX_CANCELED_COUNT_BASE):
+      tasks = command_manager.GetActiveTasks(command)
+      self.assertEqual(len(tasks), 1)
+      command_task_store.LeaseTask(tasks[0].task_id)
+
       command_event_test_util.CreateCommandAttempt(
-          command, "attempt-" + str(i), common.CommandState.QUEUED)
+          command, "attempt-%d" % i, common.CommandState.UNKNOWN, task=tasks[0])
+      command = command_manager.GetCommand(request_id, command_id)
       self.assertEqual(common.CommandState.QUEUED, command.state)
       event = command_event_test_util.CreateTestCommandEvent(
-          request_id,
-          command_id,
-          "attempt-%d" % i,
+          request_id, command_id, "attempt-%d" % i,
           common.InvocationEventType.ALLOCATION_FAILED,
-          time=start_time)
+          task=tasks[0], time=start_time)
       command_manager.UpdateCommandAttempt(event)
-      command, _ = command_manager.EvaluateState(
-          request_id, command_id, force=True)
+      command = command_manager._UpdateState(
+          request_id, command_id, force=True, task_id=tasks[0].task_id)
+
     self.assertEqual(common.CommandState.CANCELED, command.state)
 
   def testCommandUpdateCommandAttempt_noAttempt(self):
@@ -673,7 +671,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
         "Attempt update time %s was changed to before %s" %
         (attempts[0].update_time, update_time))
     # State should be queued because 1 (completed attempts) < 2 (run count)
-    command_manager.EvaluateState(request_id, command_id)
+    command_manager._UpdateState(request_id, command_id)
     self.assertEqual(common.CommandState.QUEUED, command.key.get().state)
 
   def testCommandUpdateCommandAttempt_laterTimestamp(self):
@@ -1134,6 +1132,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     tasks = command_manager.GetActiveTasks(command)
     self.assertEqual(len(tasks), 1)
     self.assertEqual(tasks[0].leasable, False)
+    self.assertEqual(tasks[0].attempt_index, 0)
     command = command.key.get(use_cache=False)
     self.assertEqual(common.CommandState.QUEUED, command.state)
     request = command.key.parent().get(use_cache=False)
@@ -1228,6 +1227,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     tasks = command_manager.GetActiveTasks(command)
     self.assertEqual(len(tasks), 1)
     self.assertEqual(tasks[0].leasable, True)
+    self.assertEqual(tasks[0].attempt_index, 1)
     command = command.key.get(use_cache=False)
     self.assertEqual(common.CommandState.QUEUED, command.state)
     request = command.key.parent().get(use_cache=False)
@@ -1260,6 +1260,8 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(len(tasks), 1)
     self.assertEqual(tasks[0].task_id, "%s-%s-1" % (request_id, command_id))
     self.assertEqual(tasks[0].leasable, True)
+    self.assertEqual(tasks[0].run_index, 1)
+    self.assertEqual(tasks[0].attempt_index, 0)
     command = command.key.get(use_cache=False)
     self.assertEqual(common.CommandState.QUEUED, command.state)
     request = command.key.parent().get(use_cache=False)
@@ -1363,41 +1365,41 @@ class CommandSummaryTest(unittest.TestCase):
     super(CommandSummaryTest, self).setUp()
     self.summary = command_manager.CommandSummary(3)
 
-  def testAddCommandTask_queued(self):
+  def testAddCommandAttempt_queued(self):
     command_attempt = datastore_entities.CommandAttempt(
         state=common.CommandState.QUEUED,
         run_index=1)
-    self.summary.AddCommandTask(command_attempt)
+    self.summary.AddCommandAttempt(command_attempt)
     self.assertEqual(self.summary.total_count, 1)
     self.assertEqual(self.summary.queued_count, 1)
     self.assertEqual(self.summary.runs[1].attempt_count, 1)
     self.assertEqual(self.summary.runs[1].queued_count, 1)
 
-  def testAddCommandTask_running(self):
+  def testAddCommandAttempt_running(self):
     command_attempt = datastore_entities.CommandAttempt(
         state=common.CommandState.RUNNING,
         run_index=1)
-    self.summary.AddCommandTask(command_attempt)
+    self.summary.AddCommandAttempt(command_attempt)
     self.assertEqual(self.summary.total_count, 1)
     self.assertEqual(self.summary.running_count, 1)
     self.assertEqual(self.summary.runs[1].attempt_count, 1)
     self.assertEqual(self.summary.runs[1].running_count, 1)
 
-  def testAddCommandTask_canceled(self):
+  def testAddCommandAttempt_canceled(self):
     command_attempt = datastore_entities.CommandAttempt(
         state=common.CommandState.CANCELED,
         run_index=1)
-    self.summary.AddCommandTask(command_attempt)
+    self.summary.AddCommandAttempt(command_attempt)
     self.assertEqual(self.summary.total_count, 1)
     self.assertEqual(self.summary.canceled_count, 1)
     self.assertEqual(self.summary.runs[1].attempt_count, 1)
     self.assertEqual(self.summary.runs[1].canceled_count, 1)
 
-  def testAddCommandTask_completed(self):
+  def testAddCommandAttempt_completed(self):
     command_attempt = datastore_entities.CommandAttempt(
         state=common.CommandState.COMPLETED,
         run_index=1)
-    self.summary.AddCommandTask(command_attempt)
+    self.summary.AddCommandAttempt(command_attempt)
     self.assertEqual(self.summary.total_count, 1)
     self.assertEqual(self.summary.completed_count, 1)
     self.assertEqual(self.summary.completed_fail_count, 0)
@@ -1405,12 +1407,12 @@ class CommandSummaryTest(unittest.TestCase):
     self.assertEqual(self.summary.runs[1].completed_count, 1)
     self.assertEqual(self.summary.runs[1].completed_fail_count, 0)
 
-  def testAddCommandTask_completed_with_test_failure(self):
+  def testAddCommandAttempt_completed_with_test_failure(self):
     command_attempt = datastore_entities.CommandAttempt(
         state=common.CommandState.COMPLETED,
         failed_test_count=1,
         run_index=1)
-    self.summary.AddCommandTask(command_attempt)
+    self.summary.AddCommandAttempt(command_attempt)
     self.assertEqual(self.summary.total_count, 1)
     self.assertEqual(self.summary.completed_count, 1)
     self.assertEqual(self.summary.completed_fail_count, 1)
@@ -1418,12 +1420,12 @@ class CommandSummaryTest(unittest.TestCase):
     self.assertEqual(self.summary.runs[1].completed_count, 1)
     self.assertEqual(self.summary.runs[1].completed_fail_count, 1)
 
-  def testAddCommandTask_completed_with_test_run_failure(self):
+  def testAddCommandAttempt_completed_with_test_run_failure(self):
     command_attempt = datastore_entities.CommandAttempt(
         state=common.CommandState.COMPLETED,
         failed_test_run_count=1,
         run_index=1)
-    self.summary.AddCommandTask(command_attempt)
+    self.summary.AddCommandAttempt(command_attempt)
     self.assertEqual(self.summary.total_count, 1)
     self.assertEqual(self.summary.completed_count, 1)
     self.assertEqual(self.summary.completed_fail_count, 1)
@@ -1431,27 +1433,27 @@ class CommandSummaryTest(unittest.TestCase):
     self.assertEqual(self.summary.runs[1].completed_count, 1)
     self.assertEqual(self.summary.runs[1].completed_fail_count, 1)
 
-  def testAddCommandTask_error(self):
+  def testAddCommandAttempt_error(self):
     command_attempt = datastore_entities.CommandAttempt(
         state=common.CommandState.ERROR,
         run_index=1)
-    self.summary.AddCommandTask(command_attempt)
+    self.summary.AddCommandAttempt(command_attempt)
     self.assertEqual(self.summary.total_count, 1)
     self.assertEqual(self.summary.error_count, 1)
     self.assertEqual(self.summary.runs[1].attempt_count, 1)
     self.assertEqual(self.summary.runs[1].error_count, 1)
 
-  def testAddCommandTask_fatal(self):
+  def testAddCommandAttempt_fatal(self):
     command_attempt = datastore_entities.CommandAttempt(
         state=common.CommandState.FATAL,
         run_index=1)
-    self.summary.AddCommandTask(command_attempt)
+    self.summary.AddCommandAttempt(command_attempt)
     self.assertEqual(self.summary.total_count, 1)
     self.assertEqual(self.summary.fatal_count, 1)
     self.assertEqual(self.summary.runs[1].attempt_count, 1)
     self.assertEqual(self.summary.runs[1].fatal_count, 1)
 
-  def testAddCommandTask_mixed_status(self):
+  def testAddCommandAttempt_mixed_status(self):
     command_attempts = [
         datastore_entities.CommandAttempt(
             state=common.CommandState.QUEUED, run_index=0),
@@ -1471,7 +1473,7 @@ class CommandSummaryTest(unittest.TestCase):
             state=common.CommandState.FATAL, run_index=0),
     ]
     for attempt in command_attempts:
-      self.summary.AddCommandTask(attempt)
+      self.summary.AddCommandAttempt(attempt)
 
     self.assertEqual(self.summary.total_count, 7)
     self.assertEqual(self.summary.queued_count, 1)
@@ -1506,15 +1508,15 @@ class CommandSummaryTest(unittest.TestCase):
     self.assertEqual(self.summary.runs[2].error_count, 1)
     self.assertEqual(self.summary.runs[2].fatal_count, 0)
 
-  def testAddCommandTask_timestamps(self):
-    self.assertEqual(self.summary.start_time, None)
-    self.assertEqual(self.summary.start_time, None)
+  def testAddCommandAttempt_timestamps(self):
+    self.assertIsNone(self.summary.start_time)
+    self.assertIsNone(self.summary.start_time)
 
     command_attempt = datastore_entities.CommandAttempt(
         state=common.CommandState.COMPLETED,
         start_time=TIMESTAMP,
         end_time=TIMESTAMP + TIMEDELTA)
-    self.summary.AddCommandTask(command_attempt)
+    self.summary.AddCommandAttempt(command_attempt)
     self.assertEqual(self.summary.start_time, TIMESTAMP)
     self.assertEqual(self.summary.end_time, TIMESTAMP + TIMEDELTA)
 
@@ -1522,9 +1524,20 @@ class CommandSummaryTest(unittest.TestCase):
         state=common.CommandState.COMPLETED,
         start_time=TIMESTAMP - TIMEDELTA,
         end_time=TIMESTAMP + 2 * TIMEDELTA)
-    self.summary.AddCommandTask(command_attempt)
+    self.summary.AddCommandAttempt(command_attempt)
     self.assertEqual(self.summary.start_time, TIMESTAMP - TIMEDELTA)
     self.assertEqual(self.summary.end_time, TIMESTAMP + 2 * TIMEDELTA)
+
+  def testAddCommandTasks(self):
+    tasks = [
+        datastore_entities.CommandTask(task_id="0-0-0", run_index=0),
+        datastore_entities.CommandTask(task_id="0-0-1", run_index=2),
+    ]
+    self.summary.AddCommandTasks(tasks)
+
+    self.assertEqual(self.summary.runs[0].active_task_id, "0-0-0")
+    self.assertIsNone(self.summary.runs[1].active_task_id)
+    self.assertEqual(self.summary.runs[2].active_task_id, "0-0-1")
 
   def testScheduleTask_no_retry_on_failure(self):
     # Summary has 4 slots, with the 4th being the empty spot with 3 attempts
@@ -1545,7 +1558,7 @@ class CommandSummaryTest(unittest.TestCase):
     self.summary.runs[3].canceled_count = 1
     self.summary.runs[3].error_count = 1
 
-    run_index, attempt_index = self.summary.ScheduleTask()
+    run_index, attempt_index = self.summary.ScheduleTask("task_id")
 
     self.assertEqual(run_index, 3)
     self.assertEqual(attempt_index, 2)
@@ -1567,7 +1580,7 @@ class CommandSummaryTest(unittest.TestCase):
     self.summary.runs[1].canceled_count = 3
 
     run_index, attempt_index = self.summary.ScheduleTask(
-        max_retry_on_test_failures=3)
+        "task_id", max_retry_on_test_failures=3)
 
     self.assertEqual(run_index, 0)
     self.assertEqual(attempt_index, 3)
@@ -1589,7 +1602,7 @@ class CommandSummaryTest(unittest.TestCase):
     self.summary.runs[1].canceled_count = 3
 
     run_index, attempt_index = self.summary.ScheduleTask(
-        max_retry_on_test_failures=2)
+        "task_id", max_retry_on_test_failures=2)
 
     self.assertEqual(run_index, 1)
     self.assertEqual(attempt_index, 3)
@@ -1607,7 +1620,7 @@ class CommandSummaryTest(unittest.TestCase):
     self.summary.runs[1].attempt_count = 1
     self.summary.runs[1].completed_count = 1
 
-    run_index, attempt_index = self.summary.ScheduleTask()
+    run_index, attempt_index = self.summary.ScheduleTask("task_id")
 
     self.assertEqual(run_index, 0)
     self.assertEqual(attempt_index, 1)
@@ -1615,6 +1628,22 @@ class CommandSummaryTest(unittest.TestCase):
     self.assertEqual(self.summary.queued_count, 1)
     self.assertEqual(self.summary.runs[0].attempt_count, 2)
     self.assertEqual(self.summary.runs[0].queued_count, 1)
+
+  def testScheduleTask_skip_active_task(self):
+    self.summary.AddCommandTasks([
+        datastore_entities.CommandTask(task_id="0-0-0", run_index=0),
+    ])
+    run_index, attempt_index = self.summary.ScheduleTask("0-0-1")
+    self.assertEqual(run_index, 1)
+    self.assertEqual(attempt_index, 0)
+
+  def testScheduleTask_overwrite_current_task(self):
+    self.summary.AddCommandTasks([
+        datastore_entities.CommandTask(task_id="0-0-0", run_index=0),
+    ])
+    run_index, attempt_index = self.summary.ScheduleTask("0-0-0")
+    self.assertEqual(run_index, 0)
+    self.assertEqual(attempt_index, 0)
 
   def testGetState_completed(self):
     self.summary.total_count = 3
@@ -1689,30 +1718,6 @@ class CommandSummaryTest(unittest.TestCase):
     self.summary.running_count = 0
     state = self.summary.GetState(common.CommandState.UNKNOWN)
     self.assertEqual(state, common.CommandState.QUEUED)
-
-  def testRemainingRunCount_no_retry_on_test_failure(self):
-    # Command has run_count = 3
-    self.summary.total_count = 3
-    self.summary.completed_count = 3
-    self.summary.completed_fail_count = 3
-    run_count = self.summary.RemainingRunCount()
-    self.assertEqual(run_count, 0)
-
-  def testRemainingRunCount_retry_on_test_failure(self):
-    # Command has run_count = 3
-    self.summary.total_count = 3
-    self.summary.completed_count = 3
-    self.summary.completed_fail_count = 3
-    run_count = self.summary.RemainingRunCount(max_retry_on_test_failures=2)
-    self.assertEqual(run_count, 0)
-
-  def testRemainingRunCount_more_retry_on_test_failure(self):
-    # Command has run_count = 3
-    self.summary.total_count = 3
-    self.summary.completed_count = 3
-    self.summary.completed_fail_count = 3
-    run_count = self.summary.RemainingRunCount(max_retry_on_test_failures=4)
-    self.assertEqual(run_count, 3)
 
 
 if __name__ == "__main__":

@@ -434,6 +434,9 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         request_id, command_id)
     self.assertEqual(
         len(command_attempts), command_manager.MAX_CANCELED_COUNT_BASE)
+    self.assertSetEqual(
+        set(attempt.attempt_index for attempt in command_attempts),
+        set(range(command_manager.MAX_CANCELED_COUNT_BASE)))
     expected_metric_fields = {
         metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "AllocationFailed"
@@ -453,6 +456,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     for i in range(command_manager.MAX_ERROR_COUNT_BASE):
       tasks = command_manager.GetActiveTasks(self.command)
       self.assertEqual(len(tasks), 1)
+      self.assertEqual(tasks[0].attempt_index, i)
       command_task_store.LeaseTask(tasks[0].task_id)
       command_event_test_util.CreateCommandAttempt(
           self.command, str(i), common.CommandState.UNKNOWN, task=tasks[0])
@@ -470,6 +474,9 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         request_id, command_id)
     self.assertEqual(
         len(command_attempts), command_manager.MAX_ERROR_COUNT_BASE)
+    self.assertSetEqual(
+        set(attempt.attempt_index for attempt in command_attempts),
+        set(range(command_manager.MAX_ERROR_COUNT_BASE)))
     mock_notify.assert_called_with(request_id)
     expected_metric_fields = {
         metric.METRIC_FIELD_HOSTNAME: "hostname",
@@ -509,6 +516,9 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         request_id, command_id)
     self.assertEqual(
         len(command_attempts), command_manager.MAX_ERROR_COUNT_BASE)
+    self.assertSetEqual(
+        set(attempt.attempt_index for attempt in command_attempts),
+        set(range(command_manager.MAX_ERROR_COUNT_BASE)))
     expected_metric_fields = {
         metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "ExecuteFailed"
@@ -547,6 +557,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.CommandState.RUNNING, queried_command.state)
     tasks = command_manager.GetActiveTasks(self.command)
     self.assertEqual(len(tasks), 1)
+    self.assertEqual(tasks[0].attempt_index, 0)
     self.assertEqual(tasks[0].leasable, False)
     mock_notify.assert_called_with(request_id)
     expected_metric_fields = {
@@ -586,6 +597,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.CommandState.RUNNING, queried_command.state)
     tasks = command_manager.GetActiveTasks(self.command)
     self.assertEqual(len(tasks), 1)
+    self.assertEqual(tasks[0].attempt_index, 0)
     self.assertEqual(tasks[0].leasable, False)
     attempts = command_manager.GetCommandAttempts(request_id, command_id)
     self.assertEqual(1, len(attempts))
@@ -622,6 +634,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.CommandState.RUNNING, queried_command.state)
     tasks = command_manager.GetActiveTasks(self.command)
     self.assertEqual(len(tasks), 1)
+    self.assertEqual(tasks[0].attempt_index, 0)
     self.assertEqual(tasks[0].leasable, False)
     attempts = command_manager.GetCommandAttempts(request_id, command_id)
     self.assertEqual(1, len(attempts))
@@ -664,6 +677,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.CommandState.RUNNING, queried_command.state)
     tasks = command_manager.GetActiveTasks(self.command)
     self.assertEqual(len(tasks), 1)
+    self.assertEqual(tasks[0].attempt_index, 0)
     self.assertEqual(tasks[0].leasable, False)
     mock_notify.assert_called_with(request_id)
     expected_metric_fields = {
@@ -703,6 +717,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.CommandState.RUNNING, queried_command.state)
     tasks = command_manager.GetActiveTasks(self.command)
     self.assertEqual(len(tasks), 1)
+    self.assertEqual(tasks[0].attempt_index, 0)
     self.assertEqual(tasks[0].leasable, False)
     mock_notify.assert_called_with(request_id)
     expected_metric_fields = {
@@ -793,6 +808,9 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     command_attempts = command_manager.GetCommandAttempts(
         request_id, command_id)
     self.assertEqual(len(command_attempts), run_count)
+    self.assertSetEqual(
+        set(attempt.run_index for attempt in command_attempts),
+        set(range(run_count)))
     mock_notify.assert_called_with(request_id)
 
   @mock.patch.object(request_manager, "NotifyRequestState")
@@ -835,6 +853,9 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     command_attempts = command_manager.GetCommandAttempts(
         request_id, command_id)
     self.assertEqual(len(command_attempts), run_count)
+    self.assertSetEqual(
+        set(attempt.run_index for attempt in command_attempts),
+        set(range(run_count)))
     mock_notify.assert_called_with(request_id)
 
   @mock.patch.object(request_manager, "NotifyRequestState")
@@ -881,6 +902,10 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     command_attempts = command_manager.GetCommandAttempts(
         request_id, command_id)
     self.assertEqual(len(command_attempts), max_error_count)
+    run_attempt_pairs = [
+        (attempt.run_index, attempt.attempt_index)
+        for attempt in command_attempts]
+    self.assertEqual(len(set(run_attempt_pairs)), len(command_attempts))
     mock_notify.assert_called_with(request_id)
 
   @mock.patch.object(request_manager, "NotifyRequestState")

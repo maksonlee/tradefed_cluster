@@ -86,6 +86,8 @@ def CreateCommandAttempt(
       state=state,
       start_time=start_time,
       end_time=end_time,
-      update_time=update_time)
+      update_time=update_time,
+      attempt_index=task.attempt_index if task else None,
+      run_index=task.run_index if task else None)
   command_attempt.put()
   return command_attempt

@@ -34,6 +34,8 @@ CommandTaskArgs = collections.namedtuple(
      'plugin_data',
      'command_line',
      'run_count',
+     'run_index',
+     'attempt_index',
      'shard_count',
      'shard_index',
      'cluster',
@@ -99,6 +101,8 @@ def CreateTask(command_task_args):
       lease_count=0,
       command_line=command_task_args.command_line,
       run_count=command_task_args.run_count,
+      run_index=command_task_args.run_index,
+      attempt_index=command_task_args.attempt_index,
       shard_count=command_task_args.shard_count,
       shard_index=command_task_args.shard_index,
       test_bench=test_bench,
@@ -128,11 +132,13 @@ def _DoCreateTask(command_task):
 
 
 @ndb.transactional
-def RescheduleTask(task_id):
+def RescheduleTask(task_id, run_index, attempt_index):
   """Reschedule the command task.
 
   Args:
     task_id: the task's id
+    run_index: the new run_index
+    attempt_index: the new attempt index
   """
   task = _Key(task_id).get()
 
@@ -142,6 +148,8 @@ def RescheduleTask(task_id):
       logging.info('%s isn\'t leasable, don\'t reschedule', str(task_id))
       return
     task.leasable = True
+    task.run_index = run_index
+    task.attempt_index = attempt_index
     task.put()
   else:
     logging.warning(

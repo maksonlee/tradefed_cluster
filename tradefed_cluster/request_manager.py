@@ -202,7 +202,7 @@ def NotifyRequestState(request_id, force=False):
   return request
 
 
-@ndb.transactional
+@ndb.transactional(xg=True)
 def SendRequestStateNotification(request_id, message):
   request = GetRequest(request_id)
   payload = zlib.compress(protojson.encode_message(message))

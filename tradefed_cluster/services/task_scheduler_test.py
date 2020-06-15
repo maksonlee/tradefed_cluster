@@ -14,13 +14,16 @@
 
 """Unit tests for task_scheduler module."""
 
+import datetime
 import threading
+import unittest
 
-from absl.testing import absltest
 import mock
 
 from google.appengine.api import taskqueue
+from google.appengine.ext import ndb
 
+from tradefed_cluster import testbed_dependent_test
 from tradefed_cluster.services import task_scheduler
 
 _object = threading.local()
@@ -31,25 +34,85 @@ def Callable(*args, **kwargs):
   _object.last_callable_call = mock.call(*args, **kwargs)
 
 
-class TaskSchedulerTest(absltest.TestCase):
+class TaskSchedulerTest(testbed_dependent_test.TestbedDependentTest):
 
   @mock.patch.object(taskqueue, 'add')
   def testAddTask(self, mock_add):
     mock_task = mock.MagicMock()
     mock_add.return_value = mock_task
-    kwargs = {
-        'queue_name': 'queue_name',
-        'payload': 'payload',
-        'name': 'name',
-        'eta': None,
-        'transactional': False,
-        'target': None,
-    }
 
-    task = task_scheduler.AddTask(**kwargs)
+    task = task_scheduler.AddTask(queue_name='queue_name', payload='payload')
 
-    mock_add.assert_called_once_with(**kwargs)
+    mock_add.assert_called_once_with(
+        queue_name='queue_name',
+        payload='payload',
+        name=None,
+        eta=None,
+        target=None)
     self.assertEqual(mock_task, task)
+
+  @mock.patch.object(taskqueue, 'add')
+  def testAddTask_withTransaction(self, mock_add):
+    mock_task = mock.MagicMock()
+    mock_add.return_value = mock_task
+    eta = datetime.datetime.utcnow() + datetime.timedelta(days=1)
+
+    @ndb.transactional
+    def Func():
+      return task_scheduler.AddTask(
+          queue_name='queue_name',
+          payload='payload',
+          name='name',
+          target='target',
+          eta=eta,
+          transactional=True)
+    task = Func()
+
+    mock_add.assert_called_once_with(
+        queue_name=task_scheduler.DEFAULT_CALLABLE_TASK_QUEUE,
+        payload=mock.ANY,
+        name=None,
+        eta=None,
+        target=None)
+    self.assertEqual(mock_task, task)
+    payload = mock_add.call_args[1]['payload']
+    mock_add.reset_mock()
+    task_scheduler.RunCallableTask(payload)
+    mock_add.assert_called_once_with(
+        queue_name='queue_name',
+        payload='payload',
+        name='name',
+        target='target',
+        eta=eta)
+
+  @mock.patch.object(taskqueue, 'add')
+  def testAddTask_withTransactionFailure(self, mock_add):
+    eta = datetime.datetime.utcnow() + datetime.timedelta(days=1)
+
+    @ndb.transactional
+    def Func():
+      task_scheduler.AddTask(
+          queue_name='queue_name',
+          payload='payload',
+          name='name',
+          target='target',
+          eta=eta,
+          transactional=True)
+      raise ValueError()
+    with self.assertRaises(ValueError):
+      Func()
+
+    mock_add.assert_called_once_with(
+        queue_name=task_scheduler.DEFAULT_CALLABLE_TASK_QUEUE,
+        payload=mock.ANY,
+        name=None,
+        eta=None,
+        target=None)
+    payload = mock_add.call_args[1]['payload']
+    mock_add.reset_mock()
+    with self.assertRaises(task_scheduler.NonRetriableTaskExecutionError):
+      task_scheduler.RunCallableTask(payload)
+    mock_add.assert_not_called()
 
   @mock.patch.object(taskqueue, 'Queue')
   def testDeleteTask(self, mock_queue_ctor):
@@ -74,12 +137,11 @@ class TaskSchedulerTest(absltest.TestCase):
         payload=mock.ANY,
         target=None,
         name=None,
-        eta=None,
-        transactional=False)
+        eta=None)
     task_scheduler.RunCallableTask(mock_add.call_args[1]['payload'])
     self.assertEqual(
         mock.call(1, foo=10, bar=100, zzz=1000), _object.last_callable_call)
 
 
 if __name__ == '__main__':
-  absltest.main()
+  unittest.main()

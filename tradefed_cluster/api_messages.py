@@ -93,6 +93,8 @@ class TradefedConfigObjectType(messages.Enum):
   UNKNOWN = 0
   TARGET_PREPARER = 1
   RESULT_REPORTER = 2
+  DEVICE_OPTIONS = 3
+  DEVICE_REQUIREMENTS = 4
 
 
 class TradefedConfigObject(messages.Message):

@@ -947,6 +947,22 @@ class HostSync(ndb.Model):
   update_timestamp = ndb.DateTimeProperty()
 
 
+def _FlatExtreInfo(device):
+  """Transform extr_info to a list.
+
+  Args:
+    device: Device entity.
+  Returns:
+    A list of string. string format is 'key:value'
+  """
+  flated_extre_info = []
+  if device.extra_info is not None:
+    extra_info_dict = dict(device.extra_info)
+    for key, value in extra_info_dict.items():
+      flated_extre_info.append('%s:%s' % (key, value))
+  return flated_extre_info
+
+
 class DeviceInfo(ndb.Expando):
   """Device information entity, Key should be the device serial.
 
@@ -974,6 +990,7 @@ class DeviceInfo(ndb.Expando):
     last_known_build_id: last known build id
     last_known_product: last known product
     last_known_product_variant: last known product variant
+    flated_extre_info: flated extra info for the device
   """
   device_serial = ndb.StringProperty()
   run_target = ndb.StringProperty()
@@ -1003,6 +1020,7 @@ class DeviceInfo(ndb.Expando):
   last_known_build_id = ndb.StringProperty()
   last_known_product = ndb.StringProperty()
   last_known_product_variant = ndb.StringProperty()
+  flated_extre_info = ndb.ComputedProperty(_FlatExtreInfo, repeated=True)
 
 
 @MessageConverter(DeviceInfo)

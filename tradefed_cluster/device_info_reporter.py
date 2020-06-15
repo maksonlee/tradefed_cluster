@@ -333,6 +333,8 @@ def GetDeviceSnapshotForDate(date=None, cluster_prefix=None):
   devices = []
 
   for d in device_dicts:
+    # flated_extre_info is computed property, can not be assigned.
+    del d['flated_extre_info']
     if (cluster_prefix and d.get('cluster')
         and not d.get('cluster').startswith(cluster_prefix)):
       # Ignore devices outside the given cluster

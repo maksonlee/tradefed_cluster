@@ -846,6 +846,8 @@ def _AssignHost(hostname, assignee):
     logging.error("Host %s doesn't exist.", hostname)
     return
   host.assignee = assignee
+  if not assignee:
+    host.last_recovery_time = _Now()
   host.put()
 
 

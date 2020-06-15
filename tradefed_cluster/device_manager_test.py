@@ -1467,6 +1467,24 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     host2 = host2.key.get()
     self.assertEqual("assignee", host2.assignee)
 
+  def testAssignHosts_unassign(self):
+    host1 = datastore_test_util.CreateHost("free", "host1")
+    host2 = datastore_test_util.CreateHost("free", "host2")
+    device_manager.AssignHosts(["host1", "host2"], "assignee")
+    ndb.get_context().clear_cache()
+    host1 = host1.key.get()
+    self.assertEqual("assignee", host1.assignee)
+    host2 = host2.key.get()
+    self.assertEqual("assignee", host2.assignee)
+    device_manager.AssignHosts(["host1", "host2"], None)
+    ndb.get_context().clear_cache()
+    host1 = host1.key.get()
+    self.assertIsNone(host1.assignee)
+    self.assertIsNotNone(host1.last_recovery_time)
+    host2 = host2.key.get()
+    self.assertIsNone(host2.assignee)
+    self.assertIsNotNone(host2.last_recovery_time)
+
   def testGetDevicesOnHost(self):
     datastore_test_util.CreateHost("free", "host1")
     datastore_test_util.CreateDevice("free", "host1", "s1")

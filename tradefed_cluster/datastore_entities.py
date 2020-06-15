@@ -816,6 +816,7 @@ class HostInfo(ndb.Expando):
     device_count_summaries: device count by run target under the host.
     is_bad: is the host bad or not. Right now bad means host offline or there
       are device offline on the host.
+    last_recovery_time: last time the host was recovered.
   """
   hostname = ndb.StringProperty()
   lab_name = ndb.StringProperty()
@@ -851,6 +852,7 @@ class HostInfo(ndb.Expando):
   allocated_devices = ndb.IntegerProperty(default=0)
   # Time when the device counts were calculated and persisted
   device_count_timestamp = ndb.DateTimeProperty()
+  last_recovery_time = ndb.DateTimeProperty()
 
 
 @MessageConverter(HostInfo)

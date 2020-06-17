@@ -179,6 +179,8 @@ class DatastoreUtilTest(testbed_dependent_test.TestbedDependentTest):
     host_info_dict = copy.deepcopy(host_info.to_dict())
     # is_bad is computed property, can not be assigned.
     host_info_dict.pop('is_bad')
+    # flated_extra_info is computed property, can not be assigned.
+    host_info_dict.pop('flated_extra_info')
     return datastore_entities.HostInfoHistory(
         parent=host_info.key, **host_info_dict)
 

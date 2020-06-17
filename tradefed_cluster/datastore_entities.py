@@ -774,6 +774,22 @@ def DeviceCountSummaryToMessage(device_count):
       timestamp=device_count.timestamp)
 
 
+def _FlatExtraInfo(entity):
+  """Transform extra_info to a list.
+
+  Args:
+    entity: Device or host entity.
+  Returns:
+    A list of string. string format is 'key:value'
+  """
+  flated_extra_info = []
+  if entity.extra_info is not None:
+    extra_info_dict = dict(entity.extra_info)
+    for key, value in extra_info_dict.items():
+      flated_extra_info.append('%s:%s' % (key, value))
+  return flated_extra_info
+
+
 def _IsBadHost(host):
   """Is the host a bad host or not.
 
@@ -817,6 +833,7 @@ class HostInfo(ndb.Expando):
     is_bad: is the host bad or not. Right now bad means host offline or there
       are device offline on the host.
     last_recovery_time: last time the host was recovered.
+    flated_extra_info: flated extra info for the host.
   """
   hostname = ndb.StringProperty()
   lab_name = ndb.StringProperty()
@@ -853,6 +870,7 @@ class HostInfo(ndb.Expando):
   # Time when the device counts were calculated and persisted
   device_count_timestamp = ndb.DateTimeProperty()
   last_recovery_time = ndb.DateTimeProperty()
+  flated_extra_info = ndb.ComputedProperty(_FlatExtraInfo, repeated=True)
 
 
 @MessageConverter(HostInfo)
@@ -894,7 +912,8 @@ def HostInfoToMessage(host_info_entity, devices=None):
       host_config=HostConfigToMessage(host_info_entity.host_config),
       assignee=host_info_entity.assignee,
       device_count_summaries=device_count_summaries,
-      is_bad=host_info_entity.is_bad)
+      is_bad=host_info_entity.is_bad,
+      flated_extra_info=host_info_entity.flated_extra_info)
 
 
 class HostInfoHistory(HostInfo):
@@ -947,22 +966,6 @@ class HostSync(ndb.Model):
   update_timestamp = ndb.DateTimeProperty()
 
 
-def _FlatExtreInfo(device):
-  """Transform extr_info to a list.
-
-  Args:
-    device: Device entity.
-  Returns:
-    A list of string. string format is 'key:value'
-  """
-  flated_extre_info = []
-  if device.extra_info is not None:
-    extra_info_dict = dict(device.extra_info)
-    for key, value in extra_info_dict.items():
-      flated_extre_info.append('%s:%s' % (key, value))
-  return flated_extre_info
-
-
 class DeviceInfo(ndb.Expando):
   """Device information entity, Key should be the device serial.
 
@@ -990,7 +993,7 @@ class DeviceInfo(ndb.Expando):
     last_known_build_id: last known build id
     last_known_product: last known product
     last_known_product_variant: last known product variant
-    flated_extre_info: flated extra info for the device
+    flated_extra_info: flated extra info for the device
   """
   device_serial = ndb.StringProperty()
   run_target = ndb.StringProperty()
@@ -1020,7 +1023,7 @@ class DeviceInfo(ndb.Expando):
   last_known_build_id = ndb.StringProperty()
   last_known_product = ndb.StringProperty()
   last_known_product_variant = ndb.StringProperty()
-  flated_extre_info = ndb.ComputedProperty(_FlatExtreInfo, repeated=True)
+  flated_extra_info = ndb.ComputedProperty(_FlatExtraInfo, repeated=True)
 
 
 @MessageConverter(DeviceInfo)

@@ -146,7 +146,7 @@ class ClusterDeviceApi(remote.Service):
           datastore_entities.DeviceInfo.device_serial == request.device_serial)
 
     if request.flated_extra_info:
-      query = query.filter(datastore_entities.DeviceInfo.flated_extre_info ==
+      query = query.filter(datastore_entities.DeviceInfo.flated_extra_info ==
                            request.flated_extra_info)
 
     start_time = time.time()

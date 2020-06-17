@@ -418,6 +418,25 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual('RUNNING', host_collection.host_infos[0].host_state)
     self.assertEqual('KILLING', host_collection.host_infos[1].host_state)
 
+  def testListHosts_filterByExtraInfo(self):
+    """Tests ListHosts returns hosts the under extra info."""
+    extra_info_0 = {}
+    extra_info_0['url'] = 'abc.com'
+    extra_info_0['say'] = 'hello'
+    host_01 = datastore_test_util.CreateHost(
+        cluster='free',
+        hostname='host_01',
+        host_state=api_messages.HostState.RUNNING,
+        extra_info=extra_info_0)
+    api_request = {'flated_extra_info': 'url:abc.com'}
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
+                                          api_request)
+    host_collection = protojson.decode_message(api_messages.HostInfoCollection,
+                                               api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(1, len(host_collection.host_infos))
+    self.assertEqual(host_collection.host_infos[0].hostname, host_01.hostname)
+
   @mock.patch.object(note_manager, 'PublishMessage')
   def testAddOrUpdateHostNote_addWithTextOfflineReasonAndRecoveryAction(
       self, mock_publish_host_note_message):

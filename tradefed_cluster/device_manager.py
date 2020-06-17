@@ -494,8 +494,8 @@ def _UpdateDeviceState(device, state, timestamp):
 def _CreateDeviceInfoHistory(device_info):
   """Create DeviceInfoHistory from DeviceInfo."""
   device_info_dict = copy.deepcopy(device_info.to_dict())
-  # flated_extre_info is computed property, can not be assigned.
-  device_info_dict.pop("flated_extre_info")
+  # flated_extra_info is computed property, can not be assigned.
+  device_info_dict.pop("flated_extra_info")
   return datastore_entities.DeviceInfoHistory(
       parent=device_info.key,
       **device_info_dict)
@@ -538,6 +538,8 @@ def _CreateHostInfoHistory(host_info):
   host_info_dict = copy.deepcopy(host_info.to_dict())
   # is_bad is computed property, can not be assigned.
   host_info_dict.pop("is_bad")
+  # flated_extra_info is computed property, can not be assigned.
+  host_info_dict.pop("flated_extra_info")
   return datastore_entities.HostInfoHistory(
       parent=host_info.key,
       **host_info_dict)

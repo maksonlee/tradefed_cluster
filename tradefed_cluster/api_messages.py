@@ -579,6 +579,7 @@ class HostInfo(messages.Message):
   is_bad = messages.BooleanField(25)
   test_harness = messages.StringField(26)
   test_harness_version = messages.StringField(27)
+  flated_extra_info = messages.StringField(28, repeated=True)
 
 
 class HostInfoCollection(messages.Message):

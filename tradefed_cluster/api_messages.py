@@ -580,6 +580,7 @@ class HostInfo(messages.Message):
   test_harness = messages.StringField(26)
   test_harness_version = messages.StringField(27)
   flated_extra_info = messages.StringField(28, repeated=True)
+  last_recovery_time = message_types.DateTimeField(29)
 
 
 class HostInfoCollection(messages.Message):

@@ -913,6 +913,7 @@ def HostInfoToMessage(host_info_entity, devices=None):
       assignee=host_info_entity.assignee,
       device_count_summaries=device_count_summaries,
       is_bad=host_info_entity.is_bad,
+      last_recovery_time=host_info_entity.last_recovery_time,
       flated_extra_info=host_info_entity.flated_extra_info)
 
 

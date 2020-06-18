@@ -391,7 +391,8 @@ class ApiMessagesTest(unittest.TestCase):
         extra_info={
             'host_url': 'aurl',
         },
-        device_count_summaries=[d1_count, d2_count])
+        device_count_summaries=[d1_count, d2_count],
+        last_recovery_time=TIMESTAMP)
 
   def testHostInfoFromEntity(self):
     """Test converting from host_info to host_info message."""
@@ -429,6 +430,7 @@ class ApiMessagesTest(unittest.TestCase):
     self.assertEqual(3, host_info_message.device_count_summaries[1].available)
     self.assertEqual(1, host_info_message.device_count_summaries[1].allocated)
     self.assertTrue(host_info_message.is_bad)
+    self.assertEqual(TIMESTAMP, host_info_message.last_recovery_time)
 
   def _CreateMockDeviceInfoEntity(self):
     """Helper function to create mock device info entity."""

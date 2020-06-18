@@ -79,6 +79,13 @@ indexes:
 - kind: DeviceInfoHistory
   ancestor: yes
   properties:
+  - name: device_serial
+  - name: timestamp
+    direction: desc
+
+- kind: DeviceInfoHistory
+  ancestor: yes
+  properties:
   - name: timestamp
 
 - kind: DeviceInfoHistory
@@ -91,6 +98,13 @@ indexes:
   properties:
   - name: device_serial
   - name: note.timestamp
+    direction: desc
+
+- kind: DeviceStateHistory
+  ancestor: yes
+  properties:
+  - name: device_serial
+  - name: timestamp
     direction: desc
 
 - kind: DeviceStateHistory

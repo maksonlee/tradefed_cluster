@@ -19,7 +19,7 @@ py_appengine_test(
     ],
     deps = [
         ":task_scheduler_lib",
-        "//tradefed_cluster:testbed_dependent_test_lib",
+        third_party("absl/testing:absltest"),
         third_party("mock"),
     ],
 )

@@ -916,9 +916,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
       self.assertEqual(self.START_TIME, command.start_time)
       self.assertEqual(self.END_TIME, command.end_time)
 
-  @mock.patch.object(task_scheduler, "AddTask")
   @mock.patch.object(common, "Now")
-  def testNotifyRequestState(self, now, mock_add_task):
+  def testNotifyRequestState(self, now):
     now.return_value = self.END_TIME
     request = self._CreateTestRequest(common.RequestState.COMPLETED)
     command = self._CreateTestCommand(request, common.CommandState.COMPLETED)
@@ -948,11 +947,10 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         result_links=[self.v1_result_link],
         total_run_time_sec=1,
         event_time=self.END_TIME)
-    self._AssertRequestEventMessageIsQueued(msg, mock_add_task)
+    self._AssertRequestEventMessageInQueue(msg)
 
-  @mock.patch.object(task_scheduler, "AddTask")
   @mock.patch.object(common, "Now")
-  def testNotifyRequestState_withV2Link(self, now, mock_add_task):
+  def testNotifyRequestState_withV2Link(self, now):
     now.return_value = self.END_TIME
     request = self._CreateTestRequest(common.RequestState.COMPLETED)
     command = self._CreateTestCommand(request, common.CommandState.COMPLETED)
@@ -982,12 +980,10 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         result_links=[self.v2_result_link],
         total_run_time_sec=1,
         event_time=self.END_TIME)
-    self._AssertRequestEventMessageIsQueued(msg, mock_add_task)
+    self._AssertRequestEventMessageInQueue(msg)
 
-  @mock.patch.object(task_scheduler, "AddTask")
   @mock.patch.object(common, "Now")
-  def testNotifyRequestState_commandWithMultipleAttempts(
-      self, now, mock_add_task):
+  def testNotifyRequestState_commandWithMultipleAttempts(self, now):
     now.return_value = self.END_TIME
     request = self._CreateTestRequest(common.RequestState.COMPLETED)
     command = self._CreateTestCommand(request, common.CommandState.COMPLETED)
@@ -1027,11 +1023,10 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         result_links=[self.v1_result_link],
         total_run_time_sec=2,
         event_time=self.END_TIME)
-    self._AssertRequestEventMessageIsQueued(msg, mock_add_task)
+    self._AssertRequestEventMessageInQueue(msg)
 
-  @mock.patch.object(task_scheduler, "AddTask")
   @mock.patch.object(common, "Now")
-  def testNotifyRequestState_commandWithError(self, now, mock_add_task):
+  def testNotifyRequestState_commandWithError(self, now):
     now.return_value = self.END_TIME
     request = self._CreateTestRequest(common.RequestState.ERROR)
     command = self._CreateTestCommand(request, common.CommandState.ERROR)
@@ -1063,11 +1058,10 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         error_reason="UnknownErrorReason",
         error_type=common.CommandErrorType.UNKNOWN,
         event_time=self.END_TIME)
-    self._AssertRequestEventMessageIsQueued(msg, mock_add_task)
+    self._AssertRequestEventMessageInQueue(msg)
 
-  @mock.patch.object(task_scheduler, "AddTask")
   @mock.patch.object(common, "Now")
-  def testNotifyRequestState_commandWithFatalError(self, now, mock_add_task):
+  def testNotifyRequestState_commandWithFatalError(self, now):
     now.return_value = self.END_TIME
     error_message = "com.android.tradefed.config.ConfigurationException"
     request = self._CreateTestRequest(common.RequestState.ERROR)
@@ -1098,11 +1092,10 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         error_reason="ConfigurationError",
         error_type=common.CommandErrorType.TEST,
         event_time=self.END_TIME)
-    self._AssertRequestEventMessageIsQueued(msg, mock_add_task)
+    self._AssertRequestEventMessageInQueue(msg)
 
-  @mock.patch.object(task_scheduler, "AddTask")
   @mock.patch.object(common, "Now")
-  def testNotifyRequestState_commandWithErrorType(self, now, mock_add_task):
+  def testNotifyRequestState_commandWithErrorType(self, now):
     now.return_value = self.END_TIME
     error_message = "error"
     request = self._CreateTestRequest(common.RequestState.ERROR)
@@ -1134,11 +1127,10 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         error_reason="BuildRetrievalError",
         error_type=common.CommandErrorType.INFRA,
         event_time=self.END_TIME)
-    self._AssertRequestEventMessageIsQueued(msg, mock_add_task)
+    self._AssertRequestEventMessageInQueue(msg)
 
-  @mock.patch.object(task_scheduler, "AddTask")
   @mock.patch.object(common, "Now")
-  def testNotifyRequestState_multipleRunCount(self, now, mock_add_task):
+  def testNotifyRequestState_multipleRunCount(self, now):
     now.return_value = self.END_TIME
     request = self._CreateTestRequest(common.RequestState.COMPLETED)
     command = self._CreateTestCommand(request,
@@ -1174,11 +1166,10 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         result_links=[self.v1_result_link],
         total_run_time_sec=2,
         event_time=self.END_TIME)
-    self._AssertRequestEventMessageIsQueued(msg, mock_add_task)
+    self._AssertRequestEventMessageInQueue(msg)
 
-  @mock.patch.object(task_scheduler, "AddTask")
   @mock.patch.object(common, "Now")
-  def testNotifyRequestState_multipleCommands(self, now, mock_add_task):
+  def testNotifyRequestState_multipleCommands(self, now):
     now.return_value = self.END_TIME
     request = self._CreateTestRequest(common.RequestState.COMPLETED)
     commands = [self._CreateTestCommand(
@@ -1214,11 +1205,10 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         result_links=[self.v1_result_link],
         total_run_time_sec=2,
         event_time=self.END_TIME)
-    self._AssertRequestEventMessageIsQueued(msg, mock_add_task)
+    self._AssertRequestEventMessageInQueue(msg)
 
-  @mock.patch.object(task_scheduler, "AddTask")
   @mock.patch.object(common, "Now")
-  def testNotifyRequestState_completedMissingFields(self, now, mock_add_task):
+  def testNotifyRequestState_completedMissingFields(self, now):
     now.return_value = self.END_TIME
     request = self._CreateTestRequest(common.RequestState.COMPLETED)
     command = self._CreateTestCommand(request, common.CommandState.COMPLETED)
@@ -1249,11 +1239,10 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         device_lost_detected=0,
         total_run_time_sec=1,
         event_time=self.END_TIME)
-    self._AssertRequestEventMessageIsQueued(msg, mock_add_task)
+    self._AssertRequestEventMessageInQueue(msg)
 
-  @mock.patch.object(task_scheduler, "AddTask")
   @mock.patch.object(common, "Now")
-  def testNotifyRequestStateChange_errorMissingFields(self, now, mock_add_task):
+  def testNotifyRequestStateChange_errorMissingFields(self, now):
     now.return_value = self.END_TIME
     request = self._CreateTestRequest(state=common.RequestState.ERROR)
     command = self._CreateTestCommand(request, state=common.CommandState.ERROR)
@@ -1279,7 +1268,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
         total_run_time_sec=0,
         event_time=self.END_TIME,
         failed_test_run_count=0)
-    self._AssertRequestEventMessageIsQueued(msg, mock_add_task)
+    self._AssertRequestEventMessageInQueue(msg)
 
   def testCreateRequestId(self):
     id_ = request_manager._CreateRequestId()
@@ -1346,12 +1335,10 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self._attempt_id += 1
     return command_attempt
 
-  def _AssertRequestEventMessageIsQueued(self, message, mock_add_task):
-    mock_add_task.assert_called_once_with(
-        queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=mock.ANY,
-        transactional=True)
-    payload = zlib.decompress(mock_add_task.call_args[1]["payload"])
+  def _AssertRequestEventMessageInQueue(self, message):
+    tasks = self.taskqueue_stub.get_filtered_tasks()
+    self.assertEqual(len(tasks), 1)
+    payload = zlib.decompress(tasks[0].payload)
     queue_message = protojson.decode_message(api_messages.RequestEventMessage,
                                              payload)
 

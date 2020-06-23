@@ -10,9 +10,6 @@ py_appengine_library(
         "task_scheduler.py",
     ],
     srcs_version = "PY2AND3",
-    deps = [
-        third_party("retry"),
-    ],
 )
 
 py_appengine_test(

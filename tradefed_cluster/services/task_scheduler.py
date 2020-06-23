@@ -21,7 +21,6 @@ import logging
 import pickle
 import types
 
-import retry
 import webapp2
 
 from google.appengine.api import datastore
@@ -48,11 +47,6 @@ class TaskExecutionError(Error):
 
 class NonRetriableTaskExecutionError(Error):
   """A non-retriable task execution error."""
-  pass
-
-
-class TransactionalTaskExecutionError(NonRetriableTaskExecutionError):
-  """A transactional task execute error."""
   pass
 
 
@@ -172,10 +166,7 @@ def AddCallableTask(obj, *args, **kwargs):
       pass
   entity = _CallableTaskEntity(data=pickled)
   entity.put()
-  if transactional:
-    logging.debug("Stored tx task data(key=%s)", entity.key)
-  pickled = _Serialize(
-      _RunCallableTaskFromDatastore, entity.key, transactional=transactional)
+  pickled = _Serialize(_RunCallableTaskFromDatastore, entity.key)
   return _AddTask(
       queue_name=queue,
       payload=pickled,
@@ -199,35 +190,26 @@ def RunCallableTask(data):
     return func(*args, **kwds)
 
 
-def _RunCallableTaskFromDatastore(key, transactional=False):
+def _RunCallableTaskFromDatastore(key):
   """Retrieves a callable task from the datastore and executes it.
 
   Args:
     key: The datastore key of a _CallableTaskEntity storing the task.
-    transactional: a flag to indicate whether a task is transactional or not.
   Returns:
     The return value of the function invocation.
   Raises:
     NonRetriableTaskExecutionError: if a task cannot be read from datastore.
   """
-  # Do back-off retries to deal with datastore delays.
-  entity = retry.retry_call(key.get, tries=3, delay=1, backoff=4)
+  entity = key.get()
   if not entity:
-    if transactional:
-      raise TransactionalTaskExecutionError(
-          "Cannot find transactional task (key=%s) in datastore; "
-          "should only happen after a transaction failure." % key)
     # If the entity is missing, no number of retries will help.
-    raise NonRetriableTaskExecutionError(
-        "Cannot find task (key=%s) in datastore" % key)
-
+    raise NonRetriableTaskExecutionError()
   try:
     ret = RunCallableTask(entity.data)
     key.delete()
   except NonRetriableTaskExecutionError:
     key.delete()
     raise
-  return ret
 
 
 def _InvokeMember(obj, membername, *args, **kwargs):

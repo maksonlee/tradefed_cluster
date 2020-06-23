@@ -223,6 +223,34 @@ class FilterHintApiTest(api_test.ApiTest):
     self.assertEqual(states[6].value, common.DeviceState.UNAVAILABLE)
     self.assertEqual(states[7].value, common.DeviceState.UNKNOWN)
 
+  def testListHostGroup(self):
+    """Tests ListHostGroup."""
+    datastore_test_util.CreateHost(
+        cluster='free',
+        hostname='host_0',
+        timestamp=self.TIMESTAMP,
+    )
+    datastore_test_util.CreateHost(
+        cluster='paid',
+        hostname='host_1',
+        timestamp=self.TIMESTAMP,
+
+    )
+    datastore_test_util.CreateHost(
+        cluster='free',
+        hostname='host_2',
+        hidden=True,
+    )
+    api_request = {'type': 'HOST_GROUP'}
+    api_response = self.testapp.post_json(
+        '/_ah/api/FilterHintApi.ListFilterHints', api_request)
+    host_group_collection = protojson.decode_message(
+        api_messages.FilterHintCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(2, len(host_group_collection.filter_hints))
+    host_groups = list(host_group_collection.filter_hints)
+    self.assertEqual(host_groups[0].value, 'free')
+    self.assertEqual(host_groups[1].value, 'paid')
 
 if __name__ == '__main__':
   unittest.main()

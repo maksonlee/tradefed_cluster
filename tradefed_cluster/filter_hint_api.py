@@ -67,6 +67,8 @@ class FilterHintApi(remote.Service):
       return self._ListHostStates()
     elif request.type == common.FilterHintType.DEVICE_STATE:
       return self._ListDeviceStates()
+    elif request.type == common.FilterHintType.HOST_GROUP:
+      return self._ListHostGroup()
     else:
       raise endpoints.BadRequestException("Invalid type: %s" % request.type)
 
@@ -143,3 +145,14 @@ class FilterHintApi(remote.Service):
     ]
     return api_messages.FilterHintCollection(filter_hints=infos)
 
+  def _ListHostGroup(self):
+    """Fetches a list of host group."""
+    entities = datastore_entities.HostInfo.query(
+        projection=[datastore_entities.HostInfo.host_group],
+        distinct=True).filter(
+            datastore_entities.HostInfo.hidden == False).fetch(                  projection=[datastore_entities.HostInfo.host_group])
+    infos = [
+        api_messages.FilterHintMessage(value=item.host_group)
+        for item in entities
+    ]
+    return api_messages.FilterHintCollection(filter_hints=infos)

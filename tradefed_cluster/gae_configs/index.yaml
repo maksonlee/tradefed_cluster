@@ -128,6 +128,21 @@ indexes:
   - name: hidden
   - name: lab_name
 
+- kind: HostInfo
+  properties:
+  - name: hidden
+  - name: host_group
+
+- kind: HostInfo
+  properties:
+  - name: hidden
+  - name: test_runner
+
+- kind: HostInfo
+  properties:
+  - name: hidden
+  - name: test_runner_version
+
 - kind: HostInfoHistory
   ancestor: yes
   properties:

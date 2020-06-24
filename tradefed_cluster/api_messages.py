@@ -490,7 +490,7 @@ class DeviceInfo(messages.Message):
   sim_operator = messages.StringField(23)
   extra_info = messages.MessageField(KeyValuePair, 24, repeated=True)
   test_harness = messages.StringField(25)
-  flated_extre_info = messages.StringField(26, repeated=True)
+  flated_extra_info = messages.StringField(26, repeated=True)
 
 
 class DeviceInfoCollection(messages.Message):

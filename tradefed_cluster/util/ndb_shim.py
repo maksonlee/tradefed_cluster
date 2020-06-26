@@ -17,7 +17,9 @@
 from google.appengine.ext import ndb as legacy_ndb
 from google.appengine.ext.ndb import msgprop
 
-import tradefed_cluster.util.google_import_fixer  from google.cloud import ndb  
+import tradefed_cluster.util.google_import_fixer  
+# TODO: Commented google.cloud ndb to unblock MTT local server
+# from google.cloud import ndb  
 # All methods/classes used by tradefed_cluster are defined below
 Expando = legacy_ndb.Expando
 Key = legacy_ndb.Key

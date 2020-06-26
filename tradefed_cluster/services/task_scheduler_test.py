@@ -15,12 +15,13 @@
 """Unit tests for task_scheduler module."""
 
 import threading
+import unittest
 
-from absl.testing import absltest
 import mock
 
 from google.appengine.api import taskqueue
 
+from tradefed_cluster import testbed_dependent_test
 from tradefed_cluster.services import task_scheduler
 
 _object = threading.local()
@@ -31,7 +32,7 @@ def Callable(*args, **kwargs):
   _object.last_callable_call = mock.call(*args, **kwargs)
 
 
-class TaskSchedulerTest(absltest.TestCase):
+class TaskSchedulerTest(testbed_dependent_test.TestbedDependentTest):
 
   @mock.patch.object(taskqueue, 'add')
   def testAddTask(self, mock_add):
@@ -80,6 +81,33 @@ class TaskSchedulerTest(absltest.TestCase):
     self.assertEqual(
         mock.call(1, foo=10, bar=100, zzz=1000), _object.last_callable_call)
 
+  @mock.patch.object(taskqueue, 'add')
+  def testAddCallableTask_withLargePayload(self, mock_add):
+    _object.last_callable_call = None
+    mock_add.side_effect = [taskqueue.TaskTooLargeError, None]
+
+    task_scheduler.AddCallableTask(Callable, 1, foo=10, bar=100, zzz=1000)
+
+    mock_add.assert_has_calls([
+        mock.call(
+            queue_name=task_scheduler.DEFAULT_CALLABLE_TASK_QUEUE,
+            payload=mock.ANY,
+            target=None,
+            name=None,
+            eta=None,
+            transactional=False),
+        mock.call(
+            queue_name=task_scheduler.DEFAULT_CALLABLE_TASK_QUEUE,
+            payload=mock.ANY,
+            target=None,
+            name=None,
+            eta=None,
+            transactional=False)
+    ])
+    task_scheduler.RunCallableTask(mock_add.call_args[1]['payload'])
+    self.assertEqual(
+        mock.call(1, foo=10, bar=100, zzz=1000), _object.last_callable_call)
+
 
 if __name__ == '__main__':
-  absltest.main()
+  unittest.main()

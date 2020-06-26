@@ -120,8 +120,9 @@ def AddCallableTask(obj, *args, **kwargs):
         transactional=transactional)
   except TaskTooLargeError:
     # Task is too big - store it to the datastore
-    key = _CallableTaskEntity(data=pickled).put()
-    pickled = _Serialize(_RunCallableTaskFromDatastore, str(key))
+    entity = _CallableTaskEntity(data=pickled)
+    entity.put()
+    pickled = _Serialize(_RunCallableTaskFromDatastore, entity.key)
     AddTask(
         queue_name=queue,
         payload=pickled,
@@ -158,21 +159,21 @@ def _RunCallableTaskFromDatastore(key):
   """Retrieves a callable task from the datastore and executes it.
 
   Args:
-    key: The datastore key of a _DeferredTask storing the task.
+    key: The datastore key of a _CallableTaskEntity storing the task.
   Returns:
     The return value of the function invocation.
   Raises:
     NonRetriableTaskExecutionError: if a task cannot be read from datastore.
   """
-  entity = _CallableTaskEntity.get(key)
+  entity = key.get()
   if not entity:
     # If the entity is missing, no number of retries will help.
     raise NonRetriableTaskExecutionError()
   try:
     ret = RunCallableTask(entity.data)
-    entity.delete()
+    key.delete()
   except NonRetriableTaskExecutionError:
-    entity.delete()
+    key.delete()
     raise
 
 

@@ -180,6 +180,11 @@ indexes:
   - name: timestamp
     direction: desc
 
+- kind: Note
+  properties:
+  - name: hostname
+  - name: timestamp
+
 - kind: Request
   properties:
   - name: user

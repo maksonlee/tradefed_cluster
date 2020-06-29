@@ -75,7 +75,8 @@ class NotificationHandlerTest(testbed_dependent_test.TestbedDependentTest):
     tasks = self.taskqueue_stub.get_filtered_tasks()
     self.assertEqual(0, len(tasks))
 
-  def testNotifyNoDirtyRequest_force(self):
+  @mock.patch.object(task_scheduler, "AddTask")
+  def testNotifyNoDirtyRequest_force(self, mock_add_task):
     request = datastore_entities.Request(
         id="1",
         namespace=common.NAMESPACE,
@@ -85,13 +86,16 @@ class NotificationHandlerTest(testbed_dependent_test.TestbedDependentTest):
         notify_state_change=False)
     request.put()
     notification_handler.NotifyRequestState(request_id="1", force=True)
-    tasks = self.taskqueue_stub.get_filtered_tasks()
-    self.assertEqual(1, len(tasks))
-    payload = zlib.decompress(tasks[0].payload)
+    mock_add_task.assert_called_once_with(
+        queue_name=common.OBJECT_EVENT_QUEUE,
+        payload=mock.ANY,
+        transactional=True)
+    payload = zlib.decompress(mock_add_task.call_args[1]["payload"])
     task = json.loads(payload)
     self.assertEqual("1", task["request_id"])
 
-  def testNotifyDirtyRequest(self):
+  @mock.patch.object(task_scheduler, "AddTask")
+  def testNotifyDirtyRequest(self, mock_add_task):
     request = datastore_entities.Request(
         id="1",
         namespace=common.NAMESPACE,
@@ -101,9 +105,11 @@ class NotificationHandlerTest(testbed_dependent_test.TestbedDependentTest):
         notify_state_change=True)
     request.put()
     notification_handler.NotifyRequestState(request_id="1")
-    tasks = self.taskqueue_stub.get_filtered_tasks()
-    self.assertEqual(1, len(tasks))
-    payload = zlib.decompress(tasks[0].payload)
+    mock_add_task.assert_called_once_with(
+        queue_name=common.OBJECT_EVENT_QUEUE,
+        payload=mock.ANY,
+        transactional=True)
+    payload = zlib.decompress(mock_add_task.call_args[1]["payload"])
     task = json.loads(payload)
     self.assertEqual("1", task["request_id"])
     # The dirty bit should be set.

@@ -20,6 +20,7 @@ This module is developed to replace the legacy usage of GAE Taskqueue.
 import logging
 import pickle
 import types
+import uuid
 
 import webapp2
 
@@ -49,11 +50,59 @@ class NonRetriableTaskExecutionError(Error):
   pass
 
 
+class _CallableTaskEntity(ndb.Model):
+  """Datastore representation of a callable task.
+
+  This is used in cases when the deferred task is too big to be included as
+  payload with the task queue entry.
+  """
+  data = ndb.BlobProperty(required=True)
+
+
+def _AddTask(
+    queue_name, payload, target, name, eta, transactional):
+  """Add a task using a selected task scheduler implementation.
+
+  Args:
+    queue_name: a queue name.
+    payload: a task payload.
+    target: a target module name.
+    name: a task name.
+    eta: a ETA for task execution.
+    transactional: a flag to indicate whether this task should be tied to
+        datastore transaction.
+  Returns:
+    A Task object.
+  Raises:
+    Error: if a task cannot be added.
+  """
+  if transactional and not ndb.in_transaction():
+    raise Error("Transactional tasks can be only added within a transaction.")
+  if transactional and not name:
+    name = str(uuid.uuid1())
+
+  def Callback():
+    try:
+      return taskqueue.add(
+          queue_name=queue_name,
+          payload=payload,
+          target=target,
+          name=name,
+          eta=eta)
+    except taskqueue.TaskTooLargeError as e:
+      raise TaskTooLargeError(e)
+    except taskqueue.Error as e:
+      raise Error(e)
+
+  if transactional:
+    ndb.get_context().call_on_commit(Callback)
+    return taskqueue.Task(name=name)
+  return Callback()
+
+
 def AddTask(
     queue_name, payload, target=None, name=None, eta=None, transactional=False):
-  """Add a task.
-
-  This is currently a shim to GAE taskqueue.
+  """Schedule a task.
 
   Args:
     queue_name: a queue name.
@@ -66,22 +115,17 @@ def AddTask(
   Returns:
     a taskqueue.Task object.
   """
-  try:
-    return taskqueue.add(
-        queue_name=queue_name,
-        payload=payload,
-        target=target,
-        name=name,
-        eta=eta,
-        transactional=transactional)
-  except taskqueue.TaskTooLargeError as e:
-    raise TaskTooLargeError(e)
-  except taskqueue.Error as e:
-    raise Error(e)
+  return _AddTask(
+      queue_name=queue_name,
+      payload=payload,
+      target=target,
+      name=name,
+      eta=eta,
+      transactional=transactional)
 
 
 def DeleteTask(queue_name, task_name):
-  """delete a task.
+  """Delete a scheduled task.
 
   This is currently a shim to GAE taskqueue.
 
@@ -107,27 +151,41 @@ def AddCallableTask(obj, *args, **kwargs):
     **kwargs: Any other keyword arguments are passed through to the callable.
         Special parameters like _queue, _target, _transactional are passed to
         task scheduler.
+  Returns:
+    A Task object.
+  Raises:
+    Error: if a task cannot be added.
   """
   queue = kwargs.pop("_queue", DEFAULT_CALLABLE_TASK_QUEUE)
   target = kwargs.pop("_target", None)
   transactional = kwargs.pop("_transactional", False)
+  eta = kwargs.pop("_eta", None)
   pickled = _Serialize(obj, *args, **kwargs)
   try:
-    AddTask(
+    return _AddTask(
         queue_name=queue,
         payload=pickled,
+        name=None,
         target=target,
+        eta=eta,
         transactional=transactional)
   except TaskTooLargeError:
     # Task is too big - store it to the datastore
-    entity = _CallableTaskEntity(data=pickled)
+    pass
+  entity = _CallableTaskEntity(data=pickled)
+  if not transactional and ndb.in_transaction():
+    # Make sure an entity is stored even if a parent transaction fails.
+    ndb.transaction(entity.put, propagation=ndb.TransactionOptions.INDEPENDENT)
+  else:
     entity.put()
-    pickled = _Serialize(_RunCallableTaskFromDatastore, entity.key)
-    AddTask(
-        queue_name=queue,
-        payload=pickled,
-        target=target,
-        transactional=transactional)
+  pickled = _Serialize(_RunCallableTaskFromDatastore, entity.key)
+  return _AddTask(
+      queue_name=queue,
+      payload=pickled,
+      name=None,
+      target=target,
+      eta=eta,
+      transactional=transactional)
 
 
 def RunCallableTask(data):
@@ -144,15 +202,6 @@ def RunCallableTask(data):
     raise NonRetriableTaskExecutionError(e)
   else:
     return func(*args, **kwds)
-
-
-class _CallableTaskEntity(ndb.Model):
-  """Datastore representation of a callable task.
-
-  This is used in cases when the deferred task is too big to be included as
-  payload with the task queue entry.
-  """
-  data = ndb.BlobProperty(required=True)
 
 
 def _RunCallableTaskFromDatastore(key):

@@ -24,10 +24,17 @@ import uuid
 
 import webapp2
 
-from google.appengine.api import taskqueue
 from google.appengine.ext import ndb
 
+from tradefed_cluster import env_config
+from tradefed_cluster.plugins import base as plugins_base
+
+# This number is based on Cloud Tasks spec:
+# https://cloud.google.com/tasks/docs/quotas
+MAX_TASK_SIZE_BYTES = 100 * 1024
 DEFAULT_CALLABLE_TASK_QUEUE = "default"
+
+Task = plugins_base.Task
 
 
 class Error(Exception):
@@ -59,8 +66,14 @@ class _CallableTaskEntity(ndb.Model):
   data = ndb.BlobProperty(required=True)
 
 
+def _GetTaskScheduler():
+  if not env_config.CONFIG.task_scheduler:
+    raise ValueError("No task scheduler is configured")
+  return env_config.CONFIG.task_scheduler
+
+
 def _AddTask(
-    queue_name, payload, target, name, eta, transactional):
+    queue_name, payload, target=None, name=None, eta=None, transactional=False):
   """Add a task using a selected task scheduler implementation.
 
   Args:
@@ -74,29 +87,29 @@ def _AddTask(
   Returns:
     A Task object.
   Raises:
-    Error: if a task cannot be added.
+    TaskTooLargeError: if a task is too large.
   """
-  if transactional and not ndb.in_transaction():
-    raise Error("Transactional tasks can be only added within a transaction.")
+  if MAX_TASK_SIZE_BYTES < len(payload):
+    raise TaskTooLargeError(
+        "Task %s-%s is larger than %s bytes" % (
+            queue_name, name, MAX_TASK_SIZE_BYTES))
   if transactional and not name:
     name = str(uuid.uuid1())
 
   def Callback():
     try:
-      return taskqueue.add(
+      return _GetTaskScheduler().AddTask(
           queue_name=queue_name,
           payload=payload,
           target=target,
-          name=name,
+          task_name=name,
           eta=eta)
-    except taskqueue.TaskTooLargeError as e:
-      raise TaskTooLargeError(e)
-    except taskqueue.Error as e:
+    except Exception as e:
       raise Error(e)
 
   if transactional:
     ndb.get_context().call_on_commit(Callback)
-    return taskqueue.Task(name=name)
+    return plugins_base.Task(name=name)
   return Callback()
 
 
@@ -113,7 +126,7 @@ def AddTask(
     transactional: a flag to indicate whether this task should be tied to
         datastore transaction.
   Returns:
-    a taskqueue.Task object.
+    a Task object.
   """
   return _AddTask(
       queue_name=queue_name,
@@ -127,15 +140,13 @@ def AddTask(
 def DeleteTask(queue_name, task_name):
   """Delete a scheduled task.
 
-  This is currently a shim to GAE taskqueue.
-
   Args:
     queue_name: a queue name.
     task_name: a task name.
   """
   try:
-    taskqueue.Queue(queue_name).delete_tasks_by_name(task_name=task_name)
-  except taskqueue.Error as e:
+    _GetTaskScheduler().DeleteTask(queue_name=queue_name, task_name=task_name)
+  except Exception as e:
     raise Error(e)
 
 

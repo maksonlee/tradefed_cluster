@@ -17,6 +17,7 @@
 import os.path
 
 from tradefed_cluster import common
+from tradefed_cluster.plugins import appengine
 from tradefed_cluster.plugins import metric_client
 from tradefed_cluster.plugins import registry
 from tradefed_cluster.util import env_util
@@ -47,7 +48,12 @@ class EnvConfig(env_util.EnvConfig):
         'email_templates',
         'device_report_template.html')
     self.plugin = registry.GetNoOpPlugin()
+
+    # Service providers
+    # TODO: replace with Python 3 compatible task scheduler.
+    self.task_scheduler = appengine.TaskScheduler()
     self.metric_client = metric_client.MetricClient()
+
     self.extra_apis = []
     self.ignore_device_serials = []
 

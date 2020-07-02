@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 """A module to define base classes for Tradefed Cluster plugins.
 
 A plugin is a python class that gets instantiated and called start and finished.
@@ -78,3 +79,37 @@ class Plugin(with_metaclass(PluginMetaClass, object)):
       attempt: a datastore_entities.CommandAttempt.
     """
     pass
+
+
+Task = collections.namedtuple('Task', ['name'])
+
+
+class TaskScheduler:
+  """Interface for task scheduler plugins."""
+
+  def AddTask(self, queue_name, payload, target, task_name, eta):
+    """Add a task using a selected task scheduler implementation.
+
+    Args:
+      queue_name: a queue name.
+      payload: a task payload.
+      target: a target module name.
+      task_name: a task name.
+      eta: a ETA for task execution.
+    Returns:
+      A Task object.
+    Raises:
+      NotImplementedError: if an operation is not implemented.
+    """
+    raise NotImplementedError()
+
+  def DeleteTask(self, queue_name, task_name):
+    """Deletes a task.
+
+    Args:
+      queue_name: a queue name.
+      task_name: a task name.
+    Raises:
+      NotImplementedError: if an operation is not implemented.
+    """
+    raise NotImplementedError()

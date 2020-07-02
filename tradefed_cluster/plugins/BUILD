@@ -1,4 +1,4 @@
-load("//tradefed_cluster:adapter.bzl", "py_appengine_library", "py_appengine_test", "third_party")
+load("//tradefed_cluster:adapter.bzl", "py2and3_test", "py_appengine_library", "py_appengine_test", "third_party")
 
 package(default_visibility = ["//tradefed_cluster:tradefed_cluster_clients"])
 
@@ -13,6 +13,17 @@ PY_APPENGINE_TEST_ENVS = [{
     },
     "runtime": "python27",
 }]
+
+py_appengine_library(
+    name = "appengine_lib",
+    srcs = [
+        "appengine.py",
+    ],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":base_lib",
+    ],
+)
 
 py_appengine_library(
     name = "base_lib",
@@ -30,6 +41,29 @@ py_appengine_test(
     envs = PY_APPENGINE_TEST_ENVS,
     deps = [
         ":base_lib",
+    ],
+)
+
+py_library(
+    name = "google_cloud_lib",
+    srcs = [
+        "google_cloud.py",
+    ],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":base_lib",
+        third_party("google/cloud/tasks_v2"),
+    ],
+)
+
+py2and3_test(
+    name = "google_cloud_test",
+    srcs = [
+        "google_cloud_test.py",
+    ],
+    deps = [
+        ":google_cloud_lib",
+        third_party("mock"),
     ],
 )
 

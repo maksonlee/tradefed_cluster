@@ -10,6 +10,9 @@ py_appengine_library(
         "task_scheduler.py",
     ],
     srcs_version = "PY2AND3",
+    deps = [
+        "//tradefed_cluster:env_config_lib",
+    ],
 )
 
 py_appengine_test(

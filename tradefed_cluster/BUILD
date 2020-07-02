@@ -957,6 +957,7 @@ py_appengine_library(
     ],
     deps = [
         ":common_lib",
+        "//tradefed_cluster/plugins:appengine_lib",
         "//tradefed_cluster/plugins:metric_client_lib",
         "//tradefed_cluster/plugins:registry_lib",
         "//tradefed_cluster/util:env_util_lib",

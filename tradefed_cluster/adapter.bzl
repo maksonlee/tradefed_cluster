@@ -26,6 +26,7 @@ PACKAGE_MAP = {
     "endpoints": "google-endpoints",
     "google/auth": "google-auth",
     "google/cloud/storage": "google-cloud-storage",
+    "google/cloud/tasks_v2": "google-cloud-tasks",
     "google/oauth2": "google-auth",
     "googleapiclient": "google-api-python-client",
     "hamcrest": "PyHamcrest",

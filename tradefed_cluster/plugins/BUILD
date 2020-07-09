@@ -93,6 +93,7 @@ py_appengine_library(
         "registry.py",
     ],
     envs = PY_APPENGINE_ENVS,
+    srcs_version = "PY2AND3",
     deps = [
         ":base_lib",
         ":noop_plugin_lib",

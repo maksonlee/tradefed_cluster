@@ -74,6 +74,7 @@ py_library(
     srcs = [
         "metric_util.py",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         "//tradefed_cluster/plugins:metric_client_lib",
     ],

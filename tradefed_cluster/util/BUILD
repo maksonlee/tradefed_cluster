@@ -89,6 +89,7 @@ py_appengine_library(
     deps = [
         # TODO: switch from oauth2client to google.auth
         third_party("googleapiclient:googleapiclient_with_oauth2client"),
+        third_party("oauth2client:titanium"),
     ],
 )
 

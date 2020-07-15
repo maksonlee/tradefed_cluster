@@ -14,10 +14,13 @@
 
 """Plugins for Google Cloud Platform."""
 
+from google.api_core import retry
 from google.cloud import tasks_v2
 from google.protobuf import timestamp_pb2
 
 from tradefed_cluster.plugins import base
+
+DEFAULT_RETRY_OPTION = retry.Retry(deadline=60)
 
 
 class TaskScheduler(base.TaskScheduler):
@@ -56,10 +59,10 @@ class TaskScheduler(base.TaskScheduler):
       task['schedule_time'] = timestamp
     if target:
       task['app_engine_http_request']['app_engine_routing']['service'] = target
-    task = self._client.create_task(parent, task)
+    task = self._client.create_task(parent, task, retry=DEFAULT_RETRY_OPTION)
     return base.Task(name=task.name)
 
   def DeleteTask(self, queue_name, task_name):
     task_path = self._client.task_path(
         self._project, self._location, queue_name, task_name)
-    self._client.delete_task(task_path)
+    self._client.delete_task(task_path, retry=DEFAULT_RETRY_OPTION)

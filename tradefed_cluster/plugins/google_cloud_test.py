@@ -70,7 +70,8 @@ class TaskSchedulerTest(unittest.TestCase):
                 'relative_uri': '/_ah/queue/queue_name',
                 'body': payload.encode()
             }
-        })
+        },
+        retry=google_cloud.DEFAULT_RETRY_OPTION)
     self.assertIsNotNone(task)
     self.assertEqual('task_name', task.name)
 
@@ -99,7 +100,8 @@ class TaskSchedulerTest(unittest.TestCase):
                 'relative_uri': '/_ah/queue/queue_name',
                 'body': payload
             }
-        })
+        },
+        retry=google_cloud.DEFAULT_RETRY_OPTION)
     self.assertIsNotNone(task)
     self.assertEqual('task_name', task.name)
 

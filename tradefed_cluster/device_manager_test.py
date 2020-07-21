@@ -625,25 +625,53 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     device = device_manager.GetDevice(device_serial="new_runner_device")
     self.assertEqual("new_runner", device.test_harness)
 
-  @mock.patch.object(device_manager, "_DoUpdateGoneDevicesInNDB")
-  def testUpdateGoneDevicesInNDB_alreadyGone(self, do_update):
+  def testUpdateGoneDevicesInNDB_alreadyGone(self):
     """Tests that devices are updated."""
     hostname = "somehost.mtv"
     cluster = "somecluster"
-    serials = ["serial-001", "serial-002", "serial-003"]
-    host = datastore_entities.HostInfo(
-        id=hostname, hostname=hostname, physical_cluster=cluster)
-    host.put()
-    for s in serials:
-      device = datastore_entities.DeviceInfo(
-          id=s, parent=host.key,
-          device_serial=s,
-          hostname=hostname,
-          state=common.DeviceState.GONE)
-      device.put()
-    timestamp = datetime.datetime.utcnow()
-    device_manager._UpdateGoneDevicesInNDB(hostname, {}, timestamp)
-    self.assertFalse(do_update.called)
+    now = datetime.datetime.utcnow()
+    device1 = datastore_test_util.CreateDevice(
+        cluster, hostname, "serial-001",
+        timestamp=now - datetime.timedelta(hours=1),
+        state=common.DeviceState.AVAILABLE)
+    device2 = datastore_test_util.CreateDevice(
+        cluster, hostname, "serial-002",
+        timestamp=now - datetime.timedelta(hours=1),
+        state=common.DeviceState.GONE)
+    device_manager._UpdateGoneDevicesInNDB(hostname, {}, now)
+    device1 = device1.key.get()
+    self.assertFalse(device1.hidden)
+    self.assertEqual(now, device1.timestamp)
+    self.assertEqual(common.DeviceState.GONE, device1.state)
+    device2 = device2.key.get()
+    self.assertFalse(device2.hidden)
+    self.assertEqual(common.DeviceState.GONE, device2.state)
+    self.assertEqual(
+        now - datetime.timedelta(hours=1),
+        device2.timestamp)
+
+  def testUpdateGoneDevicesInNDB_hideOldGoneDevice(self):
+    """Tests that devices gone for a while will be removed."""
+    hostname = "somehost.mtv"
+    cluster = "somecluster"
+    now = datetime.datetime.utcnow()
+    datastore_test_util.CreateHost(cluster, hostname)
+    device1 = datastore_test_util.CreateDevice(
+        cluster, hostname, "serial-001",
+        timestamp=now - datetime.timedelta(hours=1),
+        state=common.DeviceState.AVAILABLE)
+    device2 = datastore_test_util.CreateDevice(
+        cluster, hostname, "serial-002",
+        timestamp=now - device_manager.ONE_MONTH - datetime.timedelta(hours=1),
+        state=common.DeviceState.GONE)
+    device_manager._UpdateGoneDevicesInNDB(hostname, {}, now)
+
+    device1 = device1.key.get()
+    device2 = device2.key.get()
+    self.assertFalse(device1.hidden)
+    self.assertEqual(common.DeviceState.GONE, device1.state)
+    self.assertTrue(device2.hidden)
+    self.assertEqual(common.DeviceState.GONE, device2.state)
 
   def testHandleDeviceSnapshot_olderTimestamp(self):
     """Tests that HandleDeviceSnapshot() ignores events if they are older."""

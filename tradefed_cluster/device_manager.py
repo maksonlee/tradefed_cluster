@@ -74,6 +74,7 @@ HOST_STATE_CHANGED_EVENT_TYPE = "HOST_STATE_CHANGED"
 HOST_SYNC_QUEUE = "host-sync-queue"
 HOST_SYNC_INTERVAL = datetime.timedelta(minutes=10)
 HOST_SYNC_STALE_TIMEOUT = 3 * HOST_SYNC_INTERVAL
+ONE_MONTH = datetime.timedelta(days=30)
 
 
 def IsHostEventValid(event):
@@ -559,7 +560,6 @@ def _UpdateGoneDevicesInNDB(hostname, reported_devices, timestamp):
   device_keys = (
       datastore_entities.DeviceInfo
       .query(ancestor=ndb.Key(datastore_entities.HostInfo, hostname))
-      .filter(datastore_entities.DeviceInfo.state != common.DeviceState.GONE)
       .fetch(keys_only=True))
   missing_device_keys = []
   for device_key in device_keys:
@@ -581,6 +581,14 @@ def _DoUpdateGoneDevicesInNDB(missing_device_keys, timestamp):
     if device.timestamp and device.timestamp > timestamp:
       logging.debug("Ignore outdated event.")
       continue
+    if (device.state == common.DeviceState.GONE and
+        device.timestamp and
+        device.timestamp >= timestamp - ONE_MONTH):
+      logging.debug("Ignore gone device.")
+      continue
+    if device.timestamp and device.timestamp < timestamp - ONE_MONTH:
+      device.hidden = True
+      device.timestamp = timestamp
     device_state_history, device_history = _UpdateDeviceState(
         device, common.DeviceState.GONE, timestamp)
     entities_to_update.append(device)

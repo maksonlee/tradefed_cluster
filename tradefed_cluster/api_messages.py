@@ -15,10 +15,10 @@
 # Messages may be used in api config,
 # and we want to set the api parameter camel case.
 """Common config and classes for api."""
-
 from protorpc import message_types
 from protorpc import messages
 
+import six
 from tradefed_cluster import common
 
 
@@ -67,7 +67,7 @@ def MapToKeyValuePairMessages(key_value_map):
     return key_value_pair_messages
   for k, v in key_value_map.iteritems():
     if v is not None:
-      v = str(v)
+      v = six.ensure_text(v)
     key_value_pair_messages.append(KeyValuePair(key=k, value=v))
   key_value_pair_messages.sort(key=lambda p: p.key)
   return key_value_pair_messages
@@ -82,7 +82,7 @@ def MapToKeyMultiValuePairMessages(key_values_map):
   """Transform a key-values dict to a list of KeyMultiValuePairs."""
   pairs = []
   for key, values in (key_values_map or {}).iteritems():
-    str_values = [str(v) if v is not None else v for v in values]
+    str_values = [six.ensure_text(v) if v is not None else v for v in values]
     pairs.append(KeyMultiValuePair(key=key, values=str_values))
   pairs.sort(key=lambda p: p.key)
   return pairs

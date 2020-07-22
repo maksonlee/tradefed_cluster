@@ -83,6 +83,7 @@ py_appengine_library(
     visibility = ["//visibility:public"],
     deps = [
         ":common_lib",
+        third_party("six"),
     ],
 )
 

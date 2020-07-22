@@ -14,6 +14,7 @@
 
 """Tests for api_messages."""
 
+import collections
 import datetime
 import json
 import unittest
@@ -534,6 +535,32 @@ class ApiMessagesTest(unittest.TestCase):
     self.assertEqual(lab_info.lab_name, msg.lab_name)
     self.assertEqual(lab_info.owners, msg.owners)
     self.assertEqual(lab_info.update_timestamp, msg.update_timestamp)
+
+  def testMapToKeyMultiValuePairMessages(self):
+    d = collections.OrderedDict([
+        ('key1', ['value1']),
+        (u'key2_\xf4', [u'value2_\xf4', 'value3']),
+        ('key3', [])])
+    msgs = api_messages.MapToKeyMultiValuePairMessages(d)
+    self.assertEqual('key1', msgs[0].key)
+    self.assertEqual(['value1'], msgs[0].values)
+    self.assertEqual(u'key2_\xf4', msgs[1].key)
+    self.assertEqual([u'value2_\xf4', 'value3'], msgs[1].values)
+    self.assertEqual('key3', msgs[2].key)
+    self.assertEqual([], msgs[2].values)
+
+  def testMapToKeyValuePairMessages(self):
+    d = collections.OrderedDict([
+        ('key1', 'value1'),
+        (u'key2_\xf4', u'value2_\xf4'),
+        ('key3', None)])
+    msgs = api_messages.MapToKeyValuePairMessages(d)
+    self.assertEqual('key1', msgs[0].key)
+    self.assertEqual('value1', msgs[0].value)
+    self.assertEqual(u'key2_\xf4', msgs[1].key)
+    self.assertEqual(u'value2_\xf4', msgs[1].value)
+    self.assertEqual('key3', msgs[2].key)
+    self.assertIsNone(msgs[2].value)
 
 
 if __name__ == '__main__':

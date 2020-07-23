@@ -1278,3 +1278,26 @@ class CommandErrorConfigMapping(ndb.Model):
   error_message = ndb.StringProperty(required=True)
   reason = ndb.StringProperty()
   type_code = ndb.EnumProperty(common.CommandErrorType)
+
+
+class DeviceBlocklist(ndb.Model):
+  """Blocklist to block devices from running tests."""
+  lab_name = ndb.StringProperty()
+  # TODO: Add other fields, e.g. cluster, hostname, etc.
+  create_timestamp = ndb.DateTimeProperty(auto_now_add=True)
+  note = ndb.TextProperty()
+  user = ndb.StringProperty()
+
+
+class DeviceBlocklistArchive(ndb.Model):
+  """Blocklist history."""
+  device_blocklist = ndb.StructuredProperty(DeviceBlocklist, required=True)
+  start_timestamp = ndb.DateTimeProperty(required=True)
+  end_timestamp = ndb.DateTimeProperty(default=datetime.datetime.utcnow())
+  archived_by = ndb.StringProperty(required=True)
+
+  @classmethod
+  def FromDeviceBlocklist(cls, device_blocklist, archived_by):
+    return cls(device_blocklist=device_blocklist,
+               start_timestamp=device_blocklist.create_timestamp,
+               archived_by=archived_by)

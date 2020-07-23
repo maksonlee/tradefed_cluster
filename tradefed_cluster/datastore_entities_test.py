@@ -208,6 +208,36 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(api_messages.HostState.RUNNING, host_info_res.host_state)
     self.assertTrue(host_info_res.is_bad)
 
+  def testDeviceBlocklist(self):
+    blocklist = datastore_entities.DeviceBlocklist(
+        lab_name='alab',
+        note='lab outage',
+        user='auser')
+    blocklist.put()
+    res = blocklist.key.get()
+    self.assertIsNotNone(res.create_timestamp)
+    self.assertEqual('alab', res.lab_name)
+    self.assertEqual('lab outage', res.note)
+    self.assertEqual('auser', res.user)
+
+  def testDeviceBlocklistArchive(self):
+    blocklist = datastore_entities.DeviceBlocklist(
+        lab_name='alab',
+        note='lab outage',
+        user='auser')
+    blocklist.put()
+    blocklist_archive = (
+        datastore_entities.DeviceBlocklistArchive.
+        FromDeviceBlocklist(blocklist, 'another_user'))
+    blocklist_archive.put()
+    res = blocklist_archive.key.get()
+    self.assertEqual(res.device_blocklist.create_timestamp, res.start_timestamp)
+    self.assertIsNotNone(res.end_timestamp)
+    self.assertEqual('another_user', res.archived_by)
+    self.assertEqual('alab', res.device_blocklist.lab_name)
+    self.assertEqual('lab outage', res.device_blocklist.note)
+    self.assertEqual('auser', res.device_blocklist.user)
+
 
 if __name__ == '__main__':
   unittest.main()

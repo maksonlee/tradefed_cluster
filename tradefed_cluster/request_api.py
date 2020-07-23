@@ -66,7 +66,7 @@ class RequestApi(remote.Service):
     """
     # TODO: figure a better way for auth.
     # self._CheckAuth()
-
+    logging.info("Request API new request start: %s", request.user)
     if not request.user:
       raise endpoints.BadRequestException("user cannot be null.")
     if not request.command_line:
@@ -78,6 +78,9 @@ class RequestApi(remote.Service):
           request.prev_test_context)
 
     plugin_data_ = api_messages.KeyValuePairMessagesToMap(request.plugin_data)
+
+    logging.info("Request API new request before create request: %s",
+                 request.user)
 
     new_request = request_manager.CreateRequest(
         request.user,
@@ -92,15 +95,23 @@ class RequestApi(remote.Service):
         plugin_data=plugin_data_,
         max_retry_on_test_failures=request.max_retry_on_test_failures,
         prev_test_context=prev_test_context_obj)
+    logging.info("Request API new request after create request: %s %s",
+                 new_request.key.id(), request.user)
     if request.test_environment:
       request_manager.SetTestEnvironment(
           new_request.key.id(),
           datastore_entities.TestEnvironment.FromMessage(
               request.test_environment))
+    logging.info("Request API new request after setting test environment %s %s",
+                 new_request.key.id(), request.user)
     for res in request.test_resources or []:
       request_manager.AddTestResource(
           request_id=new_request.key.id(), name=res.name, url=res.url)
+    logging.info("Request API new request after adding test resources %s %s",
+                 new_request.key.id(), request.user)
     request_manager.AddToQueue(new_request)
+    logging.info("Request API new request after adding request to queue %s %s",
+                 new_request.key.id(), request.user)
     return api_messages.RequestMessage(
         id=new_request.key.id(),
         api_module_version=common.NAMESPACE)

@@ -1084,6 +1084,7 @@ py_appengine_library(
         ":notifier_lib",
         ":request_lib",
         "//tradefed_cluster/services:task_scheduler_lib",
+        third_party("flask"),
     ],
 )
 

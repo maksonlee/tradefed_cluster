@@ -16,7 +16,7 @@
 
 import logging
 
-import webapp2
+import flask
 
 from google.appengine.api import modules
 
@@ -27,14 +27,17 @@ from tradefed_cluster.services import task_scheduler
 
 NOTIFICATION_TASK_QUEUE = 'notification-work-queue'
 
+APP = flask.Flask(__name__)
 
-class NotificationHandler(webapp2.RequestHandler):
-  """Handler for resolving request state change notifications."""
 
-  def get(self):
-    logging.info('NotificationHandler START')
-    NotifyPendingRequestStateChanges()
-    logging.info('NotificationHandler END')
+@APP.route('/')
+@APP.route('/<path:fake>')
+def HandleNotification(fake=None):
+  """Handle Notification."""
+  del fake
+  logging.info('NotificationHandler START')
+  NotifyPendingRequestStateChanges()
+  logging.info('NotificationHandler END')
 
 
 def NotifyPendingRequestStateChanges():
@@ -60,8 +63,3 @@ def NotifyRequestState(request_id, force=False):
     force: force notification regardless of notify_state_change bit.
   """
   request_manager.NotifyRequestState(request_id, force=force)
-
-
-APP = webapp2.WSGIApplication([
-    (r'/.*', NotificationHandler)
-], debug=True)

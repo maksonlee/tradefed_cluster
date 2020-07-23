@@ -842,3 +842,20 @@ class FilterHintMessage(messages.Message):
 class FilterHintCollection(messages.Message):
   """A class representing a collection of filter hint."""
   filter_hints = messages.MessageField(FilterHintMessage, 1, repeated=True)
+
+
+class DeviceBlocklistMessage(messages.Message):
+  """Device blocklist message."""
+  lab_name = messages.StringField(1)
+  # TODO: Add other fields, e.g. cluster, hostname, etc.
+  create_timestamp = message_types.DateTimeField(2)
+  note = messages.StringField(3)
+  user = messages.StringField(4)
+
+
+class DeviceBlocklistArchiveMessage(messages.Message):
+  """Device blocklist archive message."""
+  device_blocklist = messages.MessageField(DeviceBlocklistMessage, 1)
+  start_timestamp = message_types.DateTimeField(2)
+  end_timestamp = message_types.DateTimeField(3)
+  archived_by = messages.StringField(4)

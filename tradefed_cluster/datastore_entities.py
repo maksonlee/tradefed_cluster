@@ -1289,6 +1289,16 @@ class DeviceBlocklist(ndb.Model):
   user = ndb.StringProperty()
 
 
+@MessageConverter(DeviceBlocklist)
+def DeviceBlocklistToMessage(device_blocklist):
+  """Convert a DeviceBlocklist entity into a DeviceBlocklistMessage."""
+  return api_messages.DeviceBlocklistMessage(
+      lab_name=device_blocklist.lab_name,
+      create_timestamp=device_blocklist.create_timestamp,
+      note=device_blocklist.note,
+      user=device_blocklist.user)
+
+
 class DeviceBlocklistArchive(ndb.Model):
   """Blocklist history."""
   device_blocklist = ndb.StructuredProperty(DeviceBlocklist, required=True)
@@ -1301,3 +1311,13 @@ class DeviceBlocklistArchive(ndb.Model):
     return cls(device_blocklist=device_blocklist,
                start_timestamp=device_blocklist.create_timestamp,
                archived_by=archived_by)
+
+
+@MessageConverter(DeviceBlocklistArchive)
+def DeviceBlocklistArchiveToMessage(device_blocklist_archive):
+  """Convert a DeviceBlocklistArchive entity into a message."""
+  return api_messages.DeviceBlocklistArchiveMessage(
+      device_blocklist=ToMessage(device_blocklist_archive.device_blocklist),
+      start_timestamp=device_blocklist_archive.start_timestamp,
+      end_timestamp=device_blocklist_archive.end_timestamp,
+      archived_by=device_blocklist_archive.archived_by)

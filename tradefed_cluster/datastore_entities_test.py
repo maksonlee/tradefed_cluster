@@ -208,12 +208,16 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(api_messages.HostState.RUNNING, host_info_res.host_state)
     self.assertTrue(host_info_res.is_bad)
 
-  def testDeviceBlocklist(self):
+  def _CreateDeviceBlockList(self):
     blocklist = datastore_entities.DeviceBlocklist(
         lab_name='alab',
         note='lab outage',
         user='auser')
     blocklist.put()
+    return blocklist
+
+  def testDeviceBlocklist(self):
+    blocklist = self._CreateDeviceBlockList()
     res = blocklist.key.get()
     self.assertIsNotNone(res.create_timestamp)
     self.assertEqual('alab', res.lab_name)
@@ -221,11 +225,7 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual('auser', res.user)
 
   def testDeviceBlocklistArchive(self):
-    blocklist = datastore_entities.DeviceBlocklist(
-        lab_name='alab',
-        note='lab outage',
-        user='auser')
-    blocklist.put()
+    blocklist = self._CreateDeviceBlockList()
     blocklist_archive = (
         datastore_entities.DeviceBlocklistArchive.
         FromDeviceBlocklist(blocklist, 'another_user'))
@@ -237,6 +237,28 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual('alab', res.device_blocklist.lab_name)
     self.assertEqual('lab outage', res.device_blocklist.note)
     self.assertEqual('auser', res.device_blocklist.user)
+
+  def testDeviceBlocklistToMessage(self):
+    blocklist = self._CreateDeviceBlockList()
+    msg = datastore_entities.ToMessage(blocklist)
+    self.assertIsNotNone(msg.create_timestamp)
+    self.assertEqual('alab', msg.lab_name)
+    self.assertEqual('lab outage', msg.note)
+    self.assertEqual('auser', msg.user)
+
+  def testDeviceBlocklistArchiveToMessage(self):
+    blocklist = self._CreateDeviceBlockList()
+    blocklist_archive = (
+        datastore_entities.DeviceBlocklistArchive.
+        FromDeviceBlocklist(blocklist, 'another_user'))
+    blocklist_archive.put()
+    msg = datastore_entities.ToMessage(blocklist_archive)
+    self.assertEqual(msg.device_blocklist.create_timestamp, msg.start_timestamp)
+    self.assertIsNotNone(msg.end_timestamp)
+    self.assertEqual('another_user', msg.archived_by)
+    self.assertEqual('alab', msg.device_blocklist.lab_name)
+    self.assertEqual('lab outage', msg.device_blocklist.note)
+    self.assertEqual('auser', msg.device_blocklist.user)
 
 
 if __name__ == '__main__':

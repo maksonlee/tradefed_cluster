@@ -19,8 +19,8 @@ import json
 import logging
 import zlib
 
+import flask
 import lazy_object_proxy
-import webapp2
 
 from tradefed_cluster import common
 from tradefed_cluster import env_config
@@ -38,6 +38,9 @@ COMMAND_ATTEMPT_EVENT_PUBSUB_TOPIC = 'projects/%s/topics/%s' % (
     env_config.CONFIG.app_id, 'command_attempt_event')
 OBJECT_EVENT_QUEUE_HANDLER_PATH = (
     '/_ah/queue/%s' % common.OBJECT_EVENT_QUEUE)
+NO_CONTENT = ('', 204)
+
+APP = flask.Flask(__name__)
 
 
 def _CreatePubsubClient():
@@ -69,40 +72,35 @@ def _SendEventMessage(encoded_message, pubsub_topic):
         'Unabled to notify events: use_google_api=False and queue is null')
 
 
-class ObjectStateChangeEventHandler(webapp2.RequestHandler):
-  """A web request handler to handle state change event messages."""
+# The below handler is served in frontend module.
+@APP.route(OBJECT_EVENT_QUEUE_HANDLER_PATH, methods=['POST'])
+def HandleObjectStateChangeEvent():
+  """Process a state change event message.
 
-  def post(self):
-    """Process a state change event message.
+  This method takes protojson-encoded request or attempt state change event
+  messages and passes them on to the event queue configured in env_config.
 
-    This method takes protojson-encoded request or attempt state change event
-    messages and passes them on to the event queue configured in env_config.
-    """
-    encoded_message = self.request.body
-    try:
-      encoded_message = zlib.decompress(encoded_message)
-    except zlib.error:
-      logging.warn(
-          'payload may not be compressed: %s', encoded_message, exc_info=True)
-
-    data = json.loads(encoded_message)
-    message_type = data.get('type')
-    if message_type == common.ObjectEventType.COMMAND_ATTEMPT_STATE_CHANGED:
-      pubsub_topic = COMMAND_ATTEMPT_EVENT_PUBSUB_TOPIC
-      logging.info('Notifying Attempt %s state changed to %s.',
-                   data.get('attempt').get('attempt_id'), data.get('new_state'))
-    elif message_type == common.ObjectEventType.REQUEST_STATE_CHANGED:
-      pubsub_topic = REQUEST_EVENT_PUBSUB_TOPIC
-      logging.info('Notifying Request %s state changed to %s.',
-                   data.get('request_id'), data.get('new_state'))
-    else:
-      logging.warn('Unknown message type (%s), ignore.', message_type)
-      return
-    _SendEventMessage(encoded_message, pubsub_topic)
-
-
-APP = webapp2.WSGIApplication([
-    # The below handler is served in frontend module.
-    (OBJECT_EVENT_QUEUE_HANDLER_PATH,
-     ObjectStateChangeEventHandler)
-])
+  Returns:
+    return '' since flask requires return non-None.
+  """
+  encoded_message = flask.request.get_data()
+  try:
+    encoded_message = zlib.decompress(encoded_message)
+  except zlib.error:
+    logging.warn(
+        'payload may not be compressed: %s', encoded_message, exc_info=True)
+  data = json.loads(encoded_message)
+  message_type = data.get('type')
+  if message_type == common.ObjectEventType.COMMAND_ATTEMPT_STATE_CHANGED:
+    pubsub_topic = COMMAND_ATTEMPT_EVENT_PUBSUB_TOPIC
+    logging.info('Notifying Attempt %s state changed to %s.',
+                 data.get('attempt').get('attempt_id'), data.get('new_state'))
+  elif message_type == common.ObjectEventType.REQUEST_STATE_CHANGED:
+    pubsub_topic = REQUEST_EVENT_PUBSUB_TOPIC
+    logging.info('Notifying Request %s state changed to %s.',
+                 data.get('request_id'), data.get('new_state'))
+  else:
+    logging.warn('Unknown message type (%s), ignore.', message_type)
+    return NO_CONTENT
+  _SendEventMessage(encoded_message, pubsub_topic)
+  return NO_CONTENT

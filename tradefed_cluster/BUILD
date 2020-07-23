@@ -1112,6 +1112,7 @@ py_appengine_library(
         ":common_lib",
         ":env_config_lib",
         ":request_lib",
+        third_party("flask"),
         third_party("lazy_object_proxy"),
         "//tradefed_cluster/util:pubsub_client_lib",
     ],

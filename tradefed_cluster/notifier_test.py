@@ -58,7 +58,7 @@ class NotifierTest(testbed_dependent_test.TestbedDependentTest):
     self.now_patch.stop()
     super(NotifierTest, self).tearDown()
 
-  def testObjectStateChangeEventHandler_requestEvent(self):
+  def testHandleObjectStateChangeEvent_requestEvent(self):
     request = self._CreateTestRequest(state=common.RequestState.COMPLETED)
     event_message = api_messages.RequestEventMessage(
         type=common.ObjectEventType.REQUEST_STATE_CHANGED,
@@ -80,7 +80,7 @@ class NotifierTest(testbed_dependent_test.TestbedDependentTest):
     self._AssertMessagePublished(
         event_message, notifier.REQUEST_EVENT_PUBSUB_TOPIC)
 
-  def testObjectStateChangeEventHandler_compressed(self):
+  def testHandleObjectStateChangeEvent_compressed(self):
     request = self._CreateTestRequest(state=common.RequestState.COMPLETED)
     event_message = api_messages.RequestEventMessage(
         type=common.ObjectEventType.REQUEST_STATE_CHANGED,
@@ -101,7 +101,7 @@ class NotifierTest(testbed_dependent_test.TestbedDependentTest):
     self._AssertMessagePublished(
         event_message, notifier.REQUEST_EVENT_PUBSUB_TOPIC)
 
-  def testObjectStateChangeEventHandler_attemptEvent(self):
+  def testHandleObjectStateChangeEvent_attemptEvent(self):
     request = self._CreateTestRequest(state=common.RequestState.COMPLETED)
     command = self._CreateTestCommand(request,
                                       state=common.CommandState.COMPLETED)

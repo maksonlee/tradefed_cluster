@@ -63,6 +63,7 @@ py_appengine_library(
         ":commander_lib",
         ":common_lib",
         ":coordinator_api_lib",
+        ":device_blocklist_api_lib",
         ":device_snapshot_api_lib",
         ":filter_hint_api_lib",
         ":host_event_api_lib",
@@ -941,6 +942,33 @@ py_appengine_test(
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
+    ],
+)
+
+py_appengine_library(
+    name = "device_blocklist_api_lib",
+    srcs = [
+        "device_blocklist_api.py",
+    ],
+    envs = PY_APPENGINE_ENVS,
+    deps = [
+        ":api_common_lib",
+        ":api_messages_lib",
+        ":common_lib",
+        ":datastore_entities_lib",
+    ],
+)
+
+py_appengine_test(
+    name = "device_blocklist_api_test",
+    srcs = [
+        "device_blocklist_api_test.py",
+    ],
+    envs = PY_APPENGINE_TEST_ENVS,
+    use_public_sdk = 1,
+    deps = [
+        ":api_test_lib",
+        ":device_blocklist_api_lib",
     ],
 )
 

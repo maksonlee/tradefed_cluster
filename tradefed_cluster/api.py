@@ -23,6 +23,7 @@ from tradefed_cluster import command_attempt_api
 from tradefed_cluster import command_event_api
 from tradefed_cluster import command_task_api
 from tradefed_cluster import coordinator_api
+from tradefed_cluster import device_blocklist_api
 from tradefed_cluster import device_snapshot_api
 from tradefed_cluster import filter_hint_api
 from tradefed_cluster import env_config
@@ -41,6 +42,7 @@ API_HANDLERS = [
     command_event_api.CommandEventApi,
     command_task_api.CommandTaskApi,
     coordinator_api.CoordinatorApi,
+    device_blocklist_api.DeviceBlocklistApi,
     device_snapshot_api.DeviceSnapshotApi,
     filter_hint_api.FilterHintApi,
     host_event_api.HostEventApi,

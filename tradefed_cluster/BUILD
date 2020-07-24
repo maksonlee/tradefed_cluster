@@ -448,6 +448,7 @@ py_appengine_library(
         ":env_config_lib",
         ":metric_lib",
         ":request_lib",
+        third_party("flask"),
         third_party("googleapiclient"),
         third_party("httplib2"),
         third_party("oauth2client_1_4_12_plus"),

@@ -200,7 +200,7 @@ class CommandAttemptMonitorTest(testbed_dependent_test.TestbedDependentTest):
     mock_update.assert_not_called()
 
   @mock.patch.object(command_attempt_monitor, 'SyncCommandAttempt')
-  def testTaskHandler(self, sync):
+  def testHandleCommandAttemptTask(self, sync):
     payload = {
         command_manager.REQUEST_ID_KEY: 'request',
         command_manager.COMMAND_ID_KEY: 'command',

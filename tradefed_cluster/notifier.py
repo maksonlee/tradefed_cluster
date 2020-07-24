@@ -38,7 +38,6 @@ COMMAND_ATTEMPT_EVENT_PUBSUB_TOPIC = 'projects/%s/topics/%s' % (
     env_config.CONFIG.app_id, 'command_attempt_event')
 OBJECT_EVENT_QUEUE_HANDLER_PATH = (
     '/_ah/queue/%s' % common.OBJECT_EVENT_QUEUE)
-NO_CONTENT = ('', 204)
 
 APP = flask.Flask(__name__)
 
@@ -101,6 +100,6 @@ def HandleObjectStateChangeEvent():
                  data.get('request_id'), data.get('new_state'))
   else:
     logging.warn('Unknown message type (%s), ignore.', message_type)
-    return NO_CONTENT
+    return common.HTTP_OK
   _SendEventMessage(encoded_message, pubsub_topic)
-  return NO_CONTENT
+  return common.HTTP_OK

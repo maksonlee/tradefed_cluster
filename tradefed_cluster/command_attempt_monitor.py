@@ -18,13 +18,16 @@ import datetime
 import json
 import logging
 
-import webapp2
+import flask
 
 from tradefed_cluster import command_event
 from tradefed_cluster import command_manager
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster.util import ndb_shim as ndb
+
+
+APP = flask.Flask(__name__)
 
 
 def Now():
@@ -94,19 +97,15 @@ def SyncCommandAttempt(request_id, command_id, attempt_id):
   command_manager.AddToSyncCommandAttemptQueue(attempt)
 
 
-class CommandAttemptTaskHandler(webapp2.RequestHandler):
-  """Task queue handler for syncing commands attempts."""
-
-  def post(self):
-    payload = self.request.body
-    attempt_info = json.loads(payload)
-    logging.debug('CommandAttemptTaskHandler syncing %s', attempt_info)
-    SyncCommandAttempt(attempt_info[command_manager.REQUEST_ID_KEY],
-                       attempt_info[command_manager.COMMAND_ID_KEY],
-                       attempt_info[command_manager.ATTEMPT_ID_KEY])
-
-
-APP = webapp2.WSGIApplication([
-    ('/_ah/queue/%s' % command_manager.COMMAND_ATTEMPT_SYNC_QUEUE,
-     CommandAttemptTaskHandler),
-])
+@APP.route(
+    '/_ah/queue/%s' % command_manager.COMMAND_ATTEMPT_SYNC_QUEUE,
+    methods=['POST'])
+def HandleCommandAttemptTask():
+  """Handle command attempt monitor tasks."""
+  payload = flask.request.get_data()
+  attempt_info = json.loads(payload)
+  logging.debug('CommandAttemptTaskHandler syncing %s', attempt_info)
+  SyncCommandAttempt(attempt_info[command_manager.REQUEST_ID_KEY],
+                     attempt_info[command_manager.COMMAND_ID_KEY],
+                     attempt_info[command_manager.ATTEMPT_ID_KEY])
+  return common.HTTP_OK

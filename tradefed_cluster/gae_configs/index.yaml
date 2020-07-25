@@ -15,6 +15,11 @@
 indexes:
 
 - kind: Command
+  ancestor: yes
+  properties:
+    - name: create_time
+
+- kind: Command
   properties:
     - name: state
     - name: cluster
@@ -222,6 +227,13 @@ indexes:
   - name: device_serial
   - name: hostname
   - name: create_time
+    direction: desc
+
+- kind: CommandTask
+  properties:
+  - name: cluster
+  - name: leasable
+  - name: priority
     direction: desc
 
 - kind: HostStateHistory

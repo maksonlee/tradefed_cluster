@@ -17,7 +17,10 @@ import copy
 import datetime
 import unittest
 
+import mock
+
 from tradefed_cluster.util import ndb_shim as ndb
+from google.appengine.ext import ndb as gae_ndb
 
 from tradefed_cluster import api_messages
 from tradefed_cluster import datastore_entities
@@ -61,14 +64,12 @@ class DatastoreUtilTest(testbed_dependent_test.TestbedDependentTest):
     query = query.order(datastore_entities.LabInfo.key)
     labs, _, cursor = datastore_util.FetchPage(query, 2)
     self.assertEqual(2, len(labs))
-    labs, _, cursor = datastore_util.FetchPage(query, 2, page_cursor=cursor)
-    self.assertEqual(2, len(labs))
 
     labs, prev_cursor, next_cursor = datastore_util.FetchPage(
         query, 2, page_cursor=cursor, backwards=True)
     self.assertEqual(2, len(labs))
-    self.assertEqual('lab2', labs[0].lab_name)
-    self.assertEqual('lab3', labs[1].lab_name)
+    self.assertEqual('lab2', labs[1].lab_name)
+    self.assertEqual('lab3', labs[0].lab_name)
     self.assertIsNotNone(prev_cursor)
     self.assertEqual(cursor, next_cursor)
 
@@ -114,7 +115,7 @@ class DatastoreUtilTest(testbed_dependent_test.TestbedDependentTest):
 
     # Back to first page (ancestor query with backwards)
     histories, prev_cursor, next_cursor = datastore_util.FetchPage(
-        query, 2, page_cursor=next_cursor, backwards=True)
+        query, 2, backwards=True)
     self.assertEqual(2, len(histories))
     self.assertEqual(self.ndb_host_0.hostname, histories[0].hostname)
     self.assertEqual(api_messages.HostState.GONE, histories[0].host_state)
@@ -126,11 +127,9 @@ class DatastoreUtilTest(testbed_dependent_test.TestbedDependentTest):
     # it will get the first page.
     query = datastore_entities.LabInfo.query()
     query = query.order(datastore_entities.LabInfo.key)
-    labs, _, cursor = datastore_util.FetchPage(query, 2)
-    self.assertEqual(2, len(labs))
 
     labs, prev_cursor, next_cursor = datastore_util.FetchPage(
-        query, 3, page_cursor=cursor, backwards=True)
+        query, 3, backwards=True)
     self.assertEqual(3, len(labs))
     self.assertEqual('lab0', labs[0].lab_name)
     self.assertEqual('lab1', labs[1].lab_name)
@@ -183,6 +182,22 @@ class DatastoreUtilTest(testbed_dependent_test.TestbedDependentTest):
     host_info_dict.pop('flated_extra_info')
     return datastore_entities.HostInfoHistory(
         parent=host_info.key, **host_info_dict)
+
+  @mock.patch.object(datastore_util, 'GoogleCloudFetchPage')
+  @mock.patch.object(datastore_util, 'AppEngineFetchPage')
+  def testFetchPage_GoogleCloudNDB(self, gae_ndb_fetch, cloud_ndb_fetch):
+    query = ndb.Query()
+    datastore_util.FetchPage(query, 10)
+    gae_ndb_fetch.assert_not_called()
+    cloud_ndb_fetch.assert_called_once()
+
+  @mock.patch.object(datastore_util, 'GoogleCloudFetchPage')
+  @mock.patch.object(datastore_util, 'AppEngineFetchPage')
+  def testFetchPage_AppEngineNDB(self, gae_ndb_fetch, cloud_ndb_fetch):
+    query = gae_ndb.Query()
+    datastore_util.FetchPage(query, 10)
+    gae_ndb_fetch.assert_called_once()
+    cloud_ndb_fetch.assert_not_called()
 
 
 if __name__ == '__main__':

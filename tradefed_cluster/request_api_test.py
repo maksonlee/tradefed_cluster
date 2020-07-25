@@ -523,21 +523,21 @@ class RequestApiTest(api_test.ApiTest):
         obj.test_group_statuses[0].elapsed_time)
 
   def testGetTestContext(self):
-    request_id = 1
-    command_id = 'command_id'
+    request_id = '1'
+    command_id = '1'
     command_key = ndb.Key(
         datastore_entities.Request, str(request_id),
         datastore_entities.Command, command_id,
         namespace=common.NAMESPACE)
     key = ndb.Key(
         datastore_entities.TestContext,
-        ndb.Model.allocate_ids(size=1, parent=command_key)[0],
+        ndb.Model.allocate_ids(size=1, parent=command_key)[0].id(),
         parent=command_key,
         namespace=common.NAMESPACE)
     test_context = datastore_entities.TestContext(
         key=key,
         command_line='command_line',
-        env_vars={'foo': 'bar'},
+        env_vars={'foo': 'bar', 'TFC_ATTEMPT_NUMBER': '0'},
         test_resources=[
             datastore_entities.TestResource(name='name', url='url', path='path')
         ])
@@ -548,6 +548,8 @@ class RequestApiTest(api_test.ApiTest):
         'command_id': command_id
     })
 
+    # Reload after request
+    test_context = test_context.key.get(use_cache=False, use_global_cache=False)
     obj = protojson.decode_message(
         api_messages.TestContext, res.body)
     self.assertEqual(test_context.command_line, obj.command_line)

@@ -386,6 +386,7 @@ class RequestApi(remote.Service):
     query = datastore_entities.CommandAttempt.query(ancestor=command_key)
     attempt_number = query.count() + 1
     test_context.env_vars["TFC_ATTEMPT_NUMBER"] = str(attempt_number)
+    test_context.put()
 
     return datastore_entities.ToMessage(test_context)
 

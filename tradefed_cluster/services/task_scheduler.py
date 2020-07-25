@@ -16,15 +16,16 @@
 
 This module is developed to replace the legacy usage of GAE Taskqueue.
 """
-
 import logging
+
 import pickle
 import types
 import uuid
 
 import webapp2
 
-from google.appengine.ext import ndb
+
+from tradefed_cluster.util import ndb_shim as ndb
 
 from tradefed_cluster import env_config
 from tradefed_cluster.plugins import base as plugins_base

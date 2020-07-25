@@ -36,6 +36,7 @@ from tradefed_cluster.util import pubsub_client
 
 
 ONE_HOUR = datetime.timedelta(hours=1)
+FALLBACK_INACTIVE_TIME = datetime.timedelta(minutes=30)
 CLOUD_TF_LAB_NAME = 'cloud-tf'
 
 # TODO: Make the TTL configurable.
@@ -258,7 +259,12 @@ def _SyncHost(hostname):
   if _ShouldHideHost(host):
     device_manager.HideHost(hostname)
     return False
-  inactive_time = _Now() - host.timestamp
+  if host.timestamp:
+    inactive_time = _Now() - host.timestamp
+  else:
+    # TODO: Make sure devices have a timestamp for inactive time
+    # if timestamp is None, force update
+    inactive_time = FALLBACK_INACTIVE_TIME
   if (inactive_time > ONE_HOUR and
       host.host_state != api_messages.HostState.GONE):
     logging.info(

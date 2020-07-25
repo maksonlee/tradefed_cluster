@@ -14,10 +14,8 @@
 
 """Unit tests for request_manager."""
 
-import collections
 import datetime
 import json
-import threading
 import unittest
 import zlib
 
@@ -253,65 +251,6 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     key = ndb.Key(datastore_entities.Request, request_id,
                   namespace=common.NAMESPACE)
     return key
-
-  @mock.patch.object(task_scheduler, "AddTask")
-  @mock.patch.object(request_manager, "GetRequestSummary")
-  def testUpdateState_atomicTransaction(self, mock_get_summary, mock_add):
-    """Tests atomicity of datastore transactions when updating the state."""
-    request_id = "1"
-    request_manager.CreateRequest(
-        user="user1", command_line="command_line", request_id=request_id)
-
-    counts = collections.defaultdict(int)
-    semaphore = threading.Semaphore(0)
-    def Blocked(*args, **kwargs):         counts[threading.current_thread().name] += 1
-      if threading.current_thread().name == "thread1":
-        try:
-          semaphore.acquire()
-          return request_manager.RequestSummary()
-        finally:
-          semaphore.release()
-      else:
-        return request_manager.RequestSummary()
-
-    mock_get_summary.side_effect = Blocked
-    t1 = threading.Thread(
-        name="thread1",
-        target=request_manager._UpdateState,
-        kwargs={"request_id": request_id,
-                "state": common.RequestState.RUNNING,
-                "force": True})
-    t2 = threading.Thread(
-        name="thread2",
-        target=request_manager._UpdateState,
-        kwargs={"request_id": request_id,
-                "state": common.RequestState.QUEUED,
-                "force": True})
-
-    # Wait for first thread to be in transaction, before trying to update the
-    # same request in a separate thread.
-    t1.start()  # t1 will block
-    t2.start()  # t2 will not block
-    t2.join(timeout=5)
-    self.assertTrue(t1.is_alive())
-    self.assertFalse(t2.is_alive())
-    request = ndb.Key(datastore_entities.Request, request_id,
-                      namespace=common.NAMESPACE).get(use_cache=False)
-    self.assertEqual(common.RequestState.QUEUED,
-                     common.RequestState(request.state))
-
-    semaphore.release()
-    t1.join(timeout=5)
-    self.assertFalse(t1.is_alive())
-    self.assertFalse(t2.is_alive())
-
-    request = ndb.Key(datastore_entities.Request, request_id,
-                      namespace=common.NAMESPACE).get(use_cache=False)
-    self.assertEqual(common.RequestState.RUNNING,
-                     common.RequestState(request.state))
-    self.assertEqual(1, counts["thread2"])
-    # Thread1 first transcation failed, and the second attempt succeeded.
-    self.assertEqual(2, counts["thread1"])
 
   @mock.patch.object(task_scheduler, "AddTask")
   def testEvaluateState_noCommands(self, mock_add):

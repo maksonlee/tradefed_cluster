@@ -122,7 +122,7 @@ def HandleDeviceSnapshotWithNDB(event):
   logging.debug("Processed snapshot.")
 
 
-@ndb.transactional
+@ndb.transactional()
 def _UpdateHostWithHostChangedEvent(event):
   """update the host with a host state changed event.
 
@@ -148,7 +148,7 @@ def _UpdateHostWithHostChangedEvent(event):
   return
 
 
-@ndb.transactional
+@ndb.transactional()
 def _UpdateHostWithDeviceSnapshotEvent(event):
   """update the host if the event is host info.
 
@@ -193,7 +193,7 @@ def _UpdateHostWithDeviceSnapshotEvent(event):
   return host
 
 
-@ndb.transactional
+@ndb.transactional()
 def _CountDeviceForHost(hostname):
   """Count devices for a host.
 
@@ -321,7 +321,7 @@ def _UpdateDevicesInNDB(event):
   logging.debug("Updated %d devices in ndb.", len(event.device_info))
 
 
-@ndb.transactional
+@ndb.transactional()
 def _DoUpdateDevicesInNDB(reported_devices, event):
   """Update device entities to ndb.
 
@@ -572,7 +572,7 @@ def _UpdateGoneDevicesInNDB(hostname, reported_devices, timestamp):
     logging.debug("Updated %d missing devices.", len(missing_device_keys))
 
 
-@ndb.transactional
+@ndb.transactional()
 def _DoUpdateGoneDevicesInNDB(missing_device_keys, timestamp):
   """Do update gone devices in NDB within transactional."""
   entities_to_update = []
@@ -665,7 +665,7 @@ def GetDevicesOnHost(hostname):
           .filter(datastore_entities.DeviceInfo.hidden == False)            .fetch())
 
 
-@ndb.transactional
+@ndb.transactional()
 def UpdateGoneHost(hostname):
   """Set a host and its devices to GONE."""
   logging.info("Set host %s and its devices to GONE.", hostname)
@@ -698,7 +698,7 @@ def UpdateGoneHost(hostname):
   ndb.put_multi(entities_to_update)
 
 
-@ndb.transactional
+@ndb.transactional()
 def HideHost(hostname):
   """Hide a host and its devices."""
   logging.info("Hide host %s.", hostname)
@@ -725,7 +725,7 @@ def HideHost(hostname):
   return host
 
 
-@ndb.transactional
+@ndb.transactional()
 def RestoreHost(hostname):
   """Restore a host and its devices."""
   logging.info("Restore host %s.", hostname)
@@ -761,7 +761,7 @@ def HideDevice(device_serial, hostname):
   return device
 
 
-@ndb.transactional
+@ndb.transactional()
 def _DoHideDevice(device_serial, hostname):
   """Actually hide the device.
 
@@ -805,7 +805,7 @@ def RestoreDevice(device_serial, hostname):
   return device
 
 
-@ndb.transactional
+@ndb.transactional()
 def _DoRestoreDevice(device_serial, hostname):
   """Actually restore the device.
 
@@ -851,7 +851,7 @@ def AssignHosts(hostnames, assignee):
     _AssignHost(hostname, assignee)
 
 
-@ndb.transactional
+@ndb.transactional()
 def _AssignHost(hostname, assignee):
   host = GetHost(hostname)
   if not host:

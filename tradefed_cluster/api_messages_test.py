@@ -24,6 +24,7 @@ from protorpc import protojson
 from tradefed_cluster.util import ndb_shim as ndb
 
 from tradefed_cluster import api_messages
+from tradefed_cluster import api_test
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 
@@ -34,7 +35,7 @@ class FakeEntity(object):
   pass
 
 
-class ApiMessagesTest(unittest.TestCase):
+class ApiMessagesTest(api_test.ApiTest):
 
   def testCommandAttemptFromEntity(self):
     """Tests coverting a CommandAttempt entity to a message."""

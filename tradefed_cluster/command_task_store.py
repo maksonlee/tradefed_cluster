@@ -112,7 +112,7 @@ def CreateTask(command_task_args):
   return _DoCreateTask(task)
 
 
-@ndb.transactional
+@ndb.transactional()
 def _DoCreateTask(command_task):
   """Create the task to the datastore.
 
@@ -131,7 +131,7 @@ def _DoCreateTask(command_task):
   return True
 
 
-@ndb.transactional
+@ndb.transactional()
 def RescheduleTask(task_id, run_index, attempt_index):
   """Reschedule the command task.
 
@@ -168,8 +168,7 @@ def GetLeasableTasks(cluster, run_targets):
   tasks = (
       datastore_entities.CommandTask.query(
           datastore_entities.CommandTask.cluster == cluster,
-          datastore_entities.CommandTask.leasable == True,            datastore_entities.CommandTask.run_targets.IN(run_targets),
-          namespace=common.NAMESPACE)
+          datastore_entities.CommandTask.leasable == True,            namespace=common.NAMESPACE)
       .order(-datastore_entities.CommandTask.priority,
              datastore_entities.CommandTask.key))
 
@@ -180,7 +179,7 @@ def GetLeasableTasks(cluster, run_targets):
     yield task
 
 
-@ndb.transactional
+@ndb.transactional()
 def LeaseTask(task_id):
   """Lease a task.
 

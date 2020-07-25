@@ -366,7 +366,7 @@ def CommandToMessage(command):
       cluster=command.cluster,
       run_target=command.run_target,
       run_count=command.run_count,
-      state=common.CommandState(command.state),
+      state=common.CommandState(command.state or common.CommandState.UNKNOWN),
       start_time=command.start_time,
       end_time=command.end_time,
       create_time=command.create_time,
@@ -883,6 +883,10 @@ def HostInfoToMessage(host_info_entity, devices=None):
   if (host_info_entity.physical_cluster and
       host_info_entity.physical_cluster in next_cluster_ids):
     next_cluster_ids.remove(host_info_entity.physical_cluster)
+  if host_info_entity.host_state:
+    host_state = host_info_entity.host_state.name
+  else:
+    host_state = api_messages.HostState.UNKNOWN.name
   return api_messages.HostInfo(
       hostname=host_info_entity.hostname,
       lab_name=host_info_entity.lab_name,
@@ -908,7 +912,7 @@ def HostInfoToMessage(host_info_entity, devices=None):
       next_cluster_ids=next_cluster_ids,
       pools=host_info_entity.pools,
       tf_start_time=host_info_entity.tf_start_time,
-      host_state=host_info_entity.host_state.name,
+      host_state=host_state,
       host_config=HostConfigToMessage(host_info_entity.host_config),
       assignee=host_info_entity.assignee,
       device_count_summaries=device_count_summaries,
@@ -1031,6 +1035,10 @@ class DeviceInfo(ndb.Expando):
 def DeviceInfoToMessage(device_info_entity):
   """Convert a Device entity into a DeviceInfo message."""
   extra_info = device_info_entity.extra_info or {}
+  if device_info_entity.device_type:
+    device_type = api_messages.DeviceTypeMessage(device_info_entity.device_type)
+  else:
+    device_type = None
   return api_messages.DeviceInfo(
       device_serial=device_info_entity.device_serial,
       lab_name=device_info_entity.lab_name,
@@ -1052,8 +1060,7 @@ def DeviceInfoToMessage(device_info_entity):
       mac_address=device_info_entity.mac_address,
       sim_state=extra_info.get('sim_state'),
       sim_operator=extra_info.get('sim_operator'),
-      device_type=api_messages.DeviceTypeMessage(
-          device_info_entity.device_type),
+      device_type=device_type,
       extra_info=api_messages.MapToKeyValuePairMessages(
           device_info_entity.extra_info),
       test_harness=device_info_entity.test_harness)

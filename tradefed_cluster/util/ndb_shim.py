@@ -13,40 +13,97 @@
 # limitations under the License.
 
 """A shim for gradually migrating out of GAE NDB into Google Cloud NDB."""
+import tradefed_cluster.util.google_import_fixer  from google.cloud import ndb
 
-from google.appengine.ext import ndb as legacy_ndb
-from google.appengine.ext.ndb import msgprop
-
-import tradefed_cluster.util.google_import_fixer  
-# TODO: Commented google.cloud ndb to unblock MTT local server
-# from google.cloud import ndb  
 # All methods/classes used by tradefed_cluster are defined below
-Expando = legacy_ndb.Expando
-Key = legacy_ndb.Key
-Model = legacy_ndb.Model
+Expando = ndb.Expando
+Key = ndb.Key
+Model = ndb.Model
 
-BooleanProperty = legacy_ndb.BooleanProperty
-ComputedProperty = legacy_ndb.ComputedProperty
-DateTimeProperty = legacy_ndb.DateTimeProperty
-EnumProperty = msgprop.EnumProperty
-IntegerProperty = legacy_ndb.IntegerProperty
-JsonProperty = legacy_ndb.JsonProperty
-LocalStructuredProperty = legacy_ndb.LocalStructuredProperty
-StringProperty = legacy_ndb.StringProperty
-StructuredProperty = legacy_ndb.StructuredProperty
-TextProperty = legacy_ndb.TextProperty
+BooleanProperty = ndb.BooleanProperty
+BlobProperty = ndb.BlobProperty
+ComputedProperty = ndb.ComputedProperty
+DateTimeProperty = ndb.DateTimeProperty
+IntegerProperty = ndb.IntegerProperty
+JsonProperty = ndb.JsonProperty
+LocalStructuredProperty = ndb.LocalStructuredProperty
+StringProperty = ndb.StringProperty
+StructuredProperty = ndb.StructuredProperty
+TextProperty = ndb.TextProperty
 
-Cursor = legacy_ndb.Cursor
-EVENTUAL_CONSISTENCY = legacy_ndb.EVENTUAL_CONSISTENCY
-Query = legacy_ndb.Query
-QueryOptions = legacy_ndb.QueryOptions
+Cursor = ndb.Cursor
+Query = ndb.Query
 
-delete_multi = legacy_ndb.delete_multi
-get_context = legacy_ndb.get_context
-get_multi = legacy_ndb.get_multi
-put_multi = legacy_ndb.put_multi
-put_multi_async = legacy_ndb.put_multi_async
+delete_multi = ndb.delete_multi
+get_context = ndb.get_context
+get_multi = ndb.get_multi
+put_multi = ndb.put_multi
+put_multi_async = ndb.put_multi_async
 
-toplevel = legacy_ndb.toplevel
-transactional = legacy_ndb.transactional
+QueryOptions = ndb.QueryOptions
+toplevel = ndb.toplevel
+transactional = ndb.transactional
+in_transaction = ndb.in_transaction
 
+exceptions = ndb.exceptions
+
+Client = ndb.Client
+
+
+# Enum Property hasn't been implemented by google.cloud ndb yet.
+# We will continue to use our own implementation until google.cloud ndb has one.
+# TODO: Check if EnumProperty is still needed.
+class EnumProperty(IntegerProperty):
+  """Enums are represented in Cloud Datastore as integers.
+
+  While this is less user-friendly in the Datastore viewer, it matches
+  the representation of enums in the protobuf serialization (although
+  not in JSON), and it allows renaming enum values without requiring
+  changes to values already stored in the Datastore.
+  """
+
+  _enum_type = None
+
+  def __init__(self,
+               enum_type,
+               name=None,
+               default=None,
+               choices=None,
+               **kwargs):
+    """Constructor.
+
+    Args:
+      enum_type: A subclass of protorpc.messages.Enum.
+      name: Optional datastore name (defaults to the property name).
+      default: Default enum value
+      choices: Universe of enum options available
+      **kwargs: Additional keywords arguments specify the same options as
+                supported by IntegerProperty.
+    """
+    self._enum_type = enum_type
+    if default is not None:
+      self._validate(default)
+    if choices is not None:
+      list(map(self._validate, choices))
+    super(EnumProperty, self).__init__(name, default=default,
+                                       choices=choices, **kwargs)
+
+  def _validate(self, value):
+    """Validate an Enum value.
+
+    Args:
+      value: The value of property to be validated
+    Raises:
+      TypeError if the value is not an instance of self._enum_type.
+    """
+    if not isinstance(value, self._enum_type):
+      raise TypeError('Expected a %s instance, got %r instead' %
+                      (self._enum_type.__name__, value))
+
+  def _to_base_type(self, enum):
+    """Convert an Enum value to a base type (integer) value."""
+    return enum.number
+
+  def _from_base_type(self, val):
+    """Convert a base type (integer) value to an Enum value."""
+    return self._enum_type(val)

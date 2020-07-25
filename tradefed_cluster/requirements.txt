@@ -7,6 +7,7 @@ futures==3.3.0
 google-api-python-client==1.7.11
 google-auth==1.7.1
 google-cloud-storage==1.23.0
+googledatastore==7.1.0
 httplib2==0.14.0
 Jinja2==2.10.3
 lazy-object-proxy==1.4.3

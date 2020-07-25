@@ -1053,7 +1053,7 @@ class ClusterHostApiTest(api_test.ApiTest):
     # query the second page to make sure the cursor works
     api_request = {
         'hostname': 'host_1',
-        'count': 2,
+        'count': 3,
         'include_device_notes': True,
         'cursor': host_note_collection_msg.next_cursor,
     }
@@ -1061,7 +1061,7 @@ class ClusterHostApiTest(api_test.ApiTest):
                                           api_request)
     host_note_collection_msg = protojson.decode_message(
         api_messages.NoteCollection, api_response.body)
-    self.assertFalse(host_note_collection_msg.more)
+    self.assertTrue(host_note_collection_msg.more)
     note_msgs = host_note_collection_msg.notes
     self.assertEqual(2, len(note_msgs))
     self.assertEqual(note_msgs[0].hostname, note_entities[0].hostname)

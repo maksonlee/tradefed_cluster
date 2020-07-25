@@ -337,7 +337,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         api_messages.DeviceInfoCollection, api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(2, len(device_collection.device_infos))
-    self.assertFalse(device_collection.more)
+    self.assertTrue(device_collection.more)
 
   def testListDevices_filterRunTargets(self):
     """Tests ListDevices returns devices filtered by run targets."""
@@ -1471,7 +1471,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         api_messages.DeviceInfoHistoryCollection, api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(1, len(device_history_collection.histories))
-    self.assertIsNone(device_history_collection.next_cursor)
+    self.assertIsNotNone(device_history_collection.next_cursor)
     self.assertIsNotNone(device_history_collection.prev_cursor)  # has previous
 
     # fetch previous page (same as first page)

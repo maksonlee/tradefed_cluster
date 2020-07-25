@@ -68,6 +68,61 @@ class ClusterDeviceApi(remote.Service):
       flated_extra_info=messages.StringField(17),
   )
 
+  # TODO: Refactor into in memory filtering library
+  def _FetchWithFiltering(self, request, query):
+    """Method to handle in memory filtering.
+
+    IN, OR, != operators are not supported in Google Cloud,
+    these operations can only be done in memory filtering.
+
+    Args:
+      request: Request object containing the filters to be applied
+      query: ndb Query to fetch results from.
+
+    Returns:
+      tuple(list of elements, prev cursor, next cursor)
+    """
+    next_cursor = True
+    cursor = request.cursor
+    devices = []
+    next_batch_size = _BATCH_SIZE
+    while next_cursor and len(devices) < request.count:
+      devices_buffer, prev_cursor, next_cursor = datastore_util.FetchPage(
+          query, next_batch_size, cursor)
+      next_batch_size = 0
+      for d in devices_buffer:
+        if len(devices) >= request.count:
+          break
+        next_batch_size += 1
+        if request.pools and not set(d.pools).issubset(set(request.pools)):
+          continue
+        if request.device_states and d.state not in request.device_states:
+          continue
+        if request.host_groups and d.host_group not in request.host_groups:
+          continue
+        if not request.include_offline_devices and \
+            d.state not in common.DEVICE_ONLINE_STATES:
+          continue
+        if request.device_types and d.device_type not in request.device_types:
+          continue
+        if request.test_harness and d.test_harness not in request.test_harness:
+          continue
+        if request.hostnames and d.hostname not in request.hostnames:
+          continue
+        if request.run_targets and d.run_target not in request.run_targets:
+          continue
+        devices.append(d)
+
+      if len(devices) < request.count:
+        # If there is still devices left to get:
+        # update cursor for next fetch cycle.
+        cursor = next_cursor
+
+    # get cursors for pagination
+    _, prev_cursor, next_cursor = datastore_util.FetchPage(
+        query, next_batch_size, cursor)
+    return devices, prev_cursor, next_cursor
+
   @endpoints.method(
       DEVICE_LIST_RESOURCE,
       api_messages.DeviceInfoCollection,
@@ -84,17 +139,8 @@ class ClusterDeviceApi(remote.Service):
       a DeviceInfoCollection object.
     """
     logging.info("ClusterDeviceApi.NDBListDevices request: %s", request)
-    query = datastore_entities.DeviceInfo.query(
-        default_options=ndb.QueryOptions(
-            # The default batch size is 20. Change it to a larger number.
-            batch_size=_BATCH_SIZE,
-            # Use EVENTUAL_CONSISTENCY perhaps-quicker results.
-            # https://cloud.google.com/appengine/docs/standard/python/ndb/queryclass
-            read_policy=ndb.EVENTUAL_CONSISTENCY)).order(
+    query = datastore_entities.DeviceInfo.query().order(
                 datastore_entities.DeviceInfo.key)
-    if request.test_harness:
-      query = query.filter(
-          datastore_entities.DeviceInfo.test_harness.IN(request.test_harness))
     if request.lab_name:
       query = query.filter(
           datastore_entities.DeviceInfo.lab_name == request.lab_name)
@@ -104,42 +150,15 @@ class ClusterDeviceApi(remote.Service):
     if request.hostname:
       query = query.filter(
           datastore_entities.DeviceInfo.hostname == request.hostname)
-    if request.hostnames:
-      query = query.filter(
-          datastore_entities.DeviceInfo.hostname.IN(request.hostnames))
 
     # We only consider device hidden here, since there is no simple way to do
     # join like operation in datastore. We tried fetching host and use
     # in(hostnames), but it was not scalable at all.
     if not request.include_hidden:
       query = query.filter(datastore_entities.DeviceInfo.hidden == False)  
-    if not request.include_offline_devices:
-      query = query.filter(
-          datastore_entities.DeviceInfo.state.IN(common.DEVICE_ONLINE_STATES))
-
     if request.product:
       query = query.filter(
           datastore_entities.DeviceInfo.product == request.product)
-
-    if request.device_types:
-      query = query.filter(
-          datastore_entities.DeviceInfo.device_type.IN(request.device_types))
-
-    if request.run_targets:
-      query = query.filter(
-          datastore_entities.DeviceInfo.run_target.IN(request.run_targets))
-
-    if request.pools:
-      query = query.filter(
-          datastore_entities.DeviceInfo.pools.IN(request.pools))
-
-    if request.device_states:
-      query = query.filter(
-          datastore_entities.DeviceInfo.state.IN(request.device_states))
-
-    if request.host_groups:
-      query = query.filter(
-          datastore_entities.DeviceInfo.host_group.IN(request.host_groups))
 
     if request.device_serial:
       query = query.filter(
@@ -150,8 +169,7 @@ class ClusterDeviceApi(remote.Service):
                            request.flated_extra_info)
 
     start_time = time.time()
-    devices, prev_cursor, next_cursor = datastore_util.FetchPage(
-        query, request.count, request.cursor)
+    devices, prev_cursor, next_cursor = self._FetchWithFiltering(request, query)
 
     logging.debug("Fetched %d devices in %r seconds.", len(devices),
                   time.time() - start_time)

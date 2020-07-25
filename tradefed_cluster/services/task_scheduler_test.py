@@ -20,12 +20,11 @@ import unittest
 
 import mock
 
-from google.appengine.ext import ndb
-
 from tradefed_cluster import env_config
 from tradefed_cluster import testbed_dependent_test
 from tradefed_cluster.plugins import base as plugins_base
 from tradefed_cluster.services import task_scheduler
+from tradefed_cluster.util import ndb_shim as ndb
 
 _object = threading.local()
 
@@ -63,7 +62,7 @@ class TaskSchedulerTest(testbed_dependent_test.TestbedDependentTest):
     mock_add.return_value = mock_task
     eta = datetime.datetime.utcnow() + datetime.timedelta(days=1)
 
-    @ndb.transactional
+    @ndb.transactional()
     def Func():
       return task_scheduler.AddTask(
           queue_name='queue_name',
@@ -86,7 +85,7 @@ class TaskSchedulerTest(testbed_dependent_test.TestbedDependentTest):
     mock_add = self.mock_task_scheduler.AddTask
     eta = datetime.datetime.utcnow() + datetime.timedelta(days=1)
 
-    @ndb.transactional
+    @ndb.transactional()
     def Func():
       task_scheduler.AddTask(
           queue_name='queue_name',
@@ -148,7 +147,7 @@ class TaskSchedulerTest(testbed_dependent_test.TestbedDependentTest):
     _object.last_callable_call = None
     mock_add.return_value = None
 
-    @ndb.transactional
+    @ndb.transactional()
     def Func():
       task_scheduler.AddCallableTask(Callable, 1, foo=10, bar=100, zzz=1000)
     Func()
@@ -168,7 +167,7 @@ class TaskSchedulerTest(testbed_dependent_test.TestbedDependentTest):
     _object.last_callable_call = None
     mock_add.return_value = None
 
-    @ndb.transactional
+    @ndb.transactional()
     def Func():
       task_scheduler.AddCallableTask(Callable, 1, foo=10, bar=100, zzz=1000)
       raise ValueError()

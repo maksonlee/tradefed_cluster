@@ -246,7 +246,7 @@ class DeviceInfoReporterTest(testbed_dependent_test.TestbedDependentTest):
 
   def testFilterDevices(self):
     # Test FilterDevices()
-    new_ndb_device = datastore_test_util.CreateDevice(
+    datastore_test_util.CreateDevice(
         'foobar',
         'atl-1003.mtv',
         'a300',
@@ -254,10 +254,16 @@ class DeviceInfoReporterTest(testbed_dependent_test.TestbedDependentTest):
         run_target='walleye',
         timestamp=TIMESTAMP)
     devices = device_info_reporter.GetDevicesToReport()
-    self.assertItemsEqual([self.ndb_device, self.ndb_device_2],
-                          device_info_reporter.FilterDevices(devices, 'free'))
-    self.assertItemsEqual([new_ndb_device],
-                          device_info_reporter.FilterDevices(devices, 'foo'))
+    free_devices = device_info_reporter.FilterDevices(devices, 'free')
+    self.assertEqual(2, len(free_devices))
+    self.assertEqual('free', free_devices[0].physical_cluster)
+    self.assertEqual('shamu', free_devices[0].product)
+    self.assertEqual('free', free_devices[1].physical_cluster)
+    self.assertEqual('flounder', free_devices[1].product)
+    foo_devices = device_info_reporter.FilterDevices(devices, 'foo')
+    self.assertEqual(1, len(foo_devices))
+    self.assertEqual('foobar', foo_devices[0].physical_cluster)
+    self.assertEqual('walleye', foo_devices[0].product)
 
   @mock.patch.object(env_config.CONFIG, 'should_send_report', True)
   @mock.patch.object(email_sender, 'SendEmail')

@@ -346,7 +346,6 @@ def EnsureLeasable(command):
     raise CommandTaskNotFoundError("Command %s is not leasable" % command)
 
 
-@ndb.transactional(xg=True)
 def _UpdateState(
     request_id, command_id, state=None, force=False, cancel_reason=None,
     attempt_state=None, task_id=None):
@@ -512,7 +511,7 @@ def AddToSyncCommandAttemptQueue(attempt):
       eta=update_time + datetime.timedelta(minutes=MAX_COMMAND_EVENT_DELAY_MIN))
 
 
-@ndb.transactional
+@ndb.transactional()
 def UpdateCommandAttempt(event):
   """Updates a command attempt in datastore.
 
@@ -800,9 +799,8 @@ def CreateCommands(request_id,
   request_key = ndb.Key(
       datastore_entities.Request, request_id,
       namespace=common.NAMESPACE)
-  command_id_start, command_id_end = datastore_entities.Command.allocate_ids(
-      size=len(command_lines), parent=request_key)
-  command_ids = range(command_id_start, command_id_end + 1)
+  command_ids = [command_id.id() for command_id in datastore_entities.Command\
+                 .allocate_ids(size=len(command_lines), parent=request_key)]
 
   command_plugin_data_map = {}
   command_infos = []
@@ -835,7 +833,7 @@ def CreateCommands(request_id,
                            shard_indexes=shard_indexes)
 
 
-@ndb.transactional
+@ndb.transactional()
 def _DoCreateCommands(request_id,
                       run_target,
                       run_count,
@@ -957,14 +955,14 @@ def GetCommands(request_id, state=None):
       datastore_entities.Request, request_id,
       namespace=common.NAMESPACE)
   query = datastore_entities.Command.query(
-      ancestor=request_key)
+      ancestor=request_key).order(datastore_entities.Command.create_time)
 
   if state is not None:
     query = query.filter(datastore_entities.Command.state == state)
   return query.fetch()
 
 
-@ndb.transactional
+@ndb.transactional()
 def Touch(request_id, command_id):
   """Renew update_time of this command."""
   command = GetCommand(request_id, command_id)
@@ -1086,7 +1084,7 @@ def UpdateTestContext(request_id, command_id, test_context):
   if old_test_context:
     clone.key = old_test_context.key
   else:
-    new_id = ndb.Model.allocate_ids(size=1, parent=command_key)[0]
+    new_id = ndb.Model.allocate_ids(size=1, parent=command_key)[0].id()
     clone.key = ndb.Key(
         datastore_entities.TestContext,
         new_id,

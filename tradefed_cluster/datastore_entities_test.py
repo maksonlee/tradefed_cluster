@@ -31,7 +31,7 @@ TIMESTAMP_NEW = datetime.datetime(2015, 9, 29)
 class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
 
   def testRequest(self):
-    request_id, _ = datastore_entities.Request.allocate_ids(1)
+    request_id = datastore_entities.Request.allocate_ids(1)[0].id()
     key = ndb.Key(
         datastore_entities.Request, str(request_id),
         namespace=common.NAMESPACE)
@@ -56,7 +56,9 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
 
   def testClusterNote(self):
     cluster_note = datastore_entities.ClusterNote(cluster='free')
-    note = datastore_entities.Note(user='user0',
+    key = ndb.Key(datastore_entities.Note,
+                  datastore_entities.Note.allocate_ids(1)[0].id())
+    note = datastore_entities.Note(key=key, user='user0',
                                    timestamp=TIMESTAMP_OLD,
                                    message='Hello, World')
     cluster_note.note = note
@@ -64,7 +66,9 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
     queried_cluster_note = cluster_note_key.get()
     self.assertEqual('free', queried_cluster_note.cluster)
     self.assertEqual(cluster_note_key, queried_cluster_note.key)
-    self.assertEqual(note, queried_cluster_note.note)
+    self.assertEqual(note.message, queried_cluster_note.note.message)
+    self.assertEqual(note.timestamp, queried_cluster_note.note.timestamp)
+    self.assertEqual(note.user, queried_cluster_note.note.user)
 
   def testClusterNote_nonExisting(self):
     query = datastore_entities.ClusterNote.query()
@@ -83,7 +87,9 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
     query = query.filter(datastore_entities.HostNote.hostname == 'host.name')
     for query_host_note in query.iter():
       self.assertEqual('host.name', query_host_note.hostname)
-      self.assertEqual(note, query_host_note.note)
+      self.assertEqual(note.message, query_host_note.note.message)
+      self.assertEqual(note.timestamp, query_host_note.note.timestamp)
+      self.assertEqual(note.user, query_host_note.note.user)
 
   def testDeviceNote(self):
     count = 10
@@ -166,7 +172,8 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
     host_info.put()
     host_info_res = key.get()
     self.assertEqual('ahost', host_info_res.hostname)
-    self.assertEqual(TIMESTAMP_NEW, host_info_res.update_timestamp)
+    self.assertEqual(TIMESTAMP_NEW,
+                     host_info_res.update_timestamp.replace(tzinfo=None))
     self.assertEqual(api_messages.HostState.RUNNING, host_info_res.host_state)
     self.assertFalse(host_info_res.is_bad)
 
@@ -185,7 +192,8 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
     host_info.put()
     host_info_res = key.get()
     self.assertEqual('ahost', host_info_res.hostname)
-    self.assertEqual(TIMESTAMP_NEW, host_info_res.update_timestamp)
+    self.assertEqual(TIMESTAMP_NEW,
+                     host_info_res.update_timestamp.replace(tzinfo=None))
     self.assertEqual(api_messages.HostState.GONE, host_info_res.host_state)
     self.assertTrue(host_info_res.is_bad)
 
@@ -204,7 +212,8 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
     host_info.put()
     host_info_res = key.get()
     self.assertEqual('ahost', host_info_res.hostname)
-    self.assertEqual(TIMESTAMP_NEW, host_info_res.update_timestamp)
+    self.assertEqual(TIMESTAMP_NEW,
+                     host_info_res.update_timestamp.replace(tzinfo=None))
     self.assertEqual(api_messages.HostState.RUNNING, host_info_res.host_state)
     self.assertTrue(host_info_res.is_bad)
 

@@ -80,7 +80,7 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
     plugin.assert_has_calls([
         mock.call.OnCreateCommands([
             plugin_base.CommandInfo(
-                command_id=1,
+                command_id=5629499534213120,
                 command_line="command_line0",
                 run_count=1,
                 shard_count=1,
@@ -91,7 +91,7 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
         }, {}),
         mock.call.OnCreateCommands([
             plugin_base.CommandInfo(
-                command_id=2,
+                command_id=5066549580791808,
                 command_line="command_line0",
                 run_count=1,
                 shard_count=1,

@@ -29,6 +29,7 @@ PACKAGE_MAP = {
     "google/cloud/tasks_v2": "google-cloud-tasks",
     "google/oauth2": "google-auth",
     "googleapiclient": "google-api-python-client",
+    "googledatastore/v1:googledatastore": "googledatastore",
     "hamcrest": "PyHamcrest",
     "jinja2": "Jinja2",
     "lazy_object_proxy": "lazy-object-proxy",

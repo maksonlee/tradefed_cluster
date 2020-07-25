@@ -21,8 +21,6 @@ import zlib
 
 from protorpc import protojson
 
-from tradefed_cluster.util import ndb_shim as ndb
-
 from tradefed_cluster import api_messages
 from tradefed_cluster import command_error_type_config
 from tradefed_cluster import common
@@ -30,6 +28,7 @@ from tradefed_cluster import datastore_entities
 from tradefed_cluster import env_config
 from tradefed_cluster.services import task_scheduler
 from tradefed_cluster.util import command_util
+from tradefed_cluster.util import ndb_shim as ndb
 
 REQUEST_QUEUE = "test-request-queue"
 SPONGE_URI_PATTERN = r".*(https?://(?:sponge|g3c).corp.example.com\S*).*"
@@ -82,7 +81,7 @@ def CancelRequest(request_id, cancel_reason=None):
     DeleteFromQueue(request_id)
 
 
-@ndb.transactional
+@ndb.transactional()
 def _UpdateState(request_id, state=None, force=False, cancel_reason=None):
   """Attempts to update the state of a request.
 
@@ -490,12 +489,8 @@ def _CreateRequestId():
   Returns:
     request_id, str
   """
-  # TODO: this only need to be run once, but there is no hurt to run
-  # multiple times. This to allocate ids we already used, so new id will not
-  # use those.
-  datastore_entities.Request.allocate_ids(max=30000000)
   while True:
-    id_, _ = datastore_entities.Request.allocate_ids(1)
+    id_ = datastore_entities.Request.allocate_ids(1)[0].id()
     id_ = str(id_)
     if not datastore_entities.Request.get_by_id(
         id_, namespace=common.NAMESPACE):

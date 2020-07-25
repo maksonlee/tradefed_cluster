@@ -112,15 +112,50 @@ filegroup(
     ]),
 )
 
-py_appengine_library(
+py_library(
     name = "ndb_shim_lib",
     srcs = [
         "ndb_shim.py",
     ],
-    srcs_version = "PY2AND3",
     deps = [
         ":google_import_fixer",
         third_party("google/cloud/ndb"),
+    ],
+)
+
+py_library(
+    name = "ndb_test_lib",
+    testonly = True,
+    srcs = [
+        "ndb_test_lib.py",
+    ],
+    deps = [
+        ":datastore_emulator_lib",
+        ":ndb_shim_lib",
+        third_party("google/auth:app_engine"),
+        third_party("google/cloud/datastore"),
+    ],
+)
+
+py_library(
+    name = "datastore_emulator_lib",
+    testonly = True,
+    srcs = [
+        "datastore_emulator.py",
+    ],
+    deps = [
+        third_party("googledatastore/v1:datastore_emulator"),
+    ],
+)
+
+py2and3_test(
+    name = "datastore_emulator_test",
+    srcs = [
+        "datastore_emulator_test.py",
+    ],
+    deps = [
+        ":datastore_emulator_lib",
+        third_party("mock"),
     ],
 )
 

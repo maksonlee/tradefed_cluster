@@ -22,8 +22,6 @@ import hamcrest
 import mock
 import webtest
 
-from google.appengine.ext import db
-
 from tradefed_cluster import command_event_handler
 from tradefed_cluster import command_event_test_util
 from tradefed_cluster import command_manager
@@ -42,7 +40,7 @@ TIMESTAMP = command_event_test_util.TIMESTAMP
 class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
 
   def setUp(self):
-    testbed_dependent_test.TestbedDependentTest.setUp(self)
+    super(CommandEventHandlerTest, self).setUp()
     self.testapp = webtest.TestApp(command_event_handler.APP)
     self.plugin_patcher = mock.patch(
         "__main__.env_config.CONFIG.plugin")
@@ -63,9 +61,6 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
             "ants_work_unit_id": "w123"
         },
         cluster="foobar")[0]
-    # Clear Datastore cache
-    ndb.get_context().clear_cache()
-
     self.now_patcher = mock.patch.object(command_event_handler, "_Now")
     self.mock_now = self.now_patcher.start()
     self.mock_now.return_value = TIMESTAMP
@@ -73,7 +68,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
   def tearDown(self):
     self.plugin_patcher.stop()
     self.now_patcher.stop()
-    testbed_dependent_test.TestbedDependentTest.tearDown(self)
+    super(CommandEventHandlerTest, self).tearDown()
 
   def testTruncate(self):
     self.assertEqual("foo", command_event_handler._Truncate("foo"))
@@ -196,7 +191,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
 
     # for the first time, the second event failed due to TransactionFailedError
     # the second event will be reschedule to the queue.
-    mock_process.side_effect = [None, db.TransactionFailedError(), None]
+    mock_process.side_effect = [None, ndb.exceptions.ContextError(), None]
 
     command_event_handler.EnqueueCommandEvents([event, event2])
     tasks = self.taskqueue_stub.get_filtered_tasks()
@@ -242,8 +237,8 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
 
     # for the first time, the second event failed due to TransactionFailedError
     # the second event will be reschedule to the queue.
-    mock_process.side_effect = [db.TransactionFailedError(),
-                                db.TransactionFailedError()]
+    mock_process.side_effect = [ndb.exceptions.ContextError(),
+                                ndb.exceptions.ContextError()]
 
     command_event_handler.EnqueueCommandEvents([event, event2])
     tasks = self.taskqueue_stub.get_filtered_tasks()

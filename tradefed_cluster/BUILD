@@ -96,6 +96,7 @@ py_appengine_test(
     envs = PY_APPENGINE_TEST_ENVS,
     deps = [
         ":api_messages_lib",
+        ":api_test_lib",
         ":datastore_entities_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
     ],
@@ -726,6 +727,7 @@ py_appengine_library(
     visibility = ["//visibility:public"],
     deps = [
         "//tradefed_cluster/util:ndb_shim_lib",
+        third_party("six"),
     ],
 )
 
@@ -1328,7 +1330,7 @@ py_appengine_library(
         ":api_common_lib",
         ":common_lib",
         third_party("mock"),
-        "//tradefed_cluster/util:ndb_shim_lib",
+        "//tradefed_cluster/util:ndb_test_lib",
     ],
 )
 

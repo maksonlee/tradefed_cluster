@@ -15,16 +15,13 @@
 """Module for testbed dependencies base class."""
 import os
 
-import unittest
-
-from google.appengine.datastore import datastore_stub_util
 from google.appengine.ext import testbed
 
 from tradefed_cluster import api_common
-from tradefed_cluster.util import ndb_shim as ndb
+from tradefed_cluster.util import ndb_test_lib
 
 
-class TestbedDependentTest(unittest.TestCase):
+class TestbedDependentTest(ndb_test_lib.NdbWithContextTest):
   """Base class for tests with testbed dependencies."""
 
   def setUp(self):
@@ -40,11 +37,7 @@ class TestbedDependentTest(unittest.TestCase):
         overwrite=True)
     self.testbed.activate()
     self.testbed.init_all_stubs()
-    policy = datastore_stub_util.PseudoRandomHRConsistencyPolicy(1.0)
-    self.testbed.init_datastore_v3_stub(consistency_policy=policy)
     self.testbed.init_taskqueue_stub(
         root_path=os.path.join(os.path.dirname(__file__), 'test_yaml'))
     self.taskqueue_stub = self.testbed.get_stub(testbed.TASKQUEUE_SERVICE_NAME)
     self.addCleanup(self.testbed.deactivate)
-    # Clear Datastore cache
-    ndb.get_context().clear_cache()

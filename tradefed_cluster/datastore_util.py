@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,12 +13,86 @@
 # limitations under the License.
 """Util for datastore query."""
 import logging
+import six
 
 from tradefed_cluster.util import ndb_shim as ndb
+# TODO: Remove gae_ndb is no longer used
+from google.appengine.ext import ndb as gae_ndb
 
 
 def FetchPage(query, page_size, page_cursor=None, backwards=False):
   """Fetches a page of results based on the provided cursors.
+
+  Args:
+    query: query to apply, must be ordered
+    page_size: maximum number of results to fetch
+    page_cursor: marks the position to fetch from
+    backwards: True to fetch the page that precedes the cursor
+
+  Returns:
+    tuple(list of elements, prev cursor, next cursor).
+  """
+
+  if isinstance(query, ndb.Query):
+    return GoogleCloudFetchPage(query, page_size,
+                                page_cursor=page_cursor, backwards=backwards)
+  else:
+    # TODO: Clean up legacy NDB behaviour
+    return AppEngineFetchPage(query, page_size,
+                              page_cursor=page_cursor, backwards=backwards)
+
+
+def GoogleCloudFetchPage(query, page_size, page_cursor=None, backwards=False):
+  """Fetches a page of results based on the provided cursors.
+
+  Args:
+    query: query to apply, must be ordered
+    page_size: maximum number of results to fetch
+    page_cursor: marks the position to fetch from
+    backwards: True to fetch the page that precedes the cursor
+
+  Returns:
+    page of results
+  """
+  if not page_cursor:
+    # no pagination information, fetch first page in normal order
+    results, cursor, more = query.fetch_page(page_size)
+    next_cursor = cursor.urlsafe() if more else None
+    prev_cursor = None
+  elif backwards:
+    # fetching previous page in reverse order
+    if query.order_by:
+      for order_property in query.order_by:
+        order_property.reverse ^= order_property.reverse
+    if query.ancestor is not None:
+      reversed_query = ndb.Query(
+          ancestor=query.ancestor,
+          kind=query.kind,
+          filters=query.filters,
+          order_by=query.order_by)
+    else:
+      reversed_query = ndb.Query(
+          kind=query.kind, filters=query.filters, order_by=query.order_by)
+    results, cursor, more = reversed_query.fetch_page(
+        page_size, start_cursor=ndb.Cursor(urlsafe=six.ensure_str(page_cursor)))
+    if not more and len(results) < page_size:
+      return FetchPage(query, page_size)
+    results.reverse()
+    next_cursor = page_cursor
+    prev_cursor = cursor.urlsafe() if more else None
+  else:
+    # fetching next page in normal order
+    results, cursor, more = query.fetch_page(
+        page_size, start_cursor=ndb.Cursor(urlsafe=six.ensure_str(page_cursor)))
+    next_cursor = cursor.urlsafe() if more else None
+    prev_cursor = page_cursor
+  return results, prev_cursor, next_cursor
+
+
+def AppEngineFetchPage(query, page_size, page_cursor=None, backwards=False):
+  """Fetches a page of results based on the provided cursors.
+
+  DEPRECATED: will be removed once we migrate out of GAE NDB in TFC & MTT
 
   Args:
     query: query to apply, must be ordered
@@ -38,16 +112,16 @@ def FetchPage(query, page_size, page_cursor=None, backwards=False):
     # fetching previous page in reverse order
     orders = query.orders
     if query.ancestor is not None:
-      reversed_query = ndb.Query(
+      reversed_query = gae_ndb.Query(
           ancestor=query.ancestor,
           kind=query.kind,
           filters=query.filters,
           orders=orders.reversed())
     else:
-      reversed_query = ndb.Query(
+      reversed_query = gae_ndb.Query(
           kind=query.kind, filters=query.filters, orders=orders.reversed())
     results, cursor, more = reversed_query.fetch_page(
-        page_size, start_cursor=ndb.Cursor(urlsafe=page_cursor))
+        page_size, start_cursor=gae_ndb.Cursor(urlsafe=page_cursor))
     if not more and len(results) < page_size:
       return FetchPage(query, page_size)
     results.reverse()
@@ -56,7 +130,7 @@ def FetchPage(query, page_size, page_cursor=None, backwards=False):
   else:
     # fetching next page in normal order
     results, cursor, more = query.fetch_page(
-        page_size, start_cursor=ndb.Cursor(urlsafe=page_cursor))
+        page_size, start_cursor=gae_ndb.Cursor(urlsafe=page_cursor))
     next_cursor = cursor.urlsafe() if more else None
     prev_cursor = page_cursor
   return results, prev_cursor, next_cursor

@@ -31,6 +31,7 @@ from tradefed_cluster import device_manager
 from tradefed_cluster import note_manager
 
 
+_BATCH_SIZE = 200
 _DEFAULT_LIST_NOTES_COUNT = 10
 _DEFAULT_LIST_HOST_COUNT = 100
 _DEFAULT_LIST_HISTORIES_COUNT = 100
@@ -57,6 +58,58 @@ class ClusterHostApi(remote.Service):
       cursor=messages.StringField(13),
       count=messages.IntegerField(
           14, variant=messages.Variant.INT32, default=_DEFAULT_LIST_HOST_COUNT))
+
+  # TODO: Refactor into in memory filtering library
+  def _FetchWithFiltering(self, request, query):
+    """Method to handle in memory filtering.
+
+    IN, OR, != operators are not supported in Google Cloud,
+    these operations can only be done in memory filtering.
+
+    Args:
+      request: Request object containing the filters to be applied
+      query: ndb Query to fetch results from.
+
+    Returns:
+      tuple(list of elements, prev cursor, next cursor)
+    """
+    next_cursor = True
+    cursor = request.cursor
+    hosts = []
+    next_batch_size = _BATCH_SIZE
+    while next_cursor and len(hosts) < request.count:
+      hosts_buffer, prev_cursor, next_cursor = datastore_util.FetchPage(
+          query, next_batch_size, cursor)
+      next_batch_size = 0
+      for h in hosts_buffer:
+        if len(hosts) >= request.count:
+          break
+        next_batch_size += 1
+        if request.host_groups and h.host_group not in request.host_groups:
+          continue
+        if request.hostnames and h.hostname not in request.hostnames:
+          continue
+        # TODO: Change test_runner to test_harness.
+        if request.test_harness and h.test_runner not in request.test_harness:
+          continue
+        if request.test_harness_versions and \
+            h.test_runner_version not in request.test_harness_versions:
+          continue
+        if request.pools and not set(h.pools).issubset(set(request.pools)):
+          continue
+        if request.host_states and h.host_state not in request.host_states:
+          continue
+        hosts.append(h)
+
+      if  len(hosts) < request.count:
+        # If there is still hosts left to get:
+        # update cursor for next fetch cycle.
+        cursor = next_cursor
+
+    # get cursors for pagination
+    _, prev_cursor, next_cursor = datastore_util.FetchPage(
+        query, next_batch_size, cursor)
+    return hosts, prev_cursor, next_cursor
 
   @endpoints.method(
       HOST_LIST_RESOURCE,
@@ -87,39 +140,12 @@ class ClusterHostApi(remote.Service):
 
     if not request.include_hidden:
       query = query.filter(datastore_entities.HostInfo.hidden == False)  
-    if request.hostnames:
-      query = query.filter(
-          datastore_entities.HostInfo.hostname.IN(request.hostnames))
-
-    if request.host_groups:
-      query = query.filter(
-          datastore_entities.HostInfo.host_group.IN(request.host_groups))
-
-    if request.test_harness:
-      # TODO: Change test_runner to test_harness.
-      query = query.filter(
-          datastore_entities.HostInfo.test_runner.IN(request.test_harness))
-
-    if request.test_harness_versions:
-      query = query.filter(
-          datastore_entities.HostInfo.test_runner_version.IN(
-              request.test_harness_versions))
-
-    if request.pools:
-      query = query.filter(datastore_entities.HostInfo.pools.IN(request.pools))
-
-    if request.host_states:
-      query = query.filter(
-          datastore_entities.HostInfo.host_state.IN(request.host_states))
-
     if request.flated_extra_info:
       query = query.filter(datastore_entities.HostInfo.flated_extra_info ==
                            request.flated_extra_info)
 
     query = query.order(datastore_entities.HostInfo.key)
-
-    hosts, prev_cursor, next_cursor = datastore_util.FetchPage(
-        query, request.count, page_cursor=request.cursor)
+    hosts, prev_cursor, next_cursor = self._FetchWithFiltering(request, query)
 
     host_infos = []
     for host in hosts:

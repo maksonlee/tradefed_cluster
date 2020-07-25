@@ -14,11 +14,9 @@
 
 """Unit tests for command_manager."""
 
-import collections
 import datetime
 import json
 import logging
-import threading
 import unittest
 import zlib
 
@@ -43,6 +41,7 @@ from tradefed_cluster.plugins import base as plugin_base
 TIMESTAMP = datetime.datetime(2017, 3, 8)
 TIMEDELTA = datetime.timedelta(seconds=30)
 REQUEST_ID = "1"
+COMMAND_ID = 5629499534213120
 
 
 class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
@@ -242,7 +241,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     command_manager.EnsureLeasable(command)
     tasks = command_manager.GetActiveTasks(command)
     self.assertEqual(len(tasks), 1)
-    self.assertEqual(tasks[0].task_id, "1-1-0")
+    self.assertEqual(tasks[0].task_id, "1-%s-0" % COMMAND_ID)
     self.assertEqual(tasks[0].leasable, True)
 
   def testEnsureLeasable_invalidTask(self):
@@ -254,11 +253,11 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     command = self._CreateCommand()
     command.run_count = 2
     command_manager.ScheduleTasks([command])
-    command_task_store.DeleteTask("1-1-0")
+    command_task_store.DeleteTask("1-%s-0" % COMMAND_ID)
     command_manager.EnsureLeasable(command)
     tasks = command_manager.GetActiveTasks(command)
     self.assertEqual(len(tasks), 1)
-    self.assertEqual(tasks[0].task_id, "1-1-1")
+    self.assertEqual(tasks[0].task_id, "1-%s-1" % COMMAND_ID)
     self.assertEqual(tasks[0].leasable, True)
 
   def testGetActiveTaskCount(self):
@@ -269,7 +268,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
 
   def testRescheduleTask(self):
     command = self._CreateCommand()
-    task_id = "1-1-0"
+    task_id = "1-%s-0" % COMMAND_ID
     command_manager.ScheduleTasks([command])
     command_task_store.LeaseTask(task_id)
     tasks = command_manager.GetActiveTasks(command)
@@ -405,59 +404,6 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertFalse(command.dirty)
     request = request_manager.GetRequest(request_id)
     self.assertTrue(request.dirty)
-
-  @mock.patch.object(command_manager, "GetCommandSummary")
-  def testCommandUpdateState_atomicTransaction(self, mock_get_summary):
-    """Tests atomicity of database transactions when updating the state."""
-    command = self._CreateCommand()
-    counts = collections.defaultdict(int)
-    semaphore = threading.Semaphore(0)
-    def Blocked(*args, **kwargs):         counts[threading.current_thread().name] += 1
-      if threading.current_thread().name == "thread1":
-        try:
-          semaphore.acquire()
-          summary = command_manager.CommandSummary()
-          summary.running_count = 1
-          return summary
-        finally:
-          semaphore.release()
-      else:
-        return command_manager.CommandSummary()
-    mock_get_summary.side_effect = Blocked
-    t1 = threading.Thread(
-        name="thread1",
-        target=command_manager._UpdateState,
-        kwargs={"request_id": REQUEST_ID,
-                "command_id": command.key.id(),
-                "state": common.CommandState.RUNNING,
-                "force": True})
-    t2 = threading.Thread(
-        name="thread2",
-        target=command_manager._UpdateState,
-        kwargs={"request_id": REQUEST_ID,
-                "command_id": command.key.id(),
-                "state": common.CommandState.QUEUED,
-                "force": True})
-
-    # Wait for first thread to be ready to commit, before trying to update the
-    # same command in a separate thread.
-    t1.start()  # t1 will block
-    t2.start()  # t2 will not block
-    t2.join(timeout=5)
-    self.assertTrue(t1.is_alive())
-    self.assertFalse(t2.is_alive())
-
-    command = command.key.get(use_cache=False)
-    self.assertEqual(common.CommandState.QUEUED, command.state)
-    semaphore.release()
-    t1.join(timeout=5)
-    self.assertFalse(t1.is_alive())
-    self.assertFalse(t2.is_alive())
-    command = command.key.get(use_cache=False)
-    self.assertEqual(common.CommandState.RUNNING, command.state)
-    self.assertEqual(1, counts["thread2"])
-    # Thread1 first transcation failed, and the second attempt succeeded.
-    self.assertEqual(2, counts["thread1"])
 
   def testUpdateState_commandAttemptCompletion(self):
     """Update a command up to completion."""
@@ -1086,10 +1032,10 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     tasks = command_manager.GetActiveTasks(command)
     self.assertEqual(len(tasks), 2)
 
-    command_manager.DeleteTask("1-1-0")
+    command_manager.DeleteTask("1-%s-0" % COMMAND_ID)
     tasks = command_manager.GetActiveTasks(command)
     self.assertEqual(len(tasks), 1)
-    self.assertEqual(tasks[0].task_id, "1-1-1")
+    self.assertEqual(tasks[0].task_id, "1-%s-1" % COMMAND_ID)
 
   def testAddToSyncCommandAttemptQueue(self):
     command = self._CreateCommand()
@@ -1141,7 +1087,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     plugin.assert_has_calls([
         mock.call.OnCreateCommands([
             plugin_base.CommandInfo(
-                command_id=1,
+                command_id=COMMAND_ID,
                 command_line="command_line1",
                 run_count=1,
                 shard_count=1,
@@ -1305,7 +1251,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     plugin.assert_has_calls([
         mock.call.OnCreateCommands([
             plugin_base.CommandInfo(
-                command_id=1,
+                command_id=COMMAND_ID,
                 command_line="command_line1",
                 run_count=1,
                 shard_count=1,

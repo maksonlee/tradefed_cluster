@@ -116,8 +116,8 @@ class ReportApi(remote.Service):
       Report,
       path='/reports',
       http_method='GET',
-      name='build'
-  )
+      name='build')
+  @api_common.with_ndb_context
   def BuildReport(self, request):
     """Builds a report containing the counts of devices in given states.
 

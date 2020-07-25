@@ -117,6 +117,7 @@ class ClusterHostApi(remote.Service):
       path="/hosts",
       http_method="GET",
       name="list")
+  @api_common.with_ndb_context
   def ListHosts(self, request):
     """Fetches a list of hosts.
 
@@ -178,6 +179,7 @@ class ClusterHostApi(remote.Service):
       path="{hostname}",
       http_method="GET",
       name="get")
+  @api_common.with_ndb_context
   def GetHost(self, request):
     """Fetches the information and notes of a given hostname.
 
@@ -246,6 +248,7 @@ class ClusterHostApi(remote.Service):
       path="{hostname}/note",
       http_method="POST",
       name="newNote")
+  @api_common.with_ndb_context
   def NewNote(self, request):
     """Submits a note for this host.
 
@@ -288,6 +291,7 @@ class ClusterHostApi(remote.Service):
       path="{hostname}/notes",
       http_method="POST",
       name="addOrUpdateNote")
+  @api_common.with_ndb_context
   def AddOrUpdateNote(self, request):
     """Add or update a host note.
 
@@ -362,6 +366,7 @@ class ClusterHostApi(remote.Service):
       path="{hostname}/notes:batchGet",
       http_method="GET",
       name="batchGetNotes")
+  @api_common.with_ndb_context
   def BatchGetNotes(self, request):
     """Batch get notes of a host.
 
@@ -401,6 +406,7 @@ class ClusterHostApi(remote.Service):
       path="{hostname}/notes",
       http_method="GET",
       name="listNotes")
+  @api_common.with_ndb_context
   def ListNotes(self, request):
     """List notes of a host.
 
@@ -439,6 +445,7 @@ class ClusterHostApi(remote.Service):
       path="assign",
       http_method="POST",
       name="assign")
+  @api_common.with_ndb_context
   def Assign(self, request):
     """Mark the hosts as recover.
 
@@ -460,6 +467,7 @@ class ClusterHostApi(remote.Service):
       path="unassign",
       http_method="POST",
       name="unassign")
+  @api_common.with_ndb_context
   def Unassign(self, request):
     """Mark the hosts as recover.
 
@@ -481,6 +489,7 @@ class ClusterHostApi(remote.Service):
       path="{hostname}/remove",
       http_method="POST",
       name="remove")
+  @api_common.with_ndb_context
   def Remove(self, request):
     """Remove this host.
 
@@ -504,6 +513,7 @@ class ClusterHostApi(remote.Service):
       path="{hostname}/restore",
       http_method="POST",
       name="restore")
+  @api_common.with_ndb_context
   def Restore(self, request):
     """Restore this host.
 
@@ -534,6 +544,7 @@ class ClusterHostApi(remote.Service):
       path="{hostname}/histories",
       http_method="GET",
       name="listHistories")
+  @api_common.with_ndb_context
   def ListHistories(self, request):
     """List histories of a host.
 

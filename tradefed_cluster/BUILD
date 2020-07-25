@@ -41,7 +41,11 @@ py_appengine_library(
     ],
     envs = PY_APPENGINE_ENVS,
     deps = [
+        "//tradefed_cluster/util:ndb_shim_lib",
         third_party("endpoints:endpoints_library"),
+        third_party("google/auth:__init__"),
+        third_party("google/auth:compute_engine/__init__"),
+        third_party("google/cloud/ndb"),
     ],
 )
 

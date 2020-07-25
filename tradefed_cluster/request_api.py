@@ -54,8 +54,8 @@ class RequestApi(remote.Service):
       api_messages.RequestMessage,
       path="/requests",
       http_method="POST",
-      name="new"
-  )
+      name="new")
+  @api_common.with_ndb_context
   def NewRequest(self, request):
     """Create a new request.
 
@@ -129,8 +129,8 @@ class RequestApi(remote.Service):
       api_messages.RequestMessageCollection,
       path="/requests",
       http_method="GET",
-      name="list"
-  )
+      name="list")
+  @api_common.with_ndb_context
   def ListRequest(self, api_request):
     """Get requests satisfy the condition.
 
@@ -160,8 +160,8 @@ class RequestApi(remote.Service):
       api_messages.RequestMessage,
       path="{request_id}",
       http_method="GET",
-      name="get"
-  )
+      name="get")
+  @api_common.with_ndb_context
   def GetRequest(self, api_request):
     """Get a specific test request by id.
 
@@ -189,8 +189,8 @@ class RequestApi(remote.Service):
       api_messages.RequestMessage,
       path="{request_id}/cancel",
       http_method="GET",
-      name="cancel"
-  )
+      name="cancel")
+  @api_common.with_ndb_context
   def CancelRequest(self, api_request):
     """Cancel a specific test request by id.
 
@@ -222,8 +222,8 @@ class RequestApi(remote.Service):
       api_messages.RequestMessage,
       path="{request_id}",
       http_method="POST",
-      name="poke"
-  )
+      name="poke")
+  @api_common.with_ndb_context
   def PokeRequest(self, request):
     """Pokes a request to notify its state via Cloud Pub/Sub.
 
@@ -252,8 +252,8 @@ class RequestApi(remote.Service):
       message_types.VoidMessage,
       path="poke",
       http_method="POST",
-      name="batchPoke"
-  )
+      name="batchPoke")
+  @api_common.with_ndb_context
   def PokeRequests(self, request):
     """Pokes a list of requests to notify their state via Cloud Pub/Sub.
 
@@ -285,6 +285,7 @@ class RequestApi(remote.Service):
       path="{request_id}/test_environment",
       http_method="GET",
       name="testEnvironment.get")
+  @api_common.with_ndb_context
   def GetTestEnvironment(self, request):
     """Returns a test environment for a request.
 
@@ -305,6 +306,7 @@ class RequestApi(remote.Service):
       path="{request_id}/test_resources",
       http_method="GET",
       name="testResource.list")
+  @api_common.with_ndb_context
   def ListTestResources(self, request):
     """Lists test resources for a request.
 
@@ -327,6 +329,7 @@ class RequestApi(remote.Service):
       path="{request_id}/invocation_status",
       http_method="GET",
       name="invocationStatus.get")
+  @api_common.with_ndb_context
   def GetInvocationStatus(self, request):
     """Returns invocation status for a request.
 
@@ -361,6 +364,7 @@ class RequestApi(remote.Service):
       path="{request_id}/commands/{command_id}/test_context",
       http_method="GET",
       name="testContext.get")
+  @api_common.with_ndb_context
   def GetTestContext(self, request):
     """Returns a test context for a command.
 
@@ -399,6 +403,7 @@ class RequestApi(remote.Service):
       path="{request_id}/commands/{command_id}/test_context",
       http_method="POST",
       name="testContext.update")
+  @api_common.with_ndb_context
   def UpdateTestContext(self, request):
     """Updates a test context for a command.
 
@@ -428,8 +433,8 @@ class RequestApi(remote.Service):
       api_messages.CommandMessage,
       path="{request_id}/commands/{command_id}",
       http_method="GET",
-      name="command"
-  )
+      name="command")
+  @api_common.with_ndb_context
   def GetCommand(self, request):
     command = command_manager.GetCommand(request.request_id, request.command_id)
     if not command:

@@ -36,8 +36,8 @@ class CommandEventApi(remote.Service):
       message_types.VoidMessage,
       path="/command_events",
       http_method="POST",
-      name="submit"
-      )
+      name="submit")
+  @api_common.with_ndb_context
   def SubmitCommandEvents(self, request):
     """Submit a bundle of cluster command events for processing.
 

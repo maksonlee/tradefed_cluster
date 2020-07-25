@@ -56,8 +56,8 @@ class DeviceSnapshotApi(remote.Service):
       DeviceSnapshot,
       path='/deviceSnapshots',
       http_method='GET',
-      name='get'
-  )
+      name='get')
+  @api_common.with_ndb_context
   def GetDeviceSnapshot(self, request):
     """Gets a snapshot of all the devices and their properties for a given date.
 

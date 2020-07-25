@@ -85,8 +85,8 @@ class CommandTaskApi(remote.Service):
       CommandTaskList,
       path="leasehosttasks",
       http_method="POST",
-      name="leasehosttasks"
-      )
+      name="leasehosttasks")
+  @api_common.with_ndb_context
   def LeaseHostTasks(self, request):
     """Lease available command tasks for a given host.
 

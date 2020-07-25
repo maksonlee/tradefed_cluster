@@ -16,6 +16,11 @@
 
 import endpoints
 
+from tradefed_cluster.util.ndb_shim import ndb
+
+from google import auth
+from google.cloud.ndb import context as context_module
+
 # client ID would be anonymous from GAE apps
 ANONYMOUS = "anonymous"
 
@@ -32,3 +37,17 @@ tradefed_cluster_api = endpoints.api(
 )
 
 
+def with_ndb_context(method):
+  """Decorator to wrap individual endpoints in NDB Context."""
+
+  def wrap_endpoint(*args, **kwargs):
+    """Wraps the endpoint method in a NDB Context."""
+    context = context_module.get_context(raise_context_error=False)
+    if not context:
+      creds, project = auth.default()
+      with ndb.Client(project=project, credentials=creds).context():
+        return method(*args, **kwargs)
+    # If endpoint is inside a NDB context don't create a new context.
+    return method(*args, **kwargs)
+
+  return wrap_endpoint

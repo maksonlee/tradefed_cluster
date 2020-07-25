@@ -39,6 +39,7 @@ class RunTargetApi(remote.Service):
 
   @endpoints.method(RUN_TARGET_LIST_RESOURCE, RunTargetCollection,
                     path="/runTargets", http_method="GET", name="list")
+  @api_common.with_ndb_context
   def ListRunTargets(self, request):
     """Fetches a list of run targets.
 

@@ -49,6 +49,7 @@ class PredefinedMessageApi(remote.Service):
       path="/predefined_messages",
       http_method="POST",
       name="createPredefinedMessage")
+  @api_common.with_ndb_context
   def CreatePredefinedMessage(self, request):
     existing_predefined_message_entity = (
         note_manager.GetPredefinedMessage(
@@ -78,6 +79,7 @@ class PredefinedMessageApi(remote.Service):
       path="/predefined_messages/{id}",
       http_method="PATCH",
       name="updatePredefinedMessage")
+  @api_common.with_ndb_context
   def UpdatePredefinedMessage(self, request):
     predefined_message = ndb.Key(
         datastore_entities.PredefinedMessage,
@@ -108,6 +110,7 @@ class PredefinedMessageApi(remote.Service):
       path="/predefined_messages/{id}",
       http_method="DELETE",
       name="deletePredefinedMessage")
+  @api_common.with_ndb_context
   def DeletePredefinedMessage(self, request):
     predefined_message_key = ndb.Key(
         datastore_entities.PredefinedMessage,
@@ -135,6 +138,7 @@ class PredefinedMessageApi(remote.Service):
       path="/predefined_messages",
       http_method="GET",
       name="listPredefinedMessages")
+  @api_common.with_ndb_context
   def ListPredefinedMessages(self, request):
     query = (
         datastore_entities.PredefinedMessage.query()

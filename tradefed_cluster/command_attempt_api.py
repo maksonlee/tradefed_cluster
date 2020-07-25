@@ -43,8 +43,8 @@ class CommandAttemptApi(remote.Service):
       api_messages.CommandAttemptMessageCollection,
       path="/commandAttempts",
       http_method="GET",
-      name="list"
-  )
+      name="list")
+  @api_common.with_ndb_context
   def ListCommandAttempts(self, api_request):
     """Get command attempts satisfy the condition.
 

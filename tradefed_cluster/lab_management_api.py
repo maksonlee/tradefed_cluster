@@ -42,6 +42,7 @@ class LabManagementApi(remote.Service):
 
   @endpoints.method(LAB_LIST_RESOURCE, api_messages.LabInfoCollection,
                     path="/labs", http_method="GET", name="list")
+  @api_common.with_ndb_context
   def ListLabs(self, request):
     """Fetches a list of labs that are available.
 

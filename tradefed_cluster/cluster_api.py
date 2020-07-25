@@ -41,6 +41,7 @@ class ClusterApi(remote.Service):
 
   @endpoints.method(CLUSTER_LIST_RESOURCE, ClusterInfoCollection,
                     path="/clusters", http_method="GET", name="list")
+  @api_common.with_ndb_context
   def ListClusters(self, request):
     """Fetches a list of clusters that are available.
 
@@ -71,6 +72,7 @@ class ClusterApi(remote.Service):
       api_messages.ClusterInfo,
       path="{cluster_id}",
       http_method="GET", name="get")
+  @api_common.with_ndb_context
   def GetCluster(self, request):
     """Fetches the information/status for a given cluster id.
 
@@ -134,6 +136,7 @@ class ClusterApi(remote.Service):
   @endpoints.method(CLUSTER_NOTE_RESOURCE, api_messages.Note,
                     path="{cluster_id}/note", http_method="POST",
                     name="newNote")
+  @api_common.with_ndb_context
   def NewNote(self, request):
     """Submits a note for this host.
 

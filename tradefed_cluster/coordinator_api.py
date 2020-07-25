@@ -37,8 +37,8 @@ class CoordinatorApi(remote.Service):
       message_types.VoidMessage,
       path="backfill-commands",
       http_method="POST",
-      name="backfillCommands",
-  )
+      name="backfillCommands")
+  @api_common.with_ndb_context
   def BackfillCommands(self, request):
     """Backfills all queued commands into sync queue."""
     logging.info("Backfilling queued commands to sync queue.")
@@ -54,8 +54,8 @@ class CoordinatorApi(remote.Service):
       message_types.VoidMessage,
       path="backfill-command-attempts",
       http_method="POST",
-      name="backfillCommandAttempts",
-  )
+      name="backfillCommandAttempts")
+  @api_common.with_ndb_context
   def BackfillCommandAttempts(self, request):
     """Backfills all running attempts into sync queue."""
     logging.info("Backfilling running command attempts to sync queue.")

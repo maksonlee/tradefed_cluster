@@ -42,6 +42,7 @@ class FilterHintApi(remote.Service):
       path="/filterHints",
       http_method="GET",
       name="list")
+  @api_common.with_ndb_context
   def ListFilterHints(self, request):
     """Fetches a list of filter hint by type.
 

@@ -129,6 +129,7 @@ class ClusterDeviceApi(remote.Service):
       path="/devices",
       http_method="GET",
       name="list")
+  @api_common.with_ndb_context
   def ListDevices(self, request):
     """Fetches a list of devices from NDB.
 
@@ -198,6 +199,7 @@ class ClusterDeviceApi(remote.Service):
       path="{device_serial}",
       http_method="GET",
       name="get")
+  @api_common.with_ndb_context
   def GetDevice(self, request):
     """Fetches the information and notes of a given device.
 
@@ -257,6 +259,7 @@ class ClusterDeviceApi(remote.Service):
       path="{device_serial}/note",
       http_method="POST",
       name="newNote")
+  @api_common.with_ndb_context
   def NewNote(self, request):
     """Submits a note for this device.
 
@@ -302,6 +305,7 @@ class ClusterDeviceApi(remote.Service):
       path="{device_serial}/notes",
       http_method="POST",
       name="addOrUpdateNote")
+  @api_common.with_ndb_context
   def AddOrUpdateNote(self, request):
     """Add or update a device note.
 
@@ -382,6 +386,7 @@ class ClusterDeviceApi(remote.Service):
       path="{device_serial}/notes:batchGet",
       http_method="GET",
       name="batchGetNotes")
+  @api_common.with_ndb_context
   def BatchGetNotes(self, request):
     """Batch get notes of a device.
 
@@ -420,6 +425,7 @@ class ClusterDeviceApi(remote.Service):
       path="{device_serial}/notes",
       http_method="GET",
       name="listNotes")
+  @api_common.with_ndb_context
   def ListNotes(self, request):
     """List notes of a device.
 
@@ -456,6 +462,7 @@ class ClusterDeviceApi(remote.Service):
       path="latest_notes:batchGet",
       http_method="GET",
       name="batchGetLatestNotesByDevice")
+  @api_common.with_ndb_context
   def BatchGetLastestNotesByDevice(self, request):
     """Batch get notes of a device.
 
@@ -493,6 +500,7 @@ class ClusterDeviceApi(remote.Service):
       path="{device_serial}/remove",
       http_method="POST",
       name="remove")
+  @api_common.with_ndb_context
   def Remove(self, request):
     """Remove this device .
 
@@ -519,6 +527,7 @@ class ClusterDeviceApi(remote.Service):
       path="{device_serial}/restore",
       http_method="POST",
       name="restore")
+  @api_common.with_ndb_context
   def Restore(self, request):
     """Restore this device .
 
@@ -552,6 +561,7 @@ class ClusterDeviceApi(remote.Service):
       path="{device_serial}/histories",
       http_method="GET",
       name="listHistories")
+  @api_common.with_ndb_context
   def ListHistories(self, request):
     """List histories of a device.
 

@@ -3,7 +3,7 @@ load("//tradefed_cluster:adapter.bzl", "py_appengine_binary", "py_appengine_libr
 
 package(default_visibility = [":tradefed_cluster_clients"])
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 exports_files(["LICENSE"])
 

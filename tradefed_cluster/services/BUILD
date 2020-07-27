@@ -12,6 +12,7 @@ py_appengine_library(
     srcs_version = "PY2AND3",
     deps = [
         "//tradefed_cluster:env_config_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
         third_party("webapp2"),
     ],
 )
@@ -25,6 +26,7 @@ py_appengine_test(
         ":task_scheduler_lib",
         "//tradefed_cluster:env_config_lib",
         "//tradefed_cluster:testbed_dependent_test_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
         third_party("mock"),
     ],
 )

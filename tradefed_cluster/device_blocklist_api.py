@@ -39,6 +39,7 @@ class DeviceBlocklistApi(remote.Service):
       NEW_DEVICE_BLOCKLIST_RESOURCE,
       api_messages.DeviceBlocklistMessage,
       path="/deviceBlocklists", http_method="POST", name="new")
+  @api_common.with_ndb_context
   def NewDeviceBlocklist(self, request):
     """Create a new device blocklist.
 

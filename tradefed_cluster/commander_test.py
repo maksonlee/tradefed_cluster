@@ -238,7 +238,7 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
     plugin.assert_has_calls([])
 
 
-class RequestHandlerTest(testbed_dependent_test.TestbedDependentTest):
+class HandleReuestTest(testbed_dependent_test.TestbedDependentTest):
 
   def setUp(self):
     testbed_dependent_test.TestbedDependentTest.setUp(self)

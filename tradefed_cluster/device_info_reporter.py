@@ -26,7 +26,7 @@ import re
 
 import cloudstorage
 import dateutil.parser
-import webapp2
+import flask
 
 from tradefed_cluster import api_messages
 from tradefed_cluster import common
@@ -60,6 +60,8 @@ MINUTES_TO_SECONDS = 60
 HOURS_TO_SECONDS = 60 * 60
 DAYS_TO_SECONDS = 24 * 60 * 60
 WEEK_TO_SECONDS = 7 * DAYS_TO_SECONDS
+
+APP = flask.Flask(__name__)
 
 
 class DeviceSnapshot(object):
@@ -408,48 +410,44 @@ def EmailDeviceReport(report_config, product_report, cluster_report,
         reply_to=DEFAULT_REPLY_TO)
 
 
-class DeviceReportBuilder(webapp2.RequestHandler):
-  """A class for reporting device information."""
+@APP.route('/')
+@APP.route('/<path:fake>')
+def BuildDeviceReport(fake=None):
+  """Builds a report using the current state of devices and emails it."""
+  del fake
+  date = _GetCurrentDate()
+  update_time = _Now()
+  local_time = _LocalizedNow()
+  devices = GetDevicesToReport()
 
-  def get(self):
-    """Builds a report using the current state of devices and emails it."""
-    date = _GetCurrentDate()
-    update_time = _Now()
-    local_time = _LocalizedNow()
-    devices = GetDevicesToReport()
+  # Store the snapshot of all devices
+  device_snapshot = DeviceSnapshot(
+      devices=devices, update_time=update_time, date=date)
+  StoreDeviceSnapshot(device_snapshot)
 
-    # Store the snapshot of all devices
-    device_snapshot = DeviceSnapshot(
-        devices=devices, update_time=update_time, date=date)
-    StoreDeviceSnapshot(device_snapshot)
+  for report_config in datastore_entities.ReportEmailConfig.query():
+    filtered_devices = FilterDevices(
+        devices=devices, cluster_prefix=report_config.cluster_prefix)
+    logging.info(
+        'Building report for cluster prefix [%s], date [%s] with %d devices',
+        report_config.cluster_prefix, date, len(filtered_devices))
+    hosts = GetHostsToReport(cluster_prefix=report_config.cluster_prefix)
 
-    for report_config in datastore_entities.ReportEmailConfig.query():
-      filtered_devices = FilterDevices(
-          devices=devices, cluster_prefix=report_config.cluster_prefix)
-      logging.info(
-          'Building report for cluster prefix [%s], date [%s] with %d devices',
-          report_config.cluster_prefix, date, len(filtered_devices))
-      hosts = GetHostsToReport(cluster_prefix=report_config.cluster_prefix)
-
-      # Build and email a report
-      product_report = DeviceReport(
-          devices=filtered_devices,
-          aggregation=PRODUCT_AGGREGATION,
-          states=DEVICE_OFFLINE_STATES)
-      cluster_report = DeviceReport(
-          devices=filtered_devices,
-          aggregation=CLUSTER_AGGREGATION,
-          states=DEVICE_OFFLINE_STATES)
-      host_report = HostReport(hosts=hosts)
-      EmailDeviceReport(
-          report_config=report_config,
-          product_report=product_report,
-          cluster_report=cluster_report,
-          host_report=host_report,
-          timestamp=local_time)
-    logging.info('Done...')
-
-
-APP = webapp2.WSGIApplication([
-    (r'/.*', DeviceReportBuilder)
-], debug=True)
+    # Build and email a report
+    product_report = DeviceReport(
+        devices=filtered_devices,
+        aggregation=PRODUCT_AGGREGATION,
+        states=DEVICE_OFFLINE_STATES)
+    cluster_report = DeviceReport(
+        devices=filtered_devices,
+        aggregation=CLUSTER_AGGREGATION,
+        states=DEVICE_OFFLINE_STATES)
+    host_report = HostReport(hosts=hosts)
+    EmailDeviceReport(
+        report_config=report_config,
+        product_report=product_report,
+        cluster_report=cluster_report,
+        host_report=host_report,
+        timestamp=local_time)
+  logging.info('Done...')
+  return common.HTTP_OK

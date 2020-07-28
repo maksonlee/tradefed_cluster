@@ -17,7 +17,7 @@
 import datetime
 import logging
 
-import webapp2
+import flask
 
 from google.appengine.ext import db
 
@@ -30,6 +30,8 @@ DEFAULT_DEADLINE = 60  # Query deadline in seconds
 # The GAE frontend timeout is 10 minutes. So let's restart the request after
 # 8 minutes.
 TIMEOUT_MINUTES = 8
+
+APP = flask.Flask(__name__)
 
 
 def RetrieveKeys(end_date):
@@ -86,15 +88,12 @@ def DeleteEntities(retention_days):
   return deleted
 
 
-class DeviceHistoryCleanerHandler(webapp2.RequestHandler):
-  """Request handler for cleaning up device history."""
-
-  def get(self):
-    """Start the device history cleanup."""
-    logging.info("Started DeviceHistoryCleaner")
-    number_deleted = DeleteEntities(DEVICE_HISTORY_RENTENTION_DAYS)
-    self.response.write(str(number_deleted))
-    logging.info("Finished DeviceHistoryCleaner. Deleted: %d", number_deleted)
-
-APP = webapp2.WSGIApplication(
-    [(r"/.*", DeviceHistoryCleanerHandler)], debug=True)
+@APP.route("/")
+@APP.route("/<path:fake>")
+def CleanDeviceHistory(fake=None):
+  """Cleaning up device history."""
+  del fake
+  logging.info("Started DeviceHistoryCleaner")
+  number_deleted = DeleteEntities(DEVICE_HISTORY_RENTENTION_DAYS)
+  logging.info("Finished DeviceHistoryCleaner. Deleted: %d", number_deleted)
+  return str(number_deleted)

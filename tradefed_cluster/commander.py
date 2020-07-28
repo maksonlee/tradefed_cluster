@@ -18,7 +18,7 @@ import json
 import logging
 import zlib
 
-import webapp2
+import flask
 
 from tradefed_cluster import command_manager
 from tradefed_cluster import command_monitor
@@ -37,6 +37,8 @@ RUN_TARGET_TO_MAX_SHARDS_MAP = {
     "TcpDevice": 100
 }
 
+
+APP = flask.Flask(__name__)
 
 
 def _ProcessRequest(request_id):
@@ -136,22 +138,16 @@ def _CreateCommands(request):
   return commands
 
 
-class RequestHandler(webapp2.RequestHandler):
-  """A web request handler to handle tasks from the request queue."""
-
-  def post(self):
-    """Process a request message."""
-    body = self.request.body
-    try:
-      body = zlib.decompress(body)
-    except zlib.error:
-      logging.warn(
-          "payload may not be compressed: %s", body, exc_info=True)
-    payload = json.loads(body)
-    request_id = payload["id"]
-    _ProcessRequest(request_id)
-
-
-APP = webapp2.WSGIApplication([
-    (REQUEST_HANDLER_PATH, RequestHandler),
-], debug=True)
+@APP.route(REQUEST_HANDLER_PATH, methods=["POST"])
+def HandleRequest():
+  """Process a request message."""
+  body = flask.request.get_data()
+  try:
+    body = zlib.decompress(body)
+  except zlib.error:
+    logging.warn(
+        "payload may not be compressed: %s", body, exc_info=True)
+  payload = json.loads(body)
+  request_id = payload["id"]
+  _ProcessRequest(request_id)
+  return common.HTTP_OK

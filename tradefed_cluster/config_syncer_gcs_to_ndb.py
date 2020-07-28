@@ -17,7 +17,7 @@
 import logging
 
 import cloudstorage
-import webapp2
+import flask
 
 
 from tradefed_cluster import datastore_entities
@@ -26,6 +26,8 @@ from tradefed_cluster.util import ndb_shim as ndb
 
 BUCKET_NAME = 'tradefed_lab_configs'
 LAB_CONFIG_DIR_PATH = '/{}/lab_configs/'.format(BUCKET_NAME)
+
+APP = flask.Flask(__name__)
 
 
 def GetLabConfigFromGCS(lab_config_path):
@@ -136,11 +138,9 @@ def SyncToNDB():
             cluster_config.host_configs, cluster_config.cluster_name)
 
 
-class GCSToNDBSyncer(webapp2.RequestHandler):
+@APP.route('/')
+@APP.route('/<path:fake>')
+def SyncGCSToNDB(fake=None):
   """Task to sync cluster and host config from gcs to ndb."""
-
-  def get(self):
-    SyncToNDB()
-
-
-APP = webapp2.WSGIApplication([(r'/.*', GCSToNDBSyncer)], debug=True)
+  del fake
+  SyncToNDB()

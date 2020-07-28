@@ -17,7 +17,7 @@ import datetime
 import json
 import logging
 
-import webapp2
+import flask
 
 from tradefed_cluster import command_manager
 from tradefed_cluster import common
@@ -29,6 +29,8 @@ COMMAND_SYNC_QUEUE = 'command-sync-queue'
 
 MAX_COMMAND_EVENT_DELAY_MIN = 15  # 15 min
 MAX_COMMAND_INACTIVE_TIME_MIN = 2 * 60  # 2 hours
+
+APP = flask.Flask(__name__)
 
 
 def Now():
@@ -167,17 +169,11 @@ def SyncCommand(request_id, command_id, add_to_sync_queue=True):
     AddToSyncQueue(command)
 
 
-class CommandTaskHandler(webapp2.RequestHandler):
-  """Task queue handler for syncing commands."""
-
-  def post(self):
-    payload = self.request.body
-    command_info = json.loads(payload)
-    logging.debug('CommandTaskHandler syncing %s', command_info)
-    SyncCommand(command_info[command_manager.REQUEST_ID_KEY],
-                command_info[command_manager.COMMAND_ID_KEY])
-
-
-APP = webapp2.WSGIApplication([
-    ('/_ah/queue/%s' % COMMAND_SYNC_QUEUE, CommandTaskHandler),
-])
+@APP.route('/_ah/queue/%s' % COMMAND_SYNC_QUEUE, methods=['POST'])
+def HandleCommandTask():
+  payload = flask.request.get_data()
+  command_info = json.loads(payload)
+  logging.debug('CommandTaskHandler syncing %s', command_info)
+  SyncCommand(command_info[command_manager.REQUEST_ID_KEY],
+              command_info[command_manager.COMMAND_ID_KEY])
+  return common.HTTP_OK

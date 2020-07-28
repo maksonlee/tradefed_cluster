@@ -19,9 +19,9 @@ import datetime
 import json
 import logging
 
+import flask
 import lazy_object_proxy
 from protorpc import protojson
-import webapp2
 
 
 from tradefed_cluster import api_messages
@@ -46,6 +46,8 @@ BATCH = 1000
 
 HOST_AND_DEVICE_PUBSUB_TOPIC = 'projects/%s/topics/%s' % (
     env_config.CONFIG.app_id, 'host_and_device')
+
+APP = flask.Flask(__name__)
 
 
 def _Now():
@@ -92,7 +94,7 @@ def _ReportDeviceStateMetric(device, metric_batch):
         device_metric.Set(1, device_metric_fields, batch=metric_batch)
       else:
         device_metric.Set(0, device_metric_fields, batch=metric_batch)
-  except Exception:      logging.warn(
+  except Exception:      logging.warning(
         'failed to set device metric for %s',
         device_metric_fields,
         exc_info=True)
@@ -192,18 +194,16 @@ def _ScanDevices():
   logging.info('Finished scan devices.')
 
 
-class NDBDeviceMonitor(webapp2.RequestHandler):
-  """A class for monitoring Device states in NDB."""
-
-  @ndb.toplevel
-  def get(self):
-    """Reports all devices with their states."""
-    logging.info('Starting NDBDeviceMonitor.')
-    _ScanDevices()
-    _ScanHosts()
-    _UpdateClusters()
-    _UpdateLabs()
-    logging.info('Finished NDBDeviceMonitor.')
+@APP.route(r'/cron/monitor/devices/ndb')
+@ndb.toplevel
+def MonitorDevice():
+  """Reports all devices with their states."""
+  logging.info('Starting NDBDeviceMonitor.')
+  _ScanDevices()
+  _ScanHosts()
+  _UpdateClusters()
+  _UpdateLabs()
+  logging.info('Finished NDBDeviceMonitor.')
 
 
 def _ShouldHideHost(host):
@@ -287,7 +287,7 @@ _PubsubClient = lazy_object_proxy.Proxy(_CreatePubsubClient)
 def _PublishHostMessage(hostname):
   """Publish host message to pubsub."""
   if not env_config.CONFIG.use_google_api:
-    logging.warn(
+    logging.warning(
         'Unabled to send host message to pubsub: use_google_api=False')
     return
   host = device_manager.GetHost(hostname)
@@ -309,26 +309,19 @@ def _PublishHostMessage(hostname):
       }])
 
 
-class HostSyncTaskHandler(webapp2.RequestHandler):
-  """Task queue handler for monitor host."""
-
-  def post(self):
-    payload = self.request.body
-    host_info = json.loads(payload)
-    taskname = self.request.headers.get('X-AppEngine-TaskName')
-    logging.debug(
-        'HostSyncTaskHandler syncing %s with task %s',
-        host_info, taskname)
-    hostname = host_info[device_manager.HOSTNAME_KEY]
-    should_sync = _SyncHost(hostname)
-    if should_sync:
-      device_manager.StartHostSync(hostname, taskname)
-      _PublishHostMessage(hostname)
-      return
-    device_manager.StopHostSync(hostname, taskname)
-
-
-APP = webapp2.WSGIApplication([
-    (r'/cron/monitor/devices/ndb.*', NDBDeviceMonitor),
-    ('/_ah/queue/%s' % device_manager.HOST_SYNC_QUEUE, HostSyncTaskHandler),
-], debug=True)
+@APP.route('/_ah/queue/%s' % device_manager.HOST_SYNC_QUEUE, methods=['POST'])
+def HandleHostSyncTask():
+  """Handle host sync tasks."""
+  payload = flask.request.get_data()
+  host_info = json.loads(payload)
+  taskname = flask.request.headers.get('X-AppEngine-TaskName')
+  logging.debug(
+      'HostSyncTaskHandler syncing %s with task %s',
+      host_info, taskname)
+  hostname = host_info[device_manager.HOSTNAME_KEY]
+  should_sync = _SyncHost(hostname)
+  if should_sync:
+    device_manager.StartHostSync(hostname, taskname)
+    _PublishHostMessage(hostname)
+    return
+  device_manager.StopHostSync(hostname, taskname)

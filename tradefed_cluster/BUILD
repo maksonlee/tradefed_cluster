@@ -375,6 +375,7 @@ py_appengine_library(
     deps = [
         ":command_lib",
         ":metric_lib",
+        third_party("flask"),
     ],
 )
 
@@ -595,6 +596,7 @@ py_appengine_library(
     deps = [
         ":command_lib",
         ":request_lib",
+        third_party("flask"),
     ],
 )
 
@@ -648,6 +650,7 @@ py_appengine_library(
         ":datastore_entities_lib",
         "//tradefed_cluster/configs:lab_config_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
+        third_party("flask"),
     ],
 )
 
@@ -775,6 +778,7 @@ py_appengine_library(
         ":common_lib",
         ":datastore_entities_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
+        third_party("flask"),
     ],
 )
 
@@ -805,6 +809,7 @@ py_appengine_library(
         ":env_config_lib",
         third_party("cloudstorage"),
         third_party("dateutil"),
+        third_party("flask"),
         "//tradefed_cluster/util:email_sender_lib",
     ],
 )
@@ -871,6 +876,7 @@ py_appengine_library(
         ":datastore_util_lib",
         ":device_manager_lib",
         ":metric_lib",
+        third_party("flask"),
         third_party("lazy_object_proxy"),
         "//tradefed_cluster/services:task_scheduler_lib",
         "//tradefed_cluster/util:ndb_shim_lib",

@@ -19,7 +19,8 @@ import datetime
 import json
 import logging
 import zlib
-import webapp2
+
+import flask
 
 from tradefed_cluster import command_event
 from tradefed_cluster import command_manager
@@ -39,6 +40,8 @@ TIMING_DATA_FIELDS_TO_COMMAND_ACTIONS = {
 }
 
 DEFAULT_TRUNCATE_LENGTH = 1024
+
+APP = flask.Flask(__name__)
 
 
 def _Truncate(s, length=DEFAULT_TRUNCATE_LENGTH):
@@ -127,53 +130,47 @@ def ProcessCommandEvent(event):
   command_manager.ProcessCommandEvent(event)
 
 
-class CommandEventHandler(webapp2.RequestHandler):
-  """A web request handler to handle command events."""
-
-  def post(self):
-    """Process a command event message in COMMAND_EVENT_QUEUE."""
-    payload = self.request.body
+# The below handler is served in frontend module.
+@APP.route(COMMAND_EVENT_HANDLER_PATH, methods=["POST"])
+def HandleCommandEvent():
+  """Process a command event message in COMMAND_EVENT_QUEUE."""
+  payload = flask.request.get_data()
+  try:
+    payload = zlib.decompress(payload)
+  except zlib.error:
+    logging.warn("payload may not be compressed: %s", payload, exc_info=True)
+  objs = json.loads(payload)
+  # To handle non-batched objects.
+  if not isinstance(objs, list):
+    objs = [objs]
+  failed_objs = []
+  exception = None
+  for obj in objs:
     try:
-      payload = zlib.decompress(payload)
-    except zlib.error:
-      logging.warn("payload may not be compressed: %s", payload, exc_info=True)
-    objs = json.loads(payload)
-    # To handle non-batched objects.
-    if not isinstance(objs, list):
-      objs = [objs]
-    failed_objs = []
-    exception = None
-    for obj in objs:
-      try:
-        logging.info(_Truncate(obj))
-        event = command_event.CommandEvent(**obj)
-        if (event.time + datetime.timedelta(days=COMMAND_EVENT_TIMEOUT_DAYS) <
-            _Now()):
-          logging.warn("Ignore event retried for %d days:\n%s",
-                       COMMAND_EVENT_TIMEOUT_DAYS, event)
-          continue
-        if event.attempt_state == common.CommandState.UNKNOWN:
-          logging.warn("Ignore unknown state event:\n%s.", event)
-          continue
-        ProcessCommandEvent(event)
-      except Exception as e:          exception = e
-        logging.warn("Failed to process (%s, %s), will retry.",
-                     event.task_id, event.type, exc_info=True)
-        # failed events will be retried later.
-        failed_objs.append(obj)
-    if failed_objs:
-      logging.warn("%d/%d command events failed to process.",
-                   len(failed_objs), len(objs))
-      if len(failed_objs) == len(objs) and exception:
-        raise exception        EnqueueCommandEvents(failed_objs)
+      logging.info(_Truncate(obj))
+      event = command_event.CommandEvent(**obj)
+      if (event.time + datetime.timedelta(days=COMMAND_EVENT_TIMEOUT_DAYS) <
+          _Now()):
+        logging.warn("Ignore event retried for %d days:\n%s",
+                     COMMAND_EVENT_TIMEOUT_DAYS, event)
+        continue
+      if event.attempt_state == common.CommandState.UNKNOWN:
+        logging.warn("Ignore unknown state event:\n%s.", event)
+        continue
+      ProcessCommandEvent(event)
+    except Exception as e:        exception = e
+      logging.warn("Failed to process (%s, %s), will retry.",
+                   event.task_id, event.type, exc_info=True)
+      # failed events will be retried later.
+      failed_objs.append(obj)
+  if failed_objs:
+    logging.warn("%d/%d command events failed to process.",
+                 len(failed_objs), len(objs))
+    if len(failed_objs) == len(objs) and exception:
+      raise exception      EnqueueCommandEvents(failed_objs)
+  return common.HTTP_OK
 
 
 def _Now():
   """Get utc now."""
   return datetime.datetime.utcnow()
-
-
-APP = webapp2.WSGIApplication([
-    # The below handler is served in frontend module.
-    (COMMAND_EVENT_HANDLER_PATH, CommandEventHandler),
-])

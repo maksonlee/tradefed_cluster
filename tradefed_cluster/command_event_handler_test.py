@@ -248,7 +248,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         command_event_handler.COMMAND_EVENT_HANDLER_PATH,
         tasks[0].payload,
         expect_errors=True)
-    self.assertEqual("500 Internal Server Error", response.status)
+    self.assertEqual("500 INTERNAL SERVER ERROR", response.status)
 
     mock_process.assert_has_calls([
         mock.call(

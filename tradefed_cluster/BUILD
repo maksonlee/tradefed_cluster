@@ -45,7 +45,6 @@ py_appengine_library(
         third_party("endpoints:endpoints_library"),
         third_party("google/auth:__init__"),
         third_party("google/auth:compute_engine/__init__"),
-        third_party("google/cloud/ndb"),
     ],
 )
 

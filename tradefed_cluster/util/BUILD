@@ -119,7 +119,7 @@ py_library(
     ],
     deps = [
         ":google_import_fixer",
-        third_party("google/cloud/ndb"),
+        third_party("google/cloud/ndb:google3_ndb"),
     ],
 )
 
@@ -132,8 +132,9 @@ py_library(
     deps = [
         ":datastore_emulator_lib",
         ":ndb_shim_lib",
+        "//net/grpc/python:use_insecure_channel",  # buildcleaner:keep
         third_party("google/auth:app_engine"),
-        third_party("google/cloud/datastore"),
+        third_party("google/cloud/datastore:datastore_grpc_alternative"),
     ],
 )
 

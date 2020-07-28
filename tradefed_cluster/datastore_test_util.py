@@ -209,3 +209,13 @@ def CreateLabInfo(lab_name, owners=('owner1', 'owner2'), update_timestamp=None):
       update_timestamp=update_timestamp)
   lab_info.put()
   return lab_info
+
+
+def CreateDeviceBlocklist(lab_name, user='user@example.com'):
+  """Create device blocklist."""
+  device_blocklist = datastore_entities.DeviceBlocklist(
+      lab_name=lab_name,
+      user=user,
+      note='lab outage')
+  device_blocklist.put()
+  return device_blocklist

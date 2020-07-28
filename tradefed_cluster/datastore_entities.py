@@ -1299,7 +1299,10 @@ class DeviceBlocklist(ndb.Model):
 @MessageConverter(DeviceBlocklist)
 def DeviceBlocklistToMessage(device_blocklist):
   """Convert a DeviceBlocklist entity into a DeviceBlocklistMessage."""
+  # integer_id() will return None if a user manually sets a string ID.
+  key_id = device_blocklist.key.integer_id() if device_blocklist.key else 0
   return api_messages.DeviceBlocklistMessage(
+      key_id=key_id,
       lab_name=device_blocklist.lab_name,
       create_timestamp=device_blocklist.create_timestamp,
       note=device_blocklist.note,

@@ -22,6 +22,7 @@ from tradefed_cluster.util import ndb_shim as ndb
 from tradefed_cluster import api_messages
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
+from tradefed_cluster import datastore_test_util
 from tradefed_cluster import testbed_dependent_test
 
 TIMESTAMP_OLD = datetime.datetime(2015, 5, 7)
@@ -217,16 +218,8 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(api_messages.HostState.RUNNING, host_info_res.host_state)
     self.assertTrue(host_info_res.is_bad)
 
-  def _CreateDeviceBlockList(self):
-    blocklist = datastore_entities.DeviceBlocklist(
-        lab_name='alab',
-        note='lab outage',
-        user='auser')
-    blocklist.put()
-    return blocklist
-
   def testDeviceBlocklist(self):
-    blocklist = self._CreateDeviceBlockList()
+    blocklist = datastore_test_util.CreateDeviceBlocklist('alab', 'auser')
     res = blocklist.key.get()
     self.assertIsNotNone(res.create_timestamp)
     self.assertEqual('alab', res.lab_name)
@@ -234,7 +227,7 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual('auser', res.user)
 
   def testDeviceBlocklistArchive(self):
-    blocklist = self._CreateDeviceBlockList()
+    blocklist = datastore_test_util.CreateDeviceBlocklist('alab', 'auser')
     blocklist_archive = (
         datastore_entities.DeviceBlocklistArchive.
         FromDeviceBlocklist(blocklist, 'another_user'))
@@ -248,15 +241,16 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual('auser', res.device_blocklist.user)
 
   def testDeviceBlocklistToMessage(self):
-    blocklist = self._CreateDeviceBlockList()
+    blocklist = datastore_test_util.CreateDeviceBlocklist('alab', 'auser')
     msg = datastore_entities.ToMessage(blocklist)
+    self.assertIsNotNone(msg.key_id)
     self.assertIsNotNone(msg.create_timestamp)
     self.assertEqual('alab', msg.lab_name)
     self.assertEqual('lab outage', msg.note)
     self.assertEqual('auser', msg.user)
 
   def testDeviceBlocklistArchiveToMessage(self):
-    blocklist = self._CreateDeviceBlockList()
+    blocklist = datastore_test_util.CreateDeviceBlocklist('alab', 'auser')
     blocklist_archive = (
         datastore_entities.DeviceBlocklistArchive.
         FromDeviceBlocklist(blocklist, 'another_user'))

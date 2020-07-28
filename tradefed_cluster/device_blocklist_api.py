@@ -22,6 +22,9 @@ from protorpc import remote
 from tradefed_cluster import api_common
 from tradefed_cluster import api_messages
 from tradefed_cluster import datastore_entities
+from tradefed_cluster import datastore_util
+
+_DEFAULT_COUNT = 100
 
 
 @api_common.tradefed_cluster_api.api_class(
@@ -54,3 +57,60 @@ class DeviceBlocklistApi(remote.Service):
         user=request.user)
     blocklist.put()
     return datastore_entities.ToMessage(blocklist)
+
+  GET_DEVICE_BLOCKLIST_RESOURCE = endpoints.ResourceContainer(
+      message_types.VoidMessage,
+      key_id=messages.IntegerField(1, required=True),
+  )
+
+  @endpoints.method(
+      GET_DEVICE_BLOCKLIST_RESOURCE,
+      api_messages.DeviceBlocklistMessage,
+      path="{key_id}", http_method="GET", name="get")
+  @api_common.with_ndb_context
+  def GetDeviceBlocklist(self, request):
+    """Get a device blocklist.
+
+    Args:
+      request: API request with key id.
+    Returns:
+      a DeviceBlocklistMessage object.
+    """
+    blocklist = datastore_entities.DeviceBlocklist.get_by_id(request.key_id)
+    return datastore_entities.ToMessage(blocklist)
+
+  LIST_DEVICE_BLOCKLIST_RESOURCE = endpoints.ResourceContainer(
+      message_types.VoidMessage,
+      count=messages.IntegerField(1, default=_DEFAULT_COUNT),
+      cursor=messages.StringField(2),
+      backwards=messages.BooleanField(3, default=False),
+  )
+
+  @endpoints.method(
+      LIST_DEVICE_BLOCKLIST_RESOURCE,
+      api_messages.DeviceBlocklistCollection,
+      path="/deviceBlocklists", http_method="GET", name="list")
+  @api_common.with_ndb_context
+  def ListDeviceBlocklist(self, request):
+    """List device blocklists.
+
+    Args:
+      request: API request with key id.
+    Returns:
+      a list of DeviceBlocklistMessage objects.
+    """
+    query = (
+        datastore_entities.DeviceBlocklist.query()
+        .order(-datastore_entities.DeviceBlocklist.create_timestamp))
+
+    device_blocklists, prev_cursor, next_cursor = datastore_util.FetchPage(
+        query, request.count, request.cursor, backwards=request.backwards)
+
+    msgs = [
+        datastore_entities.ToMessage(blocklist)
+        for blocklist in device_blocklists
+    ]
+    return api_messages.DeviceBlocklistCollection(
+        device_blocklists=msgs,
+        next_cursor=next_cursor,
+        prev_cursor=prev_cursor)

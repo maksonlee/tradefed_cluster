@@ -721,6 +721,7 @@ py_appengine_test(
     deps = [
         ":common_lib",
         ":datastore_entities_lib",
+        ":datastore_test_util_lib",
         ":testbed_dependent_test_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
     ],
@@ -969,6 +970,7 @@ py_appengine_library(
         ":api_messages_lib",
         ":common_lib",
         ":datastore_entities_lib",
+        ":datastore_util_lib",
     ],
 )
 
@@ -981,6 +983,7 @@ py_appengine_test(
     use_public_sdk = 1,
     deps = [
         ":api_test_lib",
+        ":datastore_test_util_lib",
         ":device_blocklist_api_lib",
     ],
 )

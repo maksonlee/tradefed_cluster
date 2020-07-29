@@ -25,6 +25,7 @@ from protorpc import protojson
 
 
 from tradefed_cluster import api_messages
+from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import datastore_util
 from tradefed_cluster import device_manager
@@ -323,5 +324,6 @@ def HandleHostSyncTask():
   if should_sync:
     device_manager.StartHostSync(hostname, taskname)
     _PublishHostMessage(hostname)
-    return
+    return common.HTTP_OK
   device_manager.StopHostSync(hostname, taskname)
+  return common.HTTP_OK

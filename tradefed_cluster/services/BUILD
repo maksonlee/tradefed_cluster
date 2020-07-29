@@ -11,6 +11,7 @@ py_appengine_library(
     ],
     srcs_version = "PY2AND3",
     deps = [
+        "//tradefed_cluster:api_common_lib",
         "//tradefed_cluster:env_config_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
         third_party("webapp2"),

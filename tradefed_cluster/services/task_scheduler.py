@@ -25,6 +25,7 @@ import uuid
 import webapp2
 
 
+from tradefed_cluster import api_common
 from tradefed_cluster.util import ndb_shim as ndb
 
 from tradefed_cluster import env_config
@@ -302,6 +303,7 @@ def _Serialize(obj, *args, **kwargs):
 class CallableTaskHandler(webapp2.RequestHandler):
   """A webapp handler class that processes callable tasks."""
 
+  @api_common.with_ndb_context
   def post(self):
     try:
       RunCallableTask(self.request.body)

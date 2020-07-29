@@ -336,8 +336,8 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     device_collection = protojson.decode_message(
         api_messages.DeviceInfoCollection, api_response.body)
     self.assertEqual('200 OK', api_response.status)
-    self.assertEqual(2, len(device_collection.device_infos))
-    self.assertTrue(device_collection.more)
+    self.assertEqual(1, len(device_collection.device_infos))
+    self.assertFalse(device_collection.more)
 
   def testListDevices_filterRunTargets(self):
     """Tests ListDevices returns devices filtered by run targets."""

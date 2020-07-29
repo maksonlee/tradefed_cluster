@@ -89,9 +89,12 @@ class ClusterDeviceApi(remote.Service):
     while next_cursor and len(devices) < request.count:
       devices_buffer, prev_cursor, next_cursor = datastore_util.FetchPage(
           query, next_batch_size, cursor)
-      next_batch_size = 0
+      next_batch_size = 1
       for d in devices_buffer:
         if len(devices) >= request.count:
+          # If in memory filtering found enough entities, modify next_cursor
+          _, _, next_cursor = datastore_util.FetchPage(query,
+                                                       next_batch_size, cursor)
           break
         next_batch_size += 1
         if request.pools and not set(d.pools).issubset(set(request.pools)):
@@ -118,9 +121,10 @@ class ClusterDeviceApi(remote.Service):
         # update cursor for next fetch cycle.
         cursor = next_cursor
 
-    # get cursors for pagination
-    _, prev_cursor, next_cursor = datastore_util.FetchPage(
-        query, next_batch_size, cursor)
+    # get cursors for pagination if there is still remaining records.
+    if cursor is not None:
+      _, prev_cursor, next_cursor = datastore_util.FetchPage(
+          query, next_batch_size, cursor)
     return devices, prev_cursor, next_cursor
 
   @endpoints.method(

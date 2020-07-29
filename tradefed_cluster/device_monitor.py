@@ -205,6 +205,7 @@ def MonitorDevice():
   _UpdateClusters()
   _UpdateLabs()
   logging.info('Finished NDBDeviceMonitor.')
+  return common.HTTP_OK
 
 
 def _ShouldHideHost(host):

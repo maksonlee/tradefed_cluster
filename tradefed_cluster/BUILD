@@ -987,6 +987,31 @@ py_appengine_test(
     ],
 )
 
+py_appengine_library(
+    name = "device_blocker_lib",
+    srcs = [
+        "device_blocker.py",
+    ],
+    envs = PY_APPENGINE_ENVS,
+    deps = [
+        ":datastore_entities_lib",
+    ],
+)
+
+py_appengine_test(
+    name = "device_blocker_test",
+    srcs = [
+        "device_blocker_test.py",
+    ],
+    envs = PY_APPENGINE_TEST_ENVS,
+    use_public_sdk = 1,
+    deps = [
+        ":datastore_test_util_lib",
+        ":device_blocker_lib",
+        ":testbed_dependent_test_lib",
+    ],
+)
+
 filegroup(
     name = "email_templates",
     srcs = glob([

@@ -560,7 +560,7 @@ def _UpdateGoneDevicesInNDB(hostname, reported_devices, timestamp):
   device_keys = (
       datastore_entities.DeviceInfo
       .query(ancestor=ndb.Key(datastore_entities.HostInfo, hostname))
-      .fetch(keys_only=True))
+      .filter(datastore_entities.DeviceInfo.hidden == False)        .fetch(keys_only=True))
   missing_device_keys = []
   for device_key in device_keys:
     if device_key.id() in reported_devices:

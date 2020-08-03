@@ -19,7 +19,7 @@ from __future__ import print_function
 
 import os
 
-import unittest
+from absl.testing import absltest
 
 from tradefed_cluster.util import datastore_emulator
 from tradefed_cluster.util import ndb_shim as ndb
@@ -42,7 +42,7 @@ def NdbContextManager():
           cache_policy=False, global_cache_policy=False)
 
 
-class NdbTest(unittest.TestCase):
+class NdbTest(absltest.TestCase):
   """Makes ndb context manager available for tests."""
 
   @classmethod

@@ -59,6 +59,13 @@ class DatastoreUtilTest(testbed_dependent_test.TestbedDependentTest):
     self.assertIsNotNone(next_cursor)
     self.assertEqual(cursor, prev_cursor)
 
+  def testFetchPage_lastPage(self):
+    """Tests that fetching the last page doesn't produce a next cursor."""
+    query = datastore_entities.LabInfo.query()
+    labs, _, next_cursor = datastore_util.FetchPage(query, 99)
+    self.assertEqual(10, len(labs))
+    self.assertIsNone(next_cursor)
+
   def testFetchPage_backwards(self):
     query = datastore_entities.LabInfo.query()
     query = query.order(datastore_entities.LabInfo.key)

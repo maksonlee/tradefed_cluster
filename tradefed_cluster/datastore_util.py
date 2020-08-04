@@ -56,7 +56,7 @@ def GoogleCloudFetchPage(query, page_size, page_cursor=None, backwards=False):
   """
   if not page_cursor:
     # no pagination information, fetch first page in normal order
-    results, cursor, more = query.fetch_page(page_size)
+    results, cursor, more = _FetchPageWithIterator(query, page_size, None)
     next_cursor = cursor.urlsafe() if more else None
     prev_cursor = None
   elif backwards:
@@ -64,17 +64,8 @@ def GoogleCloudFetchPage(query, page_size, page_cursor=None, backwards=False):
     if query.order_by:
       for order_property in query.order_by:
         order_property.reverse ^= order_property.reverse
-    if query.ancestor is not None:
-      reversed_query = ndb.Query(
-          ancestor=query.ancestor,
-          kind=query.kind,
-          filters=query.filters,
-          order_by=query.order_by)
-    else:
-      reversed_query = ndb.Query(
-          kind=query.kind, filters=query.filters, order_by=query.order_by)
-    results, cursor, more = reversed_query.fetch_page(
-        page_size, start_cursor=ndb.Cursor(urlsafe=six.ensure_str(page_cursor)))
+    results, cursor, more = _FetchPageWithIterator(
+        query, page_size, ndb.Cursor(urlsafe=six.ensure_str(page_cursor)))
     if not more and len(results) < page_size:
       return FetchPage(query, page_size)
     results.reverse()
@@ -82,11 +73,40 @@ def GoogleCloudFetchPage(query, page_size, page_cursor=None, backwards=False):
     prev_cursor = cursor.urlsafe() if more else None
   else:
     # fetching next page in normal order
-    results, cursor, more = query.fetch_page(
-        page_size, start_cursor=ndb.Cursor(urlsafe=six.ensure_str(page_cursor)))
+    results, cursor, more = _FetchPageWithIterator(
+        query, page_size, ndb.Cursor(urlsafe=six.ensure_str(page_cursor)))
     next_cursor = cursor.urlsafe() if more else None
     prev_cursor = page_cursor
   return results, prev_cursor, next_cursor
+
+
+def _FetchPageWithIterator(query, page_size, start_cursor):
+  """Iterates over query results to accumulate a page of results.
+
+  This has the same behavior as fetch_page (which also iterates over query
+  results with internal batching), but relies on has_next instead of
+  probably_has_next to determine the next cursor.
+
+  This can be slower for small page_sizes as fetch_page will limit the batch to
+  min(page_size, batch_size). However, this prevents post-query filtering.
+
+  Args:
+    query: query to apply, must be ordered
+    page_size: maximum number of results to fetch
+    start_cursor: marks the position to fetch from
+  Returns:
+    results: list of entities
+    next_cursor: position of the next set of results if there are more results
+    more: True if there are more results
+  See:
+    cs/google3/third_party/py/google/cloud/ndb/query.py;l=2387
+  """
+  it = query.iter(start_cursor=start_cursor)
+  results = []
+  while len(results) < page_size and it.has_next():
+    results.append(it.next())
+  next_cursor = it.cursor_after() if results else None
+  return results, next_cursor, next_cursor and it.has_next()
 
 
 def AppEngineFetchPage(query, page_size, page_cursor=None, backwards=False):

@@ -1064,7 +1064,7 @@ class ClusterHostApiTest(api_test.ApiTest):
                                           api_request)
     host_note_collection_msg = protojson.decode_message(
         api_messages.NoteCollection, api_response.body)
-    self.assertTrue(host_note_collection_msg.more)
+    self.assertFalse(host_note_collection_msg.more)
     note_msgs = host_note_collection_msg.notes
     self.assertEqual(2, len(note_msgs))
     self.assertEqual(note_msgs[0].hostname, note_entities[0].hostname)

@@ -1479,7 +1479,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         api_messages.DeviceInfoHistoryCollection, api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(1, len(device_history_collection.histories))
-    self.assertIsNotNone(device_history_collection.next_cursor)
+    self.assertIsNone(device_history_collection.next_cursor)  # no more results
     self.assertIsNotNone(device_history_collection.prev_cursor)  # has previous
 
     # fetch previous page (same as first page)
@@ -1499,6 +1499,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
                      device_history_collection.histories[0].state)
     self.assertEqual(common.DeviceState.ALLOCATED,
                      device_history_collection.histories[1].state)
+    self.assertIsNone(device_history_collection.prev_cursor)  # first page
     self.assertIsNotNone(device_history_collection.next_cursor)
 
 

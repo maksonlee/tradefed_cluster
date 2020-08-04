@@ -33,7 +33,6 @@ from tradefed_cluster import device_manager
 from tradefed_cluster import note_manager
 
 
-_BATCH_SIZE = 200
 _DEFAULT_LIST_NOTES_COUNT = 10
 _DEFAULT_LIST_DEVICE_COUNT = 100
 _DEFAULT_LIST_HISTORIES_COUNT = 100
@@ -67,65 +66,6 @@ class ClusterDeviceApi(remote.Service):
       device_serial=messages.StringField(16),
       flated_extra_info=messages.StringField(17),
   )
-
-  # TODO: Refactor into in memory filtering library
-  def _FetchWithFiltering(self, request, query):
-    """Method to handle in memory filtering.
-
-    IN, OR, != operators are not supported in Google Cloud,
-    these operations can only be done in memory filtering.
-
-    Args:
-      request: Request object containing the filters to be applied
-      query: ndb Query to fetch results from.
-
-    Returns:
-      tuple(list of elements, prev cursor, next cursor)
-    """
-    next_cursor = True
-    cursor = request.cursor
-    devices = []
-    next_batch_size = _BATCH_SIZE
-    while next_cursor and len(devices) < request.count:
-      devices_buffer, prev_cursor, next_cursor = datastore_util.FetchPage(
-          query, next_batch_size, cursor)
-      next_batch_size = 0
-      for d in devices_buffer:
-        if len(devices) >= request.count:
-          # If in memory filtering found enough entities, modify next_cursor
-          _, _, next_cursor = datastore_util.FetchPage(query,
-                                                       next_batch_size, cursor)
-          break
-        next_batch_size += 1
-        if request.pools and not set(d.pools).issubset(set(request.pools)):
-          continue
-        if request.device_states and d.state not in request.device_states:
-          continue
-        if request.host_groups and d.host_group not in request.host_groups:
-          continue
-        if not request.include_offline_devices and \
-            d.state not in common.DEVICE_ONLINE_STATES:
-          continue
-        if request.device_types and d.device_type not in request.device_types:
-          continue
-        if request.test_harness and d.test_harness not in request.test_harness:
-          continue
-        if request.hostnames and d.hostname not in request.hostnames:
-          continue
-        if request.run_targets and d.run_target not in request.run_targets:
-          continue
-        devices.append(d)
-
-      if len(devices) < request.count:
-        # If there is still devices left to get:
-        # update cursor for next fetch cycle.
-        cursor = next_cursor
-
-    # get cursors for pagination if there is still remaining records.
-    if cursor is not None:
-      _, prev_cursor, next_cursor = datastore_util.FetchPage(
-          query, next_batch_size, cursor)
-    return devices, prev_cursor, next_cursor
 
   @endpoints.method(
       DEVICE_LIST_RESOURCE,
@@ -174,7 +114,31 @@ class ClusterDeviceApi(remote.Service):
                            request.flated_extra_info)
 
     start_time = time.time()
-    devices, prev_cursor, next_cursor = self._FetchWithFiltering(request, query)
+
+    def _PostFilter(device):
+      if request.pools and not set(device.pools).issubset(set(request.pools)):
+        return
+      if request.device_states and device.state not in request.device_states:
+        return
+      if request.host_groups and device.host_group not in request.host_groups:
+        return
+      if not request.include_offline_devices and \
+          device.state not in common.DEVICE_ONLINE_STATES:
+        return
+      if request.device_types and \
+          device.device_type not in request.device_types:
+        return
+      if request.test_harness and \
+          device.test_harness not in request.test_harness:
+        return
+      if request.hostnames and device.hostname not in request.hostnames:
+        return
+      if request.run_targets and device.run_target not in request.run_targets:
+        return
+      return True
+
+    devices, prev_cursor, next_cursor = datastore_util.FetchPage(
+        query, request.count, request.cursor, result_filter=_PostFilter)
 
     logging.debug("Fetched %d devices in %r seconds.", len(devices),
                   time.time() - start_time)

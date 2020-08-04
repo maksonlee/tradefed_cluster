@@ -80,7 +80,7 @@ class ClusterHostApi(remote.Service):
     while next_cursor and len(hosts) < request.count:
       hosts_buffer, prev_cursor, next_cursor = datastore_util.FetchPage(
           query, next_batch_size, cursor)
-      next_batch_size = 1
+      next_batch_size = 0
       for h in hosts_buffer:
         if len(hosts) >= request.count:
           # If in memory filtering found enough entities, modify next_cursor

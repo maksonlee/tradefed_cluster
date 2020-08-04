@@ -89,7 +89,7 @@ class ClusterDeviceApi(remote.Service):
     while next_cursor and len(devices) < request.count:
       devices_buffer, prev_cursor, next_cursor = datastore_util.FetchPage(
           query, next_batch_size, cursor)
-      next_batch_size = 1
+      next_batch_size = 0
       for d in devices_buffer:
         if len(devices) >= request.count:
           # If in memory filtering found enough entities, modify next_cursor

@@ -318,14 +318,19 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     This test retrieves the last page which should have less devices than the
     specified count.
     """
-    # 4 devices. Offset of 3 means it should return only 1 when count >= 1
+    # 5 devices. Offset of 3 means it should return only 2 when count >= 2
     api_request = {'include_hidden': True, 'count': '3'}
     api_response = self.testapp.post_json(
         '/_ah/api/ClusterDeviceApi.ListDevices', api_request)
     device_collection = protojson.decode_message(
         api_messages.DeviceInfoCollection, api_response.body)
+    device_infos = device_collection.device_infos
     self.assertEqual('200 OK', api_response.status)
-    self.assertEqual(3, len(device_collection.device_infos))
+    self.assertEqual(3, len(device_infos))
+    self.assertEqual('device_0', device_infos[0].device_serial)
+    self.assertEqual('device_1', device_infos[1].device_serial)
+    self.assertEqual('device_2', device_infos[2].device_serial)
+
     api_request = {
         'include_hidden': True,
         'count': '3',
@@ -335,8 +340,11 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         '/_ah/api/ClusterDeviceApi.ListDevices', api_request)
     device_collection = protojson.decode_message(
         api_messages.DeviceInfoCollection, api_response.body)
+    device_infos = device_collection.device_infos
     self.assertEqual('200 OK', api_response.status)
-    self.assertEqual(1, len(device_collection.device_infos))
+    self.assertEqual(2, len(device_collection.device_infos))
+    self.assertEqual('device_3', device_infos[0].device_serial)
+    self.assertEqual('device_4', device_infos[1].device_serial)
     self.assertFalse(device_collection.more)
 
   def testListDevices_filterRunTargets(self):

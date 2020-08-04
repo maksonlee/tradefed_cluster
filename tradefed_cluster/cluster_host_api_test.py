@@ -202,7 +202,7 @@ class ClusterHostApiTest(api_test.ApiTest):
 
   def testListHosts_withCursorAndOffset(self):
     """Tests ListHosts returns hosts for a count and offset."""
-    api_request = {'count': '1'}
+    api_request = {'count': '2'}
     api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
                                           api_request)
     host_collection = protojson.decode_message(api_messages.HostInfoCollection,
@@ -211,18 +211,21 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertTrue(host_collection.more)
     cursor = host_collection.next_cursor
     self.assertIsNotNone(cursor)
-    self.assertEqual(1, len(host_collection.host_infos))
+    self.assertEqual(2, len(host_collection.host_infos))
+    self.assertEqual('host_0', host_collection.host_infos[0].hostname)
+    self.assertEqual('host_2', host_collection.host_infos[1].hostname)
     self.assertEqual(0, len(host_collection.host_infos[0].device_infos))
 
-    api_request = {'count': '1', 'cursor': cursor}
+    api_request = {'count': '2', 'cursor': cursor}
     api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
                                           api_request)
     host_collection = protojson.decode_message(api_messages.HostInfoCollection,
                                                api_response.body)
     self.assertEqual('200 OK', api_response.status)
-    self.assertTrue(host_collection.more)
-    self.assertIsNotNone(host_collection.next_cursor)
+    self.assertFalse(host_collection.more)
+    self.assertIsNone(host_collection.next_cursor)
     self.assertEqual(1, len(host_collection.host_infos))
+    self.assertEqual('host_3', host_collection.host_infos[0].hostname)
 
   def testListHosts_withDevicesOffset(self):
     """Tests ListHosts returns hosts with devices for a count and offset."""

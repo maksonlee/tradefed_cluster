@@ -20,7 +20,8 @@ from tradefed_cluster.util import ndb_shim as ndb
 from google.appengine.ext import ndb as gae_ndb
 
 
-def FetchPage(query, page_size, page_cursor=None, backwards=False):
+def FetchPage(query, page_size, page_cursor=None, backwards=False,
+              result_filter=None):
   """Fetches a page of results based on the provided cursors.
 
   Args:
@@ -28,6 +29,7 @@ def FetchPage(query, page_size, page_cursor=None, backwards=False):
     page_size: maximum number of results to fetch
     page_cursor: marks the position to fetch from
     backwards: True to fetch the page that precedes the cursor
+    result_filter (Callable[[ndb.Model], bool]): post-query predicate to apply
 
   Returns:
     tuple(list of elements, prev cursor, next cursor).
@@ -35,14 +37,16 @@ def FetchPage(query, page_size, page_cursor=None, backwards=False):
 
   if isinstance(query, ndb.Query):
     return GoogleCloudFetchPage(query, page_size,
-                                page_cursor=page_cursor, backwards=backwards)
+                                page_cursor=page_cursor, backwards=backwards,
+                                result_filter=result_filter)
   else:
     # TODO: Clean up legacy NDB behaviour
     return AppEngineFetchPage(query, page_size,
                               page_cursor=page_cursor, backwards=backwards)
 
 
-def GoogleCloudFetchPage(query, page_size, page_cursor=None, backwards=False):
+def GoogleCloudFetchPage(query, page_size, page_cursor=None, backwards=False,
+                         result_filter=None):
   """Fetches a page of results based on the provided cursors.
 
   Args:
@@ -50,13 +54,15 @@ def GoogleCloudFetchPage(query, page_size, page_cursor=None, backwards=False):
     page_size: maximum number of results to fetch
     page_cursor: marks the position to fetch from
     backwards: True to fetch the page that precedes the cursor
+    result_filter (Callable[[ndb.Model], bool]): post-query predicate to apply
 
   Returns:
     page of results
   """
   if not page_cursor:
     # no pagination information, fetch first page in normal order
-    results, cursor, more = _FetchPageWithIterator(query, page_size, None)
+    results, cursor, more = _FetchPageWithIterator(
+        query, page_size, None, result_filter)
     next_cursor = cursor.urlsafe() if more else None
     prev_cursor = None
   elif backwards:
@@ -65,7 +71,8 @@ def GoogleCloudFetchPage(query, page_size, page_cursor=None, backwards=False):
       for order_property in query.order_by:
         order_property.reverse ^= order_property.reverse
     results, cursor, more = _FetchPageWithIterator(
-        query, page_size, ndb.Cursor(urlsafe=six.ensure_str(page_cursor)))
+        query, page_size, ndb.Cursor(urlsafe=six.ensure_str(page_cursor)),
+        result_filter)
     if not more and len(results) < page_size:
       return FetchPage(query, page_size)
     results.reverse()
@@ -74,13 +81,14 @@ def GoogleCloudFetchPage(query, page_size, page_cursor=None, backwards=False):
   else:
     # fetching next page in normal order
     results, cursor, more = _FetchPageWithIterator(
-        query, page_size, ndb.Cursor(urlsafe=six.ensure_str(page_cursor)))
+        query, page_size, ndb.Cursor(urlsafe=six.ensure_str(page_cursor)),
+        result_filter)
     next_cursor = cursor.urlsafe() if more else None
     prev_cursor = page_cursor
   return results, prev_cursor, next_cursor
 
 
-def _FetchPageWithIterator(query, page_size, start_cursor):
+def _FetchPageWithIterator(query, page_size, start_cursor, result_filter):
   """Iterates over query results to accumulate a page of results.
 
   This has the same behavior as fetch_page (which also iterates over query
@@ -94,6 +102,7 @@ def _FetchPageWithIterator(query, page_size, start_cursor):
     query: query to apply, must be ordered
     page_size: maximum number of results to fetch
     start_cursor: marks the position to fetch from
+    result_filter (Callable[[ndb.Model], bool]): post-query predicate to apply
   Returns:
     results: list of entities
     next_cursor: position of the next set of results if there are more results
@@ -104,7 +113,9 @@ def _FetchPageWithIterator(query, page_size, start_cursor):
   it = query.iter(start_cursor=start_cursor)
   results = []
   while len(results) < page_size and it.has_next():
-    results.append(it.next())
+    result = it.next()
+    if not result_filter or result_filter(result):
+      results.append(result)
   next_cursor = it.cursor_after() if results else None
   return results, next_cursor, next_cursor and it.has_next()
 

@@ -15,6 +15,7 @@
 
 import copy
 import datetime
+import re
 import unittest
 
 import mock
@@ -143,6 +144,21 @@ class DatastoreUtilTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual('lab2', labs[2].lab_name)
     self.assertIsNone(prev_cursor)
     self.assertIsNotNone(next_cursor)
+
+  def testFetchPage_withResultFilter(self):
+    """Tests that a predicate function can be applied to the query results."""
+    even_lab_number_re = re.compile('^lab[02468]$')
+    def _Filter(lab):
+      return even_lab_number_re.search(lab.lab_name)
+
+    query = datastore_entities.LabInfo.query()
+    query = query.order(datastore_entities.LabInfo.key)
+    labs, _, _ = datastore_util.FetchPage(query, 4, result_filter=_Filter)
+    self.assertEqual(4, len(labs))
+    self.assertEqual('lab0', labs[0].lab_name)
+    self.assertEqual('lab2', labs[1].lab_name)
+    self.assertEqual('lab4', labs[2].lab_name)
+    self.assertEqual('lab6', labs[3].lab_name)
 
   def testBatchQuery(self):
     query = datastore_entities.LabInfo.query()

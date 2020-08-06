@@ -20,7 +20,6 @@ import zlib
 
 import flask
 
-from tradefed_cluster import api_common
 from tradefed_cluster import command_manager
 from tradefed_cluster import command_monitor
 from tradefed_cluster import common
@@ -140,7 +139,6 @@ def _CreateCommands(request):
 
 
 @APP.route(REQUEST_HANDLER_PATH, methods=["POST"])
-@api_common.with_ndb_context
 def HandleRequest():
   """Process a request message."""
   body = flask.request.get_data()

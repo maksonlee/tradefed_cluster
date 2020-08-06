@@ -22,7 +22,6 @@ import zlib
 
 import flask
 
-from tradefed_cluster import api_common
 from tradefed_cluster import command_event
 from tradefed_cluster import command_manager
 from tradefed_cluster import common
@@ -133,7 +132,6 @@ def ProcessCommandEvent(event):
 
 # The below handler is served in frontend module.
 @APP.route(COMMAND_EVENT_HANDLER_PATH, methods=["POST"])
-@api_common.with_ndb_context
 def HandleCommandEvent():
   """Process a command event message in COMMAND_EVENT_QUEUE."""
   payload = flask.request.get_data()

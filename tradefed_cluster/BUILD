@@ -1,3 +1,5 @@
+load("//tools/build_defs/testing:bzl_library.bzl", "bzl_library")
+
 # A test infra software for Android testing labs.
 load("//tradefed_cluster:adapter.bzl", "py_appengine_binary", "py_appengine_library", "py_appengine_test", "third_party")
 
@@ -1371,3 +1373,17 @@ py_appengine_library(
     ],
 )
 
+
+bzl_library(
+    name = "adapter_bzl",
+    srcs = ["adapter.bzl"],
+    parse_tests = False,
+    visibility = ["//visibility:private"],
+)
+
+bzl_library(
+    name = "adapter.bazel_bzl",
+    srcs = ["adapter.bazel.bzl"],
+    parse_tests = False,
+    visibility = ["//visibility:private"],
+)

@@ -1,3 +1,4 @@
+load("//tools/build_defs/testing:bzl_library.bzl", "bzl_library")
 load("//tradefed_cluster:adapter.bzl", "pytype_strict_binary", "third_party_py3")
 
 package(default_visibility = ["//visibility:public"])
@@ -78,4 +79,11 @@ filegroup(
         "tfc.yaml",
         ":handler_yamls",
     ],
+)
+
+bzl_library(
+    name = "build_defs_bzl",
+    srcs = ["build_defs.bzl"],
+    parse_tests = False,
+    visibility = ["//visibility:private"],
 )

@@ -15,6 +15,7 @@
 """Unit tests for task_scheduler module."""
 
 import datetime
+import pickle
 import threading
 import unittest
 
@@ -39,16 +40,17 @@ class TaskSchedulerTest(testbed_dependent_test.TestbedDependentTest):
   def setUp(self):
     super(TaskSchedulerTest, self).setUp()
     self.mock_task_scheduler = mock.MagicMock(spec=plugins_base.TaskScheduler)
+    self.mock_add = self.mock_task_scheduler.AddTask
     env_config.CONFIG.task_scheduler = self.mock_task_scheduler
+    _object.last_callable_call = None
 
   def testAddTask(self):
-    mock_add = self.mock_task_scheduler.AddTask
     mock_task = mock.MagicMock()
-    mock_add.return_value = mock_task
+    self.mock_add.return_value = mock_task
 
     task = task_scheduler.AddTask(queue_name='queue_name', payload='payload')
 
-    mock_add.assert_called_once_with(
+    self.mock_add.assert_called_once_with(
         queue_name='queue_name',
         payload='payload',
         task_name=None,
@@ -57,9 +59,7 @@ class TaskSchedulerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(mock_task, task)
 
   def testAddTask_withTransaction(self):
-    mock_add = self.mock_task_scheduler.AddTask
-    mock_task = mock.MagicMock()
-    mock_add.return_value = mock_task
+    self.mock_add.return_value = mock.MagicMock()
     eta = datetime.datetime.utcnow() + datetime.timedelta(days=1)
 
     @ndb.transactional()
@@ -73,7 +73,7 @@ class TaskSchedulerTest(testbed_dependent_test.TestbedDependentTest):
           transactional=True)
     task = Func()
 
-    mock_add.assert_called_once_with(
+    self.mock_add.assert_called_once_with(
         queue_name='queue_name',
         payload='payload',
         task_name='name',
@@ -82,7 +82,6 @@ class TaskSchedulerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual('name', task.name)
 
   def testAddTask_withTransactionFailure(self):
-    mock_add = self.mock_task_scheduler.AddTask
     eta = datetime.datetime.utcnow() + datetime.timedelta(days=1)
 
     @ndb.transactional()
@@ -98,7 +97,7 @@ class TaskSchedulerTest(testbed_dependent_test.TestbedDependentTest):
     with self.assertRaises(ValueError):
       Func()
 
-    mock_add.assert_not_called()
+    self.mock_add.assert_not_called()
 
   def testDeleteTask(self):
     queue_name = 'queue_name'
@@ -110,79 +109,67 @@ class TaskSchedulerTest(testbed_dependent_test.TestbedDependentTest):
         queue_name=queue_name, task_name=task_name)
 
   def testAddCallableTask(self):
-    mock_add = self.mock_task_scheduler.AddTask
-    _object.last_callable_call = None
+    task_scheduler.AddCallableTask(Callable, 123, foo=bytearray(100))
 
-    task_scheduler.AddCallableTask(Callable, 1, foo=10, bar=100, zzz=1000)
-
-    mock_add.assert_called_once_with(
+    self.mock_add.assert_called_once_with(
         queue_name=task_scheduler.DEFAULT_CALLABLE_TASK_QUEUE,
         payload=mock.ANY,
         target=None,
         task_name=None,
         eta=None)
-    task_scheduler.RunCallableTask(mock_add.call_args[1]['payload'])
+    payload = self.mock_add.call_args[1]['payload']
+    # Small payload is executed directly
+    self.assertEqual(Callable, pickle.loads(payload)[0])
+
+    task_scheduler.RunCallableTask(payload)
     self.assertEqual(
-        mock.call(1, foo=10, bar=100, zzz=1000), _object.last_callable_call)
+        mock.call(123, foo=bytearray(100)), _object.last_callable_call)
 
   def testAddCallableTask_withLargePayload(self):
-    mock_add = self.mock_task_scheduler.AddTask
-    _object.last_callable_call = None
-    mock_add.return_value = None
+    task_scheduler.AddCallableTask(Callable, 123, foo=bytearray(100 * 1024))
 
-    task_scheduler.AddCallableTask(Callable, 1, foo=10, bar=100, zzz=1000)
-
-    mock_add.assert_called_once_with(
+    self.mock_add.assert_called_once_with(
         queue_name=task_scheduler.DEFAULT_CALLABLE_TASK_QUEUE,
         payload=mock.ANY,
         target=None,
         task_name=None,
         eta=None)
-    task_scheduler.RunCallableTask(mock_add.call_args[1]['payload'])
+    payload = self.mock_add.call_args[1]['payload']
+    # Large payload is stored in datastore
+    self.assertEqual(task_scheduler._RunCallableTaskFromDatastore,
+                     pickle.loads(payload)[0])
+
+    task_scheduler.RunCallableTask(payload)
     self.assertEqual(
-        mock.call(1, foo=10, bar=100, zzz=1000), _object.last_callable_call)
+        mock.call(123, foo=bytearray(100 * 1024)), _object.last_callable_call)
 
   def testAddCallableTask_withLargePayloadAndTransaction(self):
-    mock_add = self.mock_task_scheduler.AddTask
-    _object.last_callable_call = None
-    mock_add.return_value = None
-
     @ndb.transactional()
     def Func():
-      task_scheduler.AddCallableTask(Callable, 1, foo=10, bar=100, zzz=1000)
+      task_scheduler.AddCallableTask(Callable, 123, foo=bytearray(100 * 1024))
     Func()
 
-    mock_add.assert_called_once_with(
+    self.mock_add.assert_called_once_with(
         queue_name=task_scheduler.DEFAULT_CALLABLE_TASK_QUEUE,
         payload=mock.ANY,
         target=None,
-        task_name=None,
+        task_name=mock.ANY,  # Handled transactionally and given a name
         eta=None)
-    task_scheduler.RunCallableTask(mock_add.call_args[1]['payload'])
+    payload = self.mock_add.call_args[1]['payload']
+    task_scheduler.RunCallableTask(payload)
     self.assertEqual(
-        mock.call(1, foo=10, bar=100, zzz=1000), _object.last_callable_call)
+        mock.call(123, foo=bytearray(100 * 1024)), _object.last_callable_call)
 
   def testAddCallableTask_withLargePayloadAndTransactionFailure(self):
-    mock_add = self.mock_task_scheduler.AddTask
-    _object.last_callable_call = None
-    mock_add.return_value = None
-
     @ndb.transactional()
     def Func():
-      task_scheduler.AddCallableTask(Callable, 1, foo=10, bar=100, zzz=1000)
+      task_scheduler.AddCallableTask(Callable, 123, foo=bytearray(100 * 1024))
       raise ValueError()
     with self.assertRaises(ValueError):
       Func()
 
-    mock_add.assert_called_once_with(
-        queue_name=task_scheduler.DEFAULT_CALLABLE_TASK_QUEUE,
-        payload=mock.ANY,
-        target=None,
-        task_name=None,
-        eta=None)
-    task_scheduler.RunCallableTask(mock_add.call_args[1]['payload'])
-    self.assertEqual(
-        mock.call(1, foo=10, bar=100, zzz=1000), _object.last_callable_call)
+    # Large payload is handled transactionally and not added on failure
+    self.mock_add.assert_not_called()
 
 
 if __name__ == '__main__':

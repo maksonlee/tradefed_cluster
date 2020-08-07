@@ -184,13 +184,11 @@ def AddCallableTask(obj, *args, **kwargs):
   except TaskTooLargeError:
     # Task is too big - store it to the datastore
     pass
-  entity = _CallableTaskEntity(data=pickled)
   if not transactional and ndb.in_transaction():
-    # Make sure an entity is stored even if a parent transaction fails.
-    ndb.transaction(entity.put, propagation=ndb.TransactionOptions.INDEPENDENT)
-  else:
-    entity.put()
-  pickled = _Serialize(_RunCallableTaskFromDatastore, entity.key)
+    logging.warning("Adding large callable task transactionally")
+    transactional = True  # Ensure callback is executed after task is committed
+  entity_key = _CallableTaskEntity(data=pickled).put()
+  pickled = _Serialize(_RunCallableTaskFromDatastore, entity_key)
   return _AddTask(
       queue_name=queue,
       payload=pickled,
@@ -231,7 +229,7 @@ def _RunCallableTaskFromDatastore(key):
     # If the entity is missing, no number of retries will help.
     raise NonRetriableTaskExecutionError()
   try:
-    ret = RunCallableTask(entity.data)
+    RunCallableTask(entity.data)
     key.delete()
   except NonRetriableTaskExecutionError:
     key.delete()

@@ -108,10 +108,17 @@ class HostConfig(object):
     return self.cluster_config_pb.cluster_name
 
   @property
+  # TODO: Deprecated, use main_server_url instead.
   def master_url(self):
     """Get the master server the host connect to."""
     return (self.cluster_config_pb.master_url or
             self.lab_config_pb.master_url)
+
+  @property
+  def main_server_url(self):
+    """Get the master server the host connect to."""
+    return (self.cluster_config_pb.main_server_url or
+            self.lab_config_pb.main_server_url)
 
   @property
   def docker_image(self):
@@ -222,12 +229,13 @@ def CreateHostConfig(
     tf_global_config_path=None,
     tmpfs_configs=None,
     docker_image=None,
-    master_url=None,
+    master_url=None,  # TODO: Use main_server_url instead.
     graceful_shutdown=False,
     enable_stackdriver=False,
     enable_autoupdate=False,
     service_account_json_key_path=None,
-    extra_docker_args=()):
+    extra_docker_args=(),
+    main_server_url=None):
   """Create a host config from raw data.
 
   Args:
@@ -245,6 +253,7 @@ def CreateHostConfig(
     service_account_json_key_path: string or None, the file path of service
       account json key.
     extra_docker_args: extra docker args to pass to docker container.
+    main_server_url: the main server the host connect to.
   Returns:
     a HostConfig have all those data.
   """
@@ -262,7 +271,8 @@ def CreateHostConfig(
       docker_image=docker_image,
       master_url=master_url,
       graceful_shutdown=graceful_shutdown,
-      enable_stackdriver=enable_stackdriver)
+      enable_stackdriver=enable_stackdriver,
+      main_server_url=main_server_url)
   lab_config_pb = lab_config_pb2.LabConfig(
       lab_name=lab_name,
       cluster_configs=[cluster_config_pb],

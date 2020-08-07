@@ -19,6 +19,7 @@ owners:
   - lab_user1
   - user1
 master_url: tradefed_cluster
+main_server_url: tfc
 docker_image: lab_docker_image
 enable_stackdriver: True
 enable_autoupdate: True
@@ -31,6 +32,7 @@ cluster_configs:
   - user1
   tf_global_config_path: path/to/config.xml
   master_url: tradefed_cluster
+  main_server_url: tfc
   docker_image: gcr.io/dockerized-tradefed/tradefed:golden
   graceful_shutdown: True
   enable_stackdriver: True

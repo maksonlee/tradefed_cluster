@@ -13,7 +13,7 @@ py_appengine_library(
     deps = [
         "//tradefed_cluster:env_config_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
-        third_party("webapp2"),
+        third_party("flask"),
     ],
 )
 

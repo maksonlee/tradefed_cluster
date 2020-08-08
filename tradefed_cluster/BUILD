@@ -898,7 +898,6 @@ py_appengine_test(
         ":device_monitor_lib",
         ":testbed_dependent_test_lib",
         third_party("mock"),
-        third_party("webapp2"),
         third_party("webtest"),
         "//tradefed_cluster/util:ndb_shim_lib",
     ],
@@ -1107,7 +1106,6 @@ py_appengine_test(
     deps = [
         ":metric_lib",
         third_party("mock"),
-        third_party("webapp2"),
         third_party("webtest"),
     ],
 )

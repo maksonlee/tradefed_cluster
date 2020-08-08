@@ -22,9 +22,10 @@ import pickle
 import types
 import uuid
 
-import webapp2
+import flask
 
 
+from tradefed_cluster import common
 from tradefed_cluster.util import ndb_shim as ndb
 
 from tradefed_cluster import env_config
@@ -34,6 +35,8 @@ from tradefed_cluster.plugins import base as plugins_base
 # https://cloud.google.com/tasks/docs/quotas
 MAX_TASK_SIZE_BYTES = 100 * 1024
 DEFAULT_CALLABLE_TASK_QUEUE = "default"
+
+APP = flask.Flask(__name__)
 
 Task = plugins_base.Task
 
@@ -297,21 +300,21 @@ def _Serialize(obj, *args, **kwargs):
   return pickle.dumps(pack, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-class CallableTaskHandler(webapp2.RequestHandler):
-  """A webapp handler class that processes callable tasks."""
-
-  def post(self):
-    try:
-      RunCallableTask(self.request.body)
-    except TaskExecutionError:
-      # Catch a TaskExecutionError. Intended for users to be able to force a
-      # task retry without causing an error.
-      logging.debug("Fail to execute a task, task retry forced")
-      self.response.set_status(408)
-      return
-    except NonRetriableTaskExecutionError:
-      # Catch this so we return a 200 and don't retry the task.
-      logging.exception("Non-retriable error raised while executing a task")
-
-
-APP = webapp2.WSGIApplication([(".*", CallableTaskHandler)])
+@APP.route("/", methods=["POST"])
+# This matchs all path start with "/".
+@APP.route("/<path:fake>", methods=["POST"])
+def HandleCallableTask(fake=None):
+  """Process callable tasks."""
+  del fake
+  try:
+    RunCallableTask(flask.request.get_data())
+  except TaskExecutionError:
+    # Catch a TaskExecutionError. Intended for users to be able to force a
+    # task retry without causing an error.
+    logging.debug("Fail to execute a task, task retry forced")
+    status_code = flask.Response(status=408)
+    return status_code
+  except NonRetriableTaskExecutionError:
+    # Catch this so we return a 200 and don't retry the task.
+    logging.exception("Non-retriable error raised while executing a task")
+  return common.HTTP_OK

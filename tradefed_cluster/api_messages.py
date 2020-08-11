@@ -469,6 +469,7 @@ class DeviceInfo(messages.Message):
     sim_state: State of the SIM.
     sim_operator: Operator of the SIM.
     test_harness: test harness the device is running under.
+    recovery_state: recovery state for the host, e.g. assigned, fixed, verified.
   """
   device_serial = messages.StringField(1)
   lab_name = messages.StringField(2)
@@ -497,6 +498,7 @@ class DeviceInfo(messages.Message):
   extra_info = messages.MessageField(KeyValuePair, 24, repeated=True)
   test_harness = messages.StringField(25)
   flated_extra_info = messages.StringField(26, repeated=True)
+  recovery_state = messages.StringField(27)
 
 
 class DeviceInfoCollection(messages.Message):
@@ -587,6 +589,7 @@ class HostInfo(messages.Message):
   test_harness_version = messages.StringField(27)
   flated_extra_info = messages.StringField(28, repeated=True)
   last_recovery_time = message_types.DateTimeField(29)
+  recovery_state = messages.StringField(30)
 
 
 class HostInfoCollection(messages.Message):

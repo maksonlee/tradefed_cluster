@@ -394,7 +394,8 @@ class ApiMessagesTest(api_test.ApiTest):
             'host_url': 'aurl',
         },
         device_count_summaries=[d1_count, d2_count],
-        last_recovery_time=TIMESTAMP)
+        last_recovery_time=TIMESTAMP,
+        recovery_state=common.RecoveryState.FIXED)
 
   def testHostInfoFromEntity(self):
     """Test converting from host_info to host_info message."""
@@ -433,6 +434,8 @@ class ApiMessagesTest(api_test.ApiTest):
     self.assertEqual(1, host_info_message.device_count_summaries[1].allocated)
     self.assertTrue(host_info_message.is_bad)
     self.assertEqual(TIMESTAMP, host_info_message.last_recovery_time)
+    self.assertEqual(common.RecoveryState.FIXED,
+                     host_info_message.recovery_state)
 
   def _CreateMockDeviceInfoEntity(self):
     """Helper function to create mock device info entity."""
@@ -451,7 +454,8 @@ class ApiMessagesTest(api_test.ApiTest):
             'product': 'aproduct',
             'last_known_build_id': 'P1234',
             'sim_state': 'unknown',
-        })
+        },
+        recovery_state=common.RecoveryState.FIXED)
 
   def testDeviceInfoFromEntity(self):
     """Test converting from device_info to device_info message."""
@@ -469,6 +473,7 @@ class ApiMessagesTest(api_test.ApiTest):
         entity.extra_info,
         api_messages.KeyValuePairMessagesToMap(
             msg.extra_info))
+    self.assertEqual(common.RecoveryState.FIXED, entity.recovery_state)
 
   def testPredefinedMessageFromEntity(self):
     entity = datastore_entities.PredefinedMessage(

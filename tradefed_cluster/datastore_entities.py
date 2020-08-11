@@ -834,6 +834,7 @@ class HostInfo(ndb.Expando):
       are device offline on the host.
     last_recovery_time: last time the host was recovered.
     flated_extra_info: flated extra info for the host.
+    recovery_state: recovery state for the host, e.g. assigned, fixed, verified.
   """
   hostname = ndb.StringProperty()
   lab_name = ndb.StringProperty()
@@ -871,6 +872,7 @@ class HostInfo(ndb.Expando):
   device_count_timestamp = ndb.DateTimeProperty()
   last_recovery_time = ndb.DateTimeProperty()
   flated_extra_info = ndb.ComputedProperty(_FlatExtraInfo, repeated=True)
+  recovery_state = ndb.StringProperty()
 
 
 @MessageConverter(HostInfo)
@@ -918,7 +920,8 @@ def HostInfoToMessage(host_info_entity, devices=None):
       device_count_summaries=device_count_summaries,
       is_bad=host_info_entity.is_bad,
       last_recovery_time=host_info_entity.last_recovery_time,
-      flated_extra_info=host_info_entity.flated_extra_info)
+      flated_extra_info=host_info_entity.flated_extra_info,
+      recovery_state=host_info_entity.recovery_state)
 
 
 class HostInfoHistory(HostInfo):
@@ -999,6 +1002,7 @@ class DeviceInfo(ndb.Expando):
     last_known_product: last known product
     last_known_product_variant: last known product variant
     flated_extra_info: flated extra info for the device
+    recovery_state: recovery state for the host, e.g. assigned, fixed, verified.
   """
   device_serial = ndb.StringProperty()
   run_target = ndb.StringProperty()
@@ -1029,6 +1033,7 @@ class DeviceInfo(ndb.Expando):
   last_known_product = ndb.StringProperty()
   last_known_product_variant = ndb.StringProperty()
   flated_extra_info = ndb.ComputedProperty(_FlatExtraInfo, repeated=True)
+  recovery_state = ndb.StringProperty()
 
 
 @MessageConverter(DeviceInfo)
@@ -1063,7 +1068,8 @@ def DeviceInfoToMessage(device_info_entity):
       device_type=device_type,
       extra_info=api_messages.MapToKeyValuePairMessages(
           device_info_entity.extra_info),
-      test_harness=device_info_entity.test_harness)
+      test_harness=device_info_entity.test_harness,
+      recovery_state=device_info_entity.recovery_state)
 
 
 class DeviceInfoHistory(DeviceInfo):

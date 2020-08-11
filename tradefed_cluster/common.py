@@ -233,3 +233,11 @@ class FilterHintType(messages.Enum):
   DEVICE_STATE = 6
   HOST_STATE = 7
   HOST_GROUP = 8
+
+
+class RecoveryState(object):
+  """Host and device recovery state."""
+  UNKNOWN = "UNKNOWN"
+  ASSIGNED = "ASSIGNED"
+  FIXED = "FIXED"
+  VERIFIED = "VERIFIED"

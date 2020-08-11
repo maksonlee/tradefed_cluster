@@ -67,7 +67,7 @@ def MapToKeyValuePairMessages(key_value_map):
     return key_value_pair_messages
   for k, v in key_value_map.iteritems():
     if v is not None:
-      v = six.ensure_text(v)
+      v = _ValueToText(v)
     key_value_pair_messages.append(KeyValuePair(key=k, value=v))
   key_value_pair_messages.sort(key=lambda p: p.key)
   return key_value_pair_messages
@@ -82,10 +82,18 @@ def MapToKeyMultiValuePairMessages(key_values_map):
   """Transform a key-values dict to a list of KeyMultiValuePairs."""
   pairs = []
   for key, values in (key_values_map or {}).iteritems():
-    str_values = [six.ensure_text(v) if v is not None else v for v in values]
+    str_values = [_ValueToText(v) if v is not None else v
+                  for v in values]
     pairs.append(KeyMultiValuePair(key=key, values=str_values))
   pairs.sort(key=lambda p: p.key)
   return pairs
+
+
+def _ValueToText(value):
+  """Convert a value to text."""
+  if isinstance(value, six.string_types):
+    return six.ensure_text(value)
+  return six.ensure_text(repr(value))
 
 
 class TradefedConfigObjectType(messages.Enum):

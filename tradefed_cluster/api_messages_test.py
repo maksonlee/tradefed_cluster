@@ -539,29 +539,40 @@ class ApiMessagesTest(api_test.ApiTest):
 
   def testMapToKeyMultiValuePairMessages(self):
     d = collections.OrderedDict([
+        ('ints', [1]),
         ('key1', ['value1']),
         (u'key2_\xf4', [u'value2_\xf4', 'value3']),
         ('key3', [])])
     msgs = api_messages.MapToKeyMultiValuePairMessages(d)
-    self.assertEqual('key1', msgs[0].key)
-    self.assertEqual(['value1'], msgs[0].values)
-    self.assertEqual(u'key2_\xf4', msgs[1].key)
-    self.assertEqual([u'value2_\xf4', 'value3'], msgs[1].values)
-    self.assertEqual('key3', msgs[2].key)
-    self.assertEqual([], msgs[2].values)
+    self.assertEqual('ints', msgs[0].key)
+    self.assertEqual(['1'], msgs[0].values)
+    self.assertEqual('key1', msgs[1].key)
+    self.assertEqual(['value1'], msgs[1].values)
+    self.assertEqual(u'key2_\xf4', msgs[2].key)
+    self.assertEqual([u'value2_\xf4', 'value3'], msgs[2].values)
+    self.assertEqual('key3', msgs[3].key)
+    self.assertEqual([], msgs[3].values)
 
   def testMapToKeyValuePairMessages(self):
     d = collections.OrderedDict([
+        ('int', 12),
         ('key1', 'value1'),
         (u'key2_\xf4', u'value2_\xf4'),
         ('key3', None)])
     msgs = api_messages.MapToKeyValuePairMessages(d)
-    self.assertEqual('key1', msgs[0].key)
-    self.assertEqual('value1', msgs[0].value)
-    self.assertEqual(u'key2_\xf4', msgs[1].key)
-    self.assertEqual(u'value2_\xf4', msgs[1].value)
-    self.assertEqual('key3', msgs[2].key)
-    self.assertIsNone(msgs[2].value)
+    self.assertEqual('int', msgs[0].key)
+    self.assertEqual('12', msgs[0].value)
+    self.assertEqual('key1', msgs[1].key)
+    self.assertEqual('value1', msgs[1].value)
+    self.assertEqual(u'key2_\xf4', msgs[2].key)
+    self.assertEqual(u'value2_\xf4', msgs[2].value)
+    self.assertEqual('key3', msgs[3].key)
+    self.assertIsNone(msgs[3].value)
+
+  def testValueToText(self):
+    self.assertEqual('str', api_messages._ValueToText('str'))
+    self.assertEqual('1', api_messages._ValueToText(1))
+    self.assertEqual(u'value2_\xf4', api_messages._ValueToText(u'value2_\xf4'))
 
 
 if __name__ == '__main__':

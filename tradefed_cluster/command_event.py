@@ -175,7 +175,7 @@ def _ParseInvocationStatus(data):
   Returns:
     a datastore_entities.InvocationStatus object.
   """
-  logging.info("invocation progress data: %s", data)
+  logging.debug("invocation progress data: %s", data)
   if data is None:
     return None
   obj = datastore_entities.InvocationStatus()

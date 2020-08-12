@@ -93,12 +93,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.RequestState.CANCELED, persisted_request.state)
     self.assertEqual(common.CancelReason.QUEUE_TIMEOUT,
                      persisted_request.cancel_reason)
-    mock_add.assert_called_once_with(
-        queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=zlib.compress(
-            protojson.encode_message(
-                request_manager.CreateRequestEventMessage(persisted_request))),
-        transactional=True)
+    self._AssertRequestEventMessageIsQueued(
+        request_manager.CreateRequestEventMessage(persisted_request), mock_add)
     mock_delete.assert_called_once_with(
         request_manager.REQUEST_QUEUE, REQUEST_ID)
 
@@ -296,13 +292,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.RequestState.QUEUED, request.state)
     self.assertIsNone(request.start_time)
     self.assertIsNone(request.end_time)
-
-    mock_add.assert_called_once_with(
-        queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=zlib.compress(
-            protojson.encode_message(
-                request_manager.CreateRequestEventMessage(request))),
-        transactional=True)
+    self._AssertRequestEventMessageIsQueued(
+        request_manager.CreateRequestEventMessage(request), mock_add)
     mock_add.reset_mock()
 
     # Command running. Request should be updated to RUNNING state.
@@ -313,12 +304,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.RequestState.RUNNING, request.state)
     self.assertEqual(self.START_TIME, request.start_time)
     self.assertIsNone(request.end_time)
-    mock_add.assert_called_once_with(
-        queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=zlib.compress(
-            protojson.encode_message(
-                request_manager.CreateRequestEventMessage(request))),
-        transactional=True)
+    self._AssertRequestEventMessageIsQueued(
+        request_manager.CreateRequestEventMessage(request), mock_add)
     mock_add.reset_mock()
 
     # Command completed. Request should be updated to COMPLETED state.
@@ -329,12 +316,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.RequestState.COMPLETED, request.state)
     self.assertEqual(self.START_TIME, request.start_time)
     self.assertEqual(self.END_TIME, request.end_time)
-    mock_add.assert_called_once_with(
-        queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=zlib.compress(
-            protojson.encode_message(
-                request_manager.CreateRequestEventMessage(request))),
-        transactional=True)
+    self._AssertRequestEventMessageIsQueued(
+        request_manager.CreateRequestEventMessage(request), mock_add)
 
   @mock.patch.object(task_scheduler, "AddTask")
   @mock.patch.object(common, "Now")
@@ -373,12 +356,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.RequestState.QUEUED, request.state)
     self.assertIsNone(request.start_time)
     self.assertIsNone(request.end_time)
-    mock_add.assert_called_once_with(
-        queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=zlib.compress(
-            protojson.encode_message(
-                request_manager.CreateRequestEventMessage(request))),
-        transactional=True)
+    self._AssertRequestEventMessageIsQueued(
+        request_manager.CreateRequestEventMessage(request), mock_add)
     mock_add.reset_mock()
 
     # Command1 running. Request should be updated to RUNNING state.
@@ -389,12 +368,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.RequestState.RUNNING, request.state)
     self.assertEqual(self.START_TIME, request.start_time)
     self.assertIsNone(request.end_time)
-    mock_add.assert_called_once_with(
-        queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=zlib.compress(
-            protojson.encode_message(
-                request_manager.CreateRequestEventMessage(request))),
-        transactional=True)
+    self._AssertRequestEventMessageIsQueued(
+        request_manager.CreateRequestEventMessage(request), mock_add)
     mock_add.reset_mock()
 
     # Command1 completed. Request should be updated back to QUEUED state.
@@ -405,12 +380,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.RequestState.QUEUED, request.state)
     self.assertEqual(self.START_TIME, request.start_time)
     self.assertIsNone(request.end_time)
-    mock_add.assert_called_once_with(
-        queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=zlib.compress(
-            protojson.encode_message(
-                request_manager.CreateRequestEventMessage(request))),
-        transactional=True)
+    self._AssertRequestEventMessageIsQueued(
+        request_manager.CreateRequestEventMessage(request), mock_add)
     mock_add.reset_mock()
 
     # Command2 running. Request should be updated to RUNNING state.
@@ -421,12 +392,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.RequestState.RUNNING, request.state)
     self.assertEqual(self.START_TIME, request.start_time)
     self.assertIsNone(request.end_time)
-    mock_add.assert_called_once_with(
-        queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=zlib.compress(
-            protojson.encode_message(
-                request_manager.CreateRequestEventMessage(request))),
-        transactional=True)
+    self._AssertRequestEventMessageIsQueued(
+        request_manager.CreateRequestEventMessage(request), mock_add)
     mock_add.reset_mock()
 
     # Command2 completed. Request should be updated to COMPLETED state.
@@ -437,12 +404,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.RequestState.COMPLETED, request.state)
     self.assertEqual(self.START_TIME, request.start_time)
     self.assertEqual(self.END_TIME, request.end_time)
-    mock_add.assert_called_once_with(
-        queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=zlib.compress(
-            protojson.encode_message(
-                request_manager.CreateRequestEventMessage(request))),
-        transactional=True)
+    self._AssertRequestEventMessageIsQueued(
+        request_manager.CreateRequestEventMessage(request), mock_add)
 
   @mock.patch.object(task_scheduler, "AddTask")
   @mock.patch.object(common, "Now")
@@ -467,12 +430,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.RequestState.COMPLETED, request.state)
     self.assertEqual(self.START_TIME, request.start_time)
     self.assertEqual(self.END_TIME, request.end_time)
-    mock_add.assert_called_once_with(
-        queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=zlib.compress(
-            protojson.encode_message(
-                request_manager.CreateRequestEventMessage(request))),
-        transactional=True)
+    self._AssertRequestEventMessageIsQueued(
+        request_manager.CreateRequestEventMessage(request), mock_add)
 
   @mock.patch.object(task_scheduler, "AddTask")
   def testEvaluateState_withCompleteCommand_notifyError(self, mock_add):
@@ -536,12 +495,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.RequestState.ERROR, request.state)
     self.assertEqual(self.START_TIME, request.start_time)
     self.assertEqual(self.END_TIME, request.end_time)
-    mock_add.assert_called_once_with(
-        queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=zlib.compress(
-            protojson.encode_message(
-                request_manager.CreateRequestEventMessage(request))),
-        transactional=True)
+    self._AssertRequestEventMessageIsQueued(
+        request_manager.CreateRequestEventMessage(request), mock_add)
 
   @mock.patch.object(task_scheduler, "AddTask")
   @mock.patch.object(common, "Now")
@@ -581,12 +536,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(self.END_TIME, request.end_time)
     # command's cancel_reason is propagated to request
     self.assertEqual(common.CancelReason.INVALID_REQUEST, request.cancel_reason)
-    mock_add.assert_called_once_with(
-        queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=zlib.compress(
-            protojson.encode_message(
-                request_manager.CreateRequestEventMessage(request))),
-        transactional=True)
+    self._AssertRequestEventMessageIsQueued(
+        request_manager.CreateRequestEventMessage(request), mock_add)
 
   @mock.patch.object(task_scheduler, "AddTask")
   @mock.patch.object(common, "Now")
@@ -611,12 +562,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.RequestState.COMPLETED, request.state)
     self.assertEqual(self.START_TIME, request.start_time)
     self.assertEqual(self.END_TIME, request.end_time)
-    mock_add.assert_called_once_with(
-        queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=zlib.compress(
-            protojson.encode_message(
-                request_manager.CreateRequestEventMessage(request))),
-        transactional=True)
+    self._AssertRequestEventMessageIsQueued(
+        request_manager.CreateRequestEventMessage(request), mock_add)
     mock_add.reset_mock()
 
     # If a command is COMPLETED, then any attempts to cancel it afterwards
@@ -653,12 +600,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.RequestState.CANCELED, request.state)
     self.assertIsNone(request.start_time)
     self.assertIsNone(request.end_time)
-    mock_add.assert_called_once_with(
-        queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=zlib.compress(
-            protojson.encode_message(
-                request_manager.CreateRequestEventMessage(request))),
-        transactional=True)
+    self._AssertRequestEventMessageIsQueued(
+        request_manager.CreateRequestEventMessage(request), mock_add)
     mock_add.reset_mock()
 
     # If the commands of a request are all COMPLETED while the request is
@@ -671,12 +614,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.RequestState.COMPLETED, request.state)
     self.assertEqual(request.start_time, self.START_TIME)
     self.assertEqual(request.end_time, self.END_TIME)
-    mock_add.assert_called_once_with(
-        queue_name=common.OBJECT_EVENT_QUEUE,
-        payload=zlib.compress(
-            protojson.encode_message(
-                request_manager.CreateRequestEventMessage(request))),
-        transactional=True)
+    self._AssertRequestEventMessageIsQueued(
+        request_manager.CreateRequestEventMessage(request), mock_add)
 
   def testGetCommandAttempts(self):
     for _ in range(10):
@@ -1301,6 +1240,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(queue_message.type, message.type)
     self.assertEqual(queue_message.request_id, message.request_id)
     self.assertEqual(queue_message.new_state, message.new_state)
+    # Ignore request update_time
+    message.request.update_time = queue_message.request.update_time
     self.assertEqual(queue_message.request, message.request)
     self.assertEqual(queue_message.summary, message.summary)
     self.assertEqual(queue_message.total_test_count, message.total_test_count)

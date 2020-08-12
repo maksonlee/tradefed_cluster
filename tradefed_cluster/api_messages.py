@@ -316,6 +316,10 @@ class RequestMessage(messages.Message):
     prev_test_context: a previous test context.
 
     state: a state of the request.
+    start_time: test execution start time.
+    end_time: test execution stop time.
+    create_time: time when the request was created.
+    update_time: time when the request was last updated.
     command_attempts: a list of CommandAttemptMessages.
     cancel_message: a cancel message.
     api_module_version: API module version.
@@ -337,13 +341,17 @@ class RequestMessage(messages.Message):
   prev_test_context = messages.MessageField(TestContext, 13)
 
   state = messages.EnumField(common.RequestState, 15)
+  start_time = message_types.DateTimeField(16)
+  end_time = message_types.DateTimeField(17)
+  create_time = message_types.DateTimeField(18)
+  update_time = message_types.DateTimeField(19)
   # TODO: Deprecate cancel_message after remove the usage in ATP.
-  cancel_message = messages.StringField(16)
-  api_module_version = messages.StringField(17)
+  cancel_message = messages.StringField(20)
+  api_module_version = messages.StringField(21)
   commands = messages.MessageField(
-      CommandMessage, 18, repeated=True)
+      CommandMessage, 22, repeated=True)
   command_attempts = messages.MessageField(
-      CommandAttemptMessage, 19, repeated=True)
+      CommandAttemptMessage, 23, repeated=True)
 
 
 class RequestMessageCollection(messages.Message):

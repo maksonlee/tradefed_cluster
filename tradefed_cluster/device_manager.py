@@ -278,6 +278,10 @@ def _GetDeviceType(serial):
   Returns:
     An api_messages.DeviceTypeMessage for the given serial
   """
+  # If a serial has a host prefix, remove it.
+  if ":" in serial:
+    serial = serial.split(":", 2)[1]
+
   if serial.startswith(EMULATOR_DEVICE_PREFIX):
     return api_messages.DeviceTypeMessage.EMULATOR
 
@@ -360,10 +364,9 @@ def _UpdateDeviceInNDB(device, device_key, device_data, host_event):
     entities to update
   """
   entities_to_update = []
-  device_serial = device_data.get(DEVICE_SERIAL_KEY)
+  device_serial = _TransformDeviceSerial(
+      host_event.hostname, device_data.get(DEVICE_SERIAL_KEY))
   device_type = _GetDeviceType(device_serial)
-  device_serial = (_TransformDeviceSerial(
-      hostname=host_event.hostname, serial=device_serial))
 
   run_target = device_data.get(RUN_TARGET_KEY)
   product = device_data.get(PRODUCT_KEY)
@@ -474,11 +477,7 @@ def _UpdateDeviceState(device, state, timestamp):
   Returns:
     the new state history
   """
-  if (not state or
-      device.device_serial.startswith(NON_PHYSICAL_DEVICES_PREFIXES)):
-    # We ignore state history changes for non-physical devices.
-    return None, None
-  if device.state == state:
+  if not state or device.state == state:
     # Ignore if the state doesn't change
     return None, None
   device.state = state

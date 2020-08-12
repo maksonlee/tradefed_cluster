@@ -841,18 +841,6 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(timestamp, device_history.timestamp)
     self.assertEqual(common.DeviceState.ALLOCATED, device_history.state)
 
-  def testUpdateDeviceState_nonPhysicalDevice(self):
-    """Test updating a state for a new device."""
-    device = datastore_test_util.CreateDevice(
-        "acluster", "ahost", "tcp-device-0",
-        timestamp=datetime.datetime(2015, 5, 6),
-        state=common.DeviceState.AVAILABLE)
-    device_state_history, device_history = device_manager._UpdateDeviceState(
-        device, common.DeviceState.ALLOCATED,
-        datetime.datetime(2015, 5, 7))
-    self.assertIsNone(device_state_history)
-    self.assertIsNone(device_history)
-
   def testUpdateDeviceState_sameState(self):
     """Test updating the same state for a existing device."""
     device = datastore_test_util.CreateDevice(

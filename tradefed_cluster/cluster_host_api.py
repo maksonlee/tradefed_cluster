@@ -36,6 +36,21 @@ _DEFAULT_LIST_HOST_COUNT = 100
 _DEFAULT_LIST_HISTORIES_COUNT = 100
 
 
+def _CheckTimestamp(t1, operator, t2):
+  """Compare 2 timestamps."""
+  if operator == common.Operator.EQUAL:
+    return t1 == t2
+  if operator == common.Operator.LESS_THAN:
+    return t1 < t2
+  if operator == common.Operator.LESS_THAN_OR_EQUAL:
+    return t1 <= t2
+  if operator == common.Operator.GREATER_THAN:
+    return t1 > t2
+  if operator == common.Operator.GREATER_THAN_OR_EQUAL:
+    return t1 >= t2
+  raise ValueError('Operator "%s" is not supported.' % operator)
+
+
 @api_common.tradefed_cluster_api.api_class(resource_name="hosts", path="hosts")
 class ClusterHostApi(remote.Service):
   """A class for cluster host API service."""
@@ -56,7 +71,9 @@ class ClusterHostApi(remote.Service):
       flated_extra_info=messages.StringField(12),
       cursor=messages.StringField(13),
       count=messages.IntegerField(
-          14, variant=messages.Variant.INT32, default=_DEFAULT_LIST_HOST_COUNT))
+          14, variant=messages.Variant.INT32, default=_DEFAULT_LIST_HOST_COUNT),
+      timestamp_operator=messages.EnumField(common.Operator, 15),
+      timestamp=message_types.DateTimeField(16))
 
   @endpoints.method(
       HOST_LIST_RESOURCE,
@@ -74,6 +91,10 @@ class ClusterHostApi(remote.Service):
     Returns:
       a HostInfoCollection object.
     """
+    if ((request.timestamp and not request.timestamp_operator) or
+        (not request.timestamp and request.timestamp_operator)):
+      raise endpoints.BadRequestException(
+          '"timestamp" and "timestamp_operator" must be set at the same time.')
     query = datastore_entities.HostInfo.query()
     if request.lab_name:
       query = query.filter(
@@ -92,7 +113,12 @@ class ClusterHostApi(remote.Service):
       query = query.filter(datastore_entities.HostInfo.flated_extra_info ==
                            request.flated_extra_info)
 
-    query = query.order(datastore_entities.HostInfo.key)
+    if request.timestamp:
+      query = query.order(
+          datastore_entities.HostInfo.timestamp,
+          datastore_entities.HostInfo.key)
+    else:
+      query = query.order(datastore_entities.HostInfo.key)
 
     def _PostFilter(host):
       if request.host_groups and host.host_group not in request.host_groups:
@@ -109,6 +135,11 @@ class ClusterHostApi(remote.Service):
         return
       if request.host_states and host.host_state not in request.host_states:
         return
+      if request.timestamp:
+        if not host.timestamp:
+          return
+        return _CheckTimestamp(
+            host.timestamp, request.timestamp_operator, request.timestamp)
       return True
 
     hosts, prev_cursor, next_cursor = datastore_util.FetchPage(

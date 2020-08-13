@@ -24,6 +24,7 @@ from tradefed_cluster.util import ndb_shim as ndb
 from tradefed_cluster import api_messages
 from tradefed_cluster import api_test
 from tradefed_cluster import common
+from tradefed_cluster import cluster_host_api
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import datastore_test_util
 from tradefed_cluster import device_manager
@@ -64,6 +65,7 @@ class ClusterHostApiTest(api_test.ApiTest):
         cluster='paid',
         hostname='host_1',
         device_count_timestamp=self.TIMESTAMP,
+        timestamp=self.TIMESTAMP,
         hidden=True,
         device_count_summaries=[
             datastore_test_util.CreateDeviceCountSummary(
@@ -88,12 +90,14 @@ class ClusterHostApiTest(api_test.ApiTest):
         lab_name='alab',
         assignee='auser',
         device_count_timestamp=self.TIMESTAMP,
+        timestamp=self.TIMESTAMP,
         device_count_summaries=[
             datastore_test_util.CreateDeviceCountSummary(
                 run_target='run_target1', offline=4, available=0, allocated=1)
         ])
     self.ndb_host_3 = datastore_test_util.CreateHost(
-        cluster='paid', hostname='host_3', lab_name='alab')
+        cluster='paid', hostname='host_3', lab_name='alab',
+        timestamp=self.TIMESTAMP)
     self.note = datastore_entities.Note(
         type=common.NoteType.HOST_NOTE,
         hostname='host_0',
@@ -439,6 +443,38 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(1, len(host_collection.host_infos))
     self.assertEqual(host_collection.host_infos[0].hostname, host_01.hostname)
+
+  def testListHosts_filterByTimestamp(self):
+    """Tests ListHosts can filter by timestmap."""
+    self.ndb_host_0.timestamp = datetime.datetime(2020, 8, 8, 12, 13)
+    self.ndb_host_0.put()
+    api_request = {
+        'timestamp_operator': 'LESS_THAN',
+        'timestamp': '2020-8-7T12:20:30'
+    }
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
+                                          api_request)
+    host_collection = protojson.decode_message(api_messages.HostInfoCollection,
+                                               api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(2, len(host_collection.host_infos))
+    for host in host_collection.host_infos:
+      if host.hostname == 'host_2':
+        self.AssertEqualHostInfo(self.ndb_host_2, host)
+      elif host.hostname == 'host_3':
+        self.AssertEqualHostInfo(self.ndb_host_3, host)
+      else:
+        # host_1 is hidden and should not be reported
+        self.fail()
+
+  def testListHosts_invalidTimestampFilter(self):
+    """Tests ListHosts with invalid timestmap filter."""
+    api_request = {
+        'timestamp_operator': 'LESS_THAN',
+    }
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
+                                          api_request, expect_errors=True)
+    self.assertEqual('400 Bad Request', api_response.status)
 
   @mock.patch.object(note_manager, 'PublishMessage')
   def testAddOrUpdateHostNote_addWithTextOfflineReasonAndRecoveryAction(
@@ -1394,6 +1430,58 @@ class ClusterHostApiTest(api_test.ApiTest):
                      host_history_collection.histories[0].host_state)
     self.assertEqual(api_messages.HostState.KILLING.name,
                      host_history_collection.histories[1].host_state)
+
+  def testCheckTimestamp(self):
+    self.assertTrue(
+        cluster_host_api._CheckTimestamp(
+            datetime.datetime(2020, 8, 8, 17, 30),
+            common.Operator.EQUAL,
+            datetime.datetime(2020, 8, 8, 17, 30)))
+    self.assertFalse(
+        cluster_host_api._CheckTimestamp(
+            datetime.datetime(2020, 8, 8, 17, 30),
+            common.Operator.EQUAL,
+            datetime.datetime(2020, 8, 8, 17, 31)))
+    self.assertTrue(
+        cluster_host_api._CheckTimestamp(
+            datetime.datetime(2020, 8, 8, 17, 30),
+            common.Operator.LESS_THAN,
+            datetime.datetime(2020, 8, 8, 17, 31)))
+    self.assertFalse(
+        cluster_host_api._CheckTimestamp(
+            datetime.datetime(2020, 8, 8, 17, 31),
+            common.Operator.LESS_THAN,
+            datetime.datetime(2020, 8, 8, 17, 30)))
+    self.assertTrue(
+        cluster_host_api._CheckTimestamp(
+            datetime.datetime(2020, 8, 8, 17, 31),
+            common.Operator.GREATER_THAN,
+            datetime.datetime(2020, 8, 8, 17, 30)))
+    self.assertFalse(
+        cluster_host_api._CheckTimestamp(
+            datetime.datetime(2020, 8, 8, 17, 30),
+            common.Operator.GREATER_THAN,
+            datetime.datetime(2020, 8, 8, 17, 31)))
+    self.assertTrue(
+        cluster_host_api._CheckTimestamp(
+            datetime.datetime(2020, 8, 8, 17, 31),
+            common.Operator.GREATER_THAN_OR_EQUAL,
+            datetime.datetime(2020, 8, 8, 17, 30)))
+    self.assertFalse(
+        cluster_host_api._CheckTimestamp(
+            datetime.datetime(2020, 8, 8, 17, 30),
+            common.Operator.GREATER_THAN_OR_EQUAL,
+            datetime.datetime(2020, 8, 8, 17, 31)))
+    self.assertTrue(
+        cluster_host_api._CheckTimestamp(
+            datetime.datetime(2020, 8, 8, 17, 30),
+            common.Operator.LESS_THAN_OR_EQUAL,
+            datetime.datetime(2020, 8, 8, 17, 31)))
+    self.assertFalse(
+        cluster_host_api._CheckTimestamp(
+            datetime.datetime(2020, 8, 8, 17, 31),
+            common.Operator.LESS_THAN_OR_EQUAL,
+            datetime.datetime(2020, 8, 8, 17, 30)))
 
 
 if __name__ == '__main__':

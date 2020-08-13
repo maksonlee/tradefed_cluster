@@ -235,6 +235,16 @@ class FilterHintType(messages.Enum):
   HOST_GROUP = 8
 
 
+class Operator(messages.Enum):
+  """The types of operators."""
+  UNKNOWN = 0
+  EQUAL = 1
+  LESS_THAN = 2
+  LESS_THAN_OR_EQUAL = 3
+  GREATER_THAN = 4
+  GREATER_THAN_OR_EQUAL = 5
+
+
 class RecoveryState(object):
   """Host and device recovery state."""
   UNKNOWN = "UNKNOWN"

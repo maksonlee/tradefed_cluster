@@ -163,6 +163,13 @@ class HostConfig(object):
     """The file path of service account json key."""
     return self.lab_config_pb.service_account_json_key_path
 
+  @property
+  def docker_server(self):
+    """Get the docker server the image is hosted on."""
+    return (self.host_config_pb.docker_server or
+            self.cluster_config_pb.docker_server or
+            self.lab_config_pb.docker_server)
+
   def SetServiceAccountJsonKeyPath(self, val):
     """Create a new config with given value of service_account_json_key_path."""
     host_config = self.Copy()
@@ -234,6 +241,7 @@ def CreateHostConfig(
     enable_stackdriver=False,
     enable_autoupdate=False,
     service_account_json_key_path=None,
+    docker_server=None,
     extra_docker_args=(),
     main_server_url=None):
   """Create a host config from raw data.
@@ -252,6 +260,7 @@ def CreateHostConfig(
     enable_autoupdate: enable auto-update daemon or not.
     service_account_json_key_path: string or None, the file path of service
       account json key.
+    docker_server: the docker server that hosts the image.
     extra_docker_args: extra docker args to pass to docker container.
     main_server_url: the main server the host connect to.
   Returns:
@@ -263,6 +272,7 @@ def CreateHostConfig(
       tmpfs_configs=tmpfs_configs,
       enable_autoupdate=enable_autoupdate,
       docker_image=docker_image,
+      docker_server=docker_server,
       extra_docker_args=list(extra_docker_args))
   cluster_config_pb = lab_config_pb2.ClusterConfig(
       cluster_name=cluster_name,
@@ -272,10 +282,12 @@ def CreateHostConfig(
       master_url=master_url,
       graceful_shutdown=graceful_shutdown,
       enable_stackdriver=enable_stackdriver,
+      docker_server=docker_server,
       main_server_url=main_server_url)
   lab_config_pb = lab_config_pb2.LabConfig(
       lab_name=lab_name,
       cluster_configs=[cluster_config_pb],
+      docker_server=docker_server,
       service_account_json_key_path=service_account_json_key_path)
   return HostConfig(host_config_pb, cluster_config_pb, lab_config_pb)
 

@@ -21,6 +21,7 @@ owners:
 master_url: tradefed_cluster
 main_server_url: tfc
 docker_image: lab_docker_image
+docker_server: docker_server_1
 enable_stackdriver: True
 enable_autoupdate: True
 service_account_json_key_path: path/to/key.json
@@ -34,6 +35,7 @@ cluster_configs:
   master_url: tradefed_cluster
   main_server_url: tfc
   docker_image: gcr.io/dockerized-tradefed/tradefed:golden
+  docker_server: docker_server_2
   graceful_shutdown: True
   enable_stackdriver: True
   enable_autoupdate: True
@@ -53,6 +55,7 @@ cluster_configs:
   - hostname: host3
     tf_global_config_path: path/to/new/config.xml
     docker_image: gcr.io/dockerized-tradefed/tradefed:canary
+    docker_server: docker_server_3
 
 - cluster_name: cluster2
   tf_global_config_path: path/to/config.xml

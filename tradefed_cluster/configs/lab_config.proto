@@ -27,7 +27,7 @@ message LabConfig {
   // Owners of the lab.
   repeated string owners = 3;
   // Master server the Tradefed connects to.
-  // TODO: Deprecated, use main_server_url instead.
+  // TODO: Deprecated, use control_server_url instead.
   optional string master_url = 4;
   // Docker image to use for the hosts.
   optional string docker_image = 5;
@@ -39,8 +39,8 @@ message LabConfig {
   optional bool enable_autoupdate = 8;
   // The file path of the service account json key.
   optional string service_account_json_key_path = 9;
-  // Main server the Tradefed connects to.
-  optional string main_server_url = 10;
+  // Control server the Tradefed connects to.
+  optional string control_server_url = 10;
   // The docker server from which to download the image.
   optional string docker_server = 11;
 }
@@ -60,7 +60,7 @@ message ClusterConfig {
   // Tmpfs to mount into the container.
   repeated TmpfsConfig tmpfs_configs = 6;
   // Master server the Tradefed connects to.
-  // TODO: Deprecated, use main_server_url instead.
+  // TODO: Deprecated, use control_server_url instead.
   optional string master_url = 7;
   // Docker image to use for the host.
   optional string docker_image = 8;
@@ -72,8 +72,8 @@ message ClusterConfig {
   optional bool enable_autoupdate = 11;
   // Extra docker args
   repeated string extra_docker_args = 12;
-  // Main server the Tradefed connects to.
-  optional string main_server_url = 13;
+  // Control server the Tradefed connects to.
+  optional string control_server_url = 13;
   // The docker server that hosts the image.
   optional string docker_server = 14;
 }

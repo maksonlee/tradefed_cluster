@@ -41,8 +41,7 @@ class ConfigTest(unittest.TestCase):
     self.assertEqual('lab1', lab_config_pb.lab_name)
     self.assertEqual('lab_user1', lab_config_pb.host_login_name)
     self.assertEqual(['lab_user1', 'user1'], lab_config_pb.owners)
-    self.assertEqual('tradefed_cluster', lab_config_pb.master_url)
-    self.assertEqual('tfc', lab_config_pb.main_server_url)
+    self.assertEqual('tfc_master_url', lab_config_pb.master_url)
     self.assertEqual('lab_docker_image', lab_config_pb.docker_image)
     self.assertEqual('docker_server_1', lab_config_pb.docker_server)
     self.assertTrue(lab_config_pb.enable_stackdriver)
@@ -55,8 +54,8 @@ class ConfigTest(unittest.TestCase):
     self.assertEqual('user1', cluster.host_login_name)
     self.assertEqual(['user1'], cluster.owners)
     self.assertEqual('path/to/config.xml', cluster.tf_global_config_path)
-    self.assertEqual('tradefed_cluster', cluster.master_url)
-    self.assertEqual('tfc', cluster.main_server_url)
+    self.assertEqual('tfc_master_url', cluster.master_url)
+    self.assertEqual('', cluster.control_server_url)
     self.assertTrue(cluster.graceful_shutdown)
     self.assertTrue(cluster.enable_stackdriver)
     self.assertTrue(cluster.enable_autoupdate)
@@ -125,23 +124,21 @@ class ConfigTest(unittest.TestCase):
         hostname='ahost',
         host_login_name='auser',
         tf_global_config_path='apath',
-        docker_image='a_docker_image',
         docker_server='a_docker_server',
-        master_url='tradefed_cluster',
+        docker_image='a_docker_image',
         graceful_shutdown=True,
         enable_stackdriver=True,
         enable_autoupdate=True,
         extra_docker_args=['--arg1', 'value1'],
-        main_server_url='tfc')
+        control_server_url='tfc')
     self.assertEqual('alab', host_config.lab_name)
     self.assertEqual('acluster', host_config.cluster_name)
     self.assertEqual('ahost', host_config.hostname)
     self.assertEqual('auser', host_config.host_login_name)
     self.assertEqual('apath', host_config.tf_global_config_path)
     self.assertEqual('a_docker_image', host_config.docker_image)
+    self.assertEqual('tfc', host_config.control_server_url)
     self.assertEqual('a_docker_server', host_config.docker_server)
-    self.assertEqual('tradefed_cluster', host_config.master_url)
-    self.assertEqual('tfc', host_config.main_server_url)
     self.assertTrue(host_config.graceful_shutdown)
     self.assertTrue(host_config.enable_stackdriver)
     self.assertTrue(host_config.enable_autoupdate)
@@ -249,8 +246,7 @@ class LabConfigPoolTest(unittest.TestCase):
     self.assertEqual('user1', hosts[0].host_login_name)
     self.assertEqual('cluster1', hosts[0].cluster_name)
     self.assertEqual('path/to/config.xml', hosts[0].tf_global_config_path)
-    self.assertEqual('tradefed_cluster', hosts[0].master_url)
-    self.assertEqual('tfc', hosts[0].main_server_url)
+    self.assertEqual('tfc_master_url', hosts[0].control_server_url)
     self.assertTrue(hosts[0].graceful_shutdown)
     self.assertTrue(hosts[0].enable_stackdriver)
     self.assertTrue(hosts[0].enable_autoupdate)
@@ -264,8 +260,7 @@ class LabConfigPoolTest(unittest.TestCase):
     self.assertEqual('user1', hosts[1].host_login_name)
     self.assertEqual('cluster1', hosts[1].cluster_name)
     self.assertEqual('path/to/config.xml', hosts[1].tf_global_config_path)
-    self.assertEqual('tradefed_cluster', hosts[1].master_url)
-    self.assertEqual('tfc', hosts[1].main_server_url)
+    self.assertEqual('tfc_master_url', hosts[1].control_server_url)
     self.assertEqual('gcr.io/dockerized-tradefed/tradefed:golden',
                      hosts[1].docker_image)
     self.assertEqual('docker_server_2', hosts[1].docker_server)
@@ -274,8 +269,7 @@ class LabConfigPoolTest(unittest.TestCase):
     self.assertEqual('user1', hosts[2].host_login_name)
     self.assertEqual('cluster1', hosts[2].cluster_name)
     self.assertEqual('path/to/new/config.xml', hosts[2].tf_global_config_path)
-    self.assertEqual('tradefed_cluster', hosts[2].master_url)
-    self.assertEqual('tfc', hosts[2].main_server_url)
+    self.assertEqual('tfc_master_url', hosts[2].control_server_url)
     self.assertEqual('gcr.io/dockerized-tradefed/tradefed:canary',
                      hosts[2].docker_image)
     self.assertEqual('docker_server_3', hosts[2].docker_server)
@@ -283,8 +277,7 @@ class LabConfigPoolTest(unittest.TestCase):
     self.assertEqual(2, len(hosts))
     self.assertEqual('lab1', hosts[0].lab_name)
     self.assertEqual('lab_user1', hosts[0].host_login_name)
-    self.assertEqual('tradefed_cluster', hosts[0].master_url)
-    self.assertEqual('tfc', hosts[0].main_server_url)
+    self.assertEqual('tfc_control_server_url', hosts[0].control_server_url)
     self.assertEqual('lab_docker_image', hosts[0].docker_image)
     self.assertEqual('docker_server_1', hosts[0].docker_server)
     self.assertTrue(hosts[0].enable_stackdriver)
@@ -421,12 +414,11 @@ class HostConfigTest(unittest.TestCase):
         host_login_name='auser',
         tf_global_config_path='apath',
         docker_image='a_docker_image',
-        master_url='tradefed_cluster',
         graceful_shutdown=True,
         enable_stackdriver=True,
         enable_autoupdate=True,
         service_account_json_key_path='a_service_keyfile',
-        main_server_url='tfc')
+        control_server_url='tfc')
     new_host_config = host_config.SetDockerImage('b_docker_image')
     new_host_config = new_host_config.SetServiceAccountJsonKeyPath(
         'b_service_keyfile')
@@ -448,14 +440,13 @@ class HostConfigTest(unittest.TestCase):
         hostname='ahost',
         host_login_name='auser',
         tf_global_config_path='apath',
-        docker_image='a_docker_image',
         docker_server='a_docker_server',
-        master_url='tradefed_cluster',
+        docker_image='a_docker_image',
         graceful_shutdown=True,
         enable_stackdriver=True,
         enable_autoupdate=True,
         service_account_json_key_path='a_service_keyfile',
-        main_server_url='tfc')
+        control_server_url='tfc')
     host_config_2 = host_config_1.Copy()
     self.assertEqual(host_config_1, host_config_2)
 
@@ -466,14 +457,13 @@ class HostConfigTest(unittest.TestCase):
         hostname='ahost',
         host_login_name='auser',
         tf_global_config_path='apath',
-        docker_image='a_docker_image',
         docker_server='a_docker_server',
-        master_url='tradefed_cluster',
+        docker_image='a_docker_image',
         graceful_shutdown=True,
         enable_stackdriver=True,
         enable_autoupdate=True,
         service_account_json_key_path='a_service_keyfile',
-        main_server_url='tfc')
+        control_server_url='tfc')
     host_config_2 = host_config_1.SetDockerImage('b_docker_image')
     self.assertNotEqual(host_config_1, host_config_2)
 

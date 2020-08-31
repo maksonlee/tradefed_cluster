@@ -14,6 +14,8 @@
 
 """Plugins for Google Cloud Platform."""
 
+import threading
+
 from google.api_core import retry
 from google.cloud import tasks_v2
 from google.protobuf import timestamp_pb2
@@ -26,20 +28,27 @@ DEFAULT_RETRY_OPTION = retry.Retry(deadline=60)
 class TaskScheduler(base.TaskScheduler):
   """A task scheduler for Cloud Tasks."""
 
-  def __init__(self, project, location, client=None):
+  def __init__(self, project, location):
     """Constructor.
 
     Args:
       project: a project name.
       location: a project location.
-      client: a tasks_v2.CloudTasksClient object (for testing).
     """
     self._project = project
     self._location = location
-    self._client = client or tasks_v2.CloudTasksClient()
+    self._thread_storage = threading.local()
+
+  def _GetClient(self):
+    """Cloud tasks client is not threadsafe, store it TLS."""
+    if hasattr(self._thread_storage, 'tasks_client'):
+      return self._thread_storage.tasks_client
+    self._thread_storage.tasks_client = tasks_v2.CloudTasksClient()
+    return self._thread_storage.tasks_client
 
   def AddTask(self, queue_name, payload, target, task_name, eta):
-    parent = self._client.queue_path(self._project, self._location, queue_name)
+    parent = self._GetClient().queue_path(
+        self._project, self._location, queue_name)
     if not isinstance(payload, bytes):
       payload = payload.encode()
     task = {
@@ -51,7 +60,7 @@ class TaskScheduler(base.TaskScheduler):
         }
     }
     if task_name:
-      task['name'] = self._client.task_path(
+      task['name'] = self._GetClient().task_path(
           self._project, self._location, queue_name, task_name)
     if eta:
       timestamp = timestamp_pb2.Timestamp()
@@ -59,10 +68,12 @@ class TaskScheduler(base.TaskScheduler):
       task['schedule_time'] = timestamp
     if target:
       task['app_engine_http_request']['app_engine_routing']['service'] = target
-    task = self._client.create_task(parent, task, retry=DEFAULT_RETRY_OPTION)
+    task = self._GetClient().create_task(parent, task,
+                                         retry=DEFAULT_RETRY_OPTION)
     return base.Task(name=task.name)
 
   def DeleteTask(self, queue_name, task_name):
-    task_path = self._client.task_path(
+    task_path = self._GetClient().task_path(
         self._project, self._location, queue_name, task_name)
-    self._client.delete_task(task_path, retry=DEFAULT_RETRY_OPTION)
+    self._GetClient().delete_task(task_path,
+                                  retry=DEFAULT_RETRY_OPTION)

@@ -33,7 +33,8 @@ class TaskSchedulerTest(unittest.TestCase):
     super(TaskSchedulerTest, self).setUp()
     self.mock_client = mock.MagicMock(spec=tasks_v2.CloudTasksClient)
     self.target = google_cloud.TaskScheduler(
-        'project', 'location', client=self.mock_client)
+        'project', 'location')
+    self.target._GetClient = mock.MagicMock(return_value=self.mock_client)
 
   def testAddTask(self):
     self.mock_client.queue_path.return_value = 'queue_path'

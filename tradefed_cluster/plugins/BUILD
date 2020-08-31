@@ -52,7 +52,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":base_lib",
-        third_party("google/cloud/tasks_v2"),
+        third_party("google/cloud/tasks_v2:tasks_v2_grpc_alternative"),
     ],
 )
 

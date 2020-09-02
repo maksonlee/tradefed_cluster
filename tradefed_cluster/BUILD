@@ -627,6 +627,7 @@ py_appengine_library(
     visibility = ["//visibility:public"],
     deps = [
         third_party("pytz"),
+        third_party("retry"),
     ],
 )
 

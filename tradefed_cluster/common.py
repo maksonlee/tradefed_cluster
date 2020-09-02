@@ -14,9 +14,11 @@
 
 """A module for common constants and functions."""
 import datetime
+import logging
 
 from protorpc import messages
 import pytz
+import retry
 
 # List APIs defaults
 DEFAULT_PAGE_OFFSET = 0
@@ -41,6 +43,27 @@ NAMESPACE = "tfc-v2"
 OBJECT_EVENT_QUEUE = "request-state-notification-queue"
 
 HTTP_OK = ("", 200)
+
+
+class TooMuchContentionError(Exception):
+  """Exception identifier used for retrying too much contention errors."""
+  pass
+
+
+# TODO: Remove retry once TFC runs in firestore mode.
+def RetryNdbContentionErrors(f):
+  """If is a too much contention error it should be retried."""
+  @retry.retry(exceptions=TooMuchContentionError,
+               tries=3, delay=2, backoff=2, logger=logging)
+  def Wrapper(*args, **kwargs):
+    try:
+      f(*args, **kwargs)
+    except Exception as e:        exception_message = str(e)
+      if "too much contention" in exception_message:
+        raise TooMuchContentionError(exception_message)
+      # If not matched by the parser will be raised.
+      raise
+  return Wrapper
 
 
 class ClassProperty(object):

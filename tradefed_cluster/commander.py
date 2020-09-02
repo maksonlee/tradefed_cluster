@@ -41,6 +41,7 @@ RUN_TARGET_TO_MAX_SHARDS_MAP = {
 APP = flask.Flask(__name__)
 
 
+@common.RetryNdbContentionErrors
 def _ProcessRequest(request_id):
   """Process a request and schedule corresponding commands.
 

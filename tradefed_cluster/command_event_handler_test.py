@@ -481,6 +481,32 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         [mock.call(expected_metric_fields)
         ] * command_manager.MAX_ERROR_COUNT_BASE)
 
+  @mock.patch.object(request_manager, "NotifyRequestState")
+  def testProcessCommandEvent_TooMuchContentionGetsRetried(self, mock_notify):
+    """Should error commands from FetchFailed events."""
+    _, request_id, _, command_id = self.command.key.flat()
+    command_manager.ScheduleTasks([self.command])
+    tasks = command_manager.GetActiveTasks(self.command)
+    event = command_event_test_util.CreateTestCommandEvent(
+        request_id, command_id, 123, "FetchFailed", task=tasks[0])
+    mock_notify.side_effect = Exception(
+        '<_MultiThreadedRendezvous of RPC that terminated with: '
+        'status = StatusCode.ABORTED details = "too much content'
+        'ion on these datastore entities. please try again. enti'
+        'ty groups: [(app=p~ee-cloud-datastore, Asset, "NOAA/GOE'
+        'S/17/FDCC/2020195084117700000")]" debug_error_string = '
+        '"{"created":"@1594629864.343436240","description":"Erro'
+        'r received from peer ipv6:[2607:f8b0:4001:c01::5f]:443"'
+        ',"file":"third_party/grpc/src/core/lib/surface/call.cc"'
+        ',"file_line":1062,"grpc_message":"too much contention o'
+        'n these datastore entities. please try again. entity gr'
+        'oups: [(app=p~ee-cloud-datastore, Asset, "NOAA/GOES/17/'
+        'FDCC/2020195084117700000")]","grpc_status":10}" >')
+
+    with self.assertRaises(common.TooMuchContentionError):
+      command_event_handler.ProcessCommandEvent(event)
+    self.assertEqual(4, mock_notify.call_count)
+
   @mock.patch.object(metric, "command_event_type_count")
   @mock.patch.object(request_manager, "NotifyRequestState")
   def testProcessCommandEvent_executeFailed(

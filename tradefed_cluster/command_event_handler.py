@@ -118,6 +118,7 @@ def LogCommandEventMetrics(command, event):
     logging.warning("Failed to report timing metrics.", exc_info=True)
 
 
+@common.RetryNdbContentionErrors
 def ProcessCommandEvent(event):
   """Processes a command event.
 
@@ -138,7 +139,7 @@ def HandleCommandEvent():
   try:
     payload = zlib.decompress(payload)
   except zlib.error:
-    logging.warn("payload may not be compressed: %s", payload, exc_info=True)
+    logging.warning("payload may not be compressed: %s", payload, exc_info=True)
   objs = json.loads(payload)
   # To handle non-batched objects.
   if not isinstance(objs, list):

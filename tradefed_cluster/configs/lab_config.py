@@ -28,6 +28,8 @@ from tradefed_cluster.configs import lab_config_pb2
 
 logger = logging.getLogger(__name__)
 
+_DEFAULT_SHUTDOWN_TIMEOUT_SEC = 3600
+
 
 class ConfigError(Exception):
   """Error raised if config is incorrect."""
@@ -135,6 +137,11 @@ class HostConfig(object):
     return self.cluster_config_pb.graceful_shutdown or False
 
   @property
+  def shutdown_timeout_sec(self):
+    """The dockerized TradeFed shutdown timeouts in seconds."""
+    return self.cluster_config_pb.shutdown_timeout_sec
+
+  @property
   def enable_stackdriver(self):
     """Enable stackdriver logging and monitor."""
     return (self.cluster_config_pb.enable_stackdriver or
@@ -233,6 +240,7 @@ def CreateHostConfig(
     tmpfs_configs=None,
     docker_image=None,
     graceful_shutdown=False,
+    shutdown_timeout_sec=_DEFAULT_SHUTDOWN_TIMEOUT_SEC,
     enable_stackdriver=False,
     enable_autoupdate=False,
     service_account_json_key_path=None,
@@ -250,6 +258,7 @@ def CreateHostConfig(
     tmpfs_configs: a list of TmpfsConfig proto.
     docker_image: the docker image to use.
     graceful_shutdown: graceful shutdown the host or not.
+    shutdown_timeout_sec: int, the dockerized TF shutdown timeout.
     enable_stackdriver: enable stackdriver monitor or not.
     enable_autoupdate: enable auto-update daemon or not.
     service_account_json_key_path: string or None, the file path of service
@@ -274,6 +283,7 @@ def CreateHostConfig(
       host_configs=[host_config_pb],
       docker_image=docker_image,
       graceful_shutdown=graceful_shutdown,
+      shutdown_timeout_sec=shutdown_timeout_sec,
       enable_stackdriver=enable_stackdriver,
       control_server_url=control_server_url)
   lab_config_pb = lab_config_pb2.LabConfig(

@@ -57,6 +57,7 @@ class ConfigTest(unittest.TestCase):
     self.assertEqual('tfc_master_url', cluster.master_url)
     self.assertEqual('', cluster.control_server_url)
     self.assertTrue(cluster.graceful_shutdown)
+    self.assertEqual(600, cluster.shutdown_timeout_sec)
     self.assertTrue(cluster.enable_stackdriver)
     self.assertTrue(cluster.enable_autoupdate)
     self.assertEqual(['--arg1', 'value1'], cluster.extra_docker_args)
@@ -88,6 +89,7 @@ class ConfigTest(unittest.TestCase):
     self.assertEqual(2, len(cluster.host_configs))
     self.assertEqual('host4', cluster.host_configs[0].hostname)
     self.assertEqual('host5', cluster.host_configs[1].hostname)
+    self.assertEqual(3600, cluster.shutdown_timeout_sec)
 
   def testParse_invalidYaml(self):
     """Test config file not used lines."""
@@ -127,6 +129,7 @@ class ConfigTest(unittest.TestCase):
         docker_server='a_docker_server',
         docker_image='a_docker_image',
         graceful_shutdown=True,
+        shutdown_timeout_sec=240,
         enable_stackdriver=True,
         enable_autoupdate=True,
         extra_docker_args=['--arg1', 'value1'],
@@ -140,6 +143,7 @@ class ConfigTest(unittest.TestCase):
     self.assertEqual('tfc', host_config.control_server_url)
     self.assertEqual('a_docker_server', host_config.docker_server)
     self.assertTrue(host_config.graceful_shutdown)
+    self.assertEqual(240, host_config.shutdown_timeout_sec)
     self.assertTrue(host_config.enable_stackdriver)
     self.assertTrue(host_config.enable_autoupdate)
     self.assertEqual(['--arg1', 'value1'], host_config.extra_docker_args)

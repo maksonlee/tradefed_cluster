@@ -76,6 +76,8 @@ message ClusterConfig {
   optional string control_server_url = 13;
   // The docker server that hosts the image.
   optional string docker_server = 14;
+  // The max wait timeout to shutdown dockerized TradeFed.
+  optional uint64 shutdown_timeout_sec = 15 [default = 3600];
 }
 
 // Config for a host.

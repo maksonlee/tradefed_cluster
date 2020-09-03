@@ -173,6 +173,16 @@ class HostConfig(object):
             self.cluster_config_pb.docker_server or
             self.lab_config_pb.docker_server)
 
+  @property
+  def secret_project_id(self):
+    """Get secret project id."""
+    return self.lab_config_pb.secret_project_id
+
+  @property
+  def service_account_key_secret_id(self):
+    """Get secret id for service account key."""
+    return self.lab_config_pb.service_account_key_secret_id
+
   def SetServiceAccountJsonKeyPath(self, val):
     """Create a new config with given value of service_account_json_key_path."""
     host_config = self.Copy()
@@ -246,7 +256,9 @@ def CreateHostConfig(
     service_account_json_key_path=None,
     docker_server=None,
     extra_docker_args=(),
-    control_server_url=None):
+    control_server_url=None,
+    secret_project_id=None,
+    service_account_key_secret_id=None):
   """Create a host config from raw data.
 
   Args:
@@ -266,6 +278,8 @@ def CreateHostConfig(
     docker_server: the docker server that hosts the image.
     extra_docker_args: extra docker args to pass to docker container.
     control_server_url: the control server the host connect to.
+    secret_project_id: Google Cloud Project for storing secret.
+    service_account_key_secret_id: Secret id for service account key.
   Returns:
     a HostConfig have all those data.
   """
@@ -290,7 +304,9 @@ def CreateHostConfig(
       lab_name=lab_name,
       cluster_configs=[cluster_config_pb],
       docker_server=docker_server,
-      service_account_json_key_path=service_account_json_key_path)
+      service_account_json_key_path=service_account_json_key_path,
+      secret_project_id=secret_project_id,
+      service_account_key_secret_id=service_account_key_secret_id)
   return HostConfig(host_config_pb, cluster_config_pb, lab_config_pb)
 
 

@@ -48,6 +48,10 @@ class ConfigTest(unittest.TestCase):
     self.assertTrue(lab_config_pb.enable_autoupdate)
     self.assertEqual('path/to/key.json',
                      lab_config_pb.service_account_json_key_path)
+    self.assertEqual('lab_sv_key',
+                     lab_config_pb.service_account_key_secret_id)
+    self.assertEqual('secret_project_id',
+                     lab_config_pb.secret_project_id)
     self.assertEqual(2, len(lab_config_pb.cluster_configs))
     cluster = lab_config_pb.cluster_configs[0]
     self.assertEqual('cluster1', cluster.cluster_name)
@@ -133,7 +137,9 @@ class ConfigTest(unittest.TestCase):
         enable_stackdriver=True,
         enable_autoupdate=True,
         extra_docker_args=['--arg1', 'value1'],
-        control_server_url='tfc')
+        control_server_url='tfc',
+        secret_project_id='secret_project',
+        service_account_key_secret_id='sa_key')
     self.assertEqual('alab', host_config.lab_name)
     self.assertEqual('acluster', host_config.cluster_name)
     self.assertEqual('ahost', host_config.hostname)
@@ -147,6 +153,8 @@ class ConfigTest(unittest.TestCase):
     self.assertTrue(host_config.enable_stackdriver)
     self.assertTrue(host_config.enable_autoupdate)
     self.assertEqual(['--arg1', 'value1'], host_config.extra_docker_args)
+    self.assertEqual('secret_project', host_config.secret_project_id)
+    self.assertEqual('sa_key', host_config.service_account_key_secret_id)
 
   def testCreateHostConfig_noLabName(self):
     host_config = lab_config.CreateHostConfig(
@@ -311,7 +319,8 @@ class LabConfigPoolTest(unittest.TestCase):
     self.assertEqual('/atmpfs', host.tmpfs_configs[0].path)
     self.assertEqual(2000, host.tmpfs_configs[0].size)
     self.assertEqual('750', host.tmpfs_configs[0].mode)
-    self.assertEqual('/btmpfs', host.tmpfs_configs[1].path)
+    self.assertEqual('secret_project_id', host.secret_project_id)
+    self.assertEqual('lab_sv_key', host.service_account_key_secret_id)
 
   def testGetHostConfig_notExist(self):
     """Test get host config for not exist host from LabConfigPool works."""

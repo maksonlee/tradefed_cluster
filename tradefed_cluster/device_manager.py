@@ -836,6 +836,8 @@ def _DoRestoreDevice(device_serial, hostname):
 def AssignHosts(hostnames, assignee):
   """Assign a list of hosts to an assignee.
 
+  TODO: deprecated, use set_recovery_state
+
   If assignee is None, it's unassign the hosts.
   We are not using get_multi and put_multi here, because we need to use
   transactional when update a host entity. But a transaction can only have
@@ -859,6 +861,40 @@ def _AssignHost(hostname, assignee):
   host.assignee = assignee
   if not assignee:
     host.last_recovery_time = _Now()
+  host.put()
+
+
+def SetHostsRecoveryState(host_recovery_state_requests):
+  """Set hosts' recovery state.
+
+  We are not using get_multi and put_multi here, because we need to use
+  transactional when update a host entity. But a transaction can only have
+  less than 25 entity group in a cross group transaction. So we do update
+  one by one. If there is a performance issue, we need to optimize later.
+
+  Args:
+    host_recovery_state_requests: a list of host recovery state requests.
+  """
+  for request in host_recovery_state_requests:
+    _SetHostRecoveryState(
+        request.hostname, request.recovery_state, request.assignee)
+
+
+@ndb.transactional()
+def _SetHostRecoveryState(hostname, recovery_state, assignee=None):
+  """Set host's recovery state."""
+  host = GetHost(hostname)
+  if not host:
+    logging.error("Host %s doesn't exist.", hostname)
+    return
+  host.assignee = assignee
+  if recovery_state == common.RecoveryState.VERIFIED:
+    # TODO: Add host history for VERIFIED.
+    host.recovery_state = common.RecoveryState.UNKNOWN
+    host.assignee = None
+  else:
+    host.recovery_state = recovery_state
+  host.last_recovery_time = _Now()
   host.put()
 
 

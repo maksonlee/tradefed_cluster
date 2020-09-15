@@ -1483,6 +1483,33 @@ class ClusterHostApiTest(api_test.ApiTest):
             common.Operator.LESS_THAN_OR_EQUAL,
             datetime.datetime(2020, 8, 8, 17, 30)))
 
+  def testBatchSetRecoveryState(self):
+    """Tests BatchSetRecoveryState."""
+    api_request = {
+        'host_recovery_state_requests': [
+            {
+                'hostname': self.ndb_host_0.hostname,
+                'recovery_state': 'ASSIGNED',
+                'assignee': 'user1'
+            },
+            {
+                'hostname': self.ndb_host_1.hostname,
+                'recovery_state': 'FIXED',
+                'assignee': 'user1'
+            },
+        ]
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.BatchSetRecoveryState',
+        api_request)
+    self.assertEqual('200 OK', api_response.status)
+    self.ndb_host_0 = self.ndb_host_0.key.get()
+    self.assertEqual('ASSIGNED', self.ndb_host_0.recovery_state)
+    self.assertEqual('user1', self.ndb_host_0.assignee)
+    self.ndb_host_1 = self.ndb_host_1.key.get()
+    self.assertEqual('user1', self.ndb_host_1.assignee)
+    self.assertEqual('FIXED', self.ndb_host_1.recovery_state)
+
 
 if __name__ == '__main__':
   unittest.main()

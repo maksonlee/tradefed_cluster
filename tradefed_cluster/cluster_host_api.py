@@ -446,6 +446,8 @@ class ClusterHostApi(remote.Service):
   def Assign(self, request):
     """Mark the hosts as recover.
 
+    TODO: deprecated, use set_recovery_state
+
     Args:
       request: request with a list of hostnames and an assignee.
 
@@ -468,6 +470,8 @@ class ClusterHostApi(remote.Service):
   def Unassign(self, request):
     """Mark the hosts as recover.
 
+    TODO: deprecated, use set_recovery_state
+
     Args:
       request: request with a list of hostnames.
 
@@ -475,6 +479,24 @@ class ClusterHostApi(remote.Service):
       message_types.VoidMessage
     """
     device_manager.AssignHosts(request.hostnames, None)
+    return message_types.VoidMessage()
+
+  @endpoints.method(
+      api_messages.HostRecoveryStateRequests,
+      message_types.VoidMessage,
+      path="batchSetRecoveryState",
+      http_method="POST",
+      name="batchSetRecoveryState")
+  @api_common.with_ndb_context
+  def BatchSetRecoveryState(self, request):
+    """Batch set recovery state for hosts.
+
+    Args:
+      request: a HostRecoveryStateRequests.
+    Returns:
+      message_types.VoidMessage
+    """
+    device_manager.SetHostsRecoveryState(request.host_recovery_state_requests)
     return message_types.VoidMessage()
 
   HOSTNAME_RESOURCE = endpoints.ResourceContainer(

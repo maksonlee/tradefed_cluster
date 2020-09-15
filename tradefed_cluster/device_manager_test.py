@@ -1609,6 +1609,68 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
             api_messages.DeviceTypeMessage.PHYSICAL,
             "unknown", common.TestHarness.MH))
 
+  def testSetHostsRecoveryState(self):
+    host1 = datastore_test_util.CreateHost("free", "host1")
+    host2 = datastore_test_util.CreateHost("free", "host2")
+    request1 = api_messages.HostRecoveryStateRequest(
+        hostname="host1", recovery_state=common.RecoveryState.ASSIGNED,
+        assignee="user1")
+    request2 = api_messages.HostRecoveryStateRequest(
+        hostname="host2", recovery_state=common.RecoveryState.FIXED,
+        assignee="user1")
+    device_manager.SetHostsRecoveryState([request1, request2])
+    ndb.get_context().clear_cache()
+    host1 = host1.key.get()
+    self.assertEqual("user1", host1.assignee)
+    self.assertEqual(common.RecoveryState.ASSIGNED, host1.recovery_state)
+    self.assertIsNotNone(host1.last_recovery_time)
+    host2 = host2.key.get()
+    self.assertEqual("user1", host2.assignee)
+    self.assertEqual(common.RecoveryState.FIXED, host2.recovery_state)
+    self.assertIsNotNone(host2.last_recovery_time)
+
+  def testSetHostsRecoveryState_invalidHost(self):
+    host1 = datastore_test_util.CreateHost("free", "host1")
+    request1 = api_messages.HostRecoveryStateRequest(
+        hostname="host1", recovery_state=common.RecoveryState.ASSIGNED,
+        assignee="user1")
+    request2 = api_messages.HostRecoveryStateRequest(
+        hostname="invalid_host", recovery_state=common.RecoveryState.FIXED,
+        assignee="user1")
+    device_manager.SetHostsRecoveryState([request1, request2])
+    ndb.get_context().clear_cache()
+    host1 = host1.key.get()
+    self.assertEqual("user1", host1.assignee)
+    self.assertEqual(common.RecoveryState.ASSIGNED, host1.recovery_state)
+    self.assertIsNotNone(host1.last_recovery_time)
+
+  def testSetHostsRecoveryState_verified(self):
+    host = datastore_test_util.CreateHost("free", "host1")
+    request = api_messages.HostRecoveryStateRequest(
+        hostname="host1", recovery_state=common.RecoveryState.ASSIGNED,
+        assignee="user1")
+    device_manager.SetHostsRecoveryState([request])
+    ndb.get_context().clear_cache()
+    host = host.key.get()
+    self.assertEqual("user1", host.assignee)
+    self.assertEqual(common.RecoveryState.ASSIGNED, host.recovery_state)
+    self.assertIsNotNone(host.last_recovery_time)
+    request = api_messages.HostRecoveryStateRequest(
+        hostname="host1", recovery_state=common.RecoveryState.FIXED,
+        assignee="user1")
+    device_manager.SetHostsRecoveryState([request])
+    ndb.get_context().clear_cache()
+    host = host.key.get()
+    self.assertEqual(common.RecoveryState.FIXED, host.recovery_state)
+    request = api_messages.HostRecoveryStateRequest(
+        hostname="host1", recovery_state=common.RecoveryState.VERIFIED,
+        assignee="user1")
+    device_manager.SetHostsRecoveryState([request])
+    ndb.get_context().clear_cache()
+    host = host.key.get()
+    self.assertEqual(common.RecoveryState.UNKNOWN, host.recovery_state)
+    self.assertIsNone(host.assignee)
+
 
 if __name__ == "__main__":
   unittest.main()

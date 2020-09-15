@@ -887,3 +887,16 @@ class DeviceBlocklistArchiveMessage(messages.Message):
   start_timestamp = message_types.DateTimeField(2)
   end_timestamp = message_types.DateTimeField(3)
   archived_by = messages.StringField(4)
+
+
+class HostRecoveryStateRequest(messages.Message):
+  """Host recovery state request."""
+  hostname = messages.StringField(1, required=True)
+  recovery_state = messages.StringField(2, required=True)
+  assignee = messages.StringField(3)
+
+
+class HostRecoveryStateRequests(messages.Message):
+  """A list of host recovery state request."""
+  host_recovery_state_requests = messages.MessageField(
+      HostRecoveryStateRequest, 1, repeated=True)

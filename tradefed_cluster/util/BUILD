@@ -165,8 +165,5 @@ py_appengine_library(
     name = "google_import_fixer",
     srcs = ["google_import_fixer.py"],
     srcs_version = "PY2AND3",
-    visibility = [
-        "//third_party/py/multitest_transport:__subpackages__",
-        "//tradefed_cluster:__subpackages__",
-    ],
+    visibility = ["//third_party/py/multitest_transport:__subpackages__"],
 )

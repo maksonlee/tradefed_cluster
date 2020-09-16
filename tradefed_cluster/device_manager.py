@@ -896,6 +896,43 @@ def _SetHostRecoveryState(hostname, recovery_state, assignee=None):
     host.recovery_state = recovery_state
   host.last_recovery_time = _Now()
   host.put()
+  # TODO: clean up device recovery state as well.
+
+
+def SetDevicesRecoveryState(device_recovery_state_requests):
+  """Set devices' recovery state.
+
+  We are not using get_multi and put_multi here, because we need to use
+  transactional when update a device entity. But a transaction can only have
+  less than 25 entity group in a cross group transaction. So we do update
+  one by one. If there is a performance issue, we need to optimize later.
+
+  Args:
+    device_recovery_state_requests: a list of device recovery state requests.
+  """
+  for request in device_recovery_state_requests:
+    _SetDeviceRecoveryState(
+        request.hostname,
+        request.device_serial,
+        request.recovery_state)
+  # TODO: Update host's recovery state as well.
+
+
+@ndb.transactional()
+def _SetDeviceRecoveryState(
+    hostname, device_serial, recovery_state):
+  """Set device's recovery state."""
+  device = GetDevice(hostname, device_serial)
+  if not device:
+    logging.error("Device (%s, %s) doesn't exist.", hostname, device_serial)
+    return
+  if recovery_state == common.RecoveryState.VERIFIED:
+    # TODO: Add device history for VERIFIED.
+    device.recovery_state = common.RecoveryState.UNKNOWN
+  else:
+    device.recovery_state = recovery_state
+  device.last_recovery_time = _Now()
+  device.put()
 
 
 def _IsKnownProperty(value):

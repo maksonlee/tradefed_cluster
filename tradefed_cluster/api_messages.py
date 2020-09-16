@@ -507,6 +507,7 @@ class DeviceInfo(messages.Message):
   test_harness = messages.StringField(25)
   flated_extra_info = messages.StringField(26, repeated=True)
   recovery_state = messages.StringField(27)
+  last_recovery_time = message_types.DateTimeField(28)
 
 
 class DeviceInfoCollection(messages.Message):
@@ -900,3 +901,16 @@ class HostRecoveryStateRequests(messages.Message):
   """A list of host recovery state request."""
   host_recovery_state_requests = messages.MessageField(
       HostRecoveryStateRequest, 1, repeated=True)
+
+
+class DeviceRecoveryStateRequest(messages.Message):
+  """Device recovery state request."""
+  hostname = messages.StringField(1)
+  device_serial = messages.StringField(2, required=True)
+  recovery_state = messages.StringField(3, required=True)
+
+
+class DeviceRecoveryStateRequests(messages.Message):
+  """A list of device recovery state request."""
+  device_recovery_state_requests = messages.MessageField(
+      DeviceRecoveryStateRequest, 1, repeated=True)

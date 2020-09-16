@@ -1671,6 +1671,56 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.RecoveryState.UNKNOWN, host.recovery_state)
     self.assertIsNone(host.assignee)
 
+  def testSetDevicesRecoveryState(self):
+    device1 = datastore_test_util.CreateDevice("free", "host1", "device1")
+    device2 = datastore_test_util.CreateDevice("free", "host1", "device2")
+    request1 = api_messages.DeviceRecoveryStateRequest(
+        hostname="host1", device_serial="device1",
+        recovery_state=common.RecoveryState.FIXED)
+    request2 = api_messages.DeviceRecoveryStateRequest(
+        hostname="host1", device_serial="device2",
+        recovery_state=common.RecoveryState.FIXED)
+    device_manager.SetDevicesRecoveryState([request1, request2])
+    ndb.get_context().clear_cache()
+    device1 = device1.key.get()
+    self.assertEqual(common.RecoveryState.FIXED, device1.recovery_state)
+    self.assertIsNotNone(device1.last_recovery_time)
+    device2 = device2.key.get()
+    self.assertEqual(common.RecoveryState.FIXED, device2.recovery_state)
+    self.assertIsNotNone(device2.last_recovery_time)
+
+  def testSetDevicesRecoveryState_invalidDevice(self):
+    device1 = datastore_test_util.CreateDevice("free", "host1", "device1")
+    request1 = api_messages.DeviceRecoveryStateRequest(
+        hostname="host1", device_serial="device1",
+        recovery_state=common.RecoveryState.FIXED)
+    request2 = api_messages.DeviceRecoveryStateRequest(
+        hostname="host1", device_serial="invalid_device",
+        recovery_state=common.RecoveryState.FIXED)
+    device_manager.SetDevicesRecoveryState([request1, request2])
+    ndb.get_context().clear_cache()
+    device1 = device1.key.get()
+    self.assertEqual(common.RecoveryState.FIXED, device1.recovery_state)
+    self.assertIsNotNone(device1.last_recovery_time)
+
+  def testSetDevicesRecoveryState_verified(self):
+    device = datastore_test_util.CreateDevice("free", "host1", "device1")
+    request = api_messages.DeviceRecoveryStateRequest(
+        hostname="host1", device_serial="device1",
+        recovery_state=common.RecoveryState.FIXED)
+    device_manager.SetDevicesRecoveryState([request])
+    ndb.get_context().clear_cache()
+    device = device.key.get()
+    self.assertEqual(common.RecoveryState.FIXED, device.recovery_state)
+    self.assertIsNotNone(device.last_recovery_time)
+    request = api_messages.DeviceRecoveryStateRequest(
+        hostname="host1", device_serial="device1",
+        recovery_state=common.RecoveryState.VERIFIED)
+    device_manager.SetDevicesRecoveryState([request])
+    ndb.get_context().clear_cache()
+    device = device.key.get()
+    self.assertEqual(common.RecoveryState.UNKNOWN, device.recovery_state)
+
 
 if __name__ == "__main__":
   unittest.main()

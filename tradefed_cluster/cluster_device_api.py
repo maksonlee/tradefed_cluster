@@ -552,3 +552,22 @@ class ClusterDeviceApi(remote.Service):
         histories=history_msgs,
         next_cursor=next_cursor,
         prev_cursor=prev_cursor)
+
+  @endpoints.method(
+      api_messages.DeviceRecoveryStateRequests,
+      message_types.VoidMessage,
+      path="batchSetRecoveryState",
+      http_method="POST",
+      name="batchSetRecoveryState")
+  @api_common.with_ndb_context
+  def BatchSetRecoveryState(self, request):
+    """Batch set recovery state for devices.
+
+    Args:
+      request: a DeviceRecoveryStateRequests.
+    Returns:
+      message_types.VoidMessage
+    """
+    device_manager.SetDevicesRecoveryState(
+        request.device_recovery_state_requests)
+    return message_types.VoidMessage()

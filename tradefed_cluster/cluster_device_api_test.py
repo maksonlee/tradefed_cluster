@@ -1502,6 +1502,31 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertIsNone(device_history_collection.prev_cursor)  # first page
     self.assertIsNotNone(device_history_collection.next_cursor)
 
+  def testBatchSetRecoveryState(self):
+    """Tests BatchSetRecoveryState."""
+    api_request = {
+        'device_recovery_state_requests': [
+            {
+                'hostname': self.ndb_device_0.hostname,
+                'device_serial': self.ndb_device_0.device_serial,
+                'recovery_state': 'FIXED',
+            },
+            {
+                'hostname': self.ndb_device_1.hostname,
+                'device_serial': self.ndb_device_1.device_serial,
+                'recovery_state': 'FIXED',
+            },
+        ]
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterDeviceApi.BatchSetRecoveryState',
+        api_request)
+    self.assertEqual('200 OK', api_response.status)
+    self.ndb_device_0 = self.ndb_device_0.key.get()
+    self.assertEqual('FIXED', self.ndb_device_0.recovery_state)
+    self.ndb_device_1 = self.ndb_device_1.key.get()
+    self.assertEqual('FIXED', self.ndb_device_1.recovery_state)
+
 
 if __name__ == '__main__':
   unittest.main()

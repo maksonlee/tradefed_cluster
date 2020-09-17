@@ -22,6 +22,7 @@ import copy
 import datetime
 import json
 import logging
+import uuid
 
 from six.moves import zip
 
@@ -78,6 +79,7 @@ DEVICE_NOTE_ID_KEY = "device_note_id"
 HOST_STATE_CHANGED_EVENT_TYPE = "HOST_STATE_CHANGED"
 
 HOST_SYNC_QUEUE = "host-sync-queue"
+HOST_SYNC_ID_KEY = "host_sync_id"
 HOST_SYNC_INTERVAL = datetime.timedelta(minutes=10)
 HOST_SYNC_STALE_TIMEOUT = 3 * HOST_SYNC_INTERVAL
 ONE_MONTH = datetime.timedelta(days=30)
@@ -604,60 +606,66 @@ def _DoUpdateGoneDevicesInNDB(missing_device_keys, timestamp):
   ndb.put_multi(entities_to_update)
 
 
-def StartHostSync(hostname, current_taskname=None):
+def StartHostSync(hostname, current_host_sync_id=None):
   """Start host sync.
 
   Start host sync, if there is no host sync task or the host sync task is old.
 
   Args:
     hostname: hostname
-    current_taskname: task that trigger this add back.
+    current_host_sync_id: unique id for current host sync that trigger
+      this add back.
   Returns:
-    the new taskname or None if not added
+    the new host_sync_id or None if not added
   """
   host_sync = datastore_entities.HostSync.get_by_id(hostname)
   now = _Now()
   stale_time = _Now() - HOST_SYNC_STALE_TIMEOUT
-  if (host_sync and host_sync.taskname != current_taskname and
+  if (host_sync and host_sync.host_sync_id and
+      host_sync.host_sync_id != current_host_sync_id and
       host_sync.update_timestamp and
       host_sync.update_timestamp >= stale_time):
     logging.debug(
-        "Another host sync task %s is already scheduled.",
-        host_sync.taskname)
+        "Another host sync %s is already scheduled.",
+        host_sync.host_sync_id)
     return None
   if not host_sync:
     host_sync = datastore_entities.HostSync(id=hostname)
   elif (host_sync.update_timestamp and
         host_sync.update_timestamp < stale_time):
     logging.info(
-        "The old task %s is inactive since %s.",
-        host_sync.taskname, host_sync.update_timestamp)
+        "The old sync %s is inactive since %s.",
+        host_sync.host_sync_id, host_sync.update_timestamp)
+  host_sync.host_sync_id = uuid.uuid4().hex
   payload = json.dumps({
       HOSTNAME_KEY: hostname,
+      HOST_SYNC_ID_KEY: host_sync.host_sync_id,
   })
   task = task_scheduler.AddTask(
       queue_name=HOST_SYNC_QUEUE,
       payload=payload,
       eta=_Now() + HOST_SYNC_INTERVAL)
+  # the taskname is for debugging purpose.
   host_sync.taskname = task.name
   host_sync.update_timestamp = now
   host_sync.put()
-  logging.debug("Host will sync by %s.", task.name)
-  return task.name
+  logging.debug("Host will sync by task %s with host_sync_id %s.",
+                task.name, host_sync.host_sync_id)
+  return host_sync.host_sync_id
 
 
-def StopHostSync(hostname, current_taskname):
+def StopHostSync(hostname, current_host_sync_id):
   """Stop sync the host."""
   host_sync = datastore_entities.HostSync.get_by_id(hostname)
   stale_time = _Now() - HOST_SYNC_STALE_TIMEOUT
   if not host_sync:
     logging.info("No host sync for %s.", hostname)
     return
-  if (host_sync.taskname != current_taskname and
+  if (current_host_sync_id != host_sync.host_sync_id and
       host_sync.update_timestamp >= stale_time):
     logging.debug(
-        "Another host sync task %s is already scheduled.",
-        host_sync.taskname)
+        "Another host sync %s is already scheduled.",
+        host_sync.host_sync_id)
     return
   logging.debug("Stop host sync for %s.", hostname)
   host_sync.key.delete()

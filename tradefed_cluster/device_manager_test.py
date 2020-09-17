@@ -1255,11 +1255,12 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     host_sync = datastore_entities.HostSync.get_by_id(hostname)
     self.assertEqual(host_sync.taskname, tasks[0].name)
     expected_payload = {
-        "hostname": hostname
+        "hostname": hostname,
+        "host_sync_id": host_sync.host_sync_id,
     }
     payload = json.loads(tasks[0].payload)
     self.assertEqual(expected_payload, payload)
-    return tasks[0].name
+    return host_sync.host_sync_id
 
   def testStartHostSync(self):
     device_manager.StartHostSync("host1")
@@ -1270,38 +1271,38 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self._AssertHostSyncTask("host1")
     self.assertIsNone(device_manager.StartHostSync("host1"))
 
-  def testStartHostSync_differentTaskname(self):
+  def testStartHostSync_differentHostSyncId(self):
     device_manager.StartHostSync("host1")
     self._AssertHostSyncTask("host1")
     self.assertIsNone(
-        device_manager.StartHostSync("host1", "another_taskname"))
+        device_manager.StartHostSync("host1", "another_sync_id"))
 
   @mock.patch.object(device_manager, "_Now")
   def testStartHostSync_staleTask(self, mock_now):
     now = datetime.datetime(2019, 11, 14, 10, 10)
     before = now - datetime.timedelta(minutes=40)
     mock_now.return_value = before
-    old_taskname = device_manager.StartHostSync("host1")
+    old_sync_id = device_manager.StartHostSync("host1")
     self._AssertHostSyncTask("host1")
     mock_now.return_value = now
-    new_taskname = device_manager.StartHostSync("host1", "another_taskname")
-    self.assertIsNotNone(new_taskname)
-    self.assertNotEqual(old_taskname, new_taskname)
+    new_sync_id = device_manager.StartHostSync("host1", "another_sync_id")
+    self.assertIsNotNone(new_sync_id)
+    self.assertNotEqual(old_sync_id, new_sync_id)
     tasks = self.taskqueue_stub.get_filtered_tasks()
     # There will be 2 tasks, one for the stale one, the other is the new one.
     self.assertEqual(2, len(tasks))
 
-  def testStartHostSync_sameTaskname(self):
-    taskname = device_manager.StartHostSync("host1")
+  def testStartHostSync_sameHostSyncId(self):
+    host_sync_id = device_manager.StartHostSync("host1")
     self._AssertHostSyncTask("host1")
-    new_taskname = device_manager.StartHostSync("host1", taskname)
-    self.assertIsNotNone(new_taskname)
-    self.assertNotEqual(taskname, new_taskname)
+    new_host_sync_id = device_manager.StartHostSync("host1", host_sync_id)
+    self.assertIsNotNone(new_host_sync_id)
+    self.assertNotEqual(host_sync_id, new_host_sync_id)
 
   def testStopHostSync(self):
-    taskname = device_manager.StartHostSync("host1")
+    host_sync_id = device_manager.StartHostSync("host1")
     self._AssertHostSyncTask("host1")
-    device_manager.StopHostSync("host1", taskname)
+    device_manager.StopHostSync("host1", host_sync_id)
     self.assertIsNone(datastore_entities.HostSync.get_by_id("host1"))
 
   @mock.patch.object(device_manager, "_Now")
@@ -1312,13 +1313,13 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     device_manager.StartHostSync("host1")
     self._AssertHostSyncTask("host1")
     mock_now.return_value = now
-    device_manager.StopHostSync("host1", "another_taskname")
+    device_manager.StopHostSync("host1", "another_sync_id")
     self.assertIsNone(datastore_entities.HostSync.get_by_id("host1"))
 
   def testStopHostSync_differentTaskname(self):
     device_manager.StartHostSync("host1")
     self._AssertHostSyncTask("host1")
-    device_manager.StopHostSync("host1", "another_taskname")
+    device_manager.StopHostSync("host1", "another_sync_id")
     self.assertIsNotNone(datastore_entities.HostSync.get_by_id("host1"))
 
   @mock.patch.object(device_manager, "_Now")

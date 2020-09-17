@@ -967,20 +967,19 @@ def HostStateHistoryToMessage(host_state_history_entity):
 class HostSync(ndb.Model):
   """Keep track of task that sync host's status.
 
-  We only want 1 task to track host's status. Though using taskname in
-  taskqueue can prevent from multiple task with the same name be created.
-  But once the task is done, we can not create task with the same name in
-  7 days. Thus we can not use the taskqueue's builtin dedup logic. We
-  need to keep track of the task in datastore.
-
+  We only want 1 task to track host's status. Since taskname are not consistent
+  for different libraries, we generate unique id and track host sync tasks with
+  the unique id.
   The key will be the hostname.
 
   Attributes:
     taskname: task name that track host's status.
-    update_timestamp: update timestamp
+    update_timestamp: update timestamp.
+    host_sync_id: unique id for a sync.
   """
   taskname = ndb.StringProperty()
   update_timestamp = ndb.DateTimeProperty()
+  host_sync_id = ndb.StringProperty()
 
 
 class DeviceInfo(ndb.Expando):

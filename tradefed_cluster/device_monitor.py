@@ -322,15 +322,13 @@ def HandleHostSyncTask():
   """Handle host sync tasks."""
   payload = flask.request.get_data()
   host_info = json.loads(payload)
-  taskname = flask.request.headers.get('X-AppEngine-TaskName')
-  logging.debug(
-      'HostSyncTaskHandler syncing %s with task %s',
-      host_info, taskname)
+  logging.debug('HostSyncTaskHandler syncing %s.', host_info)
   hostname = host_info[device_manager.HOSTNAME_KEY]
+  host_sync_id = host_info.get(device_manager.HOST_SYNC_ID_KEY)
   should_sync = _SyncHost(hostname)
   if should_sync:
-    device_manager.StartHostSync(hostname, taskname)
+    device_manager.StartHostSync(hostname, host_sync_id)
     _PublishHostMessage(hostname)
     return common.HTTP_OK
-  device_manager.StopHostSync(hostname, taskname)
+  device_manager.StopHostSync(hostname, host_sync_id)
   return common.HTTP_OK

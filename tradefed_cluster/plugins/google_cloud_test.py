@@ -40,7 +40,8 @@ class TaskSchedulerTest(unittest.TestCase):
     self.mock_client.queue_path.return_value = 'queue_path'
     self.mock_client.task_path.return_value = 'task_path'
     mock_task = mock.MagicMock()
-    mock_task.name = 'task_name'
+    mock_task.name = (
+        'projects/project/locations/location/queues/queue/tasks/task_name')
     self.mock_client.create_task.return_value = mock_task
     payload = 'payload'
     eta = datetime.datetime.utcnow()
@@ -79,7 +80,8 @@ class TaskSchedulerTest(unittest.TestCase):
   def testAddTask_withCompressedPayload(self):
     self.mock_client.queue_path.return_value = 'queue_path'
     mock_task = mock.MagicMock()
-    mock_task.name = 'task_name'
+    mock_task.name = (
+        'projects/project/locations/location/queues/queue/tasks/task_name')
     self.mock_client.create_task.return_value = mock_task
     payload = zlib.compress(b'payload')
 

@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +14,10 @@
 # limitations under the License.
 
 """Runs through cron, fetches device state statistics, and emits them."""
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import base64
 import collections
 import datetime
@@ -22,6 +27,7 @@ import logging
 import flask
 import lazy_object_proxy
 from protorpc import protojson
+import six
 
 
 from tradefed_cluster import api_messages
@@ -119,7 +125,7 @@ def _UpdateClusters():
   ndb.delete_multi(clusters_to_delete)
   logging.debug('Deleted clusters due to no hosts: %s', clusters_to_delete)
 
-  for cluster, hosts in cluster_to_hosts.iteritems():
+  for cluster, hosts in six.iteritems(cluster_to_hosts):
     cluster_entity = datastore_entities.ClusterInfo(id=cluster)
     cluster_entity.cluster = cluster
     cluster_entity.total_devices = 0
@@ -300,7 +306,7 @@ def _PublishHostMessage(hostname):
   # TODO: find a better way to add event publish timestamp.
   msg_dict = json.loads(encoded_message)
   msg_dict['publish_timestamp'] = _Now().isoformat()
-  data = base64.urlsafe_b64encode(json.dumps(msg_dict))
+  data = base64.urlsafe_b64encode(six.ensure_binary(json.dumps(msg_dict)))
   _PubsubClient.PublishMessages(
       HOST_AND_DEVICE_PUBSUB_TOPIC,
       [{

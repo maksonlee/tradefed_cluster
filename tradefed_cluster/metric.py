@@ -15,9 +15,9 @@
 """A module for streamz metric objects shared across the application."""
 
 import datetime
+import enum
 import logging
 
-import enum
 import pytz
 
 from tradefed_cluster import env_config
@@ -60,7 +60,7 @@ queue_size = _Metric(
     'queue/size',
     metric_util.MetricDescriptor(
         type_=metric_util.MetricType.VALUE,
-        value_type=long,
+        value_type=int,
         desc='Number of tasks remaining in the queue',
         fields=QUEUE_METRIC_FIELDS))
 
@@ -69,7 +69,7 @@ queue_leased = _Metric(
     'queue/leased',
     metric_util.MetricDescriptor(
         type_=metric_util.MetricType.VALUE,
-        value_type=long,
+        value_type=int,
         desc='Number of tasks leased in the last minute',
         fields=QUEUE_METRIC_FIELDS))
 
@@ -78,7 +78,7 @@ queue_eta = _Metric(
     'queue/eta',
     metric_util.MetricDescriptor(
         type_=metric_util.MetricType.VALUE,
-        value_type=long,
+        value_type=int,
         desc='Seconds from now to the oldest ETA',
         fields=QUEUE_METRIC_FIELDS,
         units=metric_util.Units.SECONDS))
@@ -124,7 +124,7 @@ def _InitDeviceStateMetrics():
         metric_name,
         metric_util.MetricDescriptor(
             type_=metric_util.MetricType.VALUE,
-            value_type=long,
+            value_type=int,
             desc=metric_description,
             fields=DEVICE_STATE_METRIC_FIELDS))
     _device_metrics_cache[metric_name] = device_state_metric
@@ -145,7 +145,7 @@ devices_visible = _Metric(
     'device/visible_count',
     metric_util.MetricDescriptor(
         type_=metric_util.MetricType.VALUE,
-        value_type=long,
+        value_type=int,
         desc='Number of devices visible',
         fields=DEVICE_STATE_METRIC_FIELDS))
 
@@ -154,7 +154,7 @@ devices_offline = _Metric(
     'device/offline_count',
     metric_util.MetricDescriptor(
         type_=metric_util.MetricType.VALUE,
-        value_type=long,
+        value_type=int,
         desc='Number of offline devices',
         fields=DEVICE_STATE_METRIC_FIELDS))
 

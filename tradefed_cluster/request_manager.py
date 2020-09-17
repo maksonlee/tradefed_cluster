@@ -20,6 +20,7 @@ import re
 import zlib
 
 from protorpc import protojson
+import six
 
 from tradefed_cluster import api_messages
 from tradefed_cluster import command_error_type_config
@@ -141,9 +142,10 @@ def _UpdateState(request_id, state=None, force=False, cancel_reason=None):
     elif summary.total_count > 0:
       state = common.RequestState.QUEUED
 
-  if state < common.RequestState.RUNNING:
+  if state in (common.RequestState.UNKNOWN, common.RequestState.QUEUED):
     start_time = None
-  if state <= common.RequestState.RUNNING:
+  if state in (common.RequestState.UNKNOWN, common.RequestState.QUEUED,
+               common.RequestState.RUNNING):
     end_time = None
 
   if cancel_reason is not None:
@@ -204,7 +206,7 @@ def NotifyRequestState(request_id, force=False):
 @ndb.transactional(xg=True)
 def SendRequestStateNotification(request_id, message):
   request = GetRequest(request_id)
-  payload = zlib.compress(protojson.encode_message(message))
+  payload = zlib.compress(six.ensure_binary(protojson.encode_message(message)))
   task_scheduler.AddTask(
       queue_name=common.OBJECT_EVENT_QUEUE, payload=payload, transactional=True)
   request.notify_state_change = False
@@ -512,7 +514,7 @@ def AddToQueue(request):
       "priority": request.priority,
       "queue_timeout_seconds": request.queue_timeout_seconds
   })
-  compressed_payload = zlib.compress(payload)
+  compressed_payload = zlib.compress(six.ensure_binary(payload))
   task_scheduler.AddTask(
       queue_name=REQUEST_QUEUE, name=task_name, payload=compressed_payload)
 

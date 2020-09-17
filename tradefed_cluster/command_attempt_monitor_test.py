@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,12 +15,17 @@
 
 """Tests for command_attempt_monitor."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import datetime
 import json
 import unittest
 
 import hamcrest
 import mock
+from six.moves import range
 import webtest
 
 from tradefed_cluster import command_attempt_monitor
@@ -50,7 +56,7 @@ class CommandAttemptMonitorTest(testbed_dependent_test.TestbedDependentTest):
     self.command = command_manager.CreateCommands(
         request_id=self.request.key.id(),
         command_lines=['long command line'],
-        shard_indexes=range(1),
+        shard_indexes=list(range(1)),
         run_target='foo',
         run_count=1,
         shard_count=1,

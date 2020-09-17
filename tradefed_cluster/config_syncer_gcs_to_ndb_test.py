@@ -18,6 +18,7 @@ import os
 import unittest
 
 import cloudstorage
+import six
 
 from tradefed_cluster import config_syncer_gcs_to_ndb
 from tradefed_cluster import datastore_entities
@@ -47,7 +48,7 @@ class ConfigSyncerBsToNdbTest(testbed_dependent_test.TestbedDependentTest):
          TEST_CLUSTER_YAML_FILE), 'w') as storage_file:
       with open(file_path, 'r') as f:
         for line in f:
-          storage_file.write(line)
+          storage_file.write(six.ensure_binary(line))
 
   def testUpdateClusterConfigs(self):
     """Tests that check cluster configs are updated."""

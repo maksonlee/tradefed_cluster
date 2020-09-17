@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +14,11 @@
 # limitations under the License.
 
 """A shim for gradually migrating out of GAE NDB into Google Cloud NDB."""
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from six.moves import map
+
 import tradefed_cluster.util.google_import_fixer  from google.cloud import ndb
 
 # All methods/classes used by tradefed_cluster are defined below
@@ -48,6 +54,8 @@ transactional = ndb.transactional
 in_transaction = ndb.in_transaction
 
 exceptions = ndb.exceptions
+
+UnprojectedPropertyError = ndb.UnprojectedPropertyError
 
 Client = ndb.Client
 

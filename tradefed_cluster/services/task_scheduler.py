@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +18,6 @@
 This module is developed to replace the legacy usage of GAE Taskqueue.
 """
 import logging
-
 import pickle
 import types
 import uuid
@@ -26,10 +26,9 @@ import flask
 
 
 from tradefed_cluster import common
-from tradefed_cluster.util import ndb_shim as ndb
-
 from tradefed_cluster import env_config
 from tradefed_cluster.plugins import base as plugins_base
+from tradefed_cluster.util import ndb_shim as ndb
 
 # This number is based on Cloud Tasks spec:
 # https://cloud.google.com/tasks/docs/quotas
@@ -270,7 +269,7 @@ def _PackCallable(obj, *args, **kwargs):
     ValueError: If the passed in object is not of a valid callable type.
   """
   if isinstance(obj, types.MethodType):
-    return (_InvokeMember, (obj.im_self, obj.im_func.__name__) + args, kwargs)
+    return (_InvokeMember, (obj.__self__, obj.__func__.__name__) + args, kwargs)
   elif isinstance(obj, types.BuiltinMethodType):
     if not obj.__self__:
       # Some built in functions are identified as methods (eg, operator.add)

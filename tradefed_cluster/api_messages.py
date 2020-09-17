@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +16,10 @@
 # Messages may be used in api config,
 # and we want to set the api parameter camel case.
 """Common config and classes for api."""
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 from protorpc import message_types
 from protorpc import messages
 
@@ -65,7 +70,7 @@ def MapToKeyValuePairMessages(key_value_map):
   key_value_pair_messages = []
   if not key_value_map:
     return key_value_pair_messages
-  for k, v in key_value_map.iteritems():
+  for k, v in six.iteritems(key_value_map):
     if v is not None:
       v = _ValueToText(v)
     key_value_pair_messages.append(KeyValuePair(key=k, value=v))
@@ -81,7 +86,7 @@ def KeyMultiValuePairMessagesToMap(pairs):
 def MapToKeyMultiValuePairMessages(key_values_map):
   """Transform a key-values dict to a list of KeyMultiValuePairs."""
   pairs = []
-  for key, values in (key_values_map or {}).iteritems():
+  for key, values in six.iteritems((key_values_map or {})):
     str_values = [_ValueToText(v) if v is not None else v
                   for v in values]
     pairs.append(KeyMultiValuePair(key=key, values=str_values))
@@ -667,7 +672,7 @@ class NonEmptyStringField(messages.StringField):
     Raises:
       ValidationError: value is empty or all whitespace
     """
-    if isinstance(value, str) or isinstance(value, unicode):
+    if isinstance(value, str) or isinstance(value, six.text_type):
       if not value.strip():
         try:
           name = self.name

@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -85,6 +86,10 @@ def GoogleCloudFetchPage(query, page_size, page_cursor=None, backwards=False,
         result_filter)
     next_cursor = cursor.urlsafe() if more else None
     prev_cursor = page_cursor
+  if prev_cursor:
+    prev_cursor = six.ensure_str(prev_cursor)
+  if next_cursor:
+    next_cursor = six.ensure_text(next_cursor)
   return results, prev_cursor, next_cursor
 
 
@@ -113,7 +118,7 @@ def _FetchPageWithIterator(query, page_size, start_cursor, result_filter):
   it = query.iter(start_cursor=start_cursor)
   results = []
   while len(results) < page_size and it.has_next():
-    result = it.next()
+    result = next(it)
     if not result_filter or result_filter(result):
       results.append(result)
   next_cursor = it.cursor_after() if results else None

@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,6 +15,10 @@
 
 """Unit tests for request_manager."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import datetime
 import json
 import unittest
@@ -21,8 +26,7 @@ import zlib
 
 import mock
 from protorpc import protojson
-
-from tradefed_cluster.util import ndb_shim as ndb
+from six.moves import range
 
 from tradefed_cluster import api_messages
 from tradefed_cluster import common
@@ -30,6 +34,7 @@ from tradefed_cluster import datastore_entities
 from tradefed_cluster import request_manager
 from tradefed_cluster import testbed_dependent_test
 from tradefed_cluster.services import task_scheduler
+from tradefed_cluster.util import ndb_shim as ndb
 
 
 REQUEST_ID = "1001"

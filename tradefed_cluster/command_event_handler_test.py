@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,12 +15,17 @@
 
 """Unit tests for command_event_handler module."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import datetime
 import logging
 import unittest
 
 import hamcrest
 import mock
+from six.moves import range
 import webtest
 
 from tradefed_cluster import command_event_handler
@@ -52,7 +58,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     self.command = command_manager.CreateCommands(
         request_id=self.request.key.id(),
         command_lines=["long command line"],
-        shard_indexes=range(1),
+        shard_indexes=list(range(1)),
         run_target="foo",
         run_count=1,
         shard_count=1,
@@ -120,7 +126,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     command_1, command_2 = command_manager.CreateCommands(
         request_id=self.request.key.id(),
         command_lines=["long command line %d" % i for i in range(2)],
-        shard_indexes=range(2),
+        shard_indexes=list(range(2)),
         run_target="foo",
         run_count=1,
         shard_count=2,

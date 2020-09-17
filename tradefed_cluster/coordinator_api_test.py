@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,12 +15,15 @@
 
 """Tests for coordinator_api module."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import unittest
 
 import hamcrest
 import mock
-
-from tradefed_cluster.util import ndb_shim as ndb
+from six.moves import range
 
 from tradefed_cluster import api_test
 from tradefed_cluster import command_manager
@@ -27,6 +31,7 @@ from tradefed_cluster import command_monitor
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import env_config  from tradefed_cluster import request_manager
+from tradefed_cluster.util import ndb_shim as ndb
 
 
 class CoordinatorApiTest(api_test.ApiTest):
@@ -52,7 +57,7 @@ class CoordinatorApiTest(api_test.ApiTest):
     command = command_manager.CreateCommands(
         request_id=self.request.key.id(),
         command_lines=['long command line'],
-        shard_indexes=range(1),
+        shard_indexes=list(range(1)),
         run_target='foo',
         run_count=1,
         shard_count=1,
@@ -81,7 +86,7 @@ class CoordinatorApiTest(api_test.ApiTest):
     command_1, command_2, command_3 = command_manager.CreateCommands(
         request_id=self.request.key.id(),
         command_lines=['long command line', 'longer_command_line', 'short_cmd'],
-        shard_indexes=range(3),
+        shard_indexes=list(range(3)),
         shard_count=3,
         request_plugin_data={
             'ants_invocation_id': 'i123',

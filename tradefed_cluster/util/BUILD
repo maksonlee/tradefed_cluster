@@ -117,6 +117,7 @@ py_library(
     srcs = [
         "ndb_shim.py",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         ":google_import_fixer",
         third_party("google/cloud/ndb:google3_ndb"),
@@ -129,6 +130,7 @@ py_library(
     srcs = [
         "ndb_test_lib.py",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         ":datastore_emulator_lib",
         ":ndb_shim_lib",
@@ -167,3 +169,4 @@ py_appengine_library(
     srcs_version = "PY2AND3",
     visibility = ["//third_party/py/multitest_transport:__subpackages__"],
 )
+

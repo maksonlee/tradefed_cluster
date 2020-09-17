@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,14 +14,18 @@
 # limitations under the License.
 """Tests for datastore_util."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import copy
 import datetime
 import re
 import unittest
 
 import mock
+from six.moves import range
 
-from tradefed_cluster.util import ndb_shim as ndb
 from google.appengine.ext import ndb as gae_ndb
 
 from tradefed_cluster import api_messages
@@ -28,6 +33,7 @@ from tradefed_cluster import datastore_entities
 from tradefed_cluster import datastore_test_util
 from tradefed_cluster import datastore_util
 from tradefed_cluster import testbed_dependent_test
+from tradefed_cluster.util import ndb_shim as ndb
 
 
 class DatastoreUtilTest(testbed_dependent_test.TestbedDependentTest):
@@ -179,7 +185,9 @@ class DatastoreUtilTest(testbed_dependent_test.TestbedDependentTest):
     labs = list(labs)
     self.assertEqual(10, len(labs))
     self.assertTrue(hasattr(labs[0], 'lab_name'))
-    self.assertFalse(hasattr(labs[0], 'owners'))
+    with self.assertRaises(ndb.UnprojectedPropertyError):
+      # try to access .owners will raise an exception
+      _ = labs[0].owners
 
   def testGetOrCreateDatastoreEntity_GetWithValidID(self):
     owners = ['owner-1', 'onwer-2']

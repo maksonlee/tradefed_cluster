@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,16 +15,21 @@
 
 """Tests for datastore_entities."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import datetime
 import unittest
 
-from tradefed_cluster.util import ndb_shim as ndb
+from six.moves import range
 
 from tradefed_cluster import api_messages
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import datastore_test_util
 from tradefed_cluster import testbed_dependent_test
+from tradefed_cluster.util import ndb_shim as ndb
 
 TIMESTAMP_OLD = datetime.datetime(2015, 5, 7)
 TIMESTAMP_NEW = datetime.datetime(2015, 9, 29)

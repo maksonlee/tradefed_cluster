@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,6 +19,10 @@ Do not change this module's name (host_event_api) as the deferred library
 uses it to execute the correct function for tasks in our push queue.
 """
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import json
 import logging
 
@@ -26,6 +31,7 @@ from protorpc import message_types
 from protorpc import messages
 from protorpc import protojson
 from protorpc import remote
+from six.moves import range
 
 from google.appengine.api import modules
 

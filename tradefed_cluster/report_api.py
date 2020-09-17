@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,6 +15,10 @@
 
 """API module to serve device report calls."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import datetime
 import logging
 
@@ -22,6 +27,7 @@ import endpoints
 from protorpc import message_types
 from protorpc import messages
 from protorpc import remote
+import six
 
 from tradefed_cluster import api_common
 from tradefed_cluster import device_info_reporter
@@ -65,7 +71,7 @@ def BuildRecordGroups(devices, aggregation, states):
   daily_report = device_info_reporter.DeviceReport(
       devices=devices, aggregation=aggregation, states=states)
   record_groups = []
-  for group, value in daily_report.GetReportCounts().iteritems():
+  for group, value in six.iteritems(daily_report.GetReportCounts()):
     record_groups.append(
         RecordGroup(
             groupByField=aggregation, groupByValue=group, count=value.count,

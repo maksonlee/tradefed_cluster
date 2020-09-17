@@ -21,6 +21,7 @@ import logging
 import zlib
 
 import flask
+import six
 
 from tradefed_cluster import command_event
 from tradefed_cluster import command_manager
@@ -76,7 +77,7 @@ def EnqueueCommandEvents(events):
     event_map[e["task_id"]].append(e)
   # Sort by task_ids to make it easy to test.
   for key in sorted(event_map.keys()):
-    payload = zlib.compress(json.dumps(event_map[key]))
+    payload = zlib.compress(six.ensure_binary(json.dumps(event_map[key])))
     task_scheduler.AddTask(queue_name=COMMAND_EVENT_QUEUE, payload=payload)
 
 

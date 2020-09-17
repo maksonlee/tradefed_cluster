@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,6 +19,7 @@ import datetime
 import unittest
 
 import mock
+import six
 import webtest
 
 from tradefed_cluster import datastore_entities
@@ -54,28 +56,28 @@ class DeviceHistoryCleanerTest(testbed_dependent_test.TestbedDependentTest):
   def testRetrieveKeys_allKeys(self):
     """Tests retrieving keys for an end date after the latest one."""
     end_date = TIMESTAMP_3 + datetime.timedelta(days=1)
-    keys = device_history_cleaner.RetrieveKeys(end_date).next()
+    keys = next(device_history_cleaner.RetrieveKeys(end_date))
     self.assertEqual(3, len(keys))
 
   def testRetrieveKeys_reachBatchSize(self):
     """Tests retrieving keys when the batch size is reached."""
     end_date = TIMESTAMP_3 + datetime.timedelta(days=1)
     device_history_cleaner.BATCH_SIZE = 2
-    keys = device_history_cleaner.RetrieveKeys(end_date).next()
+    keys = next(device_history_cleaner.RetrieveKeys(end_date))
     self.assertEqual(2, len(keys))
 
   def testRetrieveKeys_singleKey(self):
     """Tests retrieving keys for an end date after a single key."""
-    keys = device_history_cleaner.RetrieveKeys(
-        datetime.datetime(2015, 5, 8)).next()
+    keys = next(
+        device_history_cleaner.RetrieveKeys(datetime.datetime(2015, 5, 8)))
     self.assertEqual(1, len(keys))
     entity = keys[0].get()
     self.assertEqual(TIMESTAMP_1, entity.timestamp)
 
   def testRetrieveKeys_noKeys(self):
     """Tests retrieving keys for an end date older than any available."""
-    keys = device_history_cleaner.RetrieveKeys(
-        datetime.datetime(1970, 1, 1)).next()
+    keys = next(
+        device_history_cleaner.RetrieveKeys(datetime.datetime(1970, 1, 1)))
     self.assertEqual(0, len(keys))
 
   @mock.patch.object(device_history_cleaner, '_Now')
@@ -145,7 +147,7 @@ class DeviceHistoryCleanerTest(testbed_dependent_test.TestbedDependentTest):
     count = datastore_entities.DeviceStateHistory.query().count()
     self.assertEqual(1, count)
     self.assertEqual(response.status_int, 200)
-    self.assertEqual(response.normal_body, '2')
+    self.assertEqual(six.ensure_str(response.normal_body), '2')
 
 
 if __name__ == '__main__':

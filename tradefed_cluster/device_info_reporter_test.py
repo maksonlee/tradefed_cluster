@@ -22,6 +22,7 @@ import unittest
 
 import cloudstorage
 import mock
+import six
 import webtest
 
 from tradefed_cluster import api_messages
@@ -154,7 +155,7 @@ class DeviceInfoReporterTest(testbed_dependent_test.TestbedDependentTest):
     # Read back.
     with cloudstorage.open(device_snapshot.filename) as f:
       gz = gzip.GzipFile(mode='r', fileobj=f)
-      self.assertEqual(json_data, gz.read())
+      self.assertEqual(json_data, six.ensure_str(gz.read()))
     mock_job_result.assert_called_once_with(device_snapshot)
 
   def testGetDeviceSnapshotForDate(self):

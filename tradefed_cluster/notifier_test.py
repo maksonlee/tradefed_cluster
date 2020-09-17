@@ -21,6 +21,7 @@ import zlib
 
 import mock
 from protorpc import protojson
+import six
 import webtest
 
 from tradefed_cluster import api_messages
@@ -95,9 +96,11 @@ class NotifierTest(testbed_dependent_test.TestbedDependentTest):
         result_links=[self.result_link],
         total_run_time_sec=3,
         event_time=TIMESTAMP)
+    compressed_message = zlib.compress(six.ensure_binary(
+        protojson.encode_message(event_message)))
 
     self.testapp.post(notifier.OBJECT_EVENT_QUEUE_HANDLER_PATH,
-                      zlib.compress(protojson.encode_message(event_message)))
+                      compressed_message)
     self._AssertMessagePublished(
         event_message, notifier.REQUEST_EVENT_PUBSUB_TOPIC)
 
@@ -178,7 +181,8 @@ class NotifierTest(testbed_dependent_test.TestbedDependentTest):
     return command_attempt
 
   def _AssertMessagePublished(self, message, pubsub_topic):
-    data = base64.urlsafe_b64encode(protojson.encode_message(message))
+    data = base64.urlsafe_b64encode(
+        six.ensure_binary(protojson.encode_message(message)))
     messages = [{'data': data}]
     self.mock_pubsub_client.PublishMessages.assert_called_once_with(
         pubsub_topic, messages)

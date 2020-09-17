@@ -31,6 +31,7 @@ py_appengine_library(
         "base.py",
     ],
     envs = PY_APPENGINE_ENVS,
+    deps = ["//third_party/py/six"],
 )
 
 py_appengine_test(
@@ -53,6 +54,7 @@ py_library(
     deps = [
         ":base_lib",
         third_party("google/cloud/tasks_v2:tasks_v2_grpc_alternative"),
+        "//third_party/py/six",
     ],
 )
 

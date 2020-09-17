@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,11 +15,16 @@
 
 """A commander module to process requests and schedule commands."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import json
 import logging
 import zlib
 
 import flask
+from six.moves import range
 
 from tradefed_cluster import command_manager
 from tradefed_cluster import command_monitor
@@ -99,7 +105,7 @@ def _CreateCommands(request):
   # fetching commands, TF looks for only commands tagged with run_targets
   # which are available on itself.
   command_lines = []
-  shard_indexes = range(request.shard_count)
+  shard_indexes = list(range(request.shard_count))
   for shard_index in shard_indexes:
     # If the request is unmanaged, use command line to inject shard
     # parameters.

@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +15,13 @@
 
 """Plugins for Google Cloud Platform."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import threading
+
+import six
 
 from google.api_core import retry
 from google.cloud import tasks_v2
@@ -50,7 +57,7 @@ class TaskScheduler(base.TaskScheduler):
     parent = self._GetClient().queue_path(
         self._project, self._location, queue_name)
     if not isinstance(payload, bytes):
-      payload = payload.encode()
+      payload = six.ensure_binary(payload)
     task = {
         'app_engine_http_request': {
             'http_method': 'POST',

@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,12 +14,16 @@
 # limitations under the License.
 
 """Module for device management."""
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import copy
 import datetime
 import json
 import logging
 
-from tradefed_cluster.util import ndb_shim as ndb
+from six.moves import zip
 
 from tradefed_cluster import api_messages
 from tradefed_cluster import common
@@ -26,6 +31,7 @@ from tradefed_cluster import datastore_entities
 from tradefed_cluster import env_config
 from tradefed_cluster import metric
 from tradefed_cluster.services import task_scheduler
+from tradefed_cluster.util import ndb_shim as ndb
 
 TF_TEST_RUNNER = "tradefed"
 MAX_DEVICE_HISTORY_SIZE = 100
@@ -248,7 +254,7 @@ def _DoCountDeviceForHost(host, devices):
       host.offline_devices += 1
       device_count.offline += 1
   host.device_count_timestamp = now
-  host.device_count_summaries = device_counts.values()
+  host.device_count_summaries = list(device_counts.values())
 
 
 def _TransformDeviceSerial(hostname, serial):

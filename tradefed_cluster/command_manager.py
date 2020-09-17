@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,14 +15,19 @@
 
 """A module for managing test commands."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import datetime
 import json
 import logging
 import zlib
 
 from protorpc import protojson
-
-from tradefed_cluster.util import ndb_shim as ndb
+import six
+from six.moves import range
+from six.moves import zip
 
 from tradefed_cluster import api_messages
 from tradefed_cluster import command_task_store
@@ -32,6 +38,7 @@ from tradefed_cluster import metric
 from tradefed_cluster import request_manager
 from tradefed_cluster.plugins import base as plugin_base
 from tradefed_cluster.services import task_scheduler
+from tradefed_cluster.util import ndb_shim as ndb
 
 # Maximum number of tasks created for a single command with a run_count > 1
 
@@ -111,7 +118,9 @@ class CommandSummary(object):
       self.canceled_count += 1
     elif command_attempt.state == common.CommandState.COMPLETED:
       self.completed_count += 1
-      if (command_attempt.failed_test_count > 0 or
+      if (command_attempt.failed_test_count is not None and
+          command_attempt.failed_test_count > 0 or
+          command_attempt.failed_test_run_count is not None and
           command_attempt.failed_test_run_count > 0):
         self.completed_fail_count += 1
     elif command_attempt.state == common.CommandState.ERROR:
@@ -143,7 +152,9 @@ class CommandSummary(object):
         run_summary.canceled_count += 1
       elif command_attempt.state == common.CommandState.COMPLETED:
         run_summary.completed_count += 1
-        if (command_attempt.failed_test_count > 0 or
+        if (command_attempt.failed_test_count is not None and
+            command_attempt.failed_test_count > 0 or
+            command_attempt.failed_test_run_count is not None and
             command_attempt.failed_test_run_count > 0):
           run_summary.completed_fail_count += 1
       elif command_attempt.state == common.CommandState.ERROR:
@@ -620,7 +631,7 @@ def _NotifyAttemptState(attempt_entity, old_state, event_time):
       old_state=old_state,
       new_state=attempt_entity.state,
       event_time=event_time)
-  payload = zlib.compress(protojson.encode_message(message))
+  payload = zlib.compress(six.ensure_binary(protojson.encode_message(message)))
   task_scheduler.AddTask(
       queue_name=common.OBJECT_EVENT_QUEUE, payload=payload)
 
@@ -880,8 +891,8 @@ def _DoCreateCommands(request_id,
 
   new_commands = []
 
-  for command_line, command_id, shard_index in (zip(
-      command_lines, command_ids, shard_indexes)):
+  for command_line, command_id, shard_index in (list(
+      zip(command_lines, command_ids, shard_indexes))):
     command_key = ndb.Key(
         datastore_entities.Command, str(command_id),
         parent=request_key, namespace=common.NAMESPACE)
@@ -1063,7 +1074,7 @@ def GetLastCommandActiveTime(command):
   """
   attempts = _GetCommandAttemptsFromCommandKey(command.key)
   update_times = [command.update_time] + [a.last_event_time for a in attempts]
-  return max(filter(None, update_times))
+  return max([update_time for update_time in update_times if update_time])
 
 
 def UpdateTestContext(request_id, command_id, test_context):

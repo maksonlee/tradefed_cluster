@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +15,12 @@
 
 """Datastore entity classes."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import datetime
+import six
 
 
 from tradefed_cluster import api_messages
@@ -107,7 +113,7 @@ def TestContextToMessage(entity):
   if entity.env_vars:
     env_vars = [
         api_messages.KeyValuePair(key=key, value=value)
-        for key, value in entity.env_vars.iteritems()
+        for key, value in six.iteritems(entity.env_vars)
     ]
   test_resources = []
   if entity.test_resources:
@@ -237,7 +243,7 @@ def TradefedConfigObjectToMessage(entity):
   if entity.option_values:
     option_values = [
         api_messages.KeyMultiValuePair(key=k, values=v)
-        for k, v in entity.option_values.iteritems()
+        for k, v in six.iteritems(entity.option_values)
     ]
   return api_messages.TradefedConfigObject(
       type=entity.type,
@@ -399,10 +405,9 @@ class TestGroupStatus(ndb.Model):
     self.passed_test_count += other.passed_test_count
     self.is_complete &= other.is_complete
     self.elapsed_time += other.elapsed_time
-    self.failure_message = (
-        '\n'.join(
-            filter(
-                None, [self.failure_message, other.failure_message])) or None)
+    self.failure_message = ('\n'.join(
+        [fm for fm in [self.failure_message, other.failure_message] if fm]) or
+                            None)
 
 
 @MessageConverter(TestGroupStatus)

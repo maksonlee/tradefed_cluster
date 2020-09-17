@@ -27,6 +27,7 @@ import re
 import cloudstorage
 import dateutil.parser
 import flask
+import six
 
 from tradefed_cluster import api_messages
 from tradefed_cluster import common
@@ -298,7 +299,7 @@ def StoreDeviceSnapshot(device_snapshot):
       device_snapshot.filename, 'w', 'text/plain',
       {'content-encoding': 'gzip'}) as f:
     gz = gzip.GzipFile(mode='w', fileobj=f)
-    gz.write(json_data)
+    gz.write(six.ensure_binary(json_data))
     gz.close()
   # Upload the result
   UploadDeviceSnapshotJobResult(device_snapshot)

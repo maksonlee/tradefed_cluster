@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,8 +15,13 @@
 
 """Tests for command_task_matcher."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import unittest
 
+import six
 from tradefed_cluster import api_messages
 from tradefed_cluster import command_task_matcher
 from tradefed_cluster import common
@@ -111,12 +117,10 @@ class CommandTaskMatcherTest(unittest.TestCase):
     matcher = command_task_matcher.CommandTaskMatcher(host)
     r1_devices = matcher._run_target_index['run_target1']
     self.assertSetEqual(
-        set(['d1', 'd3']),
-        set((s for s, _ in r1_devices.iteritems())))
+        set(['d1', 'd3']), set((s for s, _ in six.iteritems(r1_devices))))
     r2_devices = matcher._run_target_index['run_target2']
     self.assertSetEqual(
-        set(['d2']),
-        set((s for s, _ in r2_devices.iteritems())))
+        set(['d2']), set((s for s, _ in six.iteritems(r2_devices))))
 
   def testMatchType1Test(self):
     host = self._CreateHostInfo(
@@ -223,8 +227,7 @@ class CommandTaskMatcherTest(unittest.TestCase):
     # d1 is in the same group as d2, will be removed as well
     r1_devices = matcher._run_target_index['run_target1']
     self.assertSetEqual(
-        set(['d3']),
-        set((s for s, _ in r1_devices.iteritems())))
+        set(['d3']), set((s for s, _ in six.iteritems(r1_devices))))
 
   def testRemoveDeviceGroups_multipleDevices(self):
     host = self._CreateHostInfo(
@@ -244,8 +247,7 @@ class CommandTaskMatcherTest(unittest.TestCase):
         matcher._run_target_index['run_target3'].get('d3', None))
     r1_devices = matcher._run_target_index['run_target1']
     self.assertSetEqual(
-        set(['d4']),
-        set((s for s, _ in r1_devices.iteritems())))
+        set(['d4']), set((s for s, _ in six.iteritems(r1_devices))))
 
   def testRemoveDeviceGroups_multipleGroups(self):
     host = self._CreateHostInfo(
@@ -262,7 +264,7 @@ class CommandTaskMatcherTest(unittest.TestCase):
 
     self.assertIsNone(matcher._groups.get('g1', None))
     self.assertIsNone(matcher._groups.get('g2', None))
-    for devices in matcher._run_target_index.itervalues():
+    for devices in six.itervalues(matcher._run_target_index):
       self.assertEqual(0, len(devices))
 
   def testGetRunTargets(self):

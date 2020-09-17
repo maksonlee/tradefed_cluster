@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,11 +15,14 @@
 
 """Command task matcher is used to matcher tasks against a host."""
 
-from collections import defaultdict
-from collections import namedtuple
-import itertools
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+from collections import defaultdict, namedtuple  import itertools
 import logging
 
+import six
 from tradefed_cluster import common
 
 
@@ -79,7 +83,7 @@ class CommandTaskMatcher(object):
       group_devices[d.group_name].append(d)
 
     group_map = {}
-    for group_name, devices in group_devices.iteritems():
+    for group_name, devices in six.iteritems(group_devices):
       group = self._BuildGroupSubtree(group_name, devices)
       group_map[group_name] = group
     return group_map
@@ -120,7 +124,7 @@ class CommandTaskMatcher(object):
       run target to device list
     """
     run_target_to_devices = {}
-    for group in groups.itervalues():
+    for group in six.itervalues(groups):
       for d in self._ListGroupDevices(group):
         run_target_to_devices.setdefault(
             d.run_target.name, {})[d.device_serial] = d
@@ -134,8 +138,8 @@ class CommandTaskMatcher(object):
     Yields:
       devices under a group
     """
-    for run_target in group.run_targets.itervalues():
-      for d in run_target.devices.itervalues():
+    for run_target in six.itervalues(group.run_targets):
+      for d in six.itervalues(run_target.devices):
         yield d
 
   def Match(self, command_task):
@@ -170,7 +174,7 @@ class CommandTaskMatcher(object):
     run_target = command_task.run_targets[0]
     devices = self._run_target_index.get(run_target)
     if devices:
-      return [devices.itervalues().next()]
+      return [next(six.itervalues(devices))]
     return None
 
   def _MatchType2(self, command_task):
@@ -184,7 +188,7 @@ class CommandTaskMatcher(object):
     Returns:
       a list of matched devices
     """
-    for group in self._groups.itervalues():
+    for group in six.itervalues(self._groups):
       matched_devices = self._MatchGroup(
           group, command_task.test_bench.host.groups[0])
       if matched_devices:
@@ -208,7 +212,7 @@ class CommandTaskMatcher(object):
     for r in group_requirements.run_targets:
       expect_run_target_count[r.name] += 1
     # Check if every run target can be fullfilled.
-    for r, count in expect_run_target_count.iteritems():
+    for r, count in six.iteritems(expect_run_target_count):
       run_target = device_group.run_targets.get(r, None)
       if not run_target or len(run_target.devices) < count:
         # There is no or not enough needed run target devices in current group.
@@ -217,7 +221,7 @@ class CommandTaskMatcher(object):
         return None
       # Get the first count devices in the run_target.
       matched_devices.extend(
-          itertools.islice(run_target.devices.itervalues(), count))
+          itertools.islice(six.itervalues(run_target.devices), count))
     logging.debug('%s matches requirement %s with %s.',
                   device_group.name,
                   [r.name for r in group_requirements.run_targets],
@@ -252,7 +256,7 @@ class CommandTaskMatcher(object):
       logging.debug('Matching group %s', group_requirement)
       group_matched_devices = None
       group = None
-      for group in self._groups.itervalues():
+      for group in six.itervalues(self._groups):
         if group.name in allocated_groups:
           continue
         group_matched_devices = self._MatchGroup(group, group_requirement)
@@ -292,7 +296,7 @@ class CommandTaskMatcher(object):
     Returns:
       a list of run target names
     """
-    return self._run_target_index.keys()
+    return list(self._run_target_index.keys())
 
   def IsEmpty(self):
     """The host has usable devices or not.

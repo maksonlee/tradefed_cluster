@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test util for datastore related tests."""
-
-from tradefed_cluster.util import ndb_shim as ndb
+import six
 
 from tradefed_cluster import api_messages
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
+from tradefed_cluster.util import ndb_shim as ndb
+
+OWNERS = (six.ensure_str('owner1'), six.ensure_str('owner2'))
 
 
 def CreateCluster(cluster,
@@ -200,7 +202,7 @@ def CreateNote(hostname='host1',
   return note
 
 
-def CreateLabInfo(lab_name, owners=('owner1', 'owner2'), update_timestamp=None):
+def CreateLabInfo(lab_name, owners=OWNERS, update_timestamp=None):
   """Create a lab info entity."""
   lab_info = datastore_entities.LabInfo(
       id=lab_name,

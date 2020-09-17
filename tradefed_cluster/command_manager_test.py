@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,6 +15,10 @@
 
 """Unit tests for command_manager."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import datetime
 import json
 import logging
@@ -23,8 +28,7 @@ import zlib
 import hamcrest
 import mock
 from protorpc import protojson
-
-from tradefed_cluster.util import ndb_shim as ndb
+from six.moves import range
 
 from tradefed_cluster import api_messages
 from tradefed_cluster import command_event_test_util
@@ -37,6 +41,7 @@ from tradefed_cluster import metric
 from tradefed_cluster import request_manager
 from tradefed_cluster import testbed_dependent_test
 from tradefed_cluster.plugins import base as plugin_base
+from tradefed_cluster.util import ndb_shim as ndb
 
 TIMESTAMP = datetime.datetime(2017, 3, 8)
 TIMEDELTA = datetime.timedelta(seconds=30)
@@ -82,7 +87,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
         request_id=REQUEST_ID,
         command_lines=["foo bar1", "foo bar2"],
         shard_count=2,
-        shard_indexes=range(2),
+        shard_indexes=list(range(2)),
         run_target="run_target",
         run_count=1,
         cluster="cluster",
@@ -119,7 +124,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
         request_plugin_data={},
         command_lines=["foo bar"],
         shard_count=1,
-        shard_indexes=range(1),
+        shard_indexes=list(range(1)),
         run_target="run_target",
         run_count=1,
         cluster="cluster",
@@ -330,10 +335,9 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
         run_target="foo",
         run_count=1,
         cluster="foobar",
-        command_lines=["command_line",
-                       "short command line"],
+        command_lines=["command_line", "short command line"],
         shard_count=2,
-        shard_indexes=range(2))
+        shard_indexes=list(range(2)))
     command_1 = commands[0]
     _, request_id1, _, command_id1 = command_1.key.flat()
     command_2 = commands[1]

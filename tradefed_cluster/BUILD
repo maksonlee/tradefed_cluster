@@ -454,7 +454,7 @@ py_appengine_library(
         ":datastore_entities_lib",
         ":env_config_lib",
         ":metric_lib",
-        ":request_lib",
+        ":request_manager_lib",
         third_party("flask"),
         third_party("googleapiclient"),
         third_party("httplib2"),
@@ -480,7 +480,7 @@ py_appengine_test(
         ":datastore_entities_lib",
         ":env_config_lib",
         ":metric_lib",
-        ":request_lib",
+        ":request_manager_lib",
         ":testbed_dependent_test_lib",
         third_party("hamcrest"),
         third_party("mock"),
@@ -545,6 +545,7 @@ py_appengine_library(
     deps = [
         ":common_lib",
         ":datastore_entities_lib",
+        third_party("six"),
     ],
 )
 
@@ -596,7 +597,7 @@ py_appengine_library(
     envs = PY_APPENGINE_ENVS,
     deps = [
         ":command_lib",
-        ":request_lib",
+        ":request_manager_lib",
         third_party("flask"),
     ],
 )
@@ -670,6 +671,7 @@ py_appengine_test(
         ":datastore_test_util_lib",
         ":testbed_dependent_test_lib",
         third_party("cloudstorage"),
+        third_party("six"),
     ],
 )
 
@@ -767,6 +769,7 @@ py_appengine_library(
         ":api_messages_lib",
         ":common_lib",
         ":datastore_entities_lib",
+        third_party("six"),
         "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
@@ -796,6 +799,7 @@ py_appengine_test(
         ":testbed_dependent_test_lib",
         third_party("mock"),
         third_party("webtest"),
+        third_party("six"),
     ],
 )
 
@@ -829,6 +833,7 @@ py_appengine_test(
         ":device_info_reporter_lib",
         ":testbed_dependent_test_lib",
         third_party("mock"),
+        third_party("six"),
         third_party("webtest"),
     ],
 )
@@ -1151,7 +1156,7 @@ py_appengine_library(
     envs = PY_APPENGINE_ENVS,
     deps = [
         ":notifier_lib",
-        ":request_lib",
+        ":request_manager_lib",
         "//tradefed_cluster/services:task_scheduler_lib",
         third_party("flask"),
     ],
@@ -1181,7 +1186,7 @@ py_appengine_library(
         ":api_messages_lib",
         ":common_lib",
         ":env_config_lib",
-        ":request_lib",
+        ":request_manager_lib",
         third_party("flask"),
         third_party("lazy_object_proxy"),
         "//tradefed_cluster/util:pubsub_client_lib",
@@ -1200,6 +1205,7 @@ py_appengine_test(
         ":notifier_lib",
         ":testbed_dependent_test_lib",
         third_party("mock"),
+        third_party("six"),
         third_party("webtest"),
     ],
 )
@@ -1292,7 +1298,7 @@ py_appengine_test(
 )
 
 py_appengine_library(
-    name = "request_lib",
+    name = "request_manager_lib",
     srcs = [
         "request_manager.py",
     ],
@@ -1303,6 +1309,7 @@ py_appengine_library(
         ":common_lib",
         ":datastore_entities_lib",
         ":env_config_lib",
+        third_party("six"),
         "//tradefed_cluster/services:task_scheduler_lib",
         "//tradefed_cluster/util:command_util",
         "//tradefed_cluster/util:ndb_shim_lib",
@@ -1318,7 +1325,7 @@ py_appengine_test(
     use_public_sdk = 1,
     deps = [
         ":env_config_lib",
-        ":request_lib",
+        ":request_manager_lib",
         ":testbed_dependent_test_lib",
         third_party("hamcrest"),
         third_party("mock"),

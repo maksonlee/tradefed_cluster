@@ -1031,6 +1031,7 @@ py_appengine_library(
     srcs = [
         "env_config.py",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         ":common_lib",
         "//tradefed_cluster/plugins:appengine_lib",
@@ -1073,6 +1074,7 @@ py_library(
     srcs = [
         "host_event.py",
     ],
+    srcs_version = "PY2AND3",
 )
 
 py_appengine_test(

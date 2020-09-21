@@ -1000,6 +1000,7 @@ py_appengine_library(
         "device_blocker.py",
     ],
     envs = PY_APPENGINE_ENVS,
+    srcs_version = "PY2AND3",
     deps = [
         ":datastore_entities_lib",
     ],

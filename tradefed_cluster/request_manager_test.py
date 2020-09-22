@@ -86,6 +86,57 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     mock_delete.assert_called_once_with(
         request_manager.REQUEST_QUEUE, REQUEST_ID)
 
+  @mock.patch.object(common, "Now")
+  def testCreateRequestEventMessage(self, mock_now):
+    mock_now.return_value = self.END_TIME
+    request = request_manager.CreateRequest(
+        user="user", command_line="command_line", request_id="1234567")
+    request.state = common.RequestState.CANCELED
+    request.put()
+    command = datastore_entities.Command(
+        parent=request.key,
+        command_line="command_line",
+        cluster="cluster",
+        run_target="run_target",
+        run_count=2,
+        state=common.CommandState.CANCELED,
+        start_time=self.START_TIME,
+        end_time=self.END_TIME)
+    command.put()
+    command_attempt = datastore_entities.CommandAttempt(
+        parent=command.key,
+        task_id="task_id",
+        attempt_id="attempt_id",
+        state=common.CommandState.CANCELED,
+        hostname="hostname",
+        device_serial="device_serial",
+        start_time=self.START_TIME,
+        end_time=self.END_TIME,
+        status="status",
+        error="error",
+        summary="summary")
+    command_attempt.put()
+
+    actual = request_manager.CreateRequestEventMessage(request)
+
+    expected = api_messages.RequestEventMessage(
+        type=common.ObjectEventType.REQUEST_STATE_CHANGED,
+        request_id="1234567",
+        new_state=common.RequestState.CANCELED,
+        request=datastore_entities.ToMessage(request),
+        summary="Attempt attempt_id: error (CANCELED)",
+        total_run_time_sec=int(
+            (self.END_TIME - self.START_TIME).total_seconds()),
+        event_time=self.END_TIME,
+        total_test_count=0,
+        failed_test_count=0,
+        passed_test_count=0,
+        failed_test_run_count=0,
+        device_lost_detected=0,
+    )
+
+    self.assertEqual(expected, actual)
+
   @mock.patch.object(task_scheduler, "DeleteTask")
   @mock.patch.object(task_scheduler, "AddTask")
   @mock.patch.object(common, "Now")

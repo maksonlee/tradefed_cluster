@@ -284,6 +284,15 @@ def CreateRequestEventMessage(request):
                       (attempt.attempt_id, result_link, error))
         if result_link:
           result_links.add(result_link)
+      elif (attempt.state == common.CommandState.CANCELED and
+            attempt.state == command.state and attempt.error):
+        # TF currently populates the error field on CANCELED attempts when
+        # allocation fails. The error contains the whole command so it can be
+        # very verbose, so we are surfacing only one of the attempt errors to
+        # reduce noise.
+        errors = [
+            "Attempt %s: %s (CANCELED)" % (attempt.attempt_id, attempt.error)
+        ]
 
   summary = "\n".join(summaries + errors)
   logging.debug(

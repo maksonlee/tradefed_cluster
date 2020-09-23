@@ -80,7 +80,7 @@ HOST_STATE_CHANGED_EVENT_TYPE = "HOST_STATE_CHANGED"
 
 HOST_SYNC_QUEUE = "host-sync-queue"
 HOST_SYNC_ID_KEY = "host_sync_id"
-HOST_SYNC_INTERVAL = datetime.timedelta(minutes=10)
+HOST_SYNC_INTERVAL = datetime.timedelta(minutes=5)
 HOST_SYNC_STALE_TIMEOUT = 3 * HOST_SYNC_INTERVAL
 ONE_MONTH = datetime.timedelta(days=30)
 

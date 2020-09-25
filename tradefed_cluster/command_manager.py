@@ -390,9 +390,8 @@ def _UpdateState(
   entities_to_update = []
   request = request_manager.GetRequest(request_id)
   command = GetCommand(request_id, command_id)
-  logging.info("Attempting to update %s state%s",
-               command.key,
-               " to %s" % state.name if state is not None else "")
+  logging.info("Attempting to update command %s in state %s to state %s",
+               command.key, command.state, state)
   summary = GetCommandSummary(request_id, command_id, command.run_count)
 
   max_retry_on_test_failures = request.max_retry_on_test_failures or 0
@@ -402,7 +401,9 @@ def _UpdateState(
         task_id, command, summary, attempt_state,
         max_retry_on_test_failures=max_retry_on_test_failures)
     return command
+
   state = state or command.state
+
   start_time = None
   end_time = None
 
@@ -421,6 +422,8 @@ def _UpdateState(
     request = request_manager.GetRequest(command.request_id)
     request.dirty = True
     entities_to_update.append(request)
+    logging.info("New state for command %s is %s. Request set to dirty.",
+                 command.key, state)
 
   if (command.state == common.CommandState.CANCELED and
       cancel_reason is not None):
@@ -568,7 +571,10 @@ def UpdateCommandAttempt(event):
   _UpdateCommandAttemptEntity(attempt_entity, event)
   entities_to_update.append(attempt_entity)
   ndb.put_multi(entities_to_update)
+
   if attempt_state_changed:
+    logging.info("Attempt %s state changed from %s to %s", event.attempt_id,
+                 orig_state, event.attempt_state)
     _NotifyAttemptState(attempt_entity, orig_state, event.time)
   return True
 

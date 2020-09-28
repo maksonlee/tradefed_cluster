@@ -47,6 +47,8 @@ message LabConfig {
   optional string secret_project_id = 12;
   // Secret id for service account key.
   optional string service_account_key_secret_id = 13;
+  // Service account for the lab.
+  optional string service_account = 14;
 }
 
 // Config for a cluster.

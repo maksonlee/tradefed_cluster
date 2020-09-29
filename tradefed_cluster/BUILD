@@ -138,6 +138,7 @@ py_appengine_library(
         ":api_lib",
         ":command_event_handler_lib",
         ":commander_lib",
+        ":config_syncer_gcs_to_ndb_lib",
         ":device_history_cleaner_lib",
         ":device_info_reporter_lib",
         ":device_monitor_lib",
@@ -651,6 +652,7 @@ py_appengine_library(
     envs = PY_APPENGINE_ENVS,
     deps = [
         ":datastore_entities_lib",
+        ":env_config_lib",
         "//tradefed_cluster/configs:lab_config_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
         third_party("flask"),

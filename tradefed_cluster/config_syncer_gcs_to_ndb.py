@@ -20,9 +20,12 @@ import cloudstorage
 import flask
 
 
+from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
+from tradefed_cluster import env_config
 from tradefed_cluster.configs import lab_config
 from tradefed_cluster.util import ndb_shim as ndb
+
 
 BUCKET_NAME = 'tradefed_lab_configs'
 LAB_CONFIG_DIR_PATH = '/{}/lab_configs/'.format(BUCKET_NAME)
@@ -138,9 +141,11 @@ def SyncToNDB():
             cluster_config.host_configs, cluster_config.cluster_name)
 
 
-@APP.route('/')
-@APP.route('/<path:fake>')
-def SyncGCSToNDB(fake=None):
+@APP.route('/cron/syncer/sync_gcs_ndb')
+def SyncGCSToNDB():
   """Task to sync cluster and host config from gcs to ndb."""
-  del fake
-  SyncToNDB()
+  if env_config.CONFIG.should_sync_lab_config:
+    logging.debug('"should_sync_lab_config" is enabled.')
+    SyncToNDB()
+
+  return common.HTTP_OK

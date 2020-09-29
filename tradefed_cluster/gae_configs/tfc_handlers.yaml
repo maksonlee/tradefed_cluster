@@ -51,3 +51,6 @@ handlers:
 
 - url: /cron/notifier_update_request_status
   script: tradefed_cluster.notification_handler.APP
+
+- url: /cron/syncer/sync_gcs_ndb
+  script: tradefed_cluster.config_syncer_gcs_to_ndb.APP

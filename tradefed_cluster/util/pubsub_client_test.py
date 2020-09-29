@@ -19,6 +19,7 @@ import unittest
 from googleapiclient import errors
 import mock
 
+
 from tradefed_cluster import testbed_dependent_test
 from tradefed_cluster.util import pubsub_client
 
@@ -34,16 +35,8 @@ class PubsubClientTest(testbed_dependent_test.TestbedDependentTest):
     self.pubsub_client = pubsub_client.PubSubClient(
         api_client=self.mock_api_client)
 
-  def testCreateHttp(self):
-    http = self.pubsub_client._CreateHttp()
-
-    self.assertIsNotNone(http)
-
-  @mock.patch.object(pubsub_client.PubSubClient, '_CreateHttp')
-  def testCreateTopic(self, mock_create_http):
+  def testCreateTopic(self):
     """Tests whether the method makes a correct API request."""
-    mock_create_http.return_value = mock_http = mock.MagicMock()
-
     self.pubsub_client.CreateTopic('topic')
 
     self.mock_api_client.assert_has_calls([
@@ -52,12 +45,10 @@ class PubsubClientTest(testbed_dependent_test.TestbedDependentTest):
         mock.call.projects().topics().create(
             name='topic',
             body={}),
-        mock.call.projects().topics().create().execute(http=mock_http)])
+        mock.call.projects().topics().create().execute()])
 
-  @mock.patch.object(pubsub_client.PubSubClient, '_CreateHttp')
-  def testCreateTopic_alreadyExist(self, mock_create_http):
+  def testCreateTopic_alreadyExist(self):
     """Tests create an already existing topic."""
-    mock_create_http.return_value = mock_http = mock.MagicMock()
     (self.mock_api_client.projects().topics().create()
      .execute.side_effect) = [HTTP_ERROR_409]
 
@@ -69,13 +60,10 @@ class PubsubClientTest(testbed_dependent_test.TestbedDependentTest):
         mock.call.projects().topics().create(
             name='topic',
             body={}),
-        mock.call.projects().topics().create().execute(http=mock_http)])
+        mock.call.projects().topics().create().execute()])
 
-  @mock.patch.object(pubsub_client.PubSubClient, '_CreateHttp')
-  def testPublishMessage(self, mock_create_http):
+  def testPublishMessage(self):
     """Tests whether the method makes a correct API request."""
-    mock_create_http.return_value = mock_http = mock.MagicMock()
-
     self.pubsub_client.PublishMessages('topic', [])
 
     self.mock_api_client.assert_has_calls([
@@ -84,7 +72,7 @@ class PubsubClientTest(testbed_dependent_test.TestbedDependentTest):
         mock.call.projects().topics().publish(
             topic='topic',
             body={'messages': []}),
-        mock.call.projects().topics().publish().execute(http=mock_http)])
+        mock.call.projects().topics().publish().execute()])
 
 
 if __name__ == '__main__':

@@ -18,10 +18,8 @@ import logging
 
 from googleapiclient import discovery
 from googleapiclient import errors
-import httplib2
-from oauth2client import appengine
 
-from google.appengine.api import memcache
+import google.auth
 
 PUBSUB_API_SCOPES = ('https://www.googleapis.com/auth/pubsub')
 PUBSUB_API_NAME = 'pubsub'
@@ -39,14 +37,10 @@ class PubSubClient(object):
       api_client: an API client instance. New instance will be created if not
         given.
     """
-    self._credentials = appengine.AppAssertionCredentials(
-        scope=PUBSUB_API_SCOPES)
+    self._credentials, _ = google.auth.default(scopes=PUBSUB_API_SCOPES)
     self._api_client = api_client
     if not self._api_client:
       self._api_client = discovery.build(PUBSUB_API_NAME, PUBSUB_API_VERSION)
-
-  def _CreateHttp(self):
-    return self._credentials.authorize(httplib2.Http(memcache))
 
   def CreateTopic(self, topic):
     """Create the topic if it does not exist.
@@ -59,7 +53,7 @@ class PubSubClient(object):
     try:
       self._api_client.projects().topics().create(
           name=topic, body={}
-      ).execute(http=self._CreateHttp())
+      ).execute()
     except errors.HttpError as e:
       # Ignore 409 because it means the topic already exists.
       if e.resp.status != 409:
@@ -80,5 +74,5 @@ class PubSubClient(object):
         body={
             'messages': messages
         }
-    ).execute(http=self._CreateHttp())
+    ).execute()
     return resp.get('messageIds')

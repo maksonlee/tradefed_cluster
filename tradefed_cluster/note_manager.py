@@ -13,7 +13,6 @@
 # limitations under the License.
 """A module for note management."""
 
-import base64
 import datetime
 import logging
 
@@ -141,13 +140,13 @@ _PubsubClient = lazy_object_proxy.Proxy(_CreatePubsubClient)
 def PublishMessage(device_note_message, event_type):
   """Publish device note event message to pubsub."""
   if not env_config.CONFIG.use_google_api:
-    logging.warn(
+    logging.warning(
         "Unabled to send device note message to pubsub: use_google_api=False"
     )
     return
   device_note_message.publish_timestamp = _Now()
   encoded_message = protojson.encode_message(device_note_message)
-  data = base64.urlsafe_b64encode(encoded_message)
+  data = common.UrlSafeB64Encode(encoded_message)
   if event_type == common.PublishEventType.DEVICE_NOTE_EVENT:
     data_type = "deviceNote"
     topic = DEVICE_NOTE_PUBSUB_TOPIC

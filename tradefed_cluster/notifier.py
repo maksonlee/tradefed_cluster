@@ -14,7 +14,6 @@
 
 """A notifier module to publish request events via Cloud Pub/Sub."""
 
-import base64
 import json
 import logging
 import zlib
@@ -62,7 +61,7 @@ def _SendEventMessage(encoded_message, pubsub_topic):
   """
   queue = env_config.CONFIG.event_queue_name
   if env_config.CONFIG.use_google_api:
-    data = base64.urlsafe_b64encode(encoded_message)
+    data = common.UrlSafeB64Encode(encoded_message)
     _PubsubClient.PublishMessages(pubsub_topic, [{'data': data}])
   elif queue:
     task_scheduler.AddTask(queue_name=queue, payload=encoded_message)

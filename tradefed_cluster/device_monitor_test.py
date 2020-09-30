@@ -18,7 +18,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import base64
 import datetime
 import json
 import unittest
@@ -483,7 +482,7 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
     message = messages[0]
     self.assertEqual('host', message['attributes']['type'])
     data = message['data']
-    data = base64.urlsafe_b64decode(data)
+    data = common.UrlSafeB64Decode(data)
     msg_dict = json.loads(data)
     self.assertEqual('2019-11-14T10:10:00', msg_dict['publish_timestamp'])
     host_msg = protojson.decode_message(api_messages.HostInfo, data)

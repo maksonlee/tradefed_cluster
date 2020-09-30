@@ -18,7 +18,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import base64
 import collections
 import datetime
 import json
@@ -306,7 +305,7 @@ def _PublishHostMessage(hostname):
   # TODO: find a better way to add event publish timestamp.
   msg_dict = json.loads(encoded_message)
   msg_dict['publish_timestamp'] = _Now().isoformat()
-  data = base64.urlsafe_b64encode(six.ensure_binary(json.dumps(msg_dict)))
+  data = common.UrlSafeB64Encode(json.dumps(msg_dict))
   _PubsubClient.PublishMessages(
       HOST_AND_DEVICE_PUBSUB_TOPIC,
       [{

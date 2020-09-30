@@ -14,7 +14,6 @@
 
 """Unit tests for notifier."""
 
-import base64
 import datetime
 import unittest
 import zlib
@@ -181,8 +180,7 @@ class NotifierTest(testbed_dependent_test.TestbedDependentTest):
     return command_attempt
 
   def _AssertMessagePublished(self, message, pubsub_topic):
-    data = base64.urlsafe_b64encode(
-        six.ensure_binary(protojson.encode_message(message)))
+    data = common.UrlSafeB64Encode(protojson.encode_message(message))
     messages = [{'data': data}]
     self.mock_pubsub_client.PublishMessages.assert_called_once_with(
         pubsub_topic, messages)

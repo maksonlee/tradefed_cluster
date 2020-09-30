@@ -15,6 +15,7 @@
 """Tests for google3.wireless.android.test_tools.tradefed_cluster.common."""
 
 import unittest
+import six
 
 from tradefed_cluster import common
 
@@ -41,6 +42,18 @@ class CommonTest(unittest.TestCase):
     self.assertEqual(0, TestIntState.StateZero)
     self.assertEqual(1, TestIntState.StateOne)
 
+  def testUrlSafeB64EncodeAndDecode(self):
+    string_message = str("{message}")
+    bytes_message = bytes(b"{message}")
+    string_result = common.UrlSafeB64Encode(string_message)
+    bytes_result = common.UrlSafeB64Encode(bytes_message)
+    # Validate result are equal even if type is different
+    decoded_string_message = common.UrlSafeB64Decode(string_result)
+    decoded_bytes_message = common.UrlSafeB64Decode(bytes_result)
+    self.assertEqual(decoded_bytes_message, decoded_string_message)
+    # Output will be turn to str
+    self.assertEqual(six.ensure_str(bytes_message), decoded_bytes_message)
+    self.assertEqual(string_message, decoded_string_message)
 
 if __name__ == "__main__":
   unittest.main()

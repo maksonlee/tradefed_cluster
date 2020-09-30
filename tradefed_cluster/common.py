@@ -13,12 +13,14 @@
 # limitations under the License.
 
 """A module for common constants and functions."""
+import base64
 import datetime
 import logging
 
 from protorpc import messages
 import pytz
 import retry
+import six
 
 # List APIs defaults
 DEFAULT_PAGE_OFFSET = 0
@@ -274,3 +276,31 @@ class RecoveryState(object):
   ASSIGNED = "ASSIGNED"
   FIXED = "FIXED"
   VERIFIED = "VERIFIED"
+
+
+def UrlSafeB64Encode(message):
+  """wrapper of base64.urlsafe_b64encode.
+
+  Helper method to avoid calling six multiple times for preparing b64 strings.
+
+  Args:
+    message: string or binary to encode
+  Returns:
+    encoded data in string format.
+  """
+  data = base64.urlsafe_b64encode(six.ensure_binary(message))
+  return six.ensure_str(data)
+
+
+def UrlSafeB64Decode(message):
+  """wrapper of base64.urlsafe_b64decode.
+
+  Helper method to avoid calling six multiple times for preparing b64 strings.
+
+  Args:
+    message: string or binary to decode
+  Returns:
+    decoded data in string format.
+  """
+  data = base64.urlsafe_b64decode(six.ensure_binary(message))
+  return six.ensure_str(data)

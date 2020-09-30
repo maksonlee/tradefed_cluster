@@ -13,7 +13,6 @@
 # limitations under the License.
 """Unit tests for note manager module."""
 
-import base64
 import datetime
 import json
 import unittest
@@ -186,7 +185,7 @@ class NoteManagerTest(testbed_dependent_test.TestbedDependentTest):
     message = messages[0]
     self.assertEqual("deviceNote", message["attributes"]["type"])
     data = message["data"]
-    data = base64.urlsafe_b64decode(data)
+    data = common.UrlSafeB64Decode(data)
     msg_dict = json.loads(data)
     self.assertEqual("2020-04-14T10:10:00", msg_dict["publish_timestamp"])
 

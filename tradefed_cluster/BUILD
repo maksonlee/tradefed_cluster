@@ -641,6 +641,7 @@ py_appengine_test(
     envs = PY_APPENGINE_TEST_ENVS,
     deps = [
         ":common_lib",
+        "//third_party/py/six",
     ],
 )
 

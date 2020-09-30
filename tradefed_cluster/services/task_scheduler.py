@@ -296,7 +296,8 @@ def _Serialize(obj, *args, **kwargs):
     A serialized representation of the callable.
   """
   pack = _PackCallable(obj, *args, **kwargs)
-  return pickle.dumps(pack, protocol=pickle.HIGHEST_PROTOCOL)
+  # TODO: Use "pickle.HIGHEST_PROTOCOL"
+  return pickle.dumps(pack, protocol=2)
 
 
 @APP.route("/", methods=["POST"])

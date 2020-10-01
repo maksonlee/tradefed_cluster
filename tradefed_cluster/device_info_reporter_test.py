@@ -105,6 +105,18 @@ class DeviceInfoReporterTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(1, len(report.hosts_loas))
 
   @mock.patch.object(device_info_reporter, '_Now')
+  def testHostReport_withoutEventTimestamp(self, now):
+    now.return_value = TIMESTAMP
+    # Create host list without timestamp
+    hosts = [
+        datastore_test_util.CreateHost('free', 'atl-1001.mtv', timestamp=None)
+    ]
+    report = device_info_reporter.HostReport(hosts=hosts)
+    self.assertEqual(1, len(report.hosts))
+    self.assertEqual(1, len(report.hosts_checkin))
+    self.assertEqual(0, len(report.hosts_loas))
+
+  @mock.patch.object(device_info_reporter, '_Now')
   def testHostReport_noExtraInfo(self, now):
     now.return_value = TIMESTAMP
     ndb_host = datastore_test_util.CreateHost(

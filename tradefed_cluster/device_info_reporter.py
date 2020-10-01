@@ -131,7 +131,7 @@ class HostReport(object):
     for host in self.hosts:
       host.extra_info = host.extra_info or {}
       loas_info = host.extra_info.get('prodcertstatus', '')
-      if host.timestamp < one_hour_ago:
+      if host.timestamp is None or host.timestamp < one_hour_ago:
         self.hosts_checkin.append(host)
       elif _GetLoasSeconds(loas_info) <= WEEK_TO_SECONDS:
         self.hosts_loas.append(host)

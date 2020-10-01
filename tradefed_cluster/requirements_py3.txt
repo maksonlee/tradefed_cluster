@@ -1,4 +1,5 @@
 absl-py==0.8.1
 googledatastore==7.1.0
-six==1.13.0
+pika==1.1.0
 PyYAML==5.1.2
+six==1.13.0

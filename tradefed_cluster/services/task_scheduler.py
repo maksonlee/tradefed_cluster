@@ -100,6 +100,7 @@ def _AddTask(
     name = str(uuid.uuid1())
 
   def Callback():
+    """A callback function to add a task."""
     try:
       return _GetTaskScheduler().AddTask(
           queue_name=queue_name,
@@ -108,6 +109,7 @@ def _AddTask(
           task_name=name,
           eta=eta)
     except Exception as e:
+      logging.info("Failed to add task", exc_info=True)
       raise Error(e)
 
   if transactional:

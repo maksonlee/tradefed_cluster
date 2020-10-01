@@ -883,11 +883,16 @@ def _DoCreateCommands(request_id,
     shard_count: the request's shard count
     shard_indexes: the commands' corresponding shard index.
   Returns:
-    a list of command entities, read onlyCre
+    a list of command entities, read only
   """
   # TODO: Use the get commands in request_manager.
   request_key = ndb.Key(datastore_entities.Request, request_id,
                         namespace=common.NAMESPACE)
+
+  # Ensure a request is not canceled.
+  request = request_key.get()
+  assert request and request.state == common.RequestState.UNKNOWN
+
   existing_commands = (datastore_entities.Command
                        .query(ancestor=request_key,
                               namespace=common.NAMESPACE).fetch())

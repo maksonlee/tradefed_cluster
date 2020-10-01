@@ -815,9 +815,17 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertIsNone(command)
 
   def _CreateCommands(self):
+    request_manager.CreateRequest(
+        user="user", request_id="1001", command_line="command_line1")
     self._CreateCommand("1001", command_line="command_line1")
+    request_manager.CreateRequest(
+        user="user", request_id="1002", command_line="command_line2")
     self._CreateCommand("1002", command_line="command_line2")
+    request_manager.CreateRequest(
+        user="user", request_id="1003", command_line="command_line3")
     self._CreateCommand("1003", command_line="command_line3")
+    request_manager.CreateRequest(
+        user="user", request_id="1004", command_line="command_line4")
     self._CreateCommand("1004", command_line="command_line4")
 
   def testGetCommands_byExistingRequestId(self):

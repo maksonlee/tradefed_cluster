@@ -59,6 +59,11 @@ def _ProcessRequest(request_id):
   if not request:
     logging.error("Request %d doesn't exist in ds.", request_id)
     return
+  if request.state != common.RequestState.UNKNOWN:
+    logging.error(
+        "Request is in an unexpected state: expected=%s, actual=%s",
+        common.RequestState.UNKNOWN, request.state)
+    return
   logging.debug("Processing request %s: %s",
                 request_id, request)
   try:

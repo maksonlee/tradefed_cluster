@@ -105,15 +105,20 @@ class CommandTaskApi(remote.Service):
     leased_tasks = []
     num_tasks = request.num_tasks
     for cluster in clusters:
-      cluster_leased_tasks = self._LeaseHostTasksForCluster(
-          matcher, cluster, num_tasks)
-      leased_tasks.extend(cluster_leased_tasks)
-      if num_tasks is not None:
-        num_tasks -= len(cluster_leased_tasks)
-        if num_tasks <= 0:
+      try:
+        cluster_leased_tasks = self._LeaseHostTasksForCluster(
+            matcher, cluster, num_tasks)
+        leased_tasks.extend(cluster_leased_tasks)
+        if num_tasks is not None:
+          num_tasks -= len(cluster_leased_tasks)
+          if num_tasks <= 0:
+            break
+        if matcher.IsEmpty():
           break
-      if matcher.IsEmpty():
-        break
+            except:
+        logging.exception(
+            'Failed to lease tasks for "%s" cluster. Skipping...',
+            cluster)
 
     env_config.CONFIG.plugin.OnCommandTasksLease(leased_tasks)
     self._CreateCommandAttempt(leased_tasks)

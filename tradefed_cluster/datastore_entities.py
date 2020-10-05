@@ -675,22 +675,20 @@ class HostConfig(ndb.Model):
     hostname: a string of a host name.
     tf_global_config_path: a string of the global path of host config xml file.
     host_login_name: login name to for the host
+    update_time: the time the config is update.
   """
   hostname = ndb.StringProperty()
   tf_global_config_path = ndb.StringProperty()
   host_login_name = ndb.StringProperty()
+  update_time = ndb.DateTimeProperty(auto_now=True)
 
   @classmethod
   def FromMessage(cls, msg):
     return cls(
+        id=msg.hostname,
         hostname=msg.hostname,
         tf_global_config_path=msg.tf_global_config_path,
         host_login_name=msg.host_login_name)
-
-  def __eq__(self, other):
-    return (
-        self.__class__ == other.__class__ and
-        self.to_dict() == other.to_dict())
 
 
 @MessageConverter(HostConfig)
@@ -711,23 +709,22 @@ class ClusterConfig(ndb.Model):
     host_login_name: a string of the user name of the cluster.
     owners: a list of owners of the cluster.
     tf_global_config_path: a string of the global path of clsuter configs.
+    update_time: the time the config is update.
   """
   cluster_name = ndb.StringProperty()
   host_login_name = ndb.StringProperty()
   owners = ndb.StringProperty(repeated=True)
   tf_global_config_path = ndb.StringProperty()
+  update_time = ndb.DateTimeProperty(auto_now=True)
 
   @classmethod
   def FromMessage(cls, msg):
-    return cls(cluster_name=msg.cluster_name,
-               host_login_name=msg.host_login_name,
-               owners=[owner for owner in msg.owners],
-               tf_global_config_path=msg.tf_global_config_path)
-
-  def __eq__(self, other):
-    return (
-        self.__class__ == other.__class__ and
-        self.to_dict() == other.to_dict())
+    return cls(
+        id=msg.cluster_name,
+        cluster_name=msg.cluster_name,
+        host_login_name=msg.host_login_name,
+        owners=list(msg.owners),
+        tf_global_config_path=msg.tf_global_config_path)
 
 
 class ClusterInfo(ndb.Expando):
@@ -748,8 +745,6 @@ class ClusterInfo(ndb.Expando):
   allocated_devices = ndb.IntegerProperty(default=0)
   # Time when the device counts were calculated and persisted
   device_count_timestamp = ndb.DateTimeProperty()
-  # Cluster config
-  cluster_config = ndb.LocalStructuredProperty(ClusterConfig)
 
 
 class DeviceCountSummary(ndb.Model):
@@ -861,9 +856,6 @@ class HostInfo(ndb.Expando):
   hidden = ndb.BooleanProperty(default=False)
   host_state = ndb.EnumProperty(
       api_messages.HostState, default=api_messages.HostState.UNKNOWN)
-  # josn of host config, only contains path currently
-  host_config = ndb.LocalStructuredProperty(HostConfig)
-
   # extra_info is an object to store extra information related to a host.
   extra_info = ndb.JsonProperty()
   assignee = ndb.StringProperty()
@@ -924,7 +916,6 @@ def HostInfoToMessage(host_info_entity, devices=None):
       pools=host_info_entity.pools,
       tf_start_time=host_info_entity.tf_start_time,
       host_state=host_state,
-      host_config=HostConfigToMessage(host_info_entity.host_config),
       assignee=host_info_entity.assignee,
       device_count_summaries=device_count_summaries,
       is_bad=host_info_entity.is_bad,

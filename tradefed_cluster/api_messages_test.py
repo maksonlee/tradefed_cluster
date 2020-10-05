@@ -383,10 +383,6 @@ class ApiMessagesTest(api_test.ApiTest):
         available=3,
         allocated=1,
         timestamp=TIMESTAMP)
-    host_config_entity = datastore_entities.HostConfig(
-        hostname='hostname',
-        tf_global_config_path='path',
-        host_login_name='loginname')
     return datastore_entities.HostInfo(
         hostname='hostname',
         lab_name='alab',
@@ -394,7 +390,6 @@ class ApiMessagesTest(api_test.ApiTest):
         physical_cluster='acluster',
         pools=['apct', 'asit'],
         host_state=api_messages.HostState.RUNNING,
-        host_config=host_config_entity,
         assignee='auser',
         extra_info={
             'host_url': 'aurl',
@@ -414,13 +409,6 @@ class ApiMessagesTest(api_test.ApiTest):
     self.assertEqual('atp-us-mtv-43', host_info_message.host_group)
     self.assertEqual(['apct', 'asit'], host_info_message.pools)
     self.assertEqual('auser', host_info_message.assignee)
-    host_config_entity = host_info_entity.host_config
-    self.assertEqual(
-        host_config_entity.hostname, host_info_message.host_config.hostname)
-    self.assertEqual(host_config_entity.host_login_name,
-                     host_info_message.host_config.host_login_name)
-    self.assertEqual(host_config_entity.tf_global_config_path,
-                     host_info_message.host_config.tf_global_config_path)
     self.assertEqual(
         host_info_entity.extra_info,
         api_messages.KeyValuePairMessagesToMap(

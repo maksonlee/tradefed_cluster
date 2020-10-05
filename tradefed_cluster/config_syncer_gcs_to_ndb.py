@@ -49,6 +49,26 @@ def GetLabConfigFromGCS(lab_config_path):
     logging.exception('Fail to parse file: %s', lab_config_path)
 
 
+def _CheckConfigEntitiesEqual(entity, new_entity):
+  """Check if two entities are the same.
+
+  Ignore 'update_time' fields, since it changed when entity is updated.
+
+  Args:
+    entity: HostConfig or ClusterConfig entity from datatore.
+    new_entity: HostConfig or ClusterConfig entity from proto.
+  Returns:
+    true if they are the same, otherwise false.
+  """
+  if not entity:
+    return False
+  entity_dict = entity.to_dict()
+  entity_dict.pop('update_time')
+  new_entity_dict = new_entity.to_dict()
+  new_entity_dict.pop('update_time')
+  return entity_dict == new_entity_dict
+
+
 def _UpdateClusterConfigs(cluster_configs):
   """Update cluster configs in ClusterInfo entity to ndb.
 
@@ -56,34 +76,19 @@ def _UpdateClusterConfigs(cluster_configs):
     cluster_configs: a list of cluster configs proto.
   """
   logging.debug('Updating cluster configs.')
-  cluster_entity_keys = []
-  cluster_to_config_obj = {}
+  cluster_config_keys = []
   for cluster_config in cluster_configs:
-    config_obj = datastore_entities.ClusterConfig.FromMessage(cluster_config)
-    cluster_entity_keys.append(
-        ndb.Key(datastore_entities.ClusterInfo, cluster_config.cluster_name))
-    cluster_to_config_obj[cluster_config.cluster_name] = config_obj
-  entities = ndb.get_multi(cluster_entity_keys)
-  entities_to_update = []
-  # Update the exist cluster infos' config.
-  for cluster_info in entities:
-    if not cluster_info:
-      continue
-    new_config = cluster_to_config_obj.pop(cluster_info.cluster)
-    if cluster_info.cluster_config != new_config:
-      logging.debug('Updating cluster with config: %s.', new_config)
-      cluster_info.cluster_config = new_config
-      entities_to_update.append(cluster_info)
-  # Create and add new cluster infos.
-  while cluster_to_config_obj:
-    _, new_config = cluster_to_config_obj.popitem()
-    logging.debug('Creating new cluster with config: %s.', new_config)
-    new_cluster = datastore_entities.ClusterInfo(
-        id=new_config.cluster_name,
-        cluster=new_config.cluster_name,
-        cluster_config=new_config)
-    entities_to_update.append(new_cluster)
+    cluster_config_keys.append(
+        ndb.Key(datastore_entities.ClusterConfig, cluster_config.cluster_name))
 
+  entities = ndb.get_multi(cluster_config_keys)
+  entities_to_update = []
+  for entity, cluster_config in zip(entities, cluster_configs):
+    new_config_entity = datastore_entities.ClusterConfig.FromMessage(
+        cluster_config)
+    if not _CheckConfigEntitiesEqual(entity, new_config_entity):
+      logging.debug('Updating cluster config entity: %s.', new_config_entity)
+      entities_to_update.append(new_config_entity)
   ndb.put_multi(entities_to_update)
   logging.debug('Cluster configs updated.')
 
@@ -96,34 +101,19 @@ def _UpdateHostConfigs(host_configs, cluster_name):
     cluster_name: the name of cluster the hosts belong to.
   """
   logging.debug('Updating host configs for cluster: %s.', cluster_name)
-  host_entity_keys = []
-  host_to_config_obj = {}
+  host_config_keys = []
   for host_config in host_configs:
-    config_obj = datastore_entities.HostConfig.FromMessage(host_config)
-    host_entity_keys.append(
-        ndb.Key(datastore_entities.HostInfo, host_config.hostname))
-    host_to_config_obj[host_config.hostname] = config_obj
-  entities = ndb.get_multi(host_entity_keys)
+    host_config_keys.append(
+        ndb.Key(datastore_entities.HostConfig, host_config.hostname))
+  entities = ndb.get_multi(host_config_keys)
   entities_to_update = []
-  # Update the exist cluster infos' config.
-  for host_info in entities:
-    if not host_info:
-      continue
-    new_config = host_to_config_obj.pop(host_info.hostname)
-    if host_info.host_config != new_config:
-      logging.debug('Updating host with config: %s.', new_config)
-      host_info.host_config = new_config
-      entities_to_update.append(host_info)
-      # Create and add new cluster infos.
-  while host_to_config_obj:
-    _, new_config = host_to_config_obj.popitem()
-    logging.debug('Creating new host with config: %s.', new_config)
-    new_host = datastore_entities.HostInfo(
-        id=new_config.hostname,
-        hostname=new_config.hostname,
-        physical_cluster=cluster_name,
-        host_config=new_config)
-    entities_to_update.append(new_host)
+  # Update the exist host config entity.
+  for entity, host_config in zip(entities, host_configs):
+    new_host_config_entity = datastore_entities.HostConfig.FromMessage(
+        host_config)
+    if not _CheckConfigEntitiesEqual(entity, new_host_config_entity):
+      logging.debug('Updating host config entity: %s.', new_host_config_entity)
+      entities_to_update.append(new_host_config_entity)
   ndb.put_multi(entities_to_update)
   logging.debug('Host configs updated.')
 

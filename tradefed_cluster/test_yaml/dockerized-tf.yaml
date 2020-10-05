@@ -13,14 +13,40 @@
 # limitations under the License.
 
 # dockerized tf in test network.
+lab_name: lab1
+host_login_name: lab_user1
+owners:
+  - lab_user1
+  - user1
+control_server_url: tfc_url
+docker_image: lab_docker_image
+docker_server: docker_server_1
+enable_stackdriver: True
+enable_autoupdate: True
+service_account_json_key_path: path/to/key.json
+secret_project_id: secret_project_id
+service_account_key_secret_id: lab_sv_key
+service_account: sa@project.google.com
+
 cluster_configs:
-- cluster_name: dockerized-tf
-  host_login_name: android-test
+- cluster_name: cluster1
+  host_login_name: login_user1
   owners:
-  - android-test
-  tf_global_config_path: configs/cluster/dockerized-tf/cluster-config.xml
+  - owner1
+  - owner2
+  tf_global_config_path: configs/cluster1/config.xml
   host_configs:
   - hostname: homer-atc1
-    tf_global_config_path: configs/cluster/dockerized-tf/host1-config.xml
+    tf_global_config_path: configs/homer-atc1/config.xml
   - hostname: homer-atc2
-    tf_global_config_path: configs/cluster/dockerized-tf/host2-config.xml
+    tf_global_config_path: configs/homer-atc2/config.xml
+
+- cluster_name: cluster2
+  host_login_name: login_user2
+  owners:
+  - owner1
+  tf_global_config_path: configs/cluster2/config.xml
+  host_configs:
+  - hostname: homer-atc3
+    tf_global_config_path: configs/homer-atc4/config.xml
+  - hostname: homer-atc4

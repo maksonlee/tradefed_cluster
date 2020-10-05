@@ -592,18 +592,17 @@ class HostInfo(messages.Message):
   pools = messages.StringField(18, repeated=True)
   host_state = messages.StringField(19)
   tf_start_time = message_types.DateTimeField(20)
-  host_config = messages.MessageField(HostConfig, 21)
-  state_history = messages.MessageField(HostStateHistory, 22, repeated=True)
-  assignee = messages.StringField(23)
+  state_history = messages.MessageField(HostStateHistory, 21, repeated=True)
+  assignee = messages.StringField(22)
   device_count_summaries = messages.MessageField(
-      DeviceCountSummary, 24, repeated=True)
+      DeviceCountSummary, 23, repeated=True)
   # Bad host is defined in datastore_entities._IsBadHost.
-  is_bad = messages.BooleanField(25)
-  test_harness = messages.StringField(26)
-  test_harness_version = messages.StringField(27)
-  flated_extra_info = messages.StringField(28, repeated=True)
-  last_recovery_time = message_types.DateTimeField(29)
-  recovery_state = messages.StringField(30)
+  is_bad = messages.BooleanField(24)
+  test_harness = messages.StringField(25)
+  test_harness_version = messages.StringField(26)
+  flated_extra_info = messages.StringField(27, repeated=True)
+  last_recovery_time = message_types.DateTimeField(28)
+  recovery_state = messages.StringField(29)
 
 
 class HostInfoCollection(messages.Message):

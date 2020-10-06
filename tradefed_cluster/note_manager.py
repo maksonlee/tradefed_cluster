@@ -84,7 +84,7 @@ def GetOrCreatePredefinedMessage(message_type, lab_name, content):
 
 
 def PreparePredefinedMessageForNote(
-    message_type, message_id=None, lab_name=None, content=None):
+    message_type, message_id=None, lab_name=None, content=None, delta_count=1):
   """Prepare a PredefinedMessage to attach to a Note.
 
   This method prepares a PredefinedMessage in following ways:
@@ -98,6 +98,7 @@ def PreparePredefinedMessageForNote(
     message_id: int, the ID of PredefinedMessage.
     lab_name: str, the lab where the message is created.
     content: str, content of the message.
+    delta_count: the delta used_count to be added.
 
   Returns:
     An instance of datastore_entities.PredefinedMessage.
@@ -118,7 +119,7 @@ def PreparePredefinedMessageForNote(
     predefined_message_entity = GetOrCreatePredefinedMessage(
         message_type, lab_name, content)
   if predefined_message_entity:
-    predefined_message_entity.used_count += 1
+    predefined_message_entity.used_count += delta_count
   return predefined_message_entity
 
 

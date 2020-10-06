@@ -349,6 +349,94 @@ class ClusterDeviceApi(remote.Service):
   )
 
   @endpoints.method(
+      api_messages.BatchUpdateNotesWithPredefinedMessageRequest,
+      api_messages.NoteCollection,
+      path="notes:batchUpdateNotesWithPredefinedMessage",
+      http_method="POST",
+      name="batchUpdateNotesWithPredefinedMessage")
+  @api_common.with_ndb_context
+  def BatchUpdateNotesWithPredefinedMessage(self, request):
+    """Batch update notes with the same predefined message.
+
+    Args:
+      request: an API request.
+
+    Returns:
+      an api_messages.NoteCollection object.
+    """
+    time_now = datetime.datetime.utcnow()
+
+    device_note_entities = []
+    for note in request.notes:
+      note_id = int(note.id) if note.id is not None else None
+      device_note_entity = datastore_util.GetOrCreateEntity(
+          datastore_entities.Note,
+          entity_id=note_id,
+          device_serial=note.device_serial,
+          hostname=note.hostname,
+          type=common.NoteType.DEVICE_NOTE)
+      device_note_entity.populate(
+          user=request.user, message=request.message, timestamp=time_now)
+      device_note_entities.append(device_note_entity)
+
+    try:
+      offline_reason_entity = note_manager.PreparePredefinedMessageForNote(
+          common.PredefinedMessageType.DEVICE_OFFLINE_REASON,
+          message_id=request.offline_reason_id,
+          lab_name=request.lab_name,
+          content=request.offline_reason,
+          delta_count=len(device_note_entities))
+    except note_manager.InvalidParameterError:
+      raise endpoints.BadRequestException(
+          "Invalid offline_reason_id: %s" % request.offline_reason_id)
+    if offline_reason_entity:
+      for device_note_entity in device_note_entities:
+        device_note_entity.offline_reason = offline_reason_entity.content
+      offline_reason_entity.put()
+
+    try:
+      recovery_action_entity = note_manager.PreparePredefinedMessageForNote(
+          common.PredefinedMessageType.DEVICE_RECOVERY_ACTION,
+          message_id=request.recovery_action_id,
+          lab_name=request.lab_name,
+          content=request.recovery_action,
+          delta_count=len(device_note_entities))
+    except note_manager.InvalidParameterError:
+      raise endpoints.BadRequestException(
+          "Invalid recovery_action_id: %s" % request.recovery_action_id)
+    if recovery_action_entity:
+      for device_note_entity in device_note_entities:
+        device_note_entity.recovery_action = recovery_action_entity.content
+      recovery_action_entity.put()
+
+    note_keys = ndb.put_multi(device_note_entities)
+    device_note_entities = ndb.get_multi(note_keys)
+    note_msgs = []
+    for device_note_entity in device_note_entities:
+      device_note_msg = datastore_entities.ToMessage(device_note_entity)
+      note_msgs.append(device_note_msg)
+
+      device = device_manager.GetDevice(
+          device_serial=device_note_entity.device_serial)
+      device_note_event_msg = api_messages.NoteEvent(
+          note=device_note_msg,
+          hostname=device.hostname,
+          lab_name=device.lab_name,
+          run_target=device.run_target)
+      note_manager.PublishMessage(
+          device_note_event_msg, common.PublishEventType.DEVICE_NOTE_EVENT)
+
+    for request_note, updated_note_key in zip(request.notes, note_keys):
+      if not request_note.id:
+        # If ids are not provided, then a new note is created, we should create
+        # a history snapshot.
+        device_manager.CreateAndSaveDeviceInfoHistoryFromDeviceNote(
+            request_note.device_serial, updated_note_key.id())
+
+    return api_messages.NoteCollection(
+        notes=note_msgs, more=False, next_cursor=None, prev_cursor=None)
+
+  @endpoints.method(
       NOTES_BATCH_GET_RESOURCE,
       api_messages.NoteCollection,
       path="{device_serial}/notes:batchGet",

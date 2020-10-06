@@ -352,6 +352,89 @@ class ClusterHostApi(remote.Service):
 
     return host_note_msg
 
+  @endpoints.method(
+      api_messages.BatchUpdateNotesWithPredefinedMessageRequest,
+      api_messages.NoteCollection,
+      path="notes:batchUpdateNotesWithPredefinedMessage",
+      http_method="POST",
+      name="batchUpdateNotesWithPredefinedMessage")
+  @api_common.with_ndb_context
+  def BatchUpdateNotesWithPredefinedMessage(self, request):
+    """Batch update notes with the same predefined message.
+
+    Args:
+      request: an API request.
+
+    Returns:
+      an api_messages.NoteCollection object.
+    """
+    time_now = datetime.datetime.utcnow()
+
+    host_note_entities = []
+    for note in request.notes:
+      note_id = int(note.id) if note.id is not None else None
+      host_note_entity = datastore_util.GetOrCreateEntity(
+          datastore_entities.Note,
+          entity_id=note_id,
+          hostname=note.hostname,
+          type=common.NoteType.HOST_NOTE)
+      host_note_entity.populate(
+          user=request.user, message=request.message, timestamp=time_now)
+      host_note_entities.append(host_note_entity)
+
+    try:
+      offline_reason_entity = note_manager.PreparePredefinedMessageForNote(
+          common.PredefinedMessageType.HOST_OFFLINE_REASON,
+          message_id=request.offline_reason_id,
+          lab_name=request.lab_name,
+          content=request.offline_reason,
+          delta_count=len(host_note_entities))
+    except note_manager.InvalidParameterError:
+      raise endpoints.BadRequestException(
+          "Invalid offline_reason_id: %s" % request.offline_reason_id)
+    if offline_reason_entity:
+      for host_note_entity in host_note_entities:
+        host_note_entity.offline_reason = offline_reason_entity.content
+      offline_reason_entity.put()
+
+    try:
+      recovery_action_entity = note_manager.PreparePredefinedMessageForNote(
+          common.PredefinedMessageType.HOST_RECOVERY_ACTION,
+          message_id=request.recovery_action_id,
+          lab_name=request.lab_name,
+          content=request.recovery_action,
+          delta_count=len(host_note_entities))
+    except note_manager.InvalidParameterError:
+      raise endpoints.BadRequestException(
+          "Invalid recovery_action_id: %s" % request.recovery_action_id)
+    if recovery_action_entity:
+      for host_note_entity in host_note_entities:
+        host_note_entity.recovery_action = recovery_action_entity.content
+      recovery_action_entity.put()
+
+    note_keys = ndb.put_multi(host_note_entities)
+    host_note_entities = ndb.get_multi(note_keys)
+    note_msgs = []
+    for host_note_entity in host_note_entities:
+      host_note_msg = datastore_entities.ToMessage(host_note_entity)
+      note_msgs.append(host_note_msg)
+
+      host_note_event_msg = api_messages.NoteEvent(
+          note=host_note_msg,
+          lab_name=request.lab_name)
+      note_manager.PublishMessage(
+          host_note_event_msg, common.PublishEventType.HOST_NOTE_EVENT)
+
+    for request_note, updated_note_key in zip(request.notes, note_keys):
+      if not request_note.id:
+        # If ids are not provided, then a new note is created, we should create
+        # a history snapshot.
+        device_manager.CreateAndSaveHostInfoHistoryFromHostNote(
+            request_note.hostname, updated_note_key.id())
+
+    return api_messages.NoteCollection(
+        notes=note_msgs, more=False, next_cursor=None, prev_cursor=None)
+
   NOTES_BATCH_GET_RESOURCE = endpoints.ResourceContainer(
       hostname=messages.StringField(1, required=True),
       ids=messages.IntegerField(2, repeated=True),

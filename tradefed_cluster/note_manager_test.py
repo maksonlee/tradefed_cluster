@@ -136,12 +136,13 @@ class NoteManagerTest(testbed_dependent_test.TestbedDependentTest):
     message = note_manager.PreparePredefinedMessageForNote(
         api_messages.PredefinedMessageType.DEVICE_OFFLINE_REASON,
         lab_name=lab_name,
-        content=content)
+        content=content,
+        delta_count=4)
 
     self.assertEqual(message_id, message.key.id())
     self.assertEqual(lab_name, message.lab_name)
     self.assertEqual(content, message.content)
-    self.assertEqual(3, message.used_count)  # the used_count increases
+    self.assertEqual(6, message.used_count)  # the used_count increases
 
   def testPreparePredefinedMessageForNote_withNewContent(self):
     lab_name = "alab"

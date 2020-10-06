@@ -405,8 +405,8 @@ class RequestEventMessage(messages.Message):
 class Note(messages.Message):
   """Note for a cluster, host, or device."""
   id = messages.StringField(1)
-  user = messages.StringField(2, required=True)
-  timestamp = message_types.DateTimeField(3, required=True)
+  user = messages.StringField(2)
+  timestamp = message_types.DateTimeField(3)
   message = messages.StringField(4)
   offline_reason = messages.StringField(5)
   recovery_action = messages.StringField(6)
@@ -432,6 +432,18 @@ class NoteEvent(messages.Message):
   lab_name = messages.StringField(4)
   run_target = messages.StringField(5)
   publish_timestamp = message_types.DateTimeField(6, required=True)
+
+
+class BatchUpdateNotesWithPredefinedMessageRequest(messages.Message):
+  """An object that contains the request body of batch update notes endpoint."""
+  notes = messages.MessageField(Note, 1, repeated=True)
+  message = messages.StringField(2)
+  offline_reason = messages.StringField(3)
+  recovery_action = messages.StringField(4)
+  offline_reason_id = messages.IntegerField(5)
+  recovery_action_id = messages.IntegerField(6)
+  lab_name = messages.StringField(7)
+  user = messages.StringField(8)
 
 
 class DeviceStateHistory(messages.Message):

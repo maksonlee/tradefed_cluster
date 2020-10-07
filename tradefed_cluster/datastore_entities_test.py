@@ -156,12 +156,11 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
     lab_info = datastore_entities.LabInfo(
         key=key,
         lab_name='alab',
-        update_timestamp=TIMESTAMP_NEW,
         owners=['user1', 'user2', 'user3'])
     lab_info.put()
     lab_info_res = key.get()
     self.assertEqual('alab', lab_info_res.lab_name)
-    self.assertEqual(TIMESTAMP_NEW, lab_info_res.update_timestamp)
+    self.assertIsNotNone(lab_info_res.update_timestamp)
     self.assertEqual(['user1', 'user2', 'user3'], lab_info_res.owners)
 
   def testHostInfo(self):
@@ -170,7 +169,6 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
         key=key,
         hostname='ahost',
         host_state=api_messages.HostState.RUNNING,
-        update_timestamp=TIMESTAMP_NEW,
         device_count_summaries=[
             datastore_entities.DeviceCountSummary(
                 run_target='r1',
@@ -179,10 +177,9 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
     host_info.put()
     host_info_res = key.get()
     self.assertEqual('ahost', host_info_res.hostname)
-    self.assertEqual(TIMESTAMP_NEW,
-                     host_info_res.update_timestamp.replace(tzinfo=None))
     self.assertEqual(api_messages.HostState.RUNNING, host_info_res.host_state)
     self.assertFalse(host_info_res.is_bad)
+    self.assertIsNotNone(host_info.timestamp)
 
   def testHostInfo_gone(self):
     key = ndb.Key(datastore_entities.HostInfo, 'ahost')
@@ -190,7 +187,7 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
         key=key,
         hostname='ahost',
         host_state=api_messages.HostState.GONE,
-        update_timestamp=TIMESTAMP_NEW,
+        timestamp=TIMESTAMP_NEW,
         device_count_summaries=[
             datastore_entities.DeviceCountSummary(
                 run_target='r1',
@@ -200,7 +197,7 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
     host_info_res = key.get()
     self.assertEqual('ahost', host_info_res.hostname)
     self.assertEqual(TIMESTAMP_NEW,
-                     host_info_res.update_timestamp.replace(tzinfo=None))
+                     host_info_res.timestamp.replace(tzinfo=None))
     self.assertEqual(api_messages.HostState.GONE, host_info_res.host_state)
     self.assertTrue(host_info_res.is_bad)
 
@@ -210,7 +207,7 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
         key=key,
         hostname='ahost',
         host_state=api_messages.HostState.RUNNING,
-        update_timestamp=TIMESTAMP_NEW,
+        timestamp=TIMESTAMP_NEW,
         device_count_summaries=[
             datastore_entities.DeviceCountSummary(
                 run_target='r1',
@@ -220,7 +217,7 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
     host_info_res = key.get()
     self.assertEqual('ahost', host_info_res.hostname)
     self.assertEqual(TIMESTAMP_NEW,
-                     host_info_res.update_timestamp.replace(tzinfo=None))
+                     host_info_res.timestamp.replace(tzinfo=None))
     self.assertEqual(api_messages.HostState.RUNNING, host_info_res.host_state)
     self.assertTrue(host_info_res.is_bad)
 

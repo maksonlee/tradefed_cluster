@@ -872,7 +872,7 @@ class HostInfo(ndb.Expando):
   test_runner = ndb.StringProperty()
   test_runner_version = ndb.StringProperty()
   # TODO: change timestamp to last_event_time.
-  timestamp = ndb.DateTimeProperty()
+  timestamp = ndb.DateTimeProperty(auto_now_add=True)
   hidden = ndb.BooleanProperty(default=False)
   host_state = ndb.EnumProperty(
       api_messages.HostState, default=api_messages.HostState.UNKNOWN)
@@ -1137,7 +1137,7 @@ class LabInfo(ndb.Expando):
     owners: a list of owners of the lab.
   """
   lab_name = ndb.StringProperty()
-  update_timestamp = ndb.DateTimeProperty()
+  update_timestamp = ndb.DateTimeProperty(auto_now_add=True)
   owners = ndb.StringProperty(repeated=True)
 
 

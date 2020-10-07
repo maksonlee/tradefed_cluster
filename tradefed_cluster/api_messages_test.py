@@ -529,11 +529,13 @@ class ApiMessagesTest(api_test.ApiTest):
     lab_info = datastore_entities.LabInfo(
         key=key,
         lab_name='alab',
-        update_timestamp=TIMESTAMP,
+        update_timestamp=TIMESTAMP)
+    lab_config = datastore_entities.LabConfig(
+        id='alab',
         owners=['user1', 'user2', 'user3'])
-    msg = datastore_entities.ToMessage(lab_info)
+    msg = datastore_entities.ToMessage(lab_info, lab_config)
     self.assertEqual(lab_info.lab_name, msg.lab_name)
-    self.assertEqual(lab_info.owners, msg.owners)
+    self.assertEqual(lab_config.owners, msg.owners)
     self.assertEqual(lab_info.update_timestamp, msg.update_timestamp)
 
   def testMapToKeyMultiValuePairMessages(self):

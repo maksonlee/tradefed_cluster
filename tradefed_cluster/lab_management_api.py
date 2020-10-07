@@ -23,6 +23,7 @@ from tradefed_cluster import api_common
 from tradefed_cluster import api_messages
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import datastore_util
+from tradefed_cluster.util import ndb_shim as ndb
 
 
 _DEFAULT_COUNT = 1000
@@ -51,17 +52,60 @@ class LabManagementApi(remote.Service):
     Returns:
       a LabInfoCollection object.
     """
-    query = datastore_entities.LabInfo.query()
-    query = query.order(datastore_entities.LabInfo.key)
     if request.owner:
-      query = query.filter(
-          datastore_entities.LabInfo.owners == request.owner)
+      return self._ListLabsByOwner(request)
+    return self._ListLabs(request)
 
-    labs, prev_cursor, next_cursor = datastore_util.FetchPage(
+  def _ListLabsByOwner(self, request):
+    """Lab owners are in LabConfig, so need to query by LabConfig."""
+    query = datastore_entities.LabConfig.query()
+    query = query.order(datastore_entities.LabConfig.key)
+    query = query.filter(
+        datastore_entities.LabConfig.owners == request.owner)
+    lab_configs, prev_cursor, next_cursor = datastore_util.FetchPage(
         query, request.count, page_cursor=request.cursor)
+    lab_info_msgs = []
+    for lab_config in lab_configs:
+      lab_info_msgs.append(
+          api_messages.LabInfo(
+              lab_name=lab_config.lab_name,
+              owners=(lab_config.owners or [])))
 
     return api_messages.LabInfoCollection(
-        lab_infos=[datastore_entities.ToMessage(lab) for lab in labs],
+        lab_infos=lab_info_msgs,
         more=bool(next_cursor),
         next_cursor=next_cursor,
         prev_cursor=prev_cursor)
+
+  def _ListLabs(self, request):
+    """ListLabs without owner filter. Some labs don't have config."""
+    query = datastore_entities.LabInfo.query()
+    query = query.order(datastore_entities.LabInfo.key)
+    labs, prev_cursor, next_cursor = datastore_util.FetchPage(
+        query, request.count, page_cursor=request.cursor)
+    lab_config_keys = [
+        ndb.Key(datastore_entities.LabConfig, lab.lab_name) for lab in labs]
+    lab_configs = ndb.get_multi(lab_config_keys)
+    lab_infos = [datastore_entities.ToMessage(lab, lab_config)
+                 for lab, lab_config in zip(labs, lab_configs)]
+    return api_messages.LabInfoCollection(
+        lab_infos=lab_infos,
+        more=bool(next_cursor),
+        next_cursor=next_cursor,
+        prev_cursor=prev_cursor)
+
+  LAB_GET_RESOURCE = endpoints.ResourceContainer(
+      message_types.VoidMessage,
+      lab_name=messages.StringField(1, required=True),
+  )
+
+  @endpoints.method(
+      LAB_GET_RESOURCE,
+      api_messages.LabInfo,
+      path="{lab_name}",
+      http_method="GET", name="get")
+  @api_common.with_ndb_context
+  def GetLab(self, request):
+    lab_info = datastore_entities.LabInfo.get_by_id(request.lab_name)
+    lab_config = datastore_entities.LabConfig.get_by_id(request.lab_name)
+    return datastore_entities.ToMessage(lab_info, lab_config)

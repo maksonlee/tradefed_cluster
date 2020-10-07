@@ -202,15 +202,24 @@ def CreateNote(hostname='host1',
   return note
 
 
-def CreateLabInfo(lab_name, owners=OWNERS, update_timestamp=None):
+def CreateLabInfo(lab_name, update_timestamp=None):
   """Create a lab info entity."""
   lab_info = datastore_entities.LabInfo(
       id=lab_name,
       lab_name=lab_name,
-      owners=list(owners),
       update_timestamp=update_timestamp)
   lab_info.put()
   return lab_info
+
+
+def CreateLabConfig(lab_name, owners=OWNERS):
+  """Create a lab config entity."""
+  lab_config = datastore_entities.LabConfig(
+      id=lab_name,
+      lab_name=lab_name,
+      owners=list(owners))
+  lab_config.put()
+  return lab_config
 
 
 def CreateDeviceBlocklist(lab_name, user='user@example.com'):

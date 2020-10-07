@@ -186,23 +186,19 @@ class DatastoreUtilTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(10, len(labs))
     self.assertTrue(hasattr(labs[0], 'lab_name'))
     with self.assertRaises(ndb.UnprojectedPropertyError):
-      # try to access .owners will raise an exception
-      _ = labs[0].owners
+      # try to access .update_timestamp will raise an exception
+      _ = labs[0].update_timestamp
 
   def testGetOrCreateDatastoreEntity_GetWithValidID(self):
-    owners = ['owner-1', 'onwer-2']
-    datastore_test_util.CreateLabInfo(lab_name='lab-name-100', owners=owners)
+    datastore_test_util.CreateLabInfo(lab_name='lab-name-100')
     lab_info_entity = datastore_util.GetOrCreateEntity(
         datastore_entities.LabInfo, entity_id='lab-name-100')
     self.assertEqual('lab-name-100', lab_info_entity.lab_name)
-    self.assertItemsEqual(owners, lab_info_entity.owners)
 
   def testGetOrCreateDatastoreEntity_CreateWithFields(self):
-    owners = ['owner-1', 'onwer-2']
     lab_info_entity = datastore_util.GetOrCreateEntity(
-        datastore_entities.LabInfo, lab_name='lab-name-100', owners=owners)
+        datastore_entities.LabInfo, lab_name='lab-name-100')
     self.assertEqual('lab-name-100', lab_info_entity.lab_name)
-    self.assertItemsEqual(owners, lab_info_entity.owners)
 
   def _CreateHostInfoHistory(self, host_info):
     """Create HostInfoHistory from HostInfo."""

@@ -156,12 +156,11 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
     lab_info = datastore_entities.LabInfo(
         key=key,
         lab_name='alab',
-        owners=['user1', 'user2', 'user3'])
+        update_timestamp=TIMESTAMP_NEW)
     lab_info.put()
     lab_info_res = key.get()
     self.assertEqual('alab', lab_info_res.lab_name)
     self.assertIsNotNone(lab_info_res.update_timestamp)
-    self.assertEqual(['user1', 'user2', 'user3'], lab_info_res.owners)
 
   def testHostInfo(self):
     key = ndb.Key(datastore_entities.HostInfo, 'ahost')

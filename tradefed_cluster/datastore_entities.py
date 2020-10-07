@@ -1134,19 +1134,18 @@ class LabInfo(ndb.Expando):
   Attributes:
     lab_name: the name of the lab.
     timestamp: the timestamp the entity gets updated.
-    owners: a list of owners of the lab.
   """
   lab_name = ndb.StringProperty()
   update_timestamp = ndb.DateTimeProperty(auto_now_add=True)
-  owners = ndb.StringProperty(repeated=True)
 
 
 @MessageConverter(LabInfo)
-def LabInfoToMessage(lab_info_entity):
+def LabInfoToMessage(lab_info_entity, lab_config_entity=None):
+  owners = lab_config_entity.owners if lab_config_entity else []
   return api_messages.LabInfo(
       lab_name=lab_info_entity.lab_name,
       update_timestamp=lab_info_entity.update_timestamp,
-      owners=lab_info_entity.owners)
+      owners=owners)
 
 
 class SnapshotJobResult(ndb.Model):

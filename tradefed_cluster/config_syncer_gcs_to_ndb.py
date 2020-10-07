@@ -23,7 +23,7 @@ import flask
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import env_config
-from tradefed_cluster.configs import lab_config
+from tradefed_cluster.configs import lab_config as lab_config_util
 from tradefed_cluster.util import ndb_shim as ndb
 
 
@@ -42,10 +42,10 @@ def GetLabConfigFromGCS(lab_config_path):
     a lab config proto
   """
   try:
-    return lab_config.Parse(cloudstorage.open(lab_config_path))
+    return lab_config_util.Parse(cloudstorage.open(lab_config_path))
   except cloudstorage.NotFoundError:
     logging.exception('Cannot open lab config file: %s', lab_config_path)
-  except lab_config.ConfigError:
+  except lab_config_util.ConfigError:
     logging.exception('Fail to parse file: %s', lab_config_path)
 
 
@@ -67,6 +67,22 @@ def _CheckConfigEntitiesEqual(entity, new_entity):
   new_entity_dict = new_entity.to_dict()
   new_entity_dict.pop('update_time')
   return entity_dict == new_entity_dict
+
+
+def _UpdateLabConfig(lab_config):
+  """Update Lab config to ndb."""
+  logging.debug('Updating lab config entity.')
+  if not lab_config.lab_name:
+    logging.error('Lab has no name: %s.', lab_config)
+    return
+  lab_config_entity = datastore_entities.LabConfig.get_by_id(
+      lab_config.lab_name)
+  new_lab_config_entity = datastore_entities.LabConfig.FromMessage(lab_config)
+  if not _CheckConfigEntitiesEqual(lab_config_entity, new_lab_config_entity):
+    logging.debug('Update lab config entity: %s.',
+                  new_lab_config_entity.lab_name)
+    new_lab_config_entity.put()
+  logging.debug('Lab config updated.')
 
 
 def _UpdateClusterConfigs(cluster_configs):
@@ -125,6 +141,7 @@ def SyncToNDB():
     if stat.filename.endswith('.yaml'):
       logging.debug('Processing cloudstorage file: %s', stat.filename)
       lab_config_pb = GetLabConfigFromGCS(stat.filename)
+      _UpdateLabConfig(lab_config_pb)
       _UpdateClusterConfigs(lab_config_pb.cluster_configs)
       for cluster_config in lab_config_pb.cluster_configs:
         _UpdateHostConfigs(

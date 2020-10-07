@@ -727,6 +727,26 @@ class ClusterConfig(ndb.Model):
         tf_global_config_path=msg.tf_global_config_path)
 
 
+class LabConfig(ndb.Model):
+  """A lab config entity.
+
+  Attributes:
+    lab_name: a string of cluster name.
+    owners: a list of owners of the lab.
+    update_time: the time the config is update.
+  """
+  lab_name = ndb.StringProperty()
+  owners = ndb.StringProperty(repeated=True)
+  update_time = ndb.DateTimeProperty(auto_now=True)
+
+  @classmethod
+  def FromMessage(cls, msg):
+    return cls(
+        id=msg.lab_name,
+        lab_name=msg.lab_name,
+        owners=list(msg.owners))
+
+
 class ClusterInfo(ndb.Expando):
   """Cluster information entity. Key should be cluster name.
 

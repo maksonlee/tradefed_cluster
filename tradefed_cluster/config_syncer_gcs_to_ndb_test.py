@@ -70,6 +70,17 @@ class ConfigSyncerGCSToNdbTest(testbed_dependent_test.TestbedDependentTest):
     cluster_config_entity.put()
     return cluster_config_entity
 
+  def testUpdateLabConfig(self):
+    """Tests that check lab config is updated."""
+    lab_config_pb = config_syncer_gcs_to_ndb.GetLabConfigFromGCS(
+        config_syncer_gcs_to_ndb.LAB_CONFIG_DIR_PATH + TEST_CLUSTER_YAML_FILE)
+    config_syncer_gcs_to_ndb._UpdateLabConfig(lab_config_pb)
+
+    ndb.get_context().clear_cache()
+    res = datastore_entities.LabConfig.get_by_id('lab1')
+    self.assertEqual('lab1', res.lab_name)
+    self.assertEqual(['lab_user1', 'user1'], res.owners)
+
   def testUpdateClusterConfigs(self):
     """Tests that check cluster configs are updated."""
     self._CreateClusterConfigEntity(
@@ -116,6 +127,8 @@ class ConfigSyncerGCSToNdbTest(testbed_dependent_test.TestbedDependentTest):
     config_syncer_gcs_to_ndb.SyncToNDB()
 
     ndb.get_context().clear_cache()
+    res = datastore_entities.LabConfig.get_by_id('lab1')
+    self.assertEqual('lab1', res.lab_name)
     res = datastore_entities.ClusterConfig.get_by_id('cluster1')
     self.assertEqual('cluster1', res.cluster_name)
     res = datastore_entities.ClusterConfig.get_by_id('cluster2')

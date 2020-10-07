@@ -109,7 +109,9 @@ class HostEventApi(remote.Service):
     # Convert the request message to json for the taskqueue payload
     encoded_message = protojson.encode_message(request)
     json_message = json.loads(encoded_message)
-    host_events = json_message["host_events"]
+    host_events = json_message.get("host_events")
+    if not host_events:
+      raise endpoints.BadRequestException("Request has no host_events.")
     logging.info("Submitting host event message with size %d and %d events",
                  len(encoded_message), len(host_events))
     for event_chunk in chunks(host_events, CHUNK_SIZE):

@@ -159,6 +159,13 @@ class HostEventApiTest(api_test.ApiTest):
                   _queue=host_event.HOST_EVENT_QUEUE_NDB,
                   _target='testbed-version.default')] * 10)
 
+  def testSubmitHostEvents_emptyRequest(self):
+    request = {}
+    res = self.testapp.post_json(
+        '/_ah/api/HostEventApi.SubmitHostEvents', request,
+        expect_errors=True)
+    self.assertEqual('400 Bad Request', res.status)
+
   @mock.patch.object(device_manager, 'HandleDeviceSnapshotWithNDB')
   @mock.patch.object(device_manager, 'IsHostEventValid', return_value=False)
   def testProcessHostEvent_invalidEvent(self, mock_valid, mock_handle):

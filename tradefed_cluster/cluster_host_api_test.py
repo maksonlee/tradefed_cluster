@@ -476,6 +476,26 @@ class ClusterHostApiTest(api_test.ApiTest):
                                           api_request, expect_errors=True)
     self.assertEqual('400 Bad Request', api_response.status)
 
+  def testListHosts_filterByRecoveryState(self):
+    """Tests ListHosts returns hosts for certain recovery states."""
+    self.ndb_host_0.recovery_state = common.RecoveryState.ASSIGNED
+    self.ndb_host_0.assignee = 'user1'
+    self.ndb_host_0.put()
+    self.ndb_host_2.recovery_state = common.RecoveryState.FIXED
+    self.ndb_host_2.assignee = 'user1'
+    self.ndb_host_2.put()
+    api_request = {'recovery_states': ['ASSIGNED', 'FIXED']}
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
+                                          api_request)
+    host_collection = protojson.decode_message(api_messages.HostInfoCollection,
+                                               api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    for host in host_collection.host_infos:
+      print(host)
+    self.assertEqual(2, len(host_collection.host_infos))
+    self.assertEqual('ASSIGNED', host_collection.host_infos[0].recovery_state)
+    self.assertEqual('FIXED', host_collection.host_infos[1].recovery_state)
+
   @mock.patch.object(note_manager, 'PublishMessage')
   def testAddOrUpdateHostNote_addWithTextOfflineReasonAndRecoveryAction(
       self, mock_publish_host_note_message):

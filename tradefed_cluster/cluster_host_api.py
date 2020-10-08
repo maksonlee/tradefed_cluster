@@ -73,7 +73,8 @@ class ClusterHostApi(remote.Service):
       count=messages.IntegerField(
           14, variant=messages.Variant.INT32, default=_DEFAULT_LIST_HOST_COUNT),
       timestamp_operator=messages.EnumField(common.Operator, 15),
-      timestamp=message_types.DateTimeField(16))
+      timestamp=message_types.DateTimeField(16),
+      recovery_states=messages.StringField(17, repeated=True))
 
   @endpoints.method(
       HOST_LIST_RESOURCE,
@@ -134,6 +135,9 @@ class ClusterHostApi(remote.Service):
       if request.pools and not set(host.pools).issubset(set(request.pools)):
         return
       if request.host_states and host.host_state not in request.host_states:
+        return
+      if (request.recovery_states and
+          host.recovery_state not in request.recovery_states):
         return
       if request.timestamp:
         if not host.timestamp:

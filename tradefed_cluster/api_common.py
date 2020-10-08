@@ -14,6 +14,7 @@
 
 """Common components for tradefed cluster api."""
 
+import functools
 import endpoints
 
 from tradefed_cluster.util.ndb_shim import ndb
@@ -40,6 +41,7 @@ tradefed_cluster_api = endpoints.api(
 def with_ndb_context(method):
   """Decorator to wrap individual endpoints in NDB Context."""
 
+  @functools.wraps(method)
   def wrap_endpoint(*args, **kwargs):
     """Wraps the endpoint method in a NDB Context."""
     context = context_module.get_context(raise_context_error=False)

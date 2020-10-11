@@ -301,9 +301,8 @@ class ClusterDeviceApi(remote.Service):
           message_id=request.offline_reason_id,
           lab_name=request.lab_name,
           content=request.offline_reason)
-    except note_manager.InvalidParameterError:
-      raise endpoints.BadRequestException(
-          "Invalid offline_reason_id: %s" % request.offline_reason_id)
+    except note_manager.InvalidParameterError as err:
+      raise endpoints.BadRequestException("Invalid offline reason: [%s]" % err)
     if offline_reason_entity:
       device_note_entity.offline_reason = offline_reason_entity.content
       entities_to_update.append(offline_reason_entity)
@@ -314,9 +313,8 @@ class ClusterDeviceApi(remote.Service):
           message_id=request.recovery_action_id,
           lab_name=request.lab_name,
           content=request.recovery_action)
-    except note_manager.InvalidParameterError:
-      raise endpoints.BadRequestException(
-          "Invalid recovery_action_id: %s" % request.recovery_action_id)
+    except note_manager.InvalidParameterError as err:
+      raise endpoints.BadRequestException("Invalid recovery action: [%s]" % err)
     if recovery_action_entity:
       device_note_entity.recovery_action = recovery_action_entity.content
       entities_to_update.append(recovery_action_entity)
@@ -386,9 +384,8 @@ class ClusterDeviceApi(remote.Service):
           lab_name=request.lab_name,
           content=request.offline_reason,
           delta_count=len(device_note_entities))
-    except note_manager.InvalidParameterError:
-      raise endpoints.BadRequestException(
-          "Invalid offline_reason_id: %s" % request.offline_reason_id)
+    except note_manager.InvalidParameterError as err:
+      raise endpoints.BadRequestException("Invalid offline reason: [%s]" % err)
     if offline_reason_entity:
       for device_note_entity in device_note_entities:
         device_note_entity.offline_reason = offline_reason_entity.content
@@ -401,9 +398,8 @@ class ClusterDeviceApi(remote.Service):
           lab_name=request.lab_name,
           content=request.recovery_action,
           delta_count=len(device_note_entities))
-    except note_manager.InvalidParameterError:
-      raise endpoints.BadRequestException(
-          "Invalid recovery_action_id: %s" % request.recovery_action_id)
+    except note_manager.InvalidParameterError as err:
+      raise endpoints.BadRequestException("Invalid recovery action: [%s]" % err)
     if recovery_action_entity:
       for device_note_entity in device_note_entities:
         device_note_entity.recovery_action = recovery_action_entity.content

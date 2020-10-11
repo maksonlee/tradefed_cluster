@@ -116,6 +116,9 @@ def PreparePredefinedMessageForNote(
       raise InvalidParameterError(
           "Invalid predefined_message_id: %s" % message_id)
   elif content:
+    if not lab_name:
+      raise InvalidParameterError(
+          "No lab_name value is provided to get PredefinedMessage.")
     predefined_message_entity = GetOrCreatePredefinedMessage(
         message_type, lab_name, content)
   if predefined_message_entity:

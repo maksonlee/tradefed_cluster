@@ -158,6 +158,13 @@ class NoteManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(content, message.content)
     self.assertEqual(1, message.used_count)
 
+  def testPreparePredefinedMessageForNote_withNoLabName(self):
+    content = "content1"
+    with self.assertRaises(note_manager.InvalidParameterError):
+      note_manager.PreparePredefinedMessageForNote(
+          api_messages.PredefinedMessageType.DEVICE_OFFLINE_REASON,
+          content=content)
+
   @mock.patch.object(note_manager, "_Now")
   @mock.patch.object(note_manager, "_PubsubClient")
   def testPublishMessage(self, mock_pubsub_client, mock_now):

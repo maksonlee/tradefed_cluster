@@ -148,6 +148,11 @@ indexes:
   - name: hidden
   - name: test_runner_version
 
+- kind: HostInfo
+  properties:
+  - name: is_bad
+  - name: timestamp
+
 - kind: HostInfoHistory
   ancestor: yes
   properties:

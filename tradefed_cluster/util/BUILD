@@ -41,6 +41,7 @@ py_appengine_library(
     ],
     srcs_version = "PY2AND3",
     deps = [
+        "//tradefed_cluster/services:mailer_lib",
         third_party("jinja2"),
     ],
 )

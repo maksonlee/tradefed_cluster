@@ -127,7 +127,7 @@ class RequestApiTest(api_test.ApiTest):
     self.assertEqual('w123', request_entity.plugin_data.get(
         'ants_work_unit_id'))
 
-    tasks = self.taskqueue_stub.get_filtered_tasks()
+    tasks = self.mock_task_scheduler.GetTasks()
     self.assertEqual(len(tasks), 1)
 
     request_task = json.loads(zlib.decompress(tasks[0].payload))
@@ -175,7 +175,7 @@ class RequestApiTest(api_test.ApiTest):
     self.assertEqual('w123', request_entity.plugin_data.get(
         'ants_work_unit_id'))
 
-    tasks = self.taskqueue_stub.get_filtered_tasks()
+    tasks = self.mock_task_scheduler.GetTasks()
     self.assertEqual(len(tasks), 1)
 
     request_task = json.loads(zlib.decompress(tasks[0].payload))
@@ -214,7 +214,7 @@ class RequestApiTest(api_test.ApiTest):
     self.assertEqual('run_target', request_entity.run_target)
     self.assertEqual('user1', request_entity.user)
     self.assertEqual(command_line, request_entity.command_line)
-    tasks = self.taskqueue_stub.get_filtered_tasks()
+    tasks = self.mock_task_scheduler.GetTasks()
     self.assertEqual(len(tasks), 1)
     request_task = json.loads(zlib.decompress(tasks[0].payload))
     self.assertEqual(request_task['id'], return_request.id)
@@ -290,7 +290,7 @@ class RequestApiTest(api_test.ApiTest):
       self.assertEqual(
           api_request['test_resources'][i]['name'], test_resources[i].name)
 
-    tasks = self.taskqueue_stub.get_filtered_tasks()
+    tasks = self.mock_task_scheduler.GetTasks()
     self.assertEqual(len(tasks), 1)
     request_task = json.loads(zlib.decompress(tasks[0].payload))
     self.assertEqual(request_msg.id, request_task['id'])

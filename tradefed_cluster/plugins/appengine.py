@@ -14,16 +14,29 @@
 
 """Plugins for Python 2 GAE."""
 
+from google.appengine.api import mail
 from google.appengine.api import taskqueue
 
 from tradefed_cluster.plugins import base
 
 
-class TaskScheduler(base.TaskScheduler):
-  """A Python 2 GAE task scheduler.
+class Mailer(base.Mailer):
+  """A GAE mailer. Only work with Titanoboa."""
 
-  TODO: remove this scheduler once MTT migrates to a new scheduler.
-  """
+  def SendMail(self, sender, to, subject, html, reply_to, cc, bcc):
+    message = mail.EmailMessage(
+        sender=sender,
+        to=to,
+        subject=subject,
+        html=html,
+        reply_to=reply_to,
+        cc=cc,
+        bcc=bcc)
+    message.send()
+
+
+class TaskScheduler(base.TaskScheduler):
+  """A GAE task scheduler. Only work with Titanoboa."""
 
   def AddTask(self, queue_name, payload, target, task_name, eta):
     return taskqueue.add(

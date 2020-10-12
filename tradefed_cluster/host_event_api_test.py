@@ -97,7 +97,7 @@ class HostEventApiTest(api_test.ApiTest):
     self.assertEqual(0, len(devices))
     self.testapp.post_json('/_ah/api/HostEventApi.SubmitHostEvents', request)
 
-    tasks = self.taskqueue_stub.get_filtered_tasks(
+    tasks = self.mock_task_scheduler.GetTasks(
         queue_names=host_event.HOST_EVENT_QUEUE_NDB)
     self.assertEqual(len(tasks), 1)
     task_scheduler.RunCallableTask(tasks[0].payload)
@@ -115,7 +115,7 @@ class HostEventApiTest(api_test.ApiTest):
   def testSubmitHostEvents_hostStateChangedEvent(self):
     request = {'host_events': [host_state_event]}
     self.testapp.post_json('/_ah/api/HostEventApi.SubmitHostEvents', request)
-    tasks = self.taskqueue_stub.get_filtered_tasks(
+    tasks = self.mock_task_scheduler.GetTasks(
         queue_names=host_event.HOST_EVENT_QUEUE_NDB)
     self.assertEqual(len(tasks), 1)
     host_event_api.HostEventApi._ProcessHostEventWithNDB = (
@@ -133,7 +133,7 @@ class HostEventApiTest(api_test.ApiTest):
     self.testapp.post_json('/_ah/api/HostEventApi.SubmitHostEvents', request)
     self.testapp.post_json('/_ah/api/HostEventApi.SubmitHostEvents', request)
     self.testapp.post_json('/_ah/api/HostEventApi.SubmitHostEvents', request)
-    tasks = self.taskqueue_stub.get_filtered_tasks(
+    tasks = self.mock_task_scheduler.GetTasks(
         queue_names=host_event.HOST_EVENT_QUEUE_NDB)
     self.assertEqual(len(tasks), 3)
     task_scheduler.RunCallableTask(tasks[0].payload)

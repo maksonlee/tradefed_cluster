@@ -1055,7 +1055,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     attempt = command_event_test_util.CreateCommandAttempt(
         command, "attempt0", common.CommandState.UNKNOWN)
     command_manager.AddToSyncCommandAttemptQueue(attempt)
-    tasks = self.taskqueue_stub.get_filtered_tasks()
+    tasks = self.mock_task_scheduler.GetTasks()
     self.assertEqual(1, len(tasks))
     expected_payload = {
         command_manager.REQUEST_ID_KEY: request_id,
@@ -1292,7 +1292,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     command_manager._NotifyAttemptState(attempt,
                                         common.CommandState.RUNNING,
                                         datetime.datetime(1989, 5, 7))
-    tasks = self.taskqueue_stub.get_filtered_tasks()
+    tasks = self.mock_task_scheduler.GetTasks()
     self.assertEqual(len(tasks), 1)
     payload = zlib.decompress(tasks[0].payload)
     message = protojson.decode_message(api_messages.CommandAttemptEventMessage,
@@ -1313,7 +1313,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     command_manager._NotifyAttemptState(attempt,
                                         common.CommandState.RUNNING,
                                         datetime.datetime(1989, 5, 7))
-    tasks = self.taskqueue_stub.get_filtered_tasks()
+    tasks = self.mock_task_scheduler.GetTasks()
     self.assertEqual(len(tasks), 0)
 
 

@@ -33,7 +33,7 @@ class NotificationHandlerTest(testbed_dependent_test.TestbedDependentTest):
 
   def testNotifyEmptyList(self):
     notification_handler.NotifyPendingRequestStateChanges()
-    tasks = self.taskqueue_stub.get_filtered_tasks()
+    tasks = self.mock_task_scheduler.GetTasks()
     self.assertEqual(0, len(tasks))
 
   def testDoNotProcessRequest(self):
@@ -46,7 +46,7 @@ class NotificationHandlerTest(testbed_dependent_test.TestbedDependentTest):
         notify_state_change=False)
     request.put()
     notification_handler.NotifyPendingRequestStateChanges()
-    tasks = self.taskqueue_stub.get_filtered_tasks()
+    tasks = self.mock_task_scheduler.GetTasks()
     self.assertEqual(0, len(tasks))
 
   def testProcessDirtyRequest(self):
@@ -59,7 +59,7 @@ class NotificationHandlerTest(testbed_dependent_test.TestbedDependentTest):
         notify_state_change=True)
     request.put()
     notification_handler.NotifyPendingRequestStateChanges()
-    tasks = self.taskqueue_stub.get_filtered_tasks()
+    tasks = self.mock_task_scheduler.GetTasks()
     self.assertEqual(1, len(tasks))
 
   def testNotifyNoDirtyRequest(self):
@@ -72,7 +72,7 @@ class NotificationHandlerTest(testbed_dependent_test.TestbedDependentTest):
         notify_state_change=False)
     request.put()
     notification_handler.NotifyRequestState(request_id="1")
-    tasks = self.taskqueue_stub.get_filtered_tasks()
+    tasks = self.mock_task_scheduler.GetTasks()
     self.assertEqual(0, len(tasks))
 
   @mock.patch.object(task_scheduler, "AddTask")

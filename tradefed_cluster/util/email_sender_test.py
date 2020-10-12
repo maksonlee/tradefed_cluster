@@ -20,8 +20,6 @@ import unittest
 
 import jinja2
 
-from google.appengine.ext import testbed
-
 from tradefed_cluster import testbed_dependent_test
 from tradefed_cluster.util import email_sender
 
@@ -34,7 +32,6 @@ class EmailSenderTest(testbed_dependent_test.TestbedDependentTest):
     super(EmailSenderTest, self).setUp()
     self.testdata_src_root = os.path.join(
         os.path.dirname(__file__), 'testdata')
-    self.mail_stub = self.testbed.get_stub(testbed.MAIL_SERVICE_NAME)
 
   def testRender(self):
     # Test rendring when the template successfully
@@ -52,28 +49,30 @@ class EmailSenderTest(testbed_dependent_test.TestbedDependentTest):
     # Test SendEmail
     email_sender.SendEmail(
         sender='send', recipient='recipient', subject='hello', html_body='bye')
-    messages = self.mail_stub.get_sent_messages()
-    self.assertEqual(1, len(messages))
-    message = messages[0]
-    self.assertEqual('send', message.sender)
-    self.assertEqual('recipient', message.to)
-    self.assertEqual('send', message.reply_to)
-    self.assertEqual('hello', message.subject)
-    self.assertEqual('bye', message.html.decode())
+
+    self.mock_mailer.SendMail.assert_called_once_with(
+        sender='send',
+        to='recipient',
+        reply_to='send',
+        subject='hello',
+        html='bye',
+        cc=None,
+        bcc=None)
 
   def testSendEmail_customReplyTo(self):
     # Test SendEmail with reply_to set
     email_sender.SendEmail(
         sender='send', recipient='recipient', subject='hello', html_body='bye',
         reply_to='reply')
-    messages = self.mail_stub.get_sent_messages()
-    self.assertEqual(1, len(messages))
-    message = messages[0]
-    self.assertEqual('send', message.sender)
-    self.assertEqual('recipient', message.to)
-    self.assertEqual('reply', message.reply_to)
-    self.assertEqual('hello', message.subject)
-    self.assertEqual('bye', message.html.decode())
+
+    self.mock_mailer.SendMail.assert_called_once_with(
+        sender='send',
+        to='recipient',
+        subject='hello',
+        html='bye',
+        reply_to='reply',
+        cc=None,
+        bcc=None)
 
   def testFormatDatetime(self):
     # Test FormatDatetime

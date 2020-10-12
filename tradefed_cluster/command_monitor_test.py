@@ -77,19 +77,15 @@ class CommandMonitorTest(testbed_dependent_test.TestbedDependentTest):
         cluster='foobar')
     num_monitored = command_monitor.Monitor(commands)
     self.assertEqual(2, num_monitored)
-    tasks = self.taskqueue_stub.get_filtered_tasks()
+    tasks = self.mock_task_scheduler.GetTasks()
     self.assertEqual(2, len(tasks))
-    string_headers_0 = {str(k): str(v) for k, v in tasks[0].headers.items()}
     response_0 = self.testapp.post(
         '/_ah/queue/%s' % command_monitor.COMMAND_SYNC_QUEUE,
-        tasks[0].payload,
-        headers=string_headers_0)
+        tasks[0].payload)
     self.assertEqual('200 OK', response_0.status)
-    string_headers_1 = {str(k): str(v) for k, v in tasks[1].headers.items()}
     response_1 = self.testapp.post(
         '/_ah/queue/%s' % command_monitor.COMMAND_SYNC_QUEUE,
-        tasks[1].payload,
-        headers=string_headers_1)
+        tasks[1].payload)
     self.assertEqual('200 OK', response_1.status)
     sync.assert_has_calls([
         mock.call(self.request_2.key.id(), commands[0].key.id()),

@@ -81,10 +81,17 @@ class Plugin(with_metaclass(PluginMetaClass, object)):
     pass
 
 
-Task = collections.namedtuple('Task', ['name'])
+class Mailer(object):
+  """A mailer plugin interface."""
+
+  def SendMail(self, sender, to, subject, html, reply_to, cc, bcc):
+    raise NotImplementedError()
+
+Task = collections.namedtuple('Task', ['name', 'payload', 'eta'])
+Task.__new__.__defaults__ = (None, None)
 
 
-class TaskScheduler:
+class TaskScheduler(object):
   """Interface for task scheduler plugins."""
 
   def AddTask(self, queue_name, payload, target, task_name, eta):

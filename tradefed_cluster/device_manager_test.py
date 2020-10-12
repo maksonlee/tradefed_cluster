@@ -1250,7 +1250,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(0, host.offline_devices)
 
   def _AssertHostSyncTask(self, hostname):
-    tasks = self.taskqueue_stub.get_filtered_tasks()
+    tasks = self.mock_task_scheduler.GetTasks()
     self.assertEqual(1, len(tasks))
     host_sync = datastore_entities.HostSync.get_by_id(hostname)
     self.assertEqual(host_sync.taskname, tasks[0].name)
@@ -1288,7 +1288,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     new_sync_id = device_manager.StartHostSync("host1", "another_sync_id")
     self.assertIsNotNone(new_sync_id)
     self.assertNotEqual(old_sync_id, new_sync_id)
-    tasks = self.taskqueue_stub.get_filtered_tasks()
+    tasks = self.mock_task_scheduler.GetTasks()
     # There will be 2 tasks, one for the stale one, the other is the new one.
     self.assertEqual(2, len(tasks))
 

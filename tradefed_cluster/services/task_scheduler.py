@@ -114,7 +114,7 @@ def _AddTask(
 
   if transactional:
     ndb.get_context().call_on_commit(Callback)
-    return plugins_base.Task(name=name)
+    return plugins_base.Task(name=name, payload=payload, eta=eta)
   return Callback()
 
 

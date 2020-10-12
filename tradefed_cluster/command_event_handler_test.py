@@ -90,7 +90,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         request_id, command_id, "aid", "InvocationCompleted")
 
     command_event_handler.EnqueueCommandEvents([event])
-    tasks = self.taskqueue_stub.get_filtered_tasks()
+    tasks = self.mock_task_scheduler.GetTasks()
     self.assertEqual(len(tasks), 1)
     self.testapp.post(
         command_event_handler.COMMAND_EVENT_HANDLER_PATH, tasks[0].payload)
@@ -112,7 +112,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
             days=command_event_handler.COMMAND_EVENT_TIMEOUT_DAYS + 1))
 
     command_event_handler.EnqueueCommandEvents([event])
-    tasks = self.taskqueue_stub.get_filtered_tasks()
+    tasks = self.mock_task_scheduler.GetTasks()
     self.assertEqual(len(tasks), 1)
     self.testapp.post(
         command_event_handler.COMMAND_EVENT_HANDLER_PATH, tasks[0].payload)
@@ -148,7 +148,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         request_id, command_2_id, "aid", "InvocationCompleted")
     command_event_handler.EnqueueCommandEvents([event, event2, event3, event4])
 
-    tasks = self.taskqueue_stub.get_filtered_tasks()
+    tasks = self.mock_task_scheduler.GetTasks()
     self.assertEqual(len(tasks), 2)
     self.testapp.post(
         command_event_handler.COMMAND_EVENT_HANDLER_PATH, tasks[0].payload)
@@ -178,7 +178,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     }
 
     command_event_handler.EnqueueCommandEvents([event, malformed_event])
-    tasks = self.taskqueue_stub.get_filtered_tasks()
+    tasks = self.mock_task_scheduler.GetTasks()
     self.assertEqual(len(tasks), 1)
     self.testapp.post(command_event_handler.COMMAND_EVENT_HANDLER_PATH,
                       tasks[0].payload)
@@ -200,16 +200,16 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     mock_process.side_effect = [None, ndb.exceptions.ContextError(), None]
 
     command_event_handler.EnqueueCommandEvents([event, event2])
-    tasks = self.taskqueue_stub.get_filtered_tasks()
+    tasks = self.mock_task_scheduler.GetTasks()
 
     self.assertEqual(len(tasks), 1)
-    self.taskqueue_stub.DeleteTask(command_event_handler.COMMAND_EVENT_QUEUE,
-                                   tasks[0].name)
+    self.mock_task_scheduler.DeleteTask(
+        command_event_handler.COMMAND_EVENT_QUEUE, tasks[0].name)
     response = self.testapp.post(
         command_event_handler.COMMAND_EVENT_HANDLER_PATH, tasks[0].payload)
     self.assertEqual("200 OK", response.status)
 
-    tasks = self.taskqueue_stub.get_filtered_tasks()
+    tasks = self.mock_task_scheduler.GetTasks()
     self.assertEqual(len(tasks), 1)
     response = self.testapp.post(
         command_event_handler.COMMAND_EVENT_HANDLER_PATH, tasks[0].payload)
@@ -247,7 +247,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
                                 ndb.exceptions.ContextError()]
 
     command_event_handler.EnqueueCommandEvents([event, event2])
-    tasks = self.taskqueue_stub.get_filtered_tasks()
+    tasks = self.mock_task_scheduler.GetTasks()
 
     self.assertEqual(len(tasks), 1)
     response = self.testapp.post(

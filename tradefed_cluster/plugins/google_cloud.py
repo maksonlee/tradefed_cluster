@@ -77,7 +77,7 @@ class TaskScheduler(base.TaskScheduler):
       task['app_engine_http_request']['app_engine_routing']['service'] = target
     task = self._GetClient().create_task(parent, task,
                                          retry=DEFAULT_RETRY_OPTION)
-    return base.Task(name=task.name.split('/')[-1])
+    return base.Task(name=task.name.split('/')[-1], payload=payload, eta=eta)
 
   def DeleteTask(self, queue_name, task_name):
     task_path = self._GetClient().task_path(

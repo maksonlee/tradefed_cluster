@@ -1038,7 +1038,6 @@ py_appengine_library(
     srcs_version = "PY2AND3",
     deps = [
         ":common_lib",
-        "//tradefed_cluster/plugins:appengine_lib",
         "//tradefed_cluster/plugins:metric_client_lib",
         "//tradefed_cluster/plugins:registry_lib",
         "//tradefed_cluster/util:env_util_lib",
@@ -1380,8 +1379,9 @@ py_appengine_library(
     deps = [
         ":api_common_lib",
         ":common_lib",
-        third_party("mock"),
+        "//tradefed_cluster:env_config_lib",
         "//tradefed_cluster/util:ndb_test_lib",
+        third_party("mock"),
     ],
 )
 

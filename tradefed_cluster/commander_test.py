@@ -259,7 +259,7 @@ class HandleReuestTest(testbed_dependent_test.TestbedDependentTest):
         request_id=request_id,
         plugin_data={"ants_invocation_id": "i123", "ants_work_unit_id": "w123"})
     request_manager.AddToQueue(request)
-    tasks = self.taskqueue_stub.get_filtered_tasks()
+    tasks = self.mock_task_scheduler.GetTasks()
     self.assertEqual(len(tasks), 1)
     self.testapp.post(commander.REQUEST_HANDLER_PATH, tasks[0].payload)
 

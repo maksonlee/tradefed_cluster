@@ -18,7 +18,7 @@ import logging
 
 import jinja2
 
-from google.appengine.api import mail
+from tradefed_cluster.services import mailer
 
 
 # Default date format
@@ -81,10 +81,9 @@ def SendEmail(sender, recipient, subject, html_body, reply_to=None):
       sender, recipient, subject)
   if not reply_to:
     reply_to = sender
-  message = mail.EmailMessage(
+  mailer.SendMail(
       sender=sender,
       to=recipient,
       subject=subject,
       html=html_body,
       reply_to=reply_to)
-  message.send()

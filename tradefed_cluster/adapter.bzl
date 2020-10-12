@@ -173,6 +173,10 @@ def pytype_strict_binary(name, **kwargs):
         )
     _py_binary(name = name, **kwargs)
 
+def pytype_strict_library(**kwargs):
+    _dedup_deps(kwargs)
+    _py_library(**kwargs)
+
 def third_party(package_name):
     """A function to map a library alias to a label."""
     package_name = PACKAGE_MAP.get(package_name.split(":")[0], package_name)

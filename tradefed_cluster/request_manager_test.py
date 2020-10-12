@@ -72,7 +72,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     request = ndb.Key(datastore_entities.Request, REQUEST_ID,
                       namespace=common.NAMESPACE).get(use_cache=False)
     request_manager.AddToQueue(request)
-    tasks = self.taskqueue_stub.get_filtered_tasks()
+    tasks = self.mock_task_scheduler.GetTasks()
     self.assertEqual(len(tasks), 1)
     request_task = json.loads(zlib.decompress(tasks[0].payload))
     self.assertEqual(REQUEST_ID, request_task["id"])

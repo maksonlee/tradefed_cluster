@@ -1,8 +1,32 @@
-load("//tradefed_cluster:adapter.bzl", "py_appengine_library", "py_appengine_test", "third_party")
+load("//tradefed_cluster:adapter.bzl", "py2and3_test", "py_appengine_library", "py_appengine_test", "pytype_strict_library", "third_party")
 
 package(default_visibility = ["//tradefed_cluster:tradefed_cluster_clients"])
 
 licenses(["notice"])
+
+pytype_strict_library(
+    name = "mailer_lib",
+    srcs = [
+        "mailer.py",
+    ],
+    srcs_version = "PY2AND3",
+    deps = [
+        "//tradefed_cluster:env_config_lib",
+        third_party("protorpc:protorpc_all"),
+    ],
+)
+
+py2and3_test(
+    name = "mailer_test",
+    srcs = [
+        "mailer_test.py",
+    ],
+    deps = [
+        ":mailer_lib",
+        third_party("absl/testing:absltest"),
+        third_party("mock"),
+    ],
+)
 
 py_appengine_library(
     name = "task_scheduler_lib",

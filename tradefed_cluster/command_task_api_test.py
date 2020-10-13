@@ -17,6 +17,7 @@
 import datetime
 import unittest
 
+import grpc
 import mock
 from protorpc import protojson
 
@@ -452,6 +453,62 @@ class CommandTaskApiTest(api_test.ApiTest):
     self.assertEqual(0, len(task_list.tasks))
     ensure_consistency.assert_called_once_with(
         REQUEST_ID, '2', '%s-2-0' % REQUEST_ID)
+
+  @mock.patch.object(command_task_store, 'LeaseTask')
+  def testLeaseHostTasks_datastoreContention(self, mock_lease_task):
+    mock_lease_task.side_effect = [mock.MagicMock(), grpc.RpcError()]
+    self._AddCommand(
+        self.request.key.id(),
+        '2',
+        'command',
+        'cluster',
+        'run_target1',
+        ants_invocation_id='i123',
+        ants_work_unit_id='w123')
+    self._AddCommand(
+        self.request.key.id(),
+        '3',
+        'command',
+        'cluster2',
+        'run_target3',
+        ants_invocation_id='',
+        ants_work_unit_id='')
+
+    request = {
+        'hostname': 'hostname',
+        'cluster': 'cluster',
+        'device_infos': [
+            {
+                'device_serial': 'd1',
+                'hostname': 'hostname',
+                'run_target': 'run_target1',
+                'state': common.DeviceState.AVAILABLE,
+                'group_name': 'group1'
+            },
+            {
+                'device_serial': 'd2',
+                'hostname': 'hostname',
+                'run_target': 'run_target2',
+                'state': common.DeviceState.AVAILABLE,
+                'group_name': 'group1'
+            },
+            {
+                'device_serial': 'd3',
+                'hostname': 'hostname',
+                'run_target': 'run_target3',
+                'state': common.DeviceState.AVAILABLE,
+                'group_name': 'group2'
+            },
+        ],
+        'next_cluster_ids': ['cluster2', 'cluster3']
+    }
+    response = self.testapp.post_json(
+        '/_ah/api/CommandTaskApi.LeaseHostTasks', request)
+    self.assertEqual('200 OK', response.status)
+    task_list = protojson.decode_message(command_task_api.CommandTaskList,
+                                         response.body)
+
+    self.assertEqual(1, len(task_list.tasks))
 
 
 if __name__ == '__main__':

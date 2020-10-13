@@ -19,6 +19,7 @@ import logging
 import uuid
 
 import endpoints
+import grpc
 from protorpc import messages
 from protorpc import remote
 
@@ -156,10 +157,20 @@ class CommandTaskApi(remote.Service):
       matched_devices = matcher.Match(task)
       if not matched_devices:
         continue
-      if not command_task_store.LeaseTask(task.task_id):
+      try:
+        # b/27136167: Touch command to prevent coordinator from cancelling
+        # during task lease.
+        command = command_manager.Touch(task.request_id, task.command_id)
+        if not command_task_store.LeaseTask(task.task_id):
+          continue
+        data_consistent = self._EnsureCommandConsistency(
+            task.request_id, task.command_id, task.task_id)
+      except grpc.RpcError as e:
+        # Datastore entities can only be written to once per second.  If we fail
+        # to update the command or task, log the error, and try leasing other
+        # tasks.
+        logging.warning("Error leasing task %s: %s", task.task_id, e)
         continue
-      data_consistent = self._EnsureCommandConsistency(
-          task.request_id, task.command_id, task.task_id)
       if not data_consistent:
         continue
 
@@ -182,9 +193,6 @@ class CommandTaskApi(remote.Service):
               run_index=task.run_index,
               attempt_index=task.attempt_index,
               plugin_data=plugin_data_))
-      # b/27136167: Touch command to prevent coordinator from cancelling
-      # during task lease.
-      command = command_manager.Touch(task.request_id, task.command_id)
       for run_target in task.run_targets:
         metric.RecordCommandTimingMetric(
             cluster_id=cluster,

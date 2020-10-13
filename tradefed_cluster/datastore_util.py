@@ -68,11 +68,14 @@ def GoogleCloudFetchPage(query, page_size, page_cursor=None, backwards=False,
     prev_cursor = None
   elif backwards:
     # fetching previous page in reverse order
-    if query.order_by:
-      for order_property in query.order_by:
-        order_property.reverse ^= order_property.reverse
+    reversed_query = ndb.Query(
+        ancestor=query.ancestor,
+        kind=query.kind,
+        filters=query.filters,
+        orders=[-order for order in query.order_by])
     results, cursor, more = _FetchPageWithIterator(
-        query, page_size, ndb.Cursor(urlsafe=six.ensure_str(page_cursor)),
+        reversed_query, page_size,
+        ndb.Cursor(urlsafe=six.ensure_str(page_cursor)),
         result_filter)
     if not more and len(results) < page_size:
       return FetchPage(query, page_size)

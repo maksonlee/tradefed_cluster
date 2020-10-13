@@ -76,14 +76,19 @@ class DatastoreUtilTest(testbed_dependent_test.TestbedDependentTest):
   def testFetchPage_backwards(self):
     query = datastore_entities.LabInfo.query()
     query = query.order(datastore_entities.LabInfo.key)
-    labs, _, cursor = datastore_util.FetchPage(query, 2)
-    self.assertEqual(2, len(labs))
+    # Fetch 3 results
+    labs, _, cursor = datastore_util.FetchPage(query, 3)
+    self.assertEqual(3, len(labs))
+    self.assertEqual('lab0', labs[0].lab_name)
+    self.assertEqual('lab1', labs[1].lab_name)
+    self.assertEqual('lab2', labs[2].lab_name)
 
+    # Fetch 2 results backwards
     labs, prev_cursor, next_cursor = datastore_util.FetchPage(
         query, 2, page_cursor=cursor, backwards=True)
     self.assertEqual(2, len(labs))
+    self.assertEqual('lab1', labs[0].lab_name)
     self.assertEqual('lab2', labs[1].lab_name)
-    self.assertEqual('lab3', labs[0].lab_name)
     self.assertIsNotNone(prev_cursor)
     self.assertEqual(cursor, next_cursor)
 
@@ -137,13 +142,19 @@ class DatastoreUtilTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(api_messages.HostState.KILLING, histories[1].host_state)
 
   def testFetchPage_backwardsCountLargeThanRest(self):
-    # When FetchPage backwards and the rest is less than 1 page,
-    # it will get the first page.
+    # When a page is fetched backwards with a cursor, and the remaining results
+    # are smaller than one page, the first page should be fetched instead.
     query = datastore_entities.LabInfo.query()
     query = query.order(datastore_entities.LabInfo.key)
+    # Fetch 2 results
+    labs, _, cursor = datastore_util.FetchPage(query, 2)
+    self.assertEqual(2, len(labs))
+    self.assertEqual('lab0', labs[0].lab_name)
+    self.assertEqual('lab1', labs[1].lab_name)
 
+    # Fetch 3 results backwards
     labs, prev_cursor, next_cursor = datastore_util.FetchPage(
-        query, 3, backwards=True)
+        query, 3, page_cursor=cursor, backwards=True)
     self.assertEqual(3, len(labs))
     self.assertEqual('lab0', labs[0].lab_name)
     self.assertEqual('lab1', labs[1].lab_name)

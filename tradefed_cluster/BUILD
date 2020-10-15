@@ -655,6 +655,7 @@ py_appengine_library(
         ":datastore_entities_lib",
         ":env_config_lib",
         "//tradefed_cluster/configs:lab_config_lib",
+        "//tradefed_cluster/services:file_storage_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
         third_party("flask"),
     ],
@@ -817,10 +818,11 @@ py_appengine_library(
         ":common_lib",
         ":datastore_entities_lib",
         ":env_config_lib",
+        "//tradefed_cluster/services:file_storage_lib",
+        "//tradefed_cluster/util:email_sender_lib",
         third_party("cloudstorage"),
         third_party("dateutil"),
         third_party("flask"),
-        "//tradefed_cluster/util:email_sender_lib",
     ],
 )
 

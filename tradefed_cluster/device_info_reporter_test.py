@@ -20,7 +20,6 @@ import json
 import os.path
 import unittest
 
-import cloudstorage
 import mock
 import six
 import webtest
@@ -165,7 +164,7 @@ class DeviceInfoReporterTest(testbed_dependent_test.TestbedDependentTest):
     device_info_reporter.StoreDeviceSnapshot(device_snapshot)
     json_data = json.dumps(device_info_reporter._DevicesToDicts(devices))
     # Read back.
-    with cloudstorage.open(device_snapshot.filename) as f:
+    with self.mock_file_storage.OpenFile(device_snapshot.filename) as f:
       gz = gzip.GzipFile(mode='r', fileobj=f)
       self.assertEqual(json_data, six.ensure_str(gz.read()))
     mock_job_result.assert_called_once_with(device_snapshot)

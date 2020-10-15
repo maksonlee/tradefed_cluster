@@ -16,14 +16,13 @@
 
 import logging
 
-import cloudstorage
 import flask
-
 
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import env_config
 from tradefed_cluster.configs import lab_config as lab_config_util
+from tradefed_cluster.services import file_storage
 from tradefed_cluster.util import ndb_shim as ndb
 
 
@@ -42,8 +41,8 @@ def GetLabConfigFromGCS(lab_config_path):
     a lab config proto
   """
   try:
-    return lab_config_util.Parse(cloudstorage.open(lab_config_path))
-  except cloudstorage.NotFoundError:
+    return lab_config_util.Parse(file_storage.OpenFile(lab_config_path))
+  except file_storage.ObjectNotFoundError:
     logging.exception('Cannot open lab config file: %s', lab_config_path)
   except lab_config_util.ConfigError:
     logging.exception('Fail to parse file: %s', lab_config_path)
@@ -144,7 +143,7 @@ def _UpdateHostConfigs(host_configs, cluster_name):
 
 def SyncToNDB():
   """Sync file from gcs to ndb."""
-  stats = cloudstorage.listbucket(LAB_CONFIG_DIR_PATH)
+  stats = file_storage.ListFiles(LAB_CONFIG_DIR_PATH)
   for stat in stats:
     if stat.filename.endswith('.yaml'):
       logging.debug('Processing cloudstorage file: %s', stat.filename)

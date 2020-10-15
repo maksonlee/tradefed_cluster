@@ -23,6 +23,16 @@ import collections
 from six import with_metaclass
 
 
+class Error(Exception):
+  """A base class for plugin errors."""
+  pass
+
+
+class ObjectNotFoundError(Error):
+  """Cannot find an object."""
+  pass
+
+
 class PluginMetaClass(type):
   """A meta class to register all test hook classes to the test hook map."""
 
@@ -81,6 +91,37 @@ class Plugin(with_metaclass(PluginMetaClass, object)):
     pass
 
 
+FileInfo = collections.namedtuple(
+    'FileInfo', ['filename', 'is_dir', 'size', 'content_type'])
+
+
+class FileStorage(object):
+  """Interface for file storage plugins."""
+
+  def ListFiles(self, path):
+    """List directory/files under a given path.
+
+    Args:
+      path: a directory path.
+    Returns:
+      A FileInfo iterator.
+    """
+    raise NotImplementedError()
+
+  def OpenFile(self, path, mode, content_type, content_encoding):
+    """Opens a file for reading or writing.
+
+    Args:
+      path: a file path.
+      mode: 'r' for reading or 'w' for writing
+      content_type: a content type.
+      content_encoding: a content encoding.
+    Returns:
+      A file-like object.
+    """
+    raise NotImplementedError()
+
+
 class Mailer(object):
   """A mailer plugin interface."""
 
@@ -105,8 +146,6 @@ class TaskScheduler(object):
       eta: a ETA for task execution.
     Returns:
       A Task object.
-    Raises:
-      NotImplementedError: if an operation is not implemented.
     """
     raise NotImplementedError()
 
@@ -116,7 +155,5 @@ class TaskScheduler(object):
     Args:
       queue_name: a queue name.
       task_name: a task name.
-    Raises:
-      NotImplementedError: if an operation is not implemented.
     """
     raise NotImplementedError()

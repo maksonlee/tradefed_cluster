@@ -14,10 +14,56 @@
 
 """Plugins for Python 2 GAE."""
 
+import cloudstorage
+
 from google.appengine.api import mail
 from google.appengine.api import taskqueue
 
 from tradefed_cluster.plugins import base
+
+
+def _ToFileInfo(stat):
+  """Converts a cloudstorage.GCSFileStat to base.FileInfo."""
+  return base.FileInfo(
+      filename=stat.filename,
+      is_dir=stat.is_dir,
+      size=stat.st_size,
+      content_type=stat.content_type)
+
+
+class FileStorage(object):
+  """Interface for file storage plugins."""
+
+  def ListFiles(self, path):
+    """List directory/files under a given path.
+
+    Args:
+      path: a directory path.
+    Returns:
+      A FileInfo iterator.
+    """
+    it = cloudstorage.listbucket(path)
+    return map(it, _ToFileInfo)
+
+  def OpenFile(self, path, mode, content_type, content_encoding):
+    """Opens a file for reading or writing.
+
+    Args:
+      path: a file path.
+      mode: 'r' for reading or 'w' for writing
+      content_type: a content type (optional).
+      content_encoding: a content encoding (optional).
+    Returns:
+      A file-like object.
+    """
+    try:
+      options = {}
+      if content_encoding:
+        options['content-encoding'] = content_encoding
+      return cloudstorage.open(
+          filename=path, mode=mode, content_type=content_type, options=options)
+    except cloudstorage.NotFoundError:
+      raise base.ObjectNotFoundError()
 
 
 class Mailer(base.Mailer):

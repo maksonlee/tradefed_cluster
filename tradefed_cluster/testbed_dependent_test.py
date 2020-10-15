@@ -15,6 +15,10 @@
 """Module for testbed dependencies base class."""
 
 import collections
+import os
+import shutil
+import stat
+import tempfile
 import uuid
 
 import mock
@@ -24,6 +28,42 @@ from tradefed_cluster import api_common
 from tradefed_cluster import env_config
 from tradefed_cluster.plugins import base
 from tradefed_cluster.util import ndb_test_lib
+
+
+class MockFileStorage(base.FileStorage):
+  """A mock file storage."""
+
+  def __init__(self):
+    super(MockFileStorage, self).__init__()
+    self.root_dir = tempfile.mkdtemp()
+
+  def _GetRealPath(self, path):
+    return os.path.join(self.root_dir, path.lstrip('/'))
+
+  def Cleanup(self):
+    shutil.rmtree(self.root_dir)
+
+  def ListFiles(self, path):
+    real_path = self._GetRealPath(path)
+    files = []
+    for filename in os.listdir(real_path):
+      st = os.stat(os.path.join(real_path, filename))
+      files.append(
+          base.FileInfo(
+              filename=os.path.join(path, filename),
+              is_dir=stat.S_ISDIR(st.st_mode),
+              size=st.st_size,
+              content_type=None))
+    return files
+
+  def OpenFile(self, path, mode='r', content_type=None, content_encoding=None):
+    del content_type
+    del content_encoding
+    real_path = self._GetRealPath(path)
+    parent_path = os.path.dirname(real_path)
+    if 'w' == mode and not os.path.exists(parent_path):
+      os.makedirs(parent_path)
+    return open(real_path, mode + 'b')
 
 
 class MockTaskScheduler(base.TaskScheduler):
@@ -73,6 +113,9 @@ class TestbedDependentTest(ndb_test_lib.NdbWithContextTest):
     self.testbed.init_all_stubs()
     self.addCleanup(self.testbed.deactivate)
 
+    self.mock_file_storage = MockFileStorage()
+    env_config.CONFIG.file_storage = self.mock_file_storage
+    self.addCleanup(self.mock_file_storage.Cleanup)
     self.mock_mailer = mock.MagicMock(spec=base.Mailer)
     env_config.CONFIG.mailer = self.mock_mailer
     self.mock_task_scheduler = MockTaskScheduler()

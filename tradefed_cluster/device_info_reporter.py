@@ -24,7 +24,6 @@ import logging
 import os.path
 import re
 
-import cloudstorage
 import dateutil.parser
 import flask
 import six
@@ -33,6 +32,7 @@ from tradefed_cluster import api_messages
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import env_config
+from tradefed_cluster.services import file_storage
 from tradefed_cluster.util import email_sender
 
 # Note: Email configurations are now moved to NDB. For future
@@ -295,9 +295,11 @@ def StoreDeviceSnapshot(device_snapshot):
   """
   logging.info('Storing snapshot with filename [%s]', device_snapshot.filename)
   json_data = json.dumps(_DevicesToDicts(device_snapshot.devices))
-  with cloudstorage.open(
-      device_snapshot.filename, 'w', 'text/plain',
-      {'content-encoding': 'gzip'}) as f:
+  with file_storage.OpenFile(
+      path=device_snapshot.filename,
+      mode='w',
+      content_type='text/plain',
+      content_encoding='gzip') as f:
     gz = gzip.GzipFile(mode='w', fileobj=f)
     gz.write(six.ensure_binary(json_data))
     gz.close()
@@ -325,11 +327,11 @@ def GetDeviceSnapshotForDate(date=None, cluster_prefix=None):
   logging.info('Getting devices from date [%s]', date)
   job_result = datastore_entities.SnapshotJobResult.GetByReportDate(date)
   if not job_result or not job_result.filename:
-    logging.warn('No record of snapshot found for date [%s]', date)
+    logging.warning('No record of snapshot found for date [%s]', date)
     return DeviceSnapshot(date=date, update_time=_Now(), devices=[])
   filename = job_result.filename
   # If we have a job result, the file should be in cloud storage
-  with cloudstorage.open(filename) as f:
+  with file_storage.OpenFile(filename) as f:
     gz = gzip.GzipFile(mode='r', fileobj=f)
     json_data = gz.read()
   device_dicts = json.loads(json_data)
@@ -379,7 +381,7 @@ def EmailDeviceReport(report_config, product_report, cluster_report,
     timestamp: report timestamp
   """
   if not env_config.CONFIG.device_report_template_path:
-    logging.warn(
+    logging.warning(
         'CONFIG.device_report_template_path is not set; '
         'can\'t send a device report.')
     return

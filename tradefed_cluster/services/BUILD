@@ -5,6 +5,31 @@ package(default_visibility = ["//tradefed_cluster:tradefed_cluster_clients"])
 licenses(["notice"])
 
 pytype_strict_library(
+    name = "file_storage_lib",
+    srcs = [
+        "file_storage.py",
+    ],
+    srcs_version = "PY2AND3",
+    deps = [
+        "//tradefed_cluster:env_config_lib",
+        "//tradefed_cluster/plugins:base_lib",
+        third_party("protorpc:protorpc_all"),
+    ],
+)
+
+py2and3_test(
+    name = "file_storage_test",
+    srcs = [
+        "file_storage_test.py",
+    ],
+    deps = [
+        ":file_storage_lib",
+        third_party("absl/testing:absltest"),
+        third_party("mock"),
+    ],
+)
+
+pytype_strict_library(
     name = "mailer_lib",
     srcs = [
         "mailer.py",

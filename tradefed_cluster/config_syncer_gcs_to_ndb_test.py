@@ -16,7 +16,6 @@
 import os
 import unittest
 
-import cloudstorage
 import six
 
 from tradefed_cluster import config_syncer_gcs_to_ndb
@@ -38,7 +37,7 @@ class ConfigSyncerGCSToNdbTest(testbed_dependent_test.TestbedDependentTest):
   def setUp(self):
     testbed_dependent_test.TestbedDependentTest.setUp(self)
     file_path = _GetTestFilePath(TEST_CLUSTER_YAML_FILE)
-    with cloudstorage.open(
+    with self.mock_file_storage.OpenFile(
         (config_syncer_gcs_to_ndb.LAB_CONFIG_DIR_PATH +
          TEST_CLUSTER_YAML_FILE), 'w') as storage_file:
       with open(file_path, 'r') as f:

@@ -50,6 +50,7 @@ class EnvConfig(env_util.EnvConfig):
     self.plugin = registry.GetNoOpPlugin()
 
     # Service providers
+    self.file_storage = None
     self.mailer = None
     self.task_scheduler = None
     self.metric_client = metric_client.MetricClient()

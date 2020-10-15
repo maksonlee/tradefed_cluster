@@ -80,6 +80,8 @@ class ConfigSyncerGCSToNdbTest(testbed_dependent_test.TestbedDependentTest):
     res = datastore_entities.LabConfig.get_by_id('lab1')
     self.assertEqual('lab1', res.lab_name)
     self.assertEqual(['lab_user1', 'user1'], res.owners)
+    res = datastore_entities.LabInfo.get_by_id('lab1')
+    self.assertEqual('lab1', res.lab_name)
 
   def testUpdateClusterConfigs(self):
     """Tests that check cluster configs are updated."""

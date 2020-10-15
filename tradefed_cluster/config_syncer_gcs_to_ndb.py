@@ -75,6 +75,14 @@ def _UpdateLabConfig(lab_config):
   if not lab_config.lab_name:
     logging.error('Lab has no name: %s.', lab_config)
     return
+  lab_info_entity = datastore_entities.LabInfo.get_by_id(lab_config.lab_name)
+  if not lab_info_entity:
+    logging.debug(
+        'No lab info entity for %s, creating one.', lab_config.lab_name)
+    lab_info_entity = datastore_entities.LabInfo(
+        id=lab_config.lab_name,
+        lab_name=lab_config.lab_name)
+    lab_info_entity.put()
   lab_config_entity = datastore_entities.LabConfig.get_by_id(
       lab_config.lab_name)
   new_lab_config_entity = datastore_entities.LabConfig.FromMessage(lab_config)

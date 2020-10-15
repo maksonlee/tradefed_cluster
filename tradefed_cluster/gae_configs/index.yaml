@@ -153,6 +153,11 @@ indexes:
   - name: is_bad
   - name: timestamp
 
+- kind: HostInfo
+  properties:
+    - name: lab_name
+    - name: timestamp
+
 - kind: HostInfoHistory
   ancestor: yes
   properties:

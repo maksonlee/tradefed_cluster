@@ -22,6 +22,62 @@ from google.appengine.ext import testbed
 from tradefed_cluster.plugins import appengine
 
 
+class MailerTest(absltest.TestCase):
+  """Unit tests for Appengine mailer."""
+
+  def setUp(self):
+    super(MailerTest, self).setUp()
+    self.testbed = testbed.Testbed()
+    self.testbed.activate()
+    self.testbed.init_all_stubs()
+    self.mail_stub = self.testbed.get_stub(testbed.MAIL_SERVICE_NAME)
+    self.addCleanup(self.testbed.deactivate)
+
+    self.mailer = appengine.Mailer()
+
+  def testSendMail(self):
+    self.mailer.SendMail(
+        sender='send',
+        to='recipient',
+        subject='hello',
+        html='bye',
+        reply_to=None,
+        cc=None,
+        bcc=None)
+
+    messages = self.mail_stub.get_sent_messages()
+    self.assertLen(messages, 1)
+    message = messages[0]
+    self.assertEqual('send', message.sender)
+    self.assertEqual('recipient', message.to)
+    self.assertEqual('hello', message.subject)
+    self.assertEqual('bye', message.html.decode())
+    self.assertFalse(hasattr(message, 'reply_to'))
+    self.assertFalse(hasattr(message, 'cc'))
+    self.assertFalse(hasattr(message, 'bcc'))
+
+  def testSendMail_withCCandBCC(self):
+    self.mailer.SendMail(
+        sender='send',
+        to='recipient',
+        subject='hello',
+        html='bye',
+        reply_to='reply_to',
+        cc='cc',
+        bcc='bcc')
+
+    messages = self.mail_stub.get_sent_messages()
+    self.assertLen(messages, 1)
+    message = messages[0]
+    self.assertEqual('send', message.sender)
+    self.assertEqual('recipient', message.to)
+    self.assertEqual('hello', message.subject)
+    self.assertEqual('bye', message.html.decode())
+    self.assertEqual('reply_to', message.reply_to)
+    self.assertEqual('cc', message.cc)
+    self.assertEqual('bcc', message.bcc)
+
+
 class FileStorageTest(absltest.TestCase):
   """Unit tests for Appengine file storage."""
 

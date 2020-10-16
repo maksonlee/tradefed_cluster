@@ -70,14 +70,19 @@ class Mailer(base.Mailer):
   """A GAE mailer. Only work with Titanoboa."""
 
   def SendMail(self, sender, to, subject, html, reply_to, cc, bcc):
-    message = mail.EmailMessage(
-        sender=sender,
-        to=to,
-        subject=subject,
-        html=html,
-        reply_to=reply_to,
-        cc=cc,
-        bcc=bcc)
+    kwargs = {
+        'sender': sender,
+        'to': to,
+        'subject': subject,
+        'html': html
+    }
+    if reply_to:
+      kwargs['reply_to'] = reply_to
+    if cc:
+      kwargs['cc'] = cc
+    if bcc:
+      kwargs['bcc'] = bcc
+    message = mail.EmailMessage(**kwargs)
     message.send()
 
 

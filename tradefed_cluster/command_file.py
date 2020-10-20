@@ -17,11 +17,10 @@
 This module is a python port of TF CommandFileParser.
 """
 
+import logging
 import os.path
 import re
 import shlex
-
-from google3.pyglib import logging
 
 # A regex to match macros in command lines.
 _MACRO_PATTERN = re.compile(r"([a-z][a-z0-9_-]*)\(\)", re.I)
@@ -94,12 +93,12 @@ class Parser(object):
           name = command[1]
           macro = command[3:]
           if name in self._macros:
-            logging.warn(
+            logging.warning(
                 "Overwrote short macro '%s' while parsing file %s",
                 name,
                 filename
             )
-            logging.warn(
+            logging.warning(
                 "value '%s' replaced previous value '%s'",
                 self._macros[name],
                 macro
@@ -121,12 +120,12 @@ class Parser(object):
             command = shlex.split(line)
             macro.append(command)
           if name in self._long_macros:
-            logging.warn(
+            logging.warning(
                 "Overwrote long macro '%s' while parsing file %s",
                 name,
                 filename
             )
-            logging.warn(
+            logging.warning(
                 "%d-line definition replaced previous %d-line definition",
                 len(self._long_macros[name]),
                 len(macro)

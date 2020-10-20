@@ -96,6 +96,8 @@ def _ReportDeviceStateMetric(device, metric_batch):
     # Report individual device state
     for state in metric.DEVICE_STATES:
       device_metric = metric.GetDeviceStateMetric(state)
+      if device_metric is None:
+        continue
       if device.state == state:
         device_metric.Set(1, device_metric_fields, batch=metric_batch)
       else:
@@ -301,7 +303,7 @@ def _PublishHostMessage(hostname):
   devices = device_manager.GetDevicesOnHost(hostname)
   host_message = datastore_entities.ToMessage(host)
   host_message.device_infos = [datastore_entities.ToMessage(d) for d in devices]
-  encoded_message = protojson.encode_message(host_message)
+  encoded_message = protojson.encode_message(host_message)  # pytype: disable=module-attr
   # TODO: find a better way to add event publish timestamp.
   msg_dict = json.loads(encoded_message)
   msg_dict['publish_timestamp'] = _Now().isoformat()

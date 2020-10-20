@@ -637,7 +637,7 @@ def _NotifyAttemptState(attempt_entity, old_state, event_time):
       old_state=old_state,
       new_state=attempt_entity.state,
       event_time=event_time)
-  payload = zlib.compress(six.ensure_binary(protojson.encode_message(message)))
+  payload = zlib.compress(six.ensure_binary(protojson.encode_message(message)))  # pytype: disable=module-attr
   task_scheduler.AddTask(
       queue_name=common.OBJECT_EVENT_QUEUE, payload=payload)
 

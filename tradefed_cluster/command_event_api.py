@@ -48,6 +48,6 @@ class CommandEventApi(remote.Service):
     """
 
     # Convert the request message to json for the taskqueue payload
-    json_message = json.loads(protojson.encode_message(request))
+    json_message = json.loads(protojson.encode_message(request))  # pytype: disable=module-attr
     command_event_handler.EnqueueCommandEvents(json_message["command_events"])
     return message_types.VoidMessage()

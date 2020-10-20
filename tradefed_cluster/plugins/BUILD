@@ -1,20 +1,10 @@
-load("//tradefed_cluster:adapter.bzl", "py2and3_test", "py_appengine_library", "py_appengine_test", "third_party")
+load("//tradefed_cluster:adapter.bzl", "py2and3_test", "py_library", "pytype_strict_library", "third_party")
 
 package(default_visibility = ["//tradefed_cluster:tradefed_cluster_clients"])
 
 licenses(["notice"])
 
-PY_APPENGINE_ENVS = [{"runtime": "python27"}]
-
-PY_APPENGINE_TEST_ENVS = [{
-    "libraries": {
-        "PIL": "latest",
-        "pycrypto": "2.6",
-    },
-    "runtime": "python27",
-}]
-
-py_appengine_library(
+py_library(
     name = "appengine_lib",
     srcs = [
         "appengine.py",
@@ -25,21 +15,22 @@ py_appengine_library(
     ],
 )
 
-py_appengine_library(
+pytype_strict_library(
     name = "base_lib",
     srcs = [
         "base.py",
     ],
-    envs = PY_APPENGINE_ENVS,
-    deps = ["//third_party/py/six"],
+    srcs_version = "PY2AND3",
+    deps = [
+        third_party("six"),
+    ],
 )
 
-py_appengine_test(
+py2and3_test(
     name = "base_test",
     srcs = [
         "base_test.py",
     ],
-    envs = PY_APPENGINE_TEST_ENVS,
     deps = [
         ":base_lib",
     ],
@@ -53,8 +44,8 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":base_lib",
-        third_party("google/cloud/tasks_v2:tasks_v2_grpc_alternative"),
-        "//third_party/py/six",
+        third_party("google-cloud-tasks"),
+        third_party("six"),
     ],
 )
 
@@ -77,24 +68,22 @@ py_library(
     srcs_version = "PY2AND3",
 )
 
-py_appengine_library(
+pytype_strict_library(
     name = "noop_plugin_lib",
     srcs = [
         "noop_plugin.py",
     ],
-    envs = PY_APPENGINE_ENVS,
     srcs_version = "PY2AND3",
     deps = [
         ":base_lib",
     ],
 )
 
-py_appengine_library(
+pytype_strict_library(
     name = "registry_lib",
     srcs = [
         "registry.py",
     ],
-    envs = PY_APPENGINE_ENVS,
     srcs_version = "PY2AND3",
     deps = [
         ":base_lib",
@@ -102,12 +91,11 @@ py_appengine_library(
     ],
 )
 
-py_appengine_test(
+py2and3_test(
     name = "registry_test",
     srcs = [
         "registry_test.py",
     ],
-    envs = PY_APPENGINE_TEST_ENVS,
     deps = [
         ":registry_lib",
         third_party("mock"),

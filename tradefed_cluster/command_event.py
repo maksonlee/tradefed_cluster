@@ -192,6 +192,8 @@ def _ParseTaskId(task_id):
   Returns:
     (request_id, command_id)
   """
+  if task_id is None:
+    raise ValueError("task_id cannot be None")
   ids = task_id.split("-", 2)
   if len(ids) == 3:
     return ids[0], ids[1]

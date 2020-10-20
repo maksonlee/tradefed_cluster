@@ -33,10 +33,9 @@ from protorpc import protojson
 from protorpc import remote
 from six.moves import range
 
-from google.appengine.api import modules
-
 from tradefed_cluster import api_common
 from tradefed_cluster import api_messages
+from tradefed_cluster import common
 from tradefed_cluster import device_manager
 from tradefed_cluster import host_event
 from tradefed_cluster.services import task_scheduler
@@ -107,7 +106,7 @@ class HostEventApi(remote.Service):
       a VoidMessage
     """
     # Convert the request message to json for the taskqueue payload
-    encoded_message = protojson.encode_message(request)
+    encoded_message = protojson.encode_message(request)  # pytype: disable=module-attr
     json_message = json.loads(encoded_message)
     host_events = json_message.get("host_events")
     if not host_events:
@@ -121,8 +120,7 @@ class HostEventApi(remote.Service):
           event_chunk,
           _queue=host_event.HOST_EVENT_QUEUE_NDB,
           _target="%s.%s" % (
-              modules.get_current_version_name(),
-              modules.get_current_module_name()))
+              common.GetServiceVersion(), common.GetServiceName()))
     logging.debug("Submitted host event message.")
     return message_types.VoidMessage()
 

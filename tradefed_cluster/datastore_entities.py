@@ -909,7 +909,7 @@ def HostInfoToMessage(host_info_entity, devices=None):
   if host_info_entity.host_state:
     host_state = host_info_entity.host_state.name
   else:
-    host_state = api_messages.HostState.UNKNOWN.name
+    host_state = 'UNKNOWN'
   return api_messages.HostInfo(
       hostname=host_info_entity.hostname,
       lab_name=host_info_entity.lab_name,

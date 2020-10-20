@@ -1,17 +1,10 @@
-load("//tradefed_cluster:adapter.bzl", "py2and3_test", "py_appengine_library", "py_appengine_test", "third_party")
+load("//tradefed_cluster:adapter.bzl", "py2and3_test", "py_library", "pytype_strict_library", "third_party")
 
 package(default_visibility = ["//tradefed_cluster:tradefed_cluster_clients"])
 
 licenses(["notice"])
 
-PY_APPENGINE_TEST_ENVS = [{
-    "libraries": {
-        "endpoints": "latest",
-    },
-    "runtime": "python27",
-}]
-
-py_library(
+pytype_strict_library(
     name = "command_util",
     srcs = [
         "command_util.py",
@@ -34,7 +27,7 @@ py2and3_test(
     ],
 )
 
-py_appengine_library(
+pytype_strict_library(
     name = "email_sender_lib",
     srcs = [
         "email_sender.py",
@@ -46,7 +39,7 @@ py_appengine_library(
     ],
 )
 
-py_appengine_test(
+py2and3_test(
     name = "email_sender_test",
     srcs = [
         "email_sender_test.py",
@@ -54,8 +47,6 @@ py_appengine_test(
     data = [
         ":testdata",
     ],
-    envs = PY_APPENGINE_TEST_ENVS,
-    use_public_sdk = 1,
     deps = [
         ":email_sender_lib",
         third_party("mock"),
@@ -63,14 +54,14 @@ py_appengine_test(
     ],
 )
 
-py_library(
+pytype_strict_library(
     name = "env_util_lib",
     srcs = [
         "env_util.py",
     ],
 )
 
-py_library(
+pytype_strict_library(
     name = "metric_util_lib",
     srcs = [
         "metric_util.py",
@@ -81,7 +72,7 @@ py_library(
     ],
 )
 
-py_appengine_library(
+pytype_strict_library(
     name = "pubsub_client_lib",
     srcs = [
         "pubsub_client.py",
@@ -93,15 +84,15 @@ py_appengine_library(
     ],
 )
 
-py_appengine_test(
+py2and3_test(
     name = "pubsub_client_test",
     srcs = [
         "pubsub_client_test.py",
     ],
     deps = [
         ":pubsub_client_lib",
-        third_party("mock"),
         "//tradefed_cluster:testbed_dependent_test_lib",
+        third_party("mock"),
     ],
 )
 
@@ -112,7 +103,7 @@ filegroup(
     ]),
 )
 
-py_library(
+pytype_strict_library(
     name = "ndb_shim_lib",
     srcs = [
         "ndb_shim.py",
@@ -121,10 +112,11 @@ py_library(
     deps = [
         ":google_import_fixer",
         third_party("google/cloud/ndb:google3_ndb"),
+        third_party("six"),
     ],
 )
 
-py_library(
+pytype_strict_library(
     name = "ndb_test_lib",
     testonly = True,
     srcs = [
@@ -136,7 +128,7 @@ py_library(
         ":ndb_shim_lib",
         "//net/grpc/python:use_insecure_channel",  # buildcleaner:keep
         third_party("absl/testing:absltest"),
-        third_party("google/auth:app_engine"),
+        third_party("google/auth:credentials"),
         third_party("google/cloud/datastore:datastore_grpc_alternative"),
     ],
 )
@@ -163,10 +155,9 @@ py2and3_test(
     ],
 )
 
-py_appengine_library(
+py_library(
     name = "google_import_fixer",
     srcs = ["google_import_fixer.py"],
     srcs_version = "PY2AND3",
     visibility = ["//third_party/py/multitest_transport:__subpackages__"],
 )
-

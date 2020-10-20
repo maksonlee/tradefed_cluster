@@ -174,7 +174,7 @@ class CommandLine(list):
     for token in self:
       # We cannot pipes.quote() here because it is not compatible with TF's
       # command parsing which only understands quoting with double quotes.
-      token = six.text_type(token)
+      token = six.ensure_text(token)
       # Escape double quotes with backslash escaping
       token = re.sub(r"(\")", r"\\\1", token)
       if not token or u" " in token:

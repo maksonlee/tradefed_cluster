@@ -281,7 +281,7 @@ def _PackCallable(obj, *args, **kwargs):
   elif isinstance(obj, object) and hasattr(obj, "__call__"):
     return (obj, args, kwargs)
   elif isinstance(obj, (types.FunctionType, types.BuiltinFunctionType,
-                        type, types.UnboundMethodType)):
+                        type, types.MethodType)):
     return (obj, args, kwargs)
   else:
     raise ValueError("obj must be callable")

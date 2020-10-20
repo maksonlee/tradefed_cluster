@@ -1,4 +1,4 @@
-load("//tradefed_cluster:adapter.bzl", "py2and3_test", "py_appengine_library", "py_appengine_test", "pytype_strict_library", "third_party")
+load("//tradefed_cluster:adapter.bzl", "py2and3_test", "pytype_strict_library", "third_party")
 
 package(default_visibility = ["//tradefed_cluster:tradefed_cluster_clients"])
 
@@ -53,20 +53,22 @@ py2and3_test(
     ],
 )
 
-py_appengine_library(
+pytype_strict_library(
     name = "task_scheduler_lib",
     srcs = [
         "task_scheduler.py",
     ],
     srcs_version = "PY2AND3",
     deps = [
+        "//tradefed_cluster:common_lib",
         "//tradefed_cluster:env_config_lib",
+        "//tradefed_cluster/plugins:base_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
         third_party("flask"),
     ],
 )
 
-py_appengine_test(
+py2and3_test(
     name = "task_scheduler_test",
     srcs = [
         "task_scheduler_test.py",
@@ -79,4 +81,3 @@ py_appengine_test(
         third_party("mock"),
     ],
 )
-

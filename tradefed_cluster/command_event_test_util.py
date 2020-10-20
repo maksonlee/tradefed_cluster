@@ -60,7 +60,7 @@ def CreateTestCommandEventJson(
     if error:
       event["data"]["error"] = error
   if data:
-    event.get("data").update(data)
+    event["data"].update(data)
   return event
 
 

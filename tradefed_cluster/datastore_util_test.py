@@ -23,10 +23,7 @@ import datetime
 import re
 import unittest
 
-import mock
 from six.moves import range
-
-from google.appengine.ext import ndb as gae_ndb
 
 from tradefed_cluster import api_messages
 from tradefed_cluster import datastore_entities
@@ -220,23 +217,6 @@ class DatastoreUtilTest(testbed_dependent_test.TestbedDependentTest):
     host_info_dict.pop('flated_extra_info')
     return datastore_entities.HostInfoHistory(
         parent=host_info.key, **host_info_dict)
-
-  @mock.patch.object(datastore_util, 'GoogleCloudFetchPage')
-  @mock.patch.object(datastore_util, 'AppEngineFetchPage')
-  def testFetchPage_GoogleCloudNDB(self, gae_ndb_fetch, cloud_ndb_fetch):
-    query = ndb.Query()
-    datastore_util.FetchPage(query, 10)
-    gae_ndb_fetch.assert_not_called()
-    cloud_ndb_fetch.assert_called_once()
-
-  @mock.patch.object(datastore_util, 'GoogleCloudFetchPage')
-  @mock.patch.object(datastore_util, 'AppEngineFetchPage')
-  def testFetchPage_AppEngineNDB(self, gae_ndb_fetch, cloud_ndb_fetch):
-    query = gae_ndb.Query()
-    datastore_util.FetchPage(query, 10)
-    gae_ndb_fetch.assert_called_once()
-    cloud_ndb_fetch.assert_not_called()
-
 
 if __name__ == '__main__':
   unittest.main()

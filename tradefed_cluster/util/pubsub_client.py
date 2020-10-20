@@ -19,8 +19,6 @@ import logging
 from googleapiclient import discovery
 from googleapiclient import errors
 
-import google.auth
-
 PUBSUB_API_SCOPES = ('https://www.googleapis.com/auth/pubsub')
 PUBSUB_API_NAME = 'pubsub'
 PUBSUB_API_VERSION = 'v1'
@@ -37,7 +35,6 @@ class PubSubClient(object):
       api_client: an API client instance. New instance will be created if not
         given.
     """
-    self._credentials, _ = google.auth.default(scopes=PUBSUB_API_SCOPES)
     self._api_client = api_client
     if not self._api_client:
       self._api_client = discovery.build(PUBSUB_API_NAME, PUBSUB_API_VERSION)

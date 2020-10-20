@@ -22,9 +22,7 @@ import tempfile
 import uuid
 
 import mock
-from google.appengine.ext import testbed
 
-from tradefed_cluster import api_common
 from tradefed_cluster import env_config
 from tradefed_cluster.plugins import base
 from tradefed_cluster.util import ndb_test_lib
@@ -101,18 +99,10 @@ class TestbedDependentTest(ndb_test_lib.NdbWithContextTest):
   def setUp(self):
     """Create database and tables."""
     super(TestbedDependentTest, self).setUp()
-    self.testbed = testbed.Testbed()
-    self.testbed.setup_env(
-        user_email='user@example.com',
-        user_id=api_common.ANONYMOUS,
-        user_is_admin='1',
-        endpoints_auth_email='user@example.com',
-        endpoints_auth_domain='example.com',
-        overwrite=True)
-    self.testbed.activate()
-    self.testbed.init_all_stubs()
-    self.addCleanup(self.testbed.deactivate)
-
+    # Simulate GAE environment.
+    os.environ['GAE_APPLICATION'] = 'testbed-test'
+    os.environ['GAE_SERVICE'] = 'default'
+    os.environ['GAE_VERSION'] = 'testbed-version'
     self.mock_file_storage = MockFileStorage()
     env_config.CONFIG.file_storage = self.mock_file_storage
     self.addCleanup(self.mock_file_storage.Cleanup)

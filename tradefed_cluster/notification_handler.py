@@ -18,8 +18,6 @@ import logging
 
 import flask
 
-from google.appengine.api import modules
-
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import request_manager
@@ -51,8 +49,7 @@ def NotifyPendingRequestStateChanges():
         request_id=k.id(),
         _queue=NOTIFICATION_TASK_QUEUE,
         _target='%s.%s' % (
-            modules.get_current_version_name(),
-            modules.get_current_module_name()))
+            common.GetServiceVersion(), common.GetServiceName()))
 
 
 def NotifyRequestState(request_id, force=False):

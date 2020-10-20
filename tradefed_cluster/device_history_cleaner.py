@@ -19,8 +19,6 @@ import logging
 
 import flask
 
-from google.appengine.ext import db
-
 from tradefed_cluster import datastore_entities
 from tradefed_cluster.util import ndb_shim as ndb
 
@@ -83,7 +81,7 @@ def DeleteEntities(retention_days):
       if _Now() > request_end_time:
         logging.info("End the request after %r minutes.", TIMEOUT_MINUTES)
         break
-    except db.Error:
+    except ndb.exceptions.Error:
       logging.exception("Datastore error while deleting device history.")
   return deleted
 

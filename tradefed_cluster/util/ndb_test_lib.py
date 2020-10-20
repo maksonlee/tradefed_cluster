@@ -24,7 +24,7 @@ from absl.testing import absltest
 from tradefed_cluster.util import datastore_emulator
 from tradefed_cluster.util import ndb_shim as ndb
 
-from google.auth import app_engine
+from google.auth import credentials
 
 # Use a single datastore emulator instance per module, as its creation
 # is expensive.
@@ -38,7 +38,8 @@ def NdbContextManager():
     An instance of ndb.Context provided by the ndb.Client
   """
   return ndb.Client(
-      credentials=app_engine.Credentials()).context(
+      project='testbed-test',
+      credentials=credentials.AnonymousCredentials()).context(
           cache_policy=False, global_cache_policy=False)
 
 

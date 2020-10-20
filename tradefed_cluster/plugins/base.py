@@ -20,7 +20,7 @@ Also a test hook can populate parameters so that they can be used in test args.
 
 import collections
 
-from six import with_metaclass
+import six
 
 
 class Error(Exception):
@@ -59,7 +59,7 @@ CommandInfo = collections.namedtuple('CommandInfo', [
 ])
 
 
-class Plugin(with_metaclass(PluginMetaClass, object)):
+class Plugin(six.with_metaclass(PluginMetaClass, object)):
   """A base class for Plugin."""
 
   def OnCommandTasksLease(self, command_tasks):

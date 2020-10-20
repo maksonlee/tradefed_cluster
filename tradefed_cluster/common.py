@@ -16,6 +16,7 @@
 import base64
 import datetime
 import logging
+import os
 
 from protorpc import messages
 import pytz
@@ -304,3 +305,13 @@ def UrlSafeB64Decode(message):
   """
   data = base64.urlsafe_b64decode(six.ensure_binary(message))
   return six.ensure_str(data)
+
+
+def GetServiceName():
+  """Returns a GAE service name."""
+  return os.environ.get("GAE_SERVICE")
+
+
+def GetServiceVersion():
+  """Returns a GAE service version."""
+  return os.environ.get("GAE_VERSION")

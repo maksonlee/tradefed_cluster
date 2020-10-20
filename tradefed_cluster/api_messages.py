@@ -685,15 +685,14 @@ class NonEmptyStringField(messages.StringField):
     """
     if isinstance(value, str) or isinstance(value, six.text_type):
       if not value.strip():
-        try:
-          name = self.name
-        except AttributeError:
+        name = getattr(self, "name")
+        if not name:
           validation_error = messages.ValidationError(
               "Field encountered empty string %s" % value)
         else:
           validation_error = messages.ValidationError(
               "Field %s encountered empty string %s" % (name, value))
-          validation_error.field_name = self.name
+          validation_error.field_name = name
         raise validation_error
     messages.StringField.validate_element(self, value)
 

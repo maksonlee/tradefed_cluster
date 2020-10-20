@@ -43,7 +43,7 @@ class FileStorage(object):
       A FileInfo iterator.
     """
     it = cloudstorage.listbucket(path)
-    return map(it, _ToFileInfo)
+    return map(_ToFileInfo, it)
 
   def OpenFile(self, path, mode, content_type, content_encoding):
     """Opens a file for reading or writing.

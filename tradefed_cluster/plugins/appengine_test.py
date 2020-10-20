@@ -90,9 +90,12 @@ class FileStorageTest(absltest.TestCase):
 
     self.file_storage = appengine.FileStorage()
 
+  def _CreateFile(self, path, content):
+    with cloudstorage.open(path, mode='w') as f:
+      f.write(content)
+
   def testOpenFile(self):
-    with cloudstorage.open('/path/to/file', mode='w') as f:
-      f.write(b'hello')
+    self._CreateFile('/path/to/file', b'hello')
 
     with self.file_storage.OpenFile(
         '/path/to/file',
@@ -100,6 +103,18 @@ class FileStorageTest(absltest.TestCase):
         content_type=None,
         content_encoding=None) as f:
       self.assertEqual(b'hello', f.read())
+
+  def testListFiles(self):
+    paths = ['/path/to/file', '/path/to/file2', '/path/to/file3']
+    for path in paths:
+      self._CreateFile(path, b'hello')
+
+    file_infos = self.file_storage.ListFiles('/path/to/')
+
+    for file_info, path in zip(file_infos, paths):
+      self.assertEqual(path, file_info.filename)
+      self.assertFalse(file_info.is_dir)
+      self.assertEqual(5, file_info.size)
 
 if __name__ == '__main__':
   absltest.main()

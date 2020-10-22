@@ -59,10 +59,10 @@ class DeviceInfoReporterTest(testbed_dependent_test.TestbedDependentTest):
         })
     self.ndb_device = datastore_test_util.CreateDevice(
         'free', 'atl-1001.mtv', 'a100', product='shamu', run_target='shamu',
-        state='Allocated', timestamp=TIMESTAMP)
+        state='Allocated', timestamp=TIMESTAMP, last_recovery_time=TIMESTAMP)
     self.ndb_device_2 = datastore_test_util.CreateDevice(
         'free', 'atl-1001.mtv', 'a200', product='flounder',
-        run_target='flo', timestamp=TIMESTAMP)
+        run_target='flo', timestamp=TIMESTAMP, last_recovery_time=TIMESTAMP)
 
   @mock.patch.object(device_info_reporter, 'GetDevicesToReport')
   @mock.patch.object(device_info_reporter, '_GetCurrentDate', return_value=DATE)

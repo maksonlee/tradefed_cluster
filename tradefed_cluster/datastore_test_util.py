@@ -115,7 +115,8 @@ def CreateDevice(cluster,
                  test_harness='tradefed',
                  pools='pool_01',
                  host_group='host_group_01',
-                 extra_info=None):
+                 extra_info=None,
+                 last_recovery_time=None):
   """Create a device."""
   ndb_device = datastore_entities.DeviceInfo(
       id=device_serial,
@@ -135,7 +136,8 @@ def CreateDevice(cluster,
       test_harness=test_harness,
       pools=[pools],
       host_group=host_group,
-      extra_info=extra_info)
+      extra_info=extra_info,
+      last_recovery_time=last_recovery_time)
   ndb_device.put()
   return ndb_device
 

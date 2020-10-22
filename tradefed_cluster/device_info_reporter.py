@@ -234,12 +234,12 @@ def _DevicesToDicts(devices):
   for device in devices:
     if isinstance(device, datastore_entities.DeviceInfo):
       d = device.to_dict()
-      timestamp = d.get('timestamp')
-      if timestamp:
-        d['timestamp'] = timestamp.isoformat()
       device_type = d.get('device_type')
       if device_type is not None:
         d['device_type'] = int(device_type)
+      for key, value in six.iteritems(d):
+        if isinstance(value, datetime.datetime):
+          d[key] = value.isoformat()
       if 'history' in d:
         del d['history']
       d['cluster'] = d.get('physical_cluster')

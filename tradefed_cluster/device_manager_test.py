@@ -1695,6 +1695,14 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertIsNone(histories[0].assignee)
     self.assertEqual(common.RecoveryState.VERIFIED, histories[1].recovery_state)
 
+  def _GetDeviceHistories(self, hostname, device_serial):
+    return (datastore_entities.DeviceInfoHistory
+            .query(ancestor=ndb.Key(
+                datastore_entities.HostInfo, hostname,
+                datastore_entities.DeviceInfo, device_serial))
+            .order(-datastore_entities.DeviceInfoHistory.timestamp)
+            .fetch())
+
   def testSetDevicesRecoveryState(self):
     device1 = datastore_test_util.CreateDevice("free", "host1", "device1")
     device2 = datastore_test_util.CreateDevice("free", "host1", "device2")
@@ -1707,11 +1715,21 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     device_manager.SetDevicesRecoveryState([request1, request2])
     ndb.get_context().clear_cache()
     device1 = device1.key.get()
+    device1_histories = self._GetDeviceHistories(
+        device1.hostname, device1.device_serial)
     self.assertEqual(common.RecoveryState.FIXED, device1.recovery_state)
     self.assertIsNotNone(device1.last_recovery_time)
+    self.assertEqual(common.RecoveryState.FIXED,
+                     device1_histories[0].recovery_state)
+    self.assertIsNotNone(device1_histories[0].last_recovery_time)
     device2 = device2.key.get()
+    device2_histories = self._GetDeviceHistories(
+        device2.hostname, device2.device_serial)
     self.assertEqual(common.RecoveryState.FIXED, device2.recovery_state)
     self.assertIsNotNone(device2.last_recovery_time)
+    self.assertEqual(common.RecoveryState.FIXED,
+                     device2_histories[0].recovery_state)
+    self.assertIsNotNone(device2_histories[0].last_recovery_time)
 
   def testSetDevicesRecoveryState_invalidDevice(self):
     device1 = datastore_test_util.CreateDevice("free", "host1", "device1")
@@ -1735,7 +1753,10 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     device_manager.SetDevicesRecoveryState([request])
     ndb.get_context().clear_cache()
     device = device.key.get()
+    histories = self._GetDeviceHistories(device.hostname, device.device_serial)
+    self.assertEqual(1, len(histories))
     self.assertEqual(common.RecoveryState.FIXED, device.recovery_state)
+    self.assertEqual(common.RecoveryState.FIXED, histories[0].recovery_state)
     self.assertIsNotNone(device.last_recovery_time)
     request = api_messages.DeviceRecoveryStateRequest(
         hostname="host1", device_serial="device1",
@@ -1743,7 +1764,11 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     device_manager.SetDevicesRecoveryState([request])
     ndb.get_context().clear_cache()
     device = device.key.get()
+    histories = self._GetDeviceHistories(device.hostname, device.device_serial)
+    self.assertEqual(3, len(histories))
     self.assertEqual(common.RecoveryState.UNKNOWN, device.recovery_state)
+    self.assertEqual(common.RecoveryState.UNKNOWN, histories[0].recovery_state)
+    self.assertEqual(common.RecoveryState.VERIFIED, histories[1].recovery_state)
 
 
 if __name__ == "__main__":

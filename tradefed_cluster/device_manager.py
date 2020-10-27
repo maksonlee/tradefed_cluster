@@ -949,13 +949,20 @@ def _SetDeviceRecoveryState(
   if not device:
     logging.error("Device (%s, %s) doesn't exist.", hostname, device_serial)
     return
+  entities_to_update = []
   if recovery_state == common.RecoveryState.VERIFIED:
-    # TODO: Add device history for VERIFIED.
+    device.recovery_state = common.RecoveryState.VERIFIED
+    device.last_recovery_time = _Now()
+    device.timestamp = _Now()
+    entities_to_update.append(_CreateDeviceInfoHistory(device))
     device.recovery_state = common.RecoveryState.UNKNOWN
   else:
     device.recovery_state = recovery_state
   device.last_recovery_time = _Now()
-  device.put()
+  device.timestamp = _Now()
+  entities_to_update.append(_CreateDeviceInfoHistory(device))
+  entities_to_update.append(device)
+  ndb.put_multi(entities_to_update)
 
 
 def _IsKnownProperty(value):

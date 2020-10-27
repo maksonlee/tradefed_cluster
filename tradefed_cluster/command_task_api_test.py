@@ -245,12 +245,12 @@ class CommandTaskApiTest(api_test.ApiTest):
     self.assertEqual('task_id0', attempts[0].task_id)
     self.assertEqual({'key0': 'value0', 'key1': 'value1'},
                      attempts[0].plugin_data)
-    self.assertTrue(attempts[0].last_event_time is not None)
+    self.assertIsNotNone(attempts[0].last_event_time)
     self.assertEqual('command_id', attempts[1].command_id)
     self.assertEqual('task_id1', attempts[1].task_id)
     self.assertEqual({'key2': 'value2', 'key3': 'value3'},
                      attempts[1].plugin_data)
-    self.assertTrue(attempts[1].last_event_time is not None)
+    self.assertIsNotNone(attempts[1].last_event_time)
 
   @mock.patch.object(metric, 'RecordCommandTimingMetric')
   @mock.patch.object(command_manager, 'Touch')

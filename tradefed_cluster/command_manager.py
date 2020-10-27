@@ -701,9 +701,27 @@ def ScheduleTasks(commands):
   Args:
     commands: a list of commands, read only
   """
-  if not commands:
-    return
-  requests_to_update = set()
+  request_ids = _DoScheduleTasks(commands)
+  for request_id in request_ids:
+    request_manager.EvaluateState(request_id)
+
+
+@ndb.transactional()
+def _DoScheduleTasks(commands):
+  """Schedule command tasks in a transaction.
+
+  Args:
+    commands: a list of Command objects.
+  Returns:
+    A set of affected Request IDs.
+  """
+  request_ids = {command.request_id for command in commands}
+  # Ensure requests are in a pre-scheduled state (UNKNOWN).
+  for request_id in request_ids:
+    request = request_manager.GetRequest(request_id)
+    if not request or request.state == common.RequestState.CANCELED:
+      raise ValueError(
+          "A request is CANCELED: request=%s" % request)
   for command in commands:
     if command.priority and (
         command.priority < 0 or MAX_PRIORITY < command.priority):
@@ -711,9 +729,7 @@ def ScheduleTasks(commands):
     _ScheduleTasksToCommandTaskStore(command)
     _UpdateState(command.request_id, command.key.id(),
                  state=common.CommandState.QUEUED, force=True)
-    requests_to_update.add(command.request_id)
-  for request_id in requests_to_update:
-    request_manager.EvaluateState(request_id)
+  return request_ids
 
 
 def _ScheduleTasksToCommandTaskStore(command):
@@ -889,9 +905,10 @@ def _DoCreateCommands(request_id,
   request_key = ndb.Key(datastore_entities.Request, request_id,
                         namespace=common.NAMESPACE)
 
-  # Ensure a request is not canceled.
+  # Ensure a request is not CANCELED.
   request = request_key.get()
-  assert request and request.state == common.RequestState.UNKNOWN
+  if not request or request.state == common.RequestState.CANCELED:
+    raise ValueError("A request is CANCELED: request=%s" % request)
 
   existing_commands = (datastore_entities.Command
                        .query(ancestor=request_key,

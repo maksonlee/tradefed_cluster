@@ -59,21 +59,18 @@ def _ProcessRequest(request_id):
   if not request:
     logging.error("Request %d doesn't exist in ds.", request_id)
     return
-  if request.state != common.RequestState.UNKNOWN:
-    logging.error(
-        "Request is in an unexpected state: expected=%s, actual=%s",
-        common.RequestState.UNKNOWN, request.state)
-    return
   logging.debug("Processing request %s: %s",
                 request_id, request)
   try:
     commands = _CreateCommands(request)
     command_manager.ScheduleTasks(commands)
     command_monitor.Monitor(commands)
-  except ValueError:
-    logging.exception("Invalid request %s", request_id)
-    request_manager.CancelRequest(
-        request_id, common.CancelReason.INVALID_REQUEST)
+  except (AssertionError, ValueError) as e:
+    logging.exception("Failed to process request %s", request_id)
+    cancel_reason = None
+    if isinstance(e, ValueError):
+      cancel_reason = common.CancelReason.INVALID_REQUEST
+    command_manager.CancelCommands(request_id, cancel_reason)
 
 
 def _CreateCommands(request):
@@ -157,7 +154,7 @@ def HandleRequest():
   try:
     body = zlib.decompress(body)
   except zlib.error:
-    logging.warn(
+    logging.warning(
         "payload may not be compressed: %s", body, exc_info=True)
   payload = json.loads(body)
   request_id = payload["id"]

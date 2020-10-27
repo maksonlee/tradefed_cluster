@@ -112,7 +112,6 @@ def CreateTask(command_task_args):
   return _DoCreateTask(task)
 
 
-@ndb.transactional()
 def _DoCreateTask(command_task):
   """Create the task to the datastore.
 

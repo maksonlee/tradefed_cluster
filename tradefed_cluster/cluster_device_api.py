@@ -199,8 +199,8 @@ class ClusterDeviceApi(remote.Service):
           datastore_entities.ToMessage(note) for note in device_notes
       ]
     if request.include_history:
-      histories = device_manager.GetDeviceHistory(device.hostname,
-                                                  device_serial)
+      histories = device_manager.GetDeviceStateHistory(device.hostname,
+                                                       device_serial)
       device_info.history = [datastore_entities.ToMessage(h) for h in histories]
     if request.include_utilization:
       utilization = device_manager.CalculateDeviceUtilization(device_serial)

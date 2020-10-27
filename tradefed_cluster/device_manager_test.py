@@ -769,7 +769,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     for device in devices:
       self.assertFalse(hasattr(device, "history"))
       _, host, _, serial = device.key.flat()
-      histories = device_manager.GetDeviceHistory(host, serial)
+      histories = device_manager.GetDeviceStateHistory(host, serial)
       self.assertEqual(1, len(histories))
 
   def testGetDevice(self):
@@ -1121,6 +1121,12 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     host_history_list = device_manager.GetHostStateHistory(hostname)
     self.assertEqual(host_history_list[0].state, api_messages.HostState.RUNNING)
 
+  def _GetHostHistories(self, hostname):
+    return (datastore_entities.HostInfoHistory
+            .query(ancestor=ndb.Key(datastore_entities.HostInfo, hostname))
+            .order(-datastore_entities.HostInfoHistory.timestamp)
+            .fetch())
+
   def testUpdateHostWithHostChangedEvent_newState(self):
     # Test update host with a new state
     hostname = "test-1.mtv.corp.example.com"
@@ -1168,11 +1174,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
         api_messages.HostState.RUNNING, host_state_histories[1].state)
     self.assertEqual(event_1.timestamp, host_state_histories[1].timestamp)
 
-    host_histories = (
-        datastore_entities.HostInfoHistory
-        .query(ancestor=ndb.Key(datastore_entities.HostInfo, hostname))
-        .order(-datastore_entities.HostInfoHistory.timestamp)
-        .fetch())
+    host_histories = self._GetHostHistories(hostname)
 
     self.assertEqual(hostname, host_histories[0].hostname)
     self.assertEqual(
@@ -1346,11 +1348,11 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(1, len(host_histories))
     self.assertEqual(now, host_histories[0].timestamp)
     self.assertEqual(api_messages.HostState.GONE, host_histories[0].state)
-    device_histories = device_manager.GetDeviceHistory("host1", "s1")
+    device_histories = device_manager.GetDeviceStateHistory("host1", "s1")
     self.assertEqual(1, len(device_histories))
     self.assertEqual(now, device_histories[0].timestamp)
     self.assertEqual(common.DeviceState.GONE, device_histories[0].state)
-    device_histories = device_manager.GetDeviceHistory("host1", "s2")
+    device_histories = device_manager.GetDeviceStateHistory("host1", "s2")
     self.assertEqual(1, len(device_histories))
     self.assertEqual(now, device_histories[0].timestamp)
     self.assertEqual(1, len(host.device_count_summaries))
@@ -1622,13 +1624,21 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     device_manager.SetHostsRecoveryState([request1, request2])
     ndb.get_context().clear_cache()
     host1 = host1.key.get()
+    host1_histories = self._GetHostHistories(host1.hostname)
     self.assertEqual("user1", host1.assignee)
     self.assertEqual(common.RecoveryState.ASSIGNED, host1.recovery_state)
     self.assertIsNotNone(host1.last_recovery_time)
+    self.assertEqual("user1", host1_histories[0].assignee)
+    self.assertEqual(common.RecoveryState.ASSIGNED,
+                     host1_histories[0].recovery_state)
     host2 = host2.key.get()
+    host2_histories = self._GetHostHistories(host2.hostname)
     self.assertEqual("user1", host2.assignee)
     self.assertEqual(common.RecoveryState.FIXED, host2.recovery_state)
     self.assertIsNotNone(host2.last_recovery_time)
+    self.assertEqual("user1", host2_histories[0].assignee)
+    self.assertEqual(common.RecoveryState.FIXED,
+                     host2_histories[0].recovery_state)
 
   def testSetHostsRecoveryState_invalidHost(self):
     host1 = datastore_test_util.CreateHost("free", "host1")
@@ -1653,24 +1663,37 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     device_manager.SetHostsRecoveryState([request])
     ndb.get_context().clear_cache()
     host = host.key.get()
+    histories = self._GetHostHistories(host.hostname)
     self.assertEqual("user1", host.assignee)
     self.assertEqual(common.RecoveryState.ASSIGNED, host.recovery_state)
     self.assertIsNotNone(host.last_recovery_time)
+    self.assertEqual(1, len(histories))
+    self.assertEqual("user1", histories[0].assignee)
+    self.assertEqual(common.RecoveryState.ASSIGNED, histories[0].recovery_state)
+    self.assertIsNotNone(histories[0].last_recovery_time)
     request = api_messages.HostRecoveryStateRequest(
         hostname="host1", recovery_state=common.RecoveryState.FIXED,
         assignee="user1")
     device_manager.SetHostsRecoveryState([request])
     ndb.get_context().clear_cache()
     host = host.key.get()
+    histories = self._GetHostHistories(host.hostname)
+    self.assertEqual(2, len(histories))
     self.assertEqual(common.RecoveryState.FIXED, host.recovery_state)
+    self.assertEqual(common.RecoveryState.FIXED, histories[0].recovery_state)
     request = api_messages.HostRecoveryStateRequest(
         hostname="host1", recovery_state=common.RecoveryState.VERIFIED,
         assignee="user1")
     device_manager.SetHostsRecoveryState([request])
     ndb.get_context().clear_cache()
     host = host.key.get()
+    histories = self._GetHostHistories(host.hostname)
+    self.assertEqual(4, len(histories))
     self.assertEqual(common.RecoveryState.UNKNOWN, host.recovery_state)
     self.assertIsNone(host.assignee)
+    self.assertEqual(common.RecoveryState.UNKNOWN, histories[0].recovery_state)
+    self.assertIsNone(histories[0].assignee)
+    self.assertEqual(common.RecoveryState.VERIFIED, histories[1].recovery_state)
 
   def testSetDevicesRecoveryState(self):
     device1 = datastore_test_util.CreateDevice("free", "host1", "device1")

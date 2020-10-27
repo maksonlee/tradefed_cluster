@@ -902,14 +902,23 @@ def _SetHostRecoveryState(hostname, recovery_state, assignee=None):
     logging.error("Host %s doesn't exist.", hostname)
     return
   host.assignee = assignee
+  entities_to_update = []
   if recovery_state == common.RecoveryState.VERIFIED:
-    # TODO: Add host history for VERIFIED.
+    host.recovery_state = common.RecoveryState.VERIFIED
+    host.assignee = host.assignee
+    host.last_recovery_time = _Now()
+    host.timestamp = _Now()
+    entities_to_update.append(_CreateHostInfoHistory(host))
+    # After it's verified, it goes into a state as no-one is recovering it.
     host.recovery_state = common.RecoveryState.UNKNOWN
     host.assignee = None
   else:
     host.recovery_state = recovery_state
   host.last_recovery_time = _Now()
-  host.put()
+  host.timestamp = _Now()
+  entities_to_update.append(_CreateHostInfoHistory(host))
+  entities_to_update.append(host)
+  ndb.put_multi(entities_to_update)
   # TODO: clean up device recovery state as well.
 
 
@@ -995,8 +1004,8 @@ def GetDevice(hostname=None, device_serial=None):
           .order(-datastore_entities.DeviceInfo.timestamp).get())
 
 
-def GetDeviceHistory(hostname, device_serial):
-  """Retrieve a device's history.
+def GetDeviceStateHistory(hostname, device_serial):
+  """Retrieve a device's state history.
 
   Limit to MAX_HISTORY_SIZE
 

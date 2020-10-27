@@ -465,7 +465,7 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(1, len(host_histories))
     self.assertEqual(api_messages.HostState.GONE, host_histories[0].state)
     for d in self.host1_devices:
-      device_histories = device_manager.GetDeviceHistory(
+      device_histories = device_manager.GetDeviceStateHistory(
           self.host1.hostname, d.device_serial)
       self.assertEqual(1, len(device_histories))
       self.assertEqual(common.DeviceState.GONE, device_histories[0].state)

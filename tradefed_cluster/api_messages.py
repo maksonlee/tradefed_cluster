@@ -495,6 +495,7 @@ class DeviceInfo(messages.Message):
     sim_operator: Operator of the SIM.
     test_harness: test harness the device is running under.
     recovery_state: recovery state for the host, e.g. assigned, fixed, verified.
+    last_recovery_time: the last time the device gets recovered.
   """
   device_serial = messages.StringField(1)
   lab_name = messages.StringField(2)

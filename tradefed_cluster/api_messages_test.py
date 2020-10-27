@@ -449,7 +449,9 @@ class ApiMessagesTest(api_test.ApiTest):
             'last_known_build_id': 'P1234',
             'sim_state': 'unknown',
         },
-        recovery_state=common.RecoveryState.FIXED)
+        timestamp=TIMESTAMP,
+        recovery_state=common.RecoveryState.FIXED,
+        last_recovery_time=TIMESTAMP)
 
   def testDeviceInfoFromEntity(self):
     """Test converting from device_info to device_info message."""
@@ -468,6 +470,8 @@ class ApiMessagesTest(api_test.ApiTest):
         api_messages.KeyValuePairMessagesToMap(
             msg.extra_info))
     self.assertEqual(common.RecoveryState.FIXED, entity.recovery_state)
+    self.assertEqual(TIMESTAMP, msg.timestamp)
+    self.assertEqual(TIMESTAMP, msg.last_recovery_time)
 
   def testPredefinedMessageFromEntity(self):
     entity = datastore_entities.PredefinedMessage(

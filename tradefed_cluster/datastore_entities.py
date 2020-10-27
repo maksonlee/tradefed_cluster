@@ -1022,6 +1022,7 @@ class DeviceInfo(ndb.Expando):
     last_known_product_variant: last known product variant
     flated_extra_info: flated extra info for the device
     recovery_state: recovery state for the host, e.g. assigned, fixed, verified.
+    last_recovery_time: last time the device was recovered.
   """
   device_serial = ndb.StringProperty()
   run_target = ndb.StringProperty()
@@ -1053,6 +1054,7 @@ class DeviceInfo(ndb.Expando):
   last_known_product_variant = ndb.StringProperty()
   flated_extra_info = ndb.ComputedProperty(_FlatExtraInfo, repeated=True)
   recovery_state = ndb.StringProperty()
+  last_recovery_time = ndb.DateTimeProperty()
 
 
 @MessageConverter(DeviceInfo)
@@ -1088,7 +1090,8 @@ def DeviceInfoToMessage(device_info_entity):
       extra_info=api_messages.MapToKeyValuePairMessages(
           device_info_entity.extra_info),
       test_harness=device_info_entity.test_harness,
-      recovery_state=device_info_entity.recovery_state)
+      recovery_state=device_info_entity.recovery_state,
+      last_recovery_time=device_info_entity.last_recovery_time)
 
 
 class DeviceInfoHistory(DeviceInfo):

@@ -345,6 +345,7 @@ def GetDeviceSnapshotForDate(date=None, cluster_prefix=None):
       # Ignore devices outside the given cluster
       continue
     d['timestamp'] = dateutil.parser.parse(d['timestamp'])
+    d['last_recovery_time'] = dateutil.parser.parse(d['last_recovery_time'])
     d['device_type'] = api_messages.DeviceTypeMessage(d['device_type'])
     devices.append(datastore_entities.DeviceInfo(**d))
   return DeviceSnapshot(

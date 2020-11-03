@@ -24,6 +24,7 @@ import json
 import logging
 import uuid
 
+import six
 from six.moves import zip
 
 from tradefed_cluster import api_messages
@@ -933,12 +934,19 @@ def SetDevicesRecoveryState(device_recovery_state_requests):
   Args:
     device_recovery_state_requests: a list of device recovery state requests.
   """
+  host_to_recovery_state = {}
   for request in device_recovery_state_requests:
     _SetDeviceRecoveryState(
         request.hostname,
         request.device_serial,
         request.recovery_state)
-  # TODO: Update host's recovery state as well.
+    if (request.recovery_state == common.RecoveryState.FIXED and
+        request.hostname not in host_to_recovery_state):
+      host_to_recovery_state[request.hostname] = (
+          common.RecoveryState.ASSIGNED, request.assignee)
+  for hostname, (recovery_state, assignee) in six.iteritems(
+      host_to_recovery_state):
+    _SetHostRecoveryState(hostname, recovery_state, assignee)
 
 
 @ndb.transactional()

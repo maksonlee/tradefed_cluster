@@ -924,6 +924,7 @@ class DeviceRecoveryStateRequest(messages.Message):
   hostname = messages.StringField(1)
   device_serial = messages.StringField(2, required=True)
   recovery_state = messages.StringField(3, required=True)
+  assignee = messages.StringField(4)
 
 
 class DeviceRecoveryStateRequests(messages.Message):

@@ -1704,14 +1704,15 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
             .fetch())
 
   def testSetDevicesRecoveryState(self):
+    host = datastore_test_util.CreateHost("free", "host1")
     device1 = datastore_test_util.CreateDevice("free", "host1", "device1")
     device2 = datastore_test_util.CreateDevice("free", "host1", "device2")
     request1 = api_messages.DeviceRecoveryStateRequest(
         hostname="host1", device_serial="device1",
-        recovery_state=common.RecoveryState.FIXED)
+        recovery_state=common.RecoveryState.FIXED, assignee="user1")
     request2 = api_messages.DeviceRecoveryStateRequest(
         hostname="host1", device_serial="device2",
-        recovery_state=common.RecoveryState.FIXED)
+        recovery_state=common.RecoveryState.FIXED, assignee="user1")
     device_manager.SetDevicesRecoveryState([request1, request2])
     ndb.get_context().clear_cache()
     device1 = device1.key.get()
@@ -1730,6 +1731,13 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.RecoveryState.FIXED,
                      device2_histories[0].recovery_state)
     self.assertIsNotNone(device2_histories[0].last_recovery_time)
+    host = host.key.get()
+    host_histories = self._GetHostHistories(host.hostname)
+    self.assertEqual(common.RecoveryState.ASSIGNED, host.recovery_state)
+    self.assertEqual("user1", host.assignee)
+    self.assertEqual(common.RecoveryState.ASSIGNED,
+                     host_histories[0].recovery_state)
+    self.assertEqual("user1", host_histories[0].assignee)
 
   def testSetDevicesRecoveryState_invalidDevice(self):
     device1 = datastore_test_util.CreateDevice("free", "host1", "device1")

@@ -1657,6 +1657,11 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
 
   def testSetHostsRecoveryState_verified(self):
     host = datastore_test_util.CreateHost("free", "host1")
+    device1 = datastore_test_util.CreateDevice("free", "host1", "device1")
+    device1.recovery_state = common.RecoveryState.ASSIGNED
+    device1.assignee = "user1"
+    device1.put()
+    device2 = datastore_test_util.CreateDevice("free", "host1", "device2")
     request = api_messages.HostRecoveryStateRequest(
         hostname="host1", recovery_state=common.RecoveryState.ASSIGNED,
         assignee="user1")
@@ -1694,6 +1699,19 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.RecoveryState.UNKNOWN, histories[0].recovery_state)
     self.assertIsNone(histories[0].assignee)
     self.assertEqual(common.RecoveryState.VERIFIED, histories[1].recovery_state)
+    device1 = device1.key.get()
+    device1_histories = self._GetDeviceHistories(
+        device1.hostname, device1.device_serial)
+    self.assertEqual(common.RecoveryState.UNKNOWN, device1.recovery_state)
+    self.assertEqual(common.RecoveryState.UNKNOWN,
+                     device1_histories[0].recovery_state)
+    self.assertEqual(common.RecoveryState.VERIFIED,
+                     device1_histories[1].recovery_state)
+    device2 = device2.key.get()
+    device2_histories = self._GetDeviceHistories(
+        device2.hostname, device2.device_serial)
+    self.assertIsNone(device2.recovery_state)
+    self.assertEqual(0, len(device2_histories))
 
   def _GetDeviceHistories(self, hostname, device_serial):
     return (datastore_entities.DeviceInfoHistory

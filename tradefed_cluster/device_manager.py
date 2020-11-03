@@ -910,6 +910,13 @@ def _SetHostRecoveryState(hostname, recovery_state, assignee=None):
     host.last_recovery_time = _Now()
     host.timestamp = _Now()
     entities_to_update.append(_CreateHostInfoHistory(host))
+    devices = GetDevicesOnHost(hostname)
+    for device in devices:
+      if (device.assignee or
+          (device.recovery_state and
+           device.recovery_state != common.RecoveryState.UNKNOWN)):
+        entities_to_update.extend(
+            _BuildDeviceRecoveryState(device, common.RecoveryState.VERIFIED))
     # After it's verified, it goes into a state as no-one is recovering it.
     host.recovery_state = common.RecoveryState.UNKNOWN
     host.assignee = None
@@ -920,7 +927,6 @@ def _SetHostRecoveryState(hostname, recovery_state, assignee=None):
   entities_to_update.append(_CreateHostInfoHistory(host))
   entities_to_update.append(host)
   ndb.put_multi(entities_to_update)
-  # TODO: clean up device recovery state as well.
 
 
 def SetDevicesRecoveryState(device_recovery_state_requests):
@@ -957,6 +963,12 @@ def _SetDeviceRecoveryState(
   if not device:
     logging.error("Device (%s, %s) doesn't exist.", hostname, device_serial)
     return
+  entities_to_update = _BuildDeviceRecoveryState(device, recovery_state)
+  ndb.put_multi(entities_to_update)
+
+
+def _BuildDeviceRecoveryState(device, recovery_state):
+  """Build device's recovery state and its history."""
   entities_to_update = []
   if recovery_state == common.RecoveryState.VERIFIED:
     device.recovery_state = common.RecoveryState.VERIFIED
@@ -970,7 +982,7 @@ def _SetDeviceRecoveryState(
   device.timestamp = _Now()
   entities_to_update.append(_CreateDeviceInfoHistory(device))
   entities_to_update.append(device)
-  ndb.put_multi(entities_to_update)
+  return entities_to_update
 
 
 def _IsKnownProperty(value):

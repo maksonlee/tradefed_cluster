@@ -5,6 +5,30 @@ package(default_visibility = ["//tradefed_cluster:tradefed_cluster_clients"])
 licenses(["notice"])
 
 pytype_strict_library(
+    name = "app_manager_lib",
+    srcs = [
+        "app_manager.py",
+    ],
+    srcs_version = "PY2AND3",
+    deps = [
+        "//tradefed_cluster:env_config_lib",
+        third_party("protorpc:protorpc_all"),
+    ],
+)
+
+py2and3_test(
+    name = "app_manager_test",
+    srcs = [
+        "app_manager_test.py",
+    ],
+    deps = [
+        ":app_manager_lib",
+        third_party("absl/testing:absltest"),
+        third_party("mock"),
+    ],
+)
+
+pytype_strict_library(
     name = "file_storage_lib",
     srcs = [
         "file_storage.py",

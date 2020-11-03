@@ -91,6 +91,28 @@ class Plugin(six.with_metaclass(PluginMetaClass, object)):
     pass
 
 
+# AppManager plugin interface.
+
+AppInfo = collections.namedtuple(
+    'AppInfo', ['name', 'hostname'])
+
+
+class AppManager(object):
+  """Interface for app manager plugins."""
+
+  def GetInfo(self, name):
+    """Gets app info.
+
+    Args:
+      name: an app name.
+    Returns:
+      a AppInfo object.
+    """
+    raise NotImplementedError()
+
+
+# FileStorage plugin interface.
+
 FileInfo = collections.namedtuple(
     'FileInfo', ['filename', 'is_dir', 'size', 'content_type'])
 
@@ -122,11 +144,17 @@ class FileStorage(object):
     raise NotImplementedError()
 
 
+# Mailer plugin interface.
+
+
 class Mailer(object):
   """A mailer plugin interface."""
 
   def SendMail(self, sender, to, subject, html, reply_to, cc, bcc):
     raise NotImplementedError()
+
+
+# Task scheduler plugin interface.
 
 Task = collections.namedtuple('Task', ['name', 'payload', 'eta'])
 Task.__new__.__defaults__ = (None, None)

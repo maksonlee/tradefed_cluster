@@ -18,8 +18,16 @@ import cloudstorage
 
 from google.appengine.api import mail
 from google.appengine.api import taskqueue
+from google.appengine.api.modules import modules
 
 from tradefed_cluster.plugins import base
+
+
+class AppManager(base.AppManager):
+  """Interface for app manager plugins."""
+
+  def GetInfo(self, name):
+    return base.AppInfo(name=name, hostname=modules.get_hostname(module=name))
 
 
 def _ToFileInfo(stat):
@@ -31,31 +39,14 @@ def _ToFileInfo(stat):
       content_type=stat.content_type)
 
 
-class FileStorage(object):
+class FileStorage(base.FileStorage):
   """Interface for file storage plugins."""
 
   def ListFiles(self, path):
-    """List directory/files under a given path.
-
-    Args:
-      path: a directory path.
-    Returns:
-      A FileInfo iterator.
-    """
     it = cloudstorage.listbucket(path)
     return map(_ToFileInfo, it)
 
   def OpenFile(self, path, mode, content_type, content_encoding):
-    """Opens a file for reading or writing.
-
-    Args:
-      path: a file path.
-      mode: 'r' for reading or 'w' for writing
-      content_type: a content type (optional).
-      content_encoding: a content encoding (optional).
-    Returns:
-      A file-like object.
-    """
     try:
       options = {}
       if content_encoding:

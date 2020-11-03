@@ -103,6 +103,8 @@ class TestbedDependentTest(ndb_test_lib.NdbWithContextTest):
     os.environ['GAE_APPLICATION'] = 'testbed-test'
     os.environ['GAE_SERVICE'] = 'default'
     os.environ['GAE_VERSION'] = 'testbed-version'
+    self.mock_app_manager = mock.MagicMock(spec=base.AppManager)
+    env_config.CONFIG.app_manager = self.mock_app_manager
     self.mock_file_storage = MockFileStorage()
     env_config.CONFIG.file_storage = self.mock_file_storage
     self.addCleanup(self.mock_file_storage.Cleanup)

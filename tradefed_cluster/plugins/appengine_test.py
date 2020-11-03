@@ -22,6 +22,25 @@ from google.appengine.ext import testbed
 from tradefed_cluster.plugins import appengine
 
 
+class AppManagerTest(absltest.TestCase):
+  """Unit tests fro Appengine app manager."""
+
+  def setUp(self):
+    super(AppManagerTest, self).setUp()
+    self.testbed = testbed.Testbed()
+    self.testbed.activate()
+    self.testbed.init_all_stubs()
+    self.addCleanup(self.testbed.deactivate)
+
+    self.app_manager = appengine.AppManager()
+
+  def testGetInfo(self):
+    info = self.app_manager.GetInfo('default')
+
+    self.assertEqual('default', info.name)
+    self.assertEqual('localhost:8080', info.hostname)
+
+
 class MailerTest(absltest.TestCase):
   """Unit tests for Appengine mailer."""
 

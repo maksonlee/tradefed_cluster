@@ -1659,7 +1659,6 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     host = datastore_test_util.CreateHost("free", "host1")
     device1 = datastore_test_util.CreateDevice("free", "host1", "device1")
     device1.recovery_state = common.RecoveryState.ASSIGNED
-    device1.assignee = "user1"
     device1.put()
     device2 = datastore_test_util.CreateDevice("free", "host1", "device2")
     request = api_messages.HostRecoveryStateRequest(

@@ -912,9 +912,8 @@ def _SetHostRecoveryState(hostname, recovery_state, assignee=None):
     entities_to_update.append(_CreateHostInfoHistory(host))
     devices = GetDevicesOnHost(hostname)
     for device in devices:
-      if (device.assignee or
-          (device.recovery_state and
-           device.recovery_state != common.RecoveryState.UNKNOWN)):
+      if (device.recovery_state and
+          device.recovery_state != common.RecoveryState.UNKNOWN):
         entities_to_update.extend(
             _BuildDeviceRecoveryState(device, common.RecoveryState.VERIFIED))
     # After it's verified, it goes into a state as no-one is recovering it.

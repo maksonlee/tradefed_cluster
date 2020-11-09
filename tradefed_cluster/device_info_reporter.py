@@ -419,6 +419,12 @@ def EmailDeviceReport(report_config, product_report, cluster_report,
 def BuildDeviceReport(fake=None):
   """Builds a report using the current state of devices and emails it."""
   del fake
+
+  if not env_config.CONFIG.should_send_report:
+    logging.warning(
+        'CONFIG.should_send_report is false; skip building a device report.')
+    return common.HTTP_OK
+
   date = _GetCurrentDate()
   update_time = _Now()
   local_time = _LocalizedNow()

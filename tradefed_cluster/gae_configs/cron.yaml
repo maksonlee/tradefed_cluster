@@ -13,11 +13,6 @@
 # limitations under the License.
 
 cron:
-- description: fetch task queue statistics
-  url: /cron/monitor/task_queue
-  schedule: every 10 minutes
-  target: tfc
-
 - description: fetch device state statistics from NDB
   url: /cron/monitor/devices/ndb
   schedule: every 10 minutes

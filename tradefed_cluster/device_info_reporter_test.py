@@ -42,6 +42,7 @@ class DeviceInfoReporterTest(testbed_dependent_test.TestbedDependentTest):
 
   def setUp(self):
     testbed_dependent_test.TestbedDependentTest.setUp(self)
+    env_config.CONFIG.should_send_report = True
     self.reporter_webapp = webtest.TestApp(device_info_reporter.APP)
     self.ndb_host_1 = datastore_test_util.CreateHost(
         'free', 'atl-1001.mtv', timestamp=TIMESTAMP,

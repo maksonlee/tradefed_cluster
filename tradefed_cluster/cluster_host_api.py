@@ -64,7 +64,7 @@ class ClusterHostApi(remote.Service):
       is_bad=messages.BooleanField(5),
       hostnames=messages.StringField(6, repeated=True),
       host_groups=messages.StringField(7, repeated=True),
-      test_harness=messages.StringField(8, repeated=True),
+      test_harnesses=messages.StringField(8, repeated=True),
       test_harness_versions=messages.StringField(9, repeated=True),
       pools=messages.StringField(10, repeated=True),
       host_states=messages.EnumField(api_messages.HostState, 11, repeated=True),
@@ -74,7 +74,9 @@ class ClusterHostApi(remote.Service):
           14, variant=messages.Variant.INT32, default=_DEFAULT_LIST_HOST_COUNT),
       timestamp_operator=messages.EnumField(common.Operator, 15),
       timestamp=message_types.DateTimeField(16),
-      recovery_states=messages.StringField(17, repeated=True))
+      recovery_states=messages.StringField(17, repeated=True),
+      # TODO: Please use test_harnesses, this field is deprecated.
+      test_harness=messages.StringField(18, repeated=True))
 
   @endpoints.method(
       HOST_LIST_RESOURCE,
@@ -114,12 +116,30 @@ class ClusterHostApi(remote.Service):
       query = query.filter(datastore_entities.HostInfo.flated_extra_info ==
                            request.flated_extra_info)
 
-    if request.timestamp:
-      query = query.order(
-          datastore_entities.HostInfo.timestamp,
-          datastore_entities.HostInfo.key)
-    else:
-      query = query.order(datastore_entities.HostInfo.key)
+    if len(request.host_groups) == 1:
+      query = query.filter(
+          datastore_entities.HostInfo.host_group == request.host_groups[0])
+    if len(request.hostnames) == 1:
+      query = query.filter(
+          datastore_entities.HostInfo.hostname == request.hostnames[0])
+    test_harnesses = request.test_harness + request.test_harnesses
+    if len(test_harnesses) == 1:
+      query = query.filter(
+          datastore_entities.HostInfo.test_runner == test_harnesses[0])
+    if len(request.test_harness_versions) == 1:
+      query = query.filter(
+          datastore_entities.HostInfo.test_runner_version ==
+          request.test_harness_versions[0])
+    if len(request.pools) == 1:
+      query = query.filter(
+          datastore_entities.HostInfo.pools == request.pools[0])
+    if len(request.host_states) == 1:
+      query = query.filter(
+          datastore_entities.HostInfo.host_state == request.host_states[0])
+    if len(request.recovery_states) == 1:
+      query = query.filter(
+          datastore_entities.HostInfo.recovery_state
+          == request.recovery_states[0])
 
     def _PostFilter(host):
       if request.host_groups and host.host_group not in request.host_groups:
@@ -127,12 +147,13 @@ class ClusterHostApi(remote.Service):
       if request.hostnames and host.hostname not in request.hostnames:
         return
       # TODO: Change test_runner to test_harness.
-      if request.test_harness and host.test_runner not in request.test_harness:
+      if (test_harnesses and
+          host.test_runner not in test_harnesses):
         return
       if request.test_harness_versions and \
           host.test_runner_version not in request.test_harness_versions:
         return
-      if request.pools and not set(host.pools).issubset(set(request.pools)):
+      if request.pools and not set(host.pools).intersection(set(request.pools)):
         return
       if request.host_states and host.host_state not in request.host_states:
         return
@@ -145,6 +166,13 @@ class ClusterHostApi(remote.Service):
         return _CheckTimestamp(
             host.timestamp, request.timestamp_operator, request.timestamp)
       return True
+
+    if request.timestamp:
+      query = query.order(
+          datastore_entities.HostInfo.timestamp,
+          datastore_entities.HostInfo.key)
+    else:
+      query = query.order(datastore_entities.HostInfo.key)
 
     hosts, prev_cursor, next_cursor = datastore_util.FetchPage(
         query, request.count, request.cursor, result_filter=_PostFilter)

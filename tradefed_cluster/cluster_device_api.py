@@ -57,7 +57,7 @@ class ClusterDeviceApi(remote.Service):
           8, variant=messages.Variant.INT32,
           default=_DEFAULT_LIST_DEVICE_COUNT),
       product=messages.StringField(9),
-      test_harness=messages.StringField(10, repeated=True),
+      test_harnesses=messages.StringField(10, repeated=True),
       run_targets=messages.StringField(11, repeated=True),
       hostnames=messages.StringField(12, repeated=True),
       pools=messages.StringField(13, repeated=True),
@@ -65,6 +65,8 @@ class ClusterDeviceApi(remote.Service):
       host_groups=messages.StringField(15, repeated=True),
       device_serial=messages.StringField(16),
       flated_extra_info=messages.StringField(17),
+      # TODO: Please use test_harnesses, this field is deprecated.
+      test_harness=messages.StringField(18, repeated=True),
   )
 
   @endpoints.method(
@@ -115,8 +117,32 @@ class ClusterDeviceApi(remote.Service):
 
     start_time = time.time()
 
+    if len(request.pools) == 1:
+      query = query.filter(
+          datastore_entities.DeviceInfo.pools == request.pools[0])
+    if len(request.device_states) == 1:
+      query = query.filter(
+          datastore_entities.DeviceInfo.state == request.device_states[0])
+    if len(request.host_groups) == 1:
+      query = query.filter(
+          datastore_entities.DeviceInfo.host_group == request.host_groups[0])
+    if len(request.device_types) == 1:
+      query = query.filter(
+          datastore_entities.DeviceInfo.device_type == request.device_types[0])
+    test_harnesses = request.test_harness + request.test_harnesses
+    if len(test_harnesses) == 1:
+      query = query.filter(
+          datastore_entities.DeviceInfo.test_harness == test_harnesses[0])
+    if len(request.hostnames) == 1:
+      query = query.filter(
+          datastore_entities.DeviceInfo.hostname == request.hostnames[0])
+    if len(request.run_targets) == 1:
+      query = query.filter(
+          datastore_entities.DeviceInfo.run_target == request.run_targets[0])
+
     def _PostFilter(device):
-      if request.pools and not set(device.pools).issubset(set(request.pools)):
+      if (request.pools and
+          not set(device.pools).intersection(set(request.pools))):
         return
       if request.device_states and device.state not in request.device_states:
         return
@@ -128,8 +154,7 @@ class ClusterDeviceApi(remote.Service):
       if request.device_types and \
           device.device_type not in request.device_types:
         return
-      if request.test_harness and \
-          device.test_harness not in request.test_harness:
+      if test_harnesses and device.test_harness not in test_harnesses:
         return
       if request.hostnames and device.hostname not in request.hostnames:
         return

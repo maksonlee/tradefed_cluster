@@ -35,8 +35,6 @@ from tradefed_cluster import datastore_entities
 from tradefed_cluster import datastore_util
 from tradefed_cluster import device_manager
 from tradefed_cluster import env_config
-from tradefed_cluster import metric
-from tradefed_cluster.util import metric_util
 from tradefed_cluster.util import ndb_shim as ndb
 from tradefed_cluster.util import pubsub_client
 
@@ -59,53 +57,6 @@ APP = flask.Flask(__name__)
 def _Now():
   """Returns the current time in UTC. Added to allow mocking in our tests."""
   return datetime.datetime.utcnow()
-
-
-def _BuildMetricFields(device):
-  """Builds a dictionary of metric fields from a device entity.
-
-  Args:
-    device: Device entity
-  Returns:
-    Dictionary of metric fields
-  """
-  return {
-      metric.METRIC_FIELD_CLUSTER: device.physical_cluster,
-      metric.METRIC_FIELD_HOSTNAME: device.hostname,
-      metric.METRIC_FIELD_RUN_TARGET: device.run_target,
-      metric.METRIC_FIELD_SERIAL: device.device_serial
-  }
-
-
-def _ReportDeviceStateMetric(device, metric_batch):
-  """Report metrics on a device state.
-
-  Args:
-    device: Device entity
-    metric_batch: a metric_util.MetricBatch object.
-  """
-  device_metric_fields = _BuildMetricFields(device)
-  try:
-    # Report the device as visible
-    metric.devices_visible.Set(1, device_metric_fields, batch=metric_batch)
-    # Report offline devices
-    if device.state in metric.DEVICE_OFFLINE_STATES:
-      metric.devices_offline.Set(1, device_metric_fields, batch=metric_batch)
-    else:
-      metric.devices_offline.Set(0, device_metric_fields, batch=metric_batch)
-    # Report individual device state
-    for state in metric.DEVICE_STATES:
-      device_metric = metric.GetDeviceStateMetric(state)
-      if device_metric is None:
-        continue
-      if device.state == state:
-        device_metric.Set(1, device_metric_fields, batch=metric_batch)
-      else:
-        device_metric.Set(0, device_metric_fields, batch=metric_batch)
-  except Exception:      logging.warning(
-        'failed to set device metric for %s',
-        device_metric_fields,
-        exc_info=True)
 
 
 def _UpdateClusters():
@@ -182,32 +133,11 @@ def _ScanHosts():
   logging.debug('Scanned hosts.')
 
 
-def _ScanDevices():
-  """Scan all devices, and send metrics for all devices."""
-  logging.info('Scan devices.')
-  metric_batch = metric_util.MetricBatch()
-  query = (
-      datastore_entities.DeviceInfo.query()
-      .filter(datastore_entities.DeviceInfo.hidden == False))    projection = [
-      datastore_entities.DeviceInfo.state,
-      datastore_entities.DeviceInfo.physical_cluster,
-      datastore_entities.DeviceInfo.hostname,
-      datastore_entities.DeviceInfo.run_target,
-      datastore_entities.DeviceInfo.device_serial,
-  ]
-  for device in datastore_util.BatchQuery(
-      query, batch_size=BATCH, projection=projection):
-    _ReportDeviceStateMetric(device, metric_batch)
-  metric_batch.Emit()
-  logging.info('Finished scan devices.')
-
-
 @APP.route(r'/cron/monitor/devices/ndb')
 @ndb.toplevel
 def MonitorDevice():
   """Reports all devices with their states."""
   logging.info('Starting NDBDeviceMonitor.')
-  _ScanDevices()
   _ScanHosts()
   _UpdateClusters()
   _UpdateLabs()

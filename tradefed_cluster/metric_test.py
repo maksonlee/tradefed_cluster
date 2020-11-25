@@ -29,14 +29,6 @@ UTC_NOW = datetime.datetime(2017, 10, 11, 1)
 
 class MetricTest(unittest.TestCase):
 
-  def testGetDeviceStateMetric(self):
-    actual = metric.GetDeviceStateMetric('Allocated')
-    self.assertEqual('device/state/Allocated_count', actual.name)
-
-  def testGetDeviceStateMetric_unknownState(self):
-    actual = metric.GetDeviceStateMetric('fake_state')
-    self.assertEqual('device/state/Unknown_count', actual.name)
-
   @mock.patch('__main__.metric.datetime')
   @mock.patch.object(metric.command_timing, 'Record', autospec=True)
   def testRecordCommandTimingMetric_naiveDatetime(self, record, mock_datetime):

@@ -880,7 +880,6 @@ pytype_strict_library(
         ":datastore_util_lib",
         ":device_manager_lib",
         ":env_config_lib",
-        ":metric_lib",
         "//tradefed_cluster/services:task_scheduler_lib",
         "//tradefed_cluster/util:metric_util_lib",
         "//tradefed_cluster/util:ndb_shim_lib",

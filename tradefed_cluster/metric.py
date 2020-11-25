@@ -27,14 +27,10 @@ from tradefed_cluster.util import metric_util
 METRIC_FIELD_CLUSTER = 'cluster'
 METRIC_FIELD_HOSTNAME = 'hostname'
 METRIC_FIELD_TEST_RUNNER = 'test_runner'
-METRIC_FIELD_DEVICE_SERIAL = 'device_serial'
-METRIC_FIELD_SERIAL = 'serial'  # Kept for legacy / backwards compatibility
 METRIC_FIELD_TYPE = 'type'
 METRIC_FIELD_RUN_TARGET = 'run_target'
 METRIC_FIELD_ACTION = 'action'
 METRIC_FIELD_QUEUE = 'queue'
-METRIC_FIELD_MODULE = 'module'
-METRIC_FIELD_TASK = 'task'
 METRIC_FIELD_STATE = 'state'
 
 
@@ -95,83 +91,6 @@ command_event_type_count = _Metric(
         type_=metric_util.MetricType.COUNTER,
         desc='Number of command events of this type',
         fields=COMMAND_EVENT_METRIC_FIELDS))
-
-DEVICE_STATE_METRIC_FIELDS = [
-    (METRIC_FIELD_CLUSTER, str),
-    (METRIC_FIELD_HOSTNAME, str),
-    (METRIC_FIELD_RUN_TARGET, str),
-    (METRIC_FIELD_SERIAL, str),
-]
-
-_device_metrics_cache = {}
-
-DEVICE_STATES = ('Allocated', 'Available', 'Gone')
-
-DEVICE_OFFLINE_STATES = (
-    'Fastboot', 'Gone', 'Ignored', 'Unavailable', 'Unknown')
-
-DEVICE_STATE_METRIC_FMT = 'device/state/%s_count'
-
-
-def _InitDeviceStateMetrics():
-  """Create all device state metrics."""
-  for state in ('Unknown',) + DEVICE_STATES:
-    metric_name = DEVICE_STATE_METRIC_FMT % state
-    metric_description = 'Devices on state [%s]' % str(state)
-    if metric_name in _device_metrics_cache:
-      continue
-    device_state_metric = _Metric(
-        metric_name,
-        metric_util.MetricDescriptor(
-            type_=metric_util.MetricType.VALUE,
-            value_type=int,
-            desc=metric_description,
-            fields=DEVICE_STATE_METRIC_FIELDS))
-    _device_metrics_cache[metric_name] = device_state_metric
-
-
-_InitDeviceStateMetrics()
-
-
-def GetDeviceStateMetric(device_state):
-  """Gets or creates a metric for device states."""
-  state = device_state if device_state in DEVICE_STATES else 'Unknown'
-  metric_name = DEVICE_STATE_METRIC_FMT % state
-  return _device_metrics_cache.get(metric_name)
-
-
-# A metric object for the number of visible devices.
-devices_visible = _Metric(
-    'device/visible_count',
-    metric_util.MetricDescriptor(
-        type_=metric_util.MetricType.VALUE,
-        value_type=int,
-        desc='Number of devices visible',
-        fields=DEVICE_STATE_METRIC_FIELDS))
-
-# A metric object for the number of offline devices.
-devices_offline = _Metric(
-    'device/offline_count',
-    metric_util.MetricDescriptor(
-        type_=metric_util.MetricType.VALUE,
-        value_type=int,
-        desc='Number of offline devices',
-        fields=DEVICE_STATE_METRIC_FIELDS))
-
-HEARTBEAT_METRIC_FIELDS = [
-    (METRIC_FIELD_MODULE, str),
-    (METRIC_FIELD_TASK, str),
-]
-
-
-# A metric object to count a task heartbeat.
-heartbeat_count = _Metric(
-    'heartbeat',
-    metric_util.MetricDescriptor(
-        type_=metric_util.MetricType.COUNTER,
-        desc='Task heartbeat',
-        fields=HEARTBEAT_METRIC_FIELDS))
-
 
 COMMAND_ATTEMPT_METRIC_FIELDS = [
     (METRIC_FIELD_CLUSTER, str),

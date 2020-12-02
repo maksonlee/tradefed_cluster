@@ -290,6 +290,7 @@ class CommandMessage(messages.Message):
   create_time = message_types.DateTimeField(12)
   update_time = message_types.DateTimeField(13)
   cancel_reason = messages.EnumField(common.CancelReason, 14)
+  error_reason = messages.EnumField(common.ErrorReason, 15)
 
 
 class RequestType(messages.Enum):

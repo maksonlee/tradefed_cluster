@@ -192,6 +192,12 @@ class CancelReason(messages.Enum):
 
 
 
+class ErrorReason(messages.Enum):
+  """Enum for error reasons."""
+  UNKNOWN = 0
+  TOO_MANY_LOST_DEVICES = 1
+
+
 # Invocation event types
 class InvocationEventType(object):
   """Invocation event types."""

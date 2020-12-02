@@ -330,6 +330,7 @@ class Command(ndb.Model):
     run_target: a target run target.
     run_count: a target run count.
     state: a state of the command.
+    error_reason: readable reason for error.
     start_time: command execution start time.
     end_time: command execution stop time.
     create_time: time when the command was created.
@@ -352,6 +353,7 @@ class Command(ndb.Model):
   run_count = ndb.IntegerProperty()
   state = ndb.EnumProperty(common.CommandState,
                            default=common.CommandState.UNKNOWN)
+  error_reason = ndb.EnumProperty(common.ErrorReason)
   start_time = ndb.DateTimeProperty()
   end_time = ndb.DateTimeProperty()
   create_time = ndb.DateTimeProperty(auto_now_add=True)
@@ -383,7 +385,8 @@ def CommandToMessage(command):
       update_time=command.update_time,
       cancel_reason=command.cancel_reason,
       shard_count=command.shard_count,
-      shard_index=command.shard_index)
+      shard_index=command.shard_index,
+      error_reason=command.error_reason)
 
 
 class TestGroupStatus(ndb.Model):

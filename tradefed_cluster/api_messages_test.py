@@ -228,6 +228,7 @@ class ApiMessagesTest(api_test.ApiTest):
         create_time=TIMESTAMP,
         update_time=TIMESTAMP,
         cancel_reason=common.CancelReason.QUEUE_TIMEOUT,
+        error_reason=common.ErrorReason.TOO_MANY_LOST_DEVICES,
         shard_count=2,
         shard_index=1)
     message = datastore_entities.ToMessage(cmd)

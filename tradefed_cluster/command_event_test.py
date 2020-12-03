@@ -34,13 +34,19 @@ class CommandEventTest(unittest.TestCase):
 
   def testInit(self):
     event = command_event_test_util.CreateTestCommandEvent(
-        REQUEST_ID, COMMAND_ID, ATTEMPT_ID,
+        REQUEST_ID,
+        COMMAND_ID,
+        ATTEMPT_ID,
         common.InvocationEventType.INVOCATION_COMPLETED,
         invocation_status={
-            "test_group_statuses": [
-                {"name": "test1"},
-                {"name": "test2"}]},
-        device_serials=["s1", "s2"])
+            "test_group_statuses": [{
+                "name": "test1"
+            }, {
+                "name": "test2"
+            }]
+        },
+        device_serials=["s1", "s2"],
+        device_lost_detected=1)
     self.assertEqual("%s-%s-0" % (REQUEST_ID, COMMAND_ID),
                      event.task_id)
     self.assertEqual(REQUEST_ID, event.request_id)

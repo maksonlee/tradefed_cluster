@@ -51,6 +51,7 @@ MAX_CANCELED_COUNT_BASE = MAX_TASK_COUNT
 MAX_CANCELED_COUNT_RATIO = 0.1
 MAX_ERROR_COUNT_BASE = 3
 MAX_ERROR_COUNT_RATIO = 0.1
+MAX_DEVICE_LOST_DETECTED_COUNT = 2
 
 COMMAND_ATTEMPT_SYNC_QUEUE = "command-attempt-sync-queue"
 
@@ -99,6 +100,8 @@ class CommandSummary(object):
     self.completed_fail_count = 0
     self.error_count = 0
     self.fatal_count = 0
+    self.device_lost_attempt_counter = 0
+    self.command_error_reason = common.ErrorReason.UNKNOWN
     self.start_time = None
     self.end_time = None
     self.runs = [RunSummary() for _ in range(run_count)]
@@ -127,6 +130,8 @@ class CommandSummary(object):
       self.error_count += 1
     elif command_attempt.state == common.CommandState.FATAL:
       self.fatal_count += 1
+    if command_attempt.device_lost_detected:
+      self.device_lost_attempt_counter += 1
 
     if command_attempt.start_time:
       if not self.start_time:
@@ -224,7 +229,8 @@ class CommandSummary(object):
                state,
                max_retry_on_test_failures=0,
                max_canceled_count=1,
-               max_error_count=1):
+               max_error_count=1,
+               max_devices_lost_detected_count=MAX_DEVICE_LOST_DETECTED_COUNT):
     """Gets the computed state.
 
     Args:
@@ -237,6 +243,8 @@ class CommandSummary(object):
         command.
       max_error_count: The number of errored attempts before erroring the
         command.
+      max_devices_lost_detected_count: The max number of attempts detected to
+        have had lost devices.
 
     Returns:
       The computed state of the summary
@@ -255,11 +263,17 @@ class CommandSummary(object):
       return common.CommandState.CANCELED
     if self.error_count >= max_error_count:
       return common.CommandState.ERROR
+    if self.device_lost_attempt_counter >= max_devices_lost_detected_count:
+      self.command_error_reason = common.ErrorReason.TOO_MANY_LOST_DEVICES
+      return common.CommandState.ERROR
     if common.IsFinalCommandState(state):
       return state
     if self.running_count > 0:
       return common.CommandState.RUNNING
     return common.CommandState.QUEUED
+
+  def GetErrorReason(self):
+    return self.command_error_reason
 
 
 class RunSummary(object):
@@ -406,6 +420,7 @@ def _UpdateState(
 
   start_time = None
   end_time = None
+  error_reason = None
 
   if summary:
     state = summary.GetState(
@@ -415,6 +430,7 @@ def _UpdateState(
         max_error_count=_GetCommandMaxErrorCount(command))
     start_time = summary.start_time
     end_time = summary.end_time
+    error_reason = summary.GetErrorReason()
 
   if state and state != command.state:
     command.state = state
@@ -428,6 +444,9 @@ def _UpdateState(
   if (command.state == common.CommandState.CANCELED and
       cancel_reason is not None):
     command.cancel_reason = cancel_reason
+
+  if (command.state == common.CommandState.ERROR and error_reason is not None):
+    command.error_reason = error_reason
 
   _RescheduleOrDeleteTask(
       task_id, command, summary, attempt_state,

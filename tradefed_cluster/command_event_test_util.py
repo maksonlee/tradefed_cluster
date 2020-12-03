@@ -28,10 +28,17 @@ TIMESTAMP = datetime.datetime.utcfromtimestamp(TIMESTAMP_INT)
 TASK_ID = "task_id"
 
 
-def CreateTestCommandEventJson(
-    request_id, command_id, attempt_id, type_,
-    error=None, data=None, device_serials=None, invocation_status=None,
-    task=None, time=TIMESTAMP_INT):
+def CreateTestCommandEventJson(request_id,
+                               command_id,
+                               attempt_id,
+                               type_,
+                               error=None,
+                               data=None,
+                               device_serials=None,
+                               invocation_status=None,
+                               task=None,
+                               time=TIMESTAMP_INT,
+                               device_lost_detected=0):
   """Create command event json for unit test."""
   event = {
       "task_id": "%s-%s-0" % (request_id, command_id),
@@ -55,7 +62,7 @@ def CreateTestCommandEventJson(
         "failed_test_count": 100,
         "passed_test_count": 900,
         "failed_test_run_count": 10,
-        "device_lost_detected": 1,
+        "device_lost_detected": device_lost_detected,
     }
     if error:
       event["data"]["error"] = error

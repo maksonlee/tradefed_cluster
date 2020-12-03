@@ -600,9 +600,12 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(1, len(attempts))
 
     event2 = command_event_test_util.CreateTestCommandEvent(
-        request_id, command_id, attempt_id,
+        request_id,
+        command_id,
+        attempt_id,
         common.InvocationEventType.INVOCATION_COMPLETED,
-        time=TIMESTAMP)
+        time=TIMESTAMP,
+        device_lost_detected=1)
     is_updated = command_manager.UpdateCommandAttempt(event2)
     self.assertTrue(command.key.get(use_cache=False).dirty)
     self.assertTrue(is_updated)
@@ -1651,6 +1654,20 @@ class CommandSummaryTest(unittest.TestCase):
     state = self.summary.GetState(
         common.CommandState.UNKNOWN, max_error_count=1)
     self.assertEqual(state, common.CommandState.ERROR)
+
+  def testGetState_error_devices_lost(self):
+    self.summary.total_count = 1
+    self.summary.device_lost_attempt_counter = 1
+    state = self.summary.GetState(common.CommandState.UNKNOWN)
+    self.assertEqual(state, common.CommandState.QUEUED)
+    self.assertEqual(common.ErrorReason.UNKNOWN, self.summary.GetErrorReason())
+    # Simulates an extra attempt that crosses the device lost threshold.
+    self.summary.total_count = 2
+    self.summary.device_lost_attempt_counter = 2
+    state = self.summary.GetState(state)
+    self.assertEqual(state, common.CommandState.ERROR)
+    self.assertEqual(common.ErrorReason.TOO_MANY_LOST_DEVICES,
+                     self.summary.GetErrorReason())
 
   def testGetState_not_error(self):
     self.summary.total_count = 1

@@ -142,6 +142,13 @@ class DeviceState(object):
   IGNORED = "Ignored"
   UNAVAILABLE = "Unavailable"
   UNKNOWN = "Unknown"
+  # MH device state
+  INIT = "Init"
+  DYING = "Dying"
+  MISSING = "Missing"
+  PREPPING = "Prepping"
+  DIRTY = "Dirty"
+  LAMEDUCK = "Lameduck"
 
 DEVICE_ALL_STATES = (
     DeviceState.ALLOCATED,
@@ -151,7 +158,13 @@ DEVICE_ALL_STATES = (
     DeviceState.GONE,
     DeviceState.IGNORED,
     DeviceState.UNAVAILABLE,
-    DeviceState.UNKNOWN
+    DeviceState.UNKNOWN,
+    DeviceState.INIT,
+    DeviceState.DYING,
+    DeviceState.MISSING,
+    DeviceState.PREPPING,
+    DeviceState.DIRTY,
+    DeviceState.LAMEDUCK,
 )
 
 DEVICE_ONLINE_STATES = (

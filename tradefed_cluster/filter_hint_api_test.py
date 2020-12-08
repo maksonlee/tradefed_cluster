@@ -212,16 +212,24 @@ class FilterHintApiTest(api_test.ApiTest):
     device_state_collection = protojson.decode_message(
         api_messages.FilterHintCollection, api_response.body)
     self.assertEqual('200 OK', api_response.status)
-    self.assertEqual(8, len(device_state_collection.filter_hints))
+    self.assertEqual(14, len(device_state_collection.filter_hints))
     states = list(device_state_collection.filter_hints)
-    self.assertEqual(states[0].value, common.DeviceState.ALLOCATED)
-    self.assertEqual(states[1].value, common.DeviceState.AVAILABLE)
-    self.assertEqual(states[2].value, common.DeviceState.CHECKING)
-    self.assertEqual(states[3].value, common.DeviceState.FASTBOOT)
-    self.assertEqual(states[4].value, common.DeviceState.GONE)
-    self.assertEqual(states[5].value, common.DeviceState.IGNORED)
-    self.assertEqual(states[6].value, common.DeviceState.UNAVAILABLE)
-    self.assertEqual(states[7].value, common.DeviceState.UNKNOWN)
+    self.assertEqual(
+        [s.value for s in states],
+        [common.DeviceState.ALLOCATED,
+         common.DeviceState.AVAILABLE,
+         common.DeviceState.CHECKING,
+         common.DeviceState.FASTBOOT,
+         common.DeviceState.GONE,
+         common.DeviceState.IGNORED,
+         common.DeviceState.UNAVAILABLE,
+         common.DeviceState.UNKNOWN,
+         common.DeviceState.INIT,
+         common.DeviceState.DYING,
+         common.DeviceState.MISSING,
+         common.DeviceState.PREPPING,
+         common.DeviceState.DIRTY,
+         common.DeviceState.LAMEDUCK])
 
   def testListHostGroup(self):
     """Tests ListHostGroup."""

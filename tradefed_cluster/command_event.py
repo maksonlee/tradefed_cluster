@@ -56,6 +56,8 @@ class CommandEvent(object):
 
     self.status = _GetEventData(self.data, CommandEventDataKey.STATUS)
     self.error = _GetEventData(self.data, CommandEventDataKey.ERROR)
+    self.subprocess_command_error = _GetEventData(
+        self.data, CommandEventDataKey.SUBPROCESS_COMMAND_ERROR)
     self.summary = _GetEventData(self.data, CommandEventDataKey.SUMMARY)
     self.summary = Truncate(self.summary)
     self.total_test_count = _GetEventData(
@@ -220,7 +222,7 @@ class CommandEventBundle(object):
       try:
         self._events.append(CommandEvent(**item))
       except (KeyError, TypeError):
-        logging.warn(
+        logging.warning(
             "Failed to parse a command event %s",
             item,
             exc_info=True)
@@ -245,3 +247,4 @@ class CommandEventDataKey(object):
   TOTAL_TEST_RUN_COUNT = "total_test_run_count"
   FAILED_TEST_RUN_COUNT = "failed_test_run_count"
   DEVICE_LOST_DETECTED = "device_lost_detected"
+  SUBPROCESS_COMMAND_ERROR = "subprocess_command_error"

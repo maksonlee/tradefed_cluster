@@ -206,6 +206,7 @@ class CommandAttemptMessage(messages.Message):
     end_time: Time when the invocation completed.
     status: Status from command event for attempt. Used to log exceptions.
     error: Error from command event for attempt. User friendly error message.
+    subprocess_command_error: Error from a subprocess command if exists.
     summary: Summary from command event for attempt. Usually a sponge link.
     total_test_count: Number of total test case.
     failed_test_count: Number of failed test case.
@@ -234,19 +235,20 @@ class CommandAttemptMessage(messages.Message):
   end_time = message_types.DateTimeField(9)
   status = messages.StringField(10)
   error = messages.StringField(11)
-  summary = messages.StringField(12)
-  total_test_count = messages.IntegerField(13)
-  failed_test_count = messages.IntegerField(14)
-  passed_test_count = messages.IntegerField(15)
-  create_time = message_types.DateTimeField(16)
-  update_time = message_types.DateTimeField(17)
-  error_reason = messages.StringField(18)
-  error_type = messages.EnumField(common.CommandErrorType, 19)
-  failed_test_run_count = messages.IntegerField(20)
-  device_serials = messages.StringField(21, repeated=True)
-  device_lost_detected = messages.IntegerField(22)
-  run_index = messages.IntegerField(23)
-  attempt_index = messages.IntegerField(24)
+  subprocess_command_error = messages.StringField(12)
+  summary = messages.StringField(13)
+  total_test_count = messages.IntegerField(14)
+  failed_test_count = messages.IntegerField(15)
+  passed_test_count = messages.IntegerField(16)
+  create_time = message_types.DateTimeField(17)
+  update_time = message_types.DateTimeField(18)
+  error_reason = messages.StringField(19)
+  error_type = messages.EnumField(common.CommandErrorType, 20)
+  failed_test_run_count = messages.IntegerField(21)
+  device_serials = messages.StringField(22, repeated=True)
+  device_lost_detected = messages.IntegerField(23)
+  run_index = messages.IntegerField(24)
+  attempt_index = messages.IntegerField(25)
 
 
 class CommandAttemptMessageCollection(messages.Message):

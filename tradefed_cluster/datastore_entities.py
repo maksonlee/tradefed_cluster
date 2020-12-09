@@ -464,6 +464,7 @@ class CommandAttempt(ndb.Model):
     update_time: time when the command attempt was last updated.
     status: command attempt status.
     error: error message of the command attempt if it has error.
+    subprocess_command_error: an error from a subprocess command if exists.
     summary: a summary of the command attempt.
     total_test_count: total test count in the command attempt.
     failed_test_count: failed test count in the command attempt.
@@ -495,6 +496,7 @@ class CommandAttempt(ndb.Model):
   update_time = ndb.DateTimeProperty(auto_now=True)
   status = ndb.StringProperty()
   error = ndb.TextProperty()
+  subprocess_command_error = ndb.TextProperty()
   summary = ndb.TextProperty()
   total_test_count = ndb.IntegerProperty()
   failed_test_count = ndb.IntegerProperty()
@@ -528,6 +530,7 @@ def CommandAttemptToMessage(command_attempt):
       end_time=command_attempt.end_time,
       status=command_attempt.status,
       error=command_attempt.error,
+      subprocess_command_error=command_attempt.subprocess_command_error,
       summary=command_attempt.summary,
       total_test_count=command_attempt.total_test_count,
       failed_test_count=command_attempt.failed_test_count,

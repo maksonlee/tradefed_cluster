@@ -616,6 +616,9 @@ def _UpdateCommandAttemptEntity(attempt_entity, event):
   attempt_entity.error_reason = (
       event.error_reason or attempt_entity.error_reason)
   attempt_entity.error_type = event.error_type or attempt_entity.error_type
+  attempt_entity.subprocess_command_error = (
+      event.subprocess_command_error or
+      attempt_entity.subprocess_command_error)
   attempt_entity.summary = event.summary or attempt_entity.summary
   if event.total_test_count is not None:
     attempt_entity.total_test_count = event.total_test_count

@@ -26,7 +26,7 @@ import six
 from tradefed_cluster import common
 
 
-Device = namedtuple('Device', ['device_serial', 'run_target'])
+Device = namedtuple('Device', ['device_serial', 'run_target', 'attributes'])
 
 
 RunTarget = namedtuple('RunTarget', ['name', 'group', 'devices'])
@@ -108,10 +108,27 @@ class CommandTaskMatcher(object):
           RunTarget(name=d.run_target, group=group, devices={}))
       run_target.devices[d.device_serial] = Device(
           device_serial=d.device_serial,
-          run_target=run_target)
+          run_target=run_target,
+          attributes=self._GetDeviceAttributes(d))
     if group.run_targets:
       return group
     return None
+
+  def _GetDeviceAttributes(self, device):
+    """Get device's attributes.
+
+    Args:
+      device: a message.DeviceInfo.
+    Returns:
+      device's attributes that can be used to schedule tests.
+    """
+    # TODO: To start with we only allow limit device attributes
+    # for scheduling tests, we will make it more flexible later.
+    attributes = {}
+    attributes['sim_state'] = device.sim_state
+    attributes['device_serial'] = device.device_serial
+    attributes['hostname'] = device.hostname
+    return attributes
 
   def _BuildRunTargetIndex(self, groups):
     """Build run target to devices map.
@@ -150,6 +167,9 @@ class CommandTaskMatcher(object):
     Returns:
       a list of matched devices
     """
+    # TODO: Attributes based test match only support
+    # type1 test, e.g. single device tests. Add support for multi-device
+    # test later.
     if len(command_task.test_bench.host.groups) == 1:
       if len(command_task.test_bench.host.groups[0].run_targets) == 1:
         # type1 test
@@ -173,9 +193,30 @@ class CommandTaskMatcher(object):
     """
     run_target = command_task.run_targets[0]
     devices = self._run_target_index.get(run_target)
-    if devices:
-      return [next(six.itervalues(devices))]
+    for device in six.itervalues(devices):
+      if self._MatchDeviceAttributes(
+          (command_task.test_bench.host.groups[0].run_targets[0]
+           .device_attributes),
+          device.attributes):
+        return [device]
     return None
+
+  def _MatchDeviceAttributes(self, required_attributes, device_attributes):
+    """Check if a device's attributes match the task's requirements.
+
+    Args:
+      required_attributes: a list of datastore_entities.Attribute.
+      device_attributes: a map of device's attribute name to its value.
+    Returns:
+      True if the device meet the requirements, otherwise False.
+    """
+    if not required_attributes:
+      return True
+    for required_attribute in required_attributes:
+      if (device_attributes.get(required_attribute.name, None) !=
+          required_attribute.value):
+        return False
+    return True
 
   def _MatchType2(self, command_task):
     """Match type2 test.
@@ -287,8 +328,9 @@ class CommandTaskMatcher(object):
       if not group:
         continue
       # delete all devices under the group from the _run_target_index
-      for d in self._ListGroupDevices(group):
-        self._run_target_index[d.run_target.name].pop(d.device_serial)
+      for d_in_group in self._ListGroupDevices(group):
+        self._run_target_index[d_in_group.run_target.name].pop(
+            d_in_group.device_serial)
 
   def GetRunTargets(self):
     """Get all run targets in this host.

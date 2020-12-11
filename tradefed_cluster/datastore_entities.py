@@ -1178,6 +1178,17 @@ class SnapshotJobResult(ndb.Model):
     return cls.query().filter(cls.report_date == report_date).get()
 
 
+class Attribute(ndb.Model):
+  """Device attribute requirement.
+
+  Attributes:
+    name: attribute's name.
+    value: attribute's value.
+  """
+  name = ndb.StringProperty()
+  value = ndb.StringProperty()
+
+
 class RunTarget(ndb.Model):
   """RunTarget model.
 
@@ -1185,8 +1196,11 @@ class RunTarget(ndb.Model):
 
   Attributes:
     name: run target's name
+    device_attributes: other than run target what device attribute the test task
+        requires.
   """
   name = ndb.StringProperty()
+  device_attributes = ndb.LocalStructuredProperty(Attribute, repeated=True)
 
 
 class Group(ndb.Model):

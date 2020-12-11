@@ -496,6 +496,9 @@ class DeviceInfo(messages.Message):
     group_name: Device group name.
     sim_state: State of the SIM.
     sim_operator: Operator of the SIM.
+    extra_info: a key value list for device's extra info.
+    flated_extra_info: a list representation of extra_info,
+        each element is "key=value".
     test_harness: test harness the device is running under.
     recovery_state: recovery state for the host, e.g. assigned, fixed, verified.
     last_recovery_time: the last time the device gets recovered.
@@ -525,8 +528,9 @@ class DeviceInfo(messages.Message):
   sim_state = messages.StringField(22)
   sim_operator = messages.StringField(23)
   extra_info = messages.MessageField(KeyValuePair, 24, repeated=True)
-  test_harness = messages.StringField(25)
-  flated_extra_info = messages.StringField(26, repeated=True)
+  # TODO: Change to flattened_extra_info.
+  flated_extra_info = messages.StringField(25, repeated=True)
+  test_harness = messages.StringField(26)
   recovery_state = messages.StringField(27)
   last_recovery_time = message_types.DateTimeField(28)
 

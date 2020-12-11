@@ -34,14 +34,16 @@ HOSTNAME = 'hostname'
 class CommandTaskMatcherTest(unittest.TestCase):
 
   def _CreateDeviceInfo(self, serial, run_target, group_name,
-                        state=common.DeviceState.AVAILABLE):
+                        state=common.DeviceState.AVAILABLE,
+                        sim_state=None):
     return api_messages.DeviceInfo(
         device_serial=serial,
         hostname=HOSTNAME,
         run_target=run_target,
         state=state,
         group_name=group_name,
-        cluster=CLUSTER)
+        cluster=CLUSTER,
+        sim_state=sim_state)
 
   def _CreateHostInfo(self, device_infos):
     return api_messages.HostInfo(
@@ -54,19 +56,15 @@ class CommandTaskMatcherTest(unittest.TestCase):
 
     Args:
       task_id: task id
-      groups: a list of lists of run target names
+      groups: a list of lists of datastore_entities.RunTarget objects
     Returns:
       CommandTask
     """
     test_bench = datastore_entities.TestBench(
         cluster=CLUSTER,
-        host=datastore_entities.Host(
-            groups=[]))
+        host=datastore_entities.Host(groups=[]))
     for run_targets in groups:
-      group = datastore_entities.Group(
-          run_targets=[
-              datastore_entities.RunTarget(name=run_target)
-              for run_target in run_targets])
+      group = datastore_entities.Group(run_targets=run_targets)
       test_bench.host.groups.append(group)
     return datastore_entities.CommandTask(
         task_id=task_id,
@@ -128,11 +126,55 @@ class CommandTaskMatcherTest(unittest.TestCase):
          self._CreateDeviceInfo('d2', 'run_target2', 'g1'),
          self._CreateDeviceInfo('d3', 'run_target1', 'g2')])
     matcher = command_task_matcher.CommandTaskMatcher(host)
-    task = self._CreateCommandTask('1', [['run_target2']])
+    task = self._CreateCommandTask(
+        '1', [[datastore_entities.RunTarget(name='run_target2')]])
     matched_devices = matcher.Match(task)
     self.assertEqual(1, len(matched_devices))
     d = matched_devices[0]
     self.assertEqual('d2', d.device_serial)
+
+  def testMatchType1Test_withAttribute(self):
+    host = self._CreateHostInfo(
+        [self._CreateDeviceInfo('d1', 'run_target1', 'g1'),
+         self._CreateDeviceInfo('d2', 'run_target2', 'g1'),
+         self._CreateDeviceInfo('d3', 'run_target1', 'g2', sim_state='READY')])
+    matcher = command_task_matcher.CommandTaskMatcher(host)
+    task = self._CreateCommandTask(
+        '1',
+        [[
+            datastore_entities.RunTarget(
+                name='run_target1',
+                device_attributes=[
+                    datastore_entities.Attribute(
+                        name='sim_state', value='READY')]
+                )
+        ]])
+    matched_devices = matcher.Match(task)
+    self.assertEqual(1, len(matched_devices))
+    d = matched_devices[0]
+    self.assertEqual('d3', d.device_serial)
+    self.assertEqual('READY', d.attributes['sim_state'])
+
+  def testMatchType1Test_withDeviceSerial(self):
+    host = self._CreateHostInfo(
+        [self._CreateDeviceInfo('d1', 'run_target1', 'g1'),
+         self._CreateDeviceInfo('d2', 'run_target2', 'g1'),
+         self._CreateDeviceInfo('d3', 'run_target1', 'g2')])
+    matcher = command_task_matcher.CommandTaskMatcher(host)
+    task = self._CreateCommandTask(
+        '1',
+        [[
+            datastore_entities.RunTarget(
+                name='run_target1',
+                device_attributes=[
+                    datastore_entities.Attribute(
+                        name='device_serial', value='d3')]
+                )
+        ]])
+    matched_devices = matcher.Match(task)
+    self.assertEqual(1, len(matched_devices))
+    d = matched_devices[0]
+    self.assertEqual('d3', d.device_serial)
 
   def testMatchType2Test(self):
     host = self._CreateHostInfo(
@@ -140,8 +182,10 @@ class CommandTaskMatcherTest(unittest.TestCase):
          self._CreateDeviceInfo('d2', 'run_target2', 'g1'),
          self._CreateDeviceInfo('d3', 'run_target1', 'g2')])
     matcher = command_task_matcher.CommandTaskMatcher(host)
-    task = self._CreateCommandTask('1', [['run_target1', 'run_target2']])
-
+    task = self._CreateCommandTask(
+        '1',
+        [[datastore_entities.RunTarget(name='run_target1'),
+          datastore_entities.RunTarget(name='run_target2')]])
     matched_devices = matcher.Match(task)
     self.assertEqual(2, len(matched_devices))
     d1 = matched_devices[0]
@@ -155,8 +199,10 @@ class CommandTaskMatcherTest(unittest.TestCase):
         [self._CreateDeviceInfo('d1', 'run_target1', 'g1'),
          self._CreateDeviceInfo('d2', 'run_target2', 'g2')])
     matcher = command_task_matcher.CommandTaskMatcher(host)
-    task = self._CreateCommandTask('1', [['run_target1', 'run_target2']])
-
+    task = self._CreateCommandTask(
+        '1',
+        [[datastore_entities.RunTarget(name='run_target1'),
+          datastore_entities.RunTarget(name='run_target2')]])
     matched_devices = matcher.Match(task)
     self.assertIsNone(matched_devices)
 
@@ -167,8 +213,10 @@ class CommandTaskMatcherTest(unittest.TestCase):
          self._CreateDeviceInfo('d3', 'run_target3', 'g2'),
          self._CreateDeviceInfo('d4', 'run_target4', 'g2')])
     matcher = command_task_matcher.CommandTaskMatcher(host)
-    task = self._CreateCommandTask('1', [['run_target1'], ['run_target3']])
-
+    task = self._CreateCommandTask(
+        '1',
+        [[datastore_entities.RunTarget(name='run_target1')],
+         [datastore_entities.RunTarget(name='run_target3')]])
     matched_devices = matcher.Match(task)
     self.assertEqual(2, len(matched_devices))
     d1 = matched_devices[0]
@@ -184,7 +232,10 @@ class CommandTaskMatcherTest(unittest.TestCase):
          self._CreateDeviceInfo('d3', 'run_target3', 'g2'),
          self._CreateDeviceInfo('d4', 'run_target4', 'g2')])
     matcher = command_task_matcher.CommandTaskMatcher(host)
-    task = self._CreateCommandTask('1', [['run_target1'], ['run_target3']])
+    task = self._CreateCommandTask(
+        '1',
+        [[datastore_entities.RunTarget(name='run_target1')],
+         [datastore_entities.RunTarget(name='run_target3')]])
     matched_devices = matcher.Match(task)
     matcher.RemoveDeviceGroups(matched_devices)
     self.assertEqual(2, len(matched_devices))
@@ -194,7 +245,8 @@ class CommandTaskMatcherTest(unittest.TestCase):
         set(['d1', 'd3']),
         set([d1.device_serial, d2.device_serial]))
     # task2 can not be matched because g1 is already in use.
-    task2 = self._CreateCommandTask('1', [['run_target2']])
+    task2 = self._CreateCommandTask(
+        '1', [[datastore_entities.RunTarget(name='run_target2')]])
     matched_devices = matcher.Match(task2)
     self.assertIsNone(matched_devices)
 
@@ -205,7 +257,10 @@ class CommandTaskMatcherTest(unittest.TestCase):
          self._CreateDeviceInfo('d3', 'run_target3', 'g2'),
          self._CreateDeviceInfo('d4', 'run_target4', 'g2')])
     matcher = command_task_matcher.CommandTaskMatcher(host)
-    task = self._CreateCommandTask('1', [['run_target1'], ['run_target2']])
+    task = self._CreateCommandTask(
+        '1',
+        [[datastore_entities.RunTarget(name='run_target1')],
+         [datastore_entities.RunTarget(name='run_target2')]])
 
     matched_devices = matcher.Match(task)
     self.assertIsNone(matched_devices)
@@ -216,7 +271,8 @@ class CommandTaskMatcherTest(unittest.TestCase):
          self._CreateDeviceInfo('d2', 'run_target2', 'g1'),
          self._CreateDeviceInfo('d3', 'run_target1', 'g2')])
     matcher = command_task_matcher.CommandTaskMatcher(host)
-    task = self._CreateCommandTask('2', [['run_target2']])
+    task = self._CreateCommandTask(
+        '2', [[datastore_entities.RunTarget(name='run_target2')]])
     matched_devices = matcher.Match(task)
     self.assertEqual(1, len(matched_devices))
     d = matched_devices[0]
@@ -236,7 +292,10 @@ class CommandTaskMatcherTest(unittest.TestCase):
          self._CreateDeviceInfo('d3', 'run_target3', 'g1'),
          self._CreateDeviceInfo('d4', 'run_target1', 'g2')])
     matcher = command_task_matcher.CommandTaskMatcher(host)
-    task = self._CreateCommandTask('1', [['run_target1', 'run_target2']])
+    task = self._CreateCommandTask(
+        '1',
+        [[datastore_entities.RunTarget(name='run_target1'),
+          datastore_entities.RunTarget(name='run_target2')]])
     matched_devices = matcher.Match(task)
     self.assertEqual(2, len(matched_devices))
 
@@ -256,7 +315,10 @@ class CommandTaskMatcherTest(unittest.TestCase):
          self._CreateDeviceInfo('d3', 'run_target3', 'g2'),
          self._CreateDeviceInfo('d4', 'run_target4', 'g2')])
     matcher = command_task_matcher.CommandTaskMatcher(host)
-    task = self._CreateCommandTask('1', [['run_target1'], ['run_target3']])
+    task = self._CreateCommandTask(
+        '1',
+        [[datastore_entities.RunTarget(name='run_target1')],
+         [datastore_entities.RunTarget(name='run_target3')]])
     matched_devices = matcher.Match(task)
     self.assertEqual(2, len(matched_devices))
 

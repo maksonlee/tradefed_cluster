@@ -222,8 +222,8 @@ class CommandTaskApi(remote.Service):
               self._EnsureCommandBeingActive(command))
     else:
       # Command has been deleted.
-      logging.warn("Command with id [%s %s] does not exist. Deleting leased "
-                   "task [%s].", request_id, command_id, task_id)
+      logging.warning("Command with id [%s %s] does not exist. Deleting leased "
+                      "task [%s].", request_id, command_id, task_id)
       command_manager.DeleteTask(task_id)
     return False
 
@@ -258,10 +258,11 @@ class CommandTaskApi(remote.Service):
     if (request.state == common.RequestState.CANCELED
         or command.state == common.CommandState.CANCELED):
       # There should not be any tasks in the queue.
-      logging.warn("Request [%s] and command [%s] are inconsistent with tasks.",
-                   request_id, command_id)
+      logging.warning(
+          "Request [%s] and command [%s] are inconsistent with tasks.",
+          request_id, command_id)
       if not common.IsFinalRequestState(request.state):
-        logging.warn(
+        logging.warning(
             "Ensure request consistency, cancelling request [%s].",
             request_id)
         request_manager.CancelRequest(
@@ -269,7 +270,7 @@ class CommandTaskApi(remote.Service):
             # TODO: rename cancel_reason to be more accurate
             cancel_reason=common.CancelReason.COMMAND_ALREADY_CANCELED)
       if not common.IsFinalCommandState(command.state):
-        logging.warn(
+        logging.warning(
             "Ensure request consistency, cancelling command [%s %s].",
             request_id, command_id)
         command_manager.Cancel(

@@ -558,6 +558,7 @@ class Note(ndb.Model):
     cluster_id: The cluster id, if the note is attached to a cluster.
     hostname: The hostname, if the note is attached to a host.
     device_serial: The device serial, if the note is attached to a device.
+    event_time: The timestamp when offline/recovery event happens.
   """
   user = ndb.StringProperty()
   timestamp = ndb.DateTimeProperty()
@@ -568,6 +569,7 @@ class Note(ndb.Model):
   cluster_id = ndb.StringProperty()
   hostname = ndb.StringProperty()
   device_serial = ndb.StringProperty()
+  event_time = ndb.DateTimeProperty()
 
 
 @MessageConverter(Note)
@@ -586,7 +588,8 @@ def NoteToMessage(note_entity):
       type=note_entity.type,
       cluster_id=note_entity.cluster_id,
       hostname=note_entity.hostname,
-      device_serial=note_entity.device_serial)
+      device_serial=note_entity.device_serial,
+      event_time=note_entity.event_time)
 
 
 class ClusterNote(ndb.Model):

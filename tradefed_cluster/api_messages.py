@@ -417,6 +417,7 @@ class Note(messages.Message):
   cluster_id = messages.StringField(8)
   hostname = messages.StringField(9)
   device_serial = messages.StringField(10)
+  event_time = message_types.DateTimeField(11)
 
 
 class NoteCollection(messages.Message):
@@ -447,6 +448,7 @@ class BatchUpdateNotesWithPredefinedMessageRequest(messages.Message):
   recovery_action_id = messages.IntegerField(6)
   lab_name = messages.StringField(7)
   user = messages.StringField(8)
+  event_time = message_types.DateTimeField(9)
 
 
 class DeviceStateHistory(messages.Message):

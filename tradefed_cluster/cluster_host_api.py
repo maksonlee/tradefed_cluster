@@ -312,6 +312,7 @@ class ClusterHostApi(remote.Service):
       offline_reason_id=messages.IntegerField(7),
       recovery_action_id=messages.IntegerField(8),
       lab_name=messages.StringField(9),
+      event_time=message_types.DateTimeField(10),
   )
 
   @endpoints.method(
@@ -338,7 +339,10 @@ class ClusterHostApi(remote.Service):
         hostname=request.hostname,
         type=common.NoteType.HOST_NOTE)
     host_note_entity.populate(
-        user=request.user, message=request.message, timestamp=time_now)
+        user=request.user,
+        message=request.message,
+        timestamp=time_now,
+        event_time=request.event_time)
     entities_to_update = [host_note_entity]
 
     try:
@@ -409,7 +413,10 @@ class ClusterHostApi(remote.Service):
           hostname=note.hostname,
           type=common.NoteType.HOST_NOTE)
       host_note_entity.populate(
-          user=request.user, message=request.message, timestamp=time_now)
+          user=request.user,
+          message=request.message,
+          timestamp=time_now,
+          event_time=request.event_time)
       host_note_entities.append(host_note_entity)
 
     try:

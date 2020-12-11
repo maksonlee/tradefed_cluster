@@ -290,6 +290,7 @@ class ClusterDeviceApi(remote.Service):
       recovery_action_id=messages.IntegerField(8),
       lab_name=messages.StringField(9),
       hostname=messages.StringField(10),
+      event_time=message_types.DateTimeField(11),
   )
 
   @endpoints.method(
@@ -317,7 +318,10 @@ class ClusterDeviceApi(remote.Service):
         hostname=request.hostname,
         type=common.NoteType.DEVICE_NOTE)
     device_note_entity.populate(
-        user=request.user, message=request.message, timestamp=time_now)
+        user=request.user,
+        message=request.message,
+        timestamp=time_now,
+        event_time=request.event_time)
     entities_to_update = [device_note_entity]
 
     try:
@@ -399,7 +403,10 @@ class ClusterDeviceApi(remote.Service):
           hostname=note.hostname,
           type=common.NoteType.DEVICE_NOTE)
       device_note_entity.populate(
-          user=request.user, message=request.message, timestamp=time_now)
+          user=request.user,
+          message=request.message,
+          timestamp=time_now,
+          event_time=request.event_time)
       device_note_entities.append(device_note_entity)
 
     try:
@@ -540,7 +547,7 @@ class ClusterDeviceApi(remote.Service):
       http_method="GET",
       name="batchGetLatestNotesByDevice")
   @api_common.with_ndb_context
-  def BatchGetLastestNotesByDevice(self, request):
+  def BatchGetLatestNotesByDevice(self, request):
     """Batch get notes of a device.
 
     Args:

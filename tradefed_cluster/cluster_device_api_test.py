@@ -417,7 +417,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual('device_01',
                      device_collection.device_infos[0].device_serial)
 
-  def testBatchGetLastestNotesByDevice(self):
+  def testBatchGetLatestNotesByDevice(self):
     """Tests ListDevices returns all devices."""
     note_entities = [
         datastore_entities.Note(
@@ -453,7 +453,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         ]
     }
     api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.BatchGetLastestNotesByDevice', api_request)
+        '/_ah/api/ClusterDeviceApi.BatchGetLatestNotesByDevice', api_request)
     device_note_collection = protojson.decode_message(
         api_messages.NoteCollection, api_response.body)
     self.assertEqual('200 OK', api_response.status)
@@ -463,20 +463,8 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual('message_2',
                      device_note_collection.notes[1].message)
 
-  def testBatchGetLastestNotesByDevice_noNotesFound(self):
+  def testBatchGetLatestNotesByDevice_noNotesFound(self):
     """Tests ListDevices returns all devices."""
-    note_entities = [
-        datastore_entities.DeviceNote(
-            device_serial=self.ndb_device_3.device_serial,
-            note=datastore_entities.Note(
-                timestamp=datetime.datetime(1929, 10, 28),
-                message='message_0')),
-        datastore_entities.DeviceNote(
-            device_serial=self.ndb_device_3.device_serial,
-            note=datastore_entities.Note(
-                timestamp=datetime.datetime(2020, 3, 12), message='message_1')),
-    ]
-    ndb.put_multi(note_entities)
     api_request = {
         'device_serials': [
             self.ndb_device_2.device_serial,
@@ -484,7 +472,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         ]
     }
     api_response = self.testapp.post_json(
-        '/_ah/api/ClusterDeviceApi.BatchGetLastestNotesByDevice', api_request)
+        '/_ah/api/ClusterDeviceApi.BatchGetLatestNotesByDevice', api_request)
     device_note_collection = protojson.decode_message(
         api_messages.NoteCollection, api_response.body)
     self.assertEqual('200 OK', api_response.status)
@@ -702,6 +690,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         'offline_reason': 'offline-reason-1',
         'recovery_action': 'recovery-action-1',
         'lab_name': self.ndb_device_0.lab_name,
+        'event_time': self.TIMESTAMP.isoformat(),
     }
     api_response = self.testapp.post_json(
         '/_ah/api/ClusterDeviceApi.AddOrUpdateNote', api_request)
@@ -723,6 +712,8 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual(api_request['offline_reason'], device_note.offline_reason)
     self.assertEqual(api_request['recovery_action'],
                      device_note.recovery_action)
+    self.assertEqual(api_request['event_time'],
+                     device_note.event_time.isoformat())
     # Assert PredefinedMessage entities are written into datastore.
     self.assertIsNotNone(datastore_entities.PredefinedMessage.query().filter(
         datastore_entities.PredefinedMessage.content ==
@@ -754,6 +745,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         'offline_reason': 'offline-reason-1',
         'recovery_action': 'recovery-action-1',
         'lab_name': self.ndb_device_0.lab_name,
+        'event_time': self.TIMESTAMP_0.isoformat(),
     }
     api_response_1 = self.testapp.post_json(
         '/_ah/api/ClusterDeviceApi.AddOrUpdateNote', api_request_1)
@@ -770,6 +762,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         'offline_reason': 'offline-reason-2',
         'recovery_action': 'recovery-action-2',
         'lab_name': new_lab_name,
+        'event_time': self.TIMESTAMP_1.isoformat(),
     }
     api_response_2 = self.testapp.post_json(
         '/_ah/api/ClusterDeviceApi.AddOrUpdateNote', api_request_2)
@@ -793,6 +786,8 @@ class ClusterDeviceApiTest(api_test.ApiTest):
                      device_note_2.offline_reason)
     self.assertEqual(api_request_2['recovery_action'],
                      device_note_2.recovery_action)
+    self.assertEqual(api_request_2['event_time'],
+                     device_note_2.event_time.isoformat())
     # Side Effect: Assert DeviceInfoHistory is written into datastore.
     histories = list(
         datastore_entities.DeviceInfoHistory.query(
@@ -817,11 +812,12 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         'offline_reason': 'offline-reason-1',
         'recovery_action': 'recovery-action-1',
         'lab_name': 'lab-name-1',
+        'event_time': self.TIMESTAMP_1.isoformat(),
     }
     api_response_1 = self.testapp.post_json(
         '/_ah/api/ClusterDeviceApi.AddOrUpdateNote', api_request_1)
     self.assertEqual('200 OK', api_response_1.status)
-    device_note_1 = protojson.decode_message(api_messages.DeviceNote,
+    device_note_1 = protojson.decode_message(api_messages.Note,
                                              api_response_1.body)
     api_request_2 = {
         'id': int(device_note_1.id),
@@ -831,11 +827,12 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         'offline_reason': 'offline-reason-1',
         'recovery_action': 'recovery-action-1',
         'lab_name': 'lab-name-1',
+        'event_time': self.TIMESTAMP_1.isoformat(),
     }
     api_response_2 = self.testapp.post_json(
         '/_ah/api/ClusterDeviceApi.AddOrUpdateNote', api_request_2)
     self.assertEqual('200 OK', api_response_1.status)
-    device_note_2 = protojson.decode_message(api_messages.DeviceNote,
+    device_note_2 = protojson.decode_message(api_messages.Note,
                                              api_response_2.body)
     # Assert two requests modified the same datastore entity.
     self.assertEqual(device_note_1.id, device_note_2.id)
@@ -848,6 +845,8 @@ class ClusterDeviceApiTest(api_test.ApiTest):
                      device_note_2.offline_reason)
     self.assertEqual(api_request_2['recovery_action'],
                      device_note_2.recovery_action)
+    self.assertEqual(api_request_2['event_time'],
+                     device_note_2.event_time.isoformat())
     # Side Effect: Assert PredefinedMessage is created only in first call.
     predefine_messages = list(datastore_entities.PredefinedMessage.query(
         datastore_entities.PredefinedMessage.lab_name == 'lab-name-1').fetch())
@@ -884,6 +883,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         'offline_reason_id': 111,
         'recovery_action_id': 222,
         'lab_name': self.ndb_device_0.lab_name,
+        'event_time': self.TIMESTAMP_1.isoformat(),
     }
     api_response = self.testapp.post_json(
         '/_ah/api/ClusterDeviceApi.AddOrUpdateNote', api_request)
@@ -904,6 +904,8 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual(api_request['message'], device_note.message)
     self.assertEqual(offline_reason, device_note.offline_reason)
     self.assertEqual(recovery_action, device_note.recovery_action)
+    self.assertEqual(api_request['event_time'],
+                     device_note.event_time.isoformat())
     # Assert PredefinedMessage used_count fields are updated.
     self.assertEqual(3, offline_reason_key.get().used_count)
     self.assertEqual(6, recovery_action_key.get().used_count)
@@ -950,6 +952,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         'message': 'message-1',
         'recovery_action_id': 111,
         'lab_name': lab_name,
+        'event_time': self.TIMESTAMP_1.isoformat(),
     }
     api_response = self.testapp.post_json(
         '/_ah/api/ClusterDeviceApi.AddOrUpdateNote',
@@ -963,6 +966,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         'message': 'message-1',
         'offline_reason_id': 333,
         'lab_name': lab_name,
+        'event_time': self.TIMESTAMP_1.isoformat(),
     }
     api_response = self.testapp.post_json(
         '/_ah/api/ClusterDeviceApi.AddOrUpdateNote',
@@ -975,11 +979,18 @@ class ClusterDeviceApiTest(api_test.ApiTest):
       self, mock_publish_device_note_message):
     """Tests updating notes with the same content and PredefinedMessage."""
     api_request = {
-        'user': 'user-1',
-        'message': 'message-1',
-        'offline_reason': 'offline_reason-1',
-        'recovery_action': 'recovery_action-1',
-        'lab_name': 'lab-1',
+        'user':
+            'user-1',
+        'message':
+            'message-1',
+        'offline_reason':
+            'offline_reason-1',
+        'recovery_action':
+            'recovery_action-1',
+        'lab_name':
+            'lab-1',
+        'event_time':
+            self.TIMESTAMP.isoformat(),
         'notes': [
             {
                 'device_serial': self.ndb_device_0.device_serial,
@@ -1026,6 +1037,9 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual('recovery_action-1', note_msgs[0].recovery_action)
     self.assertEqual('recovery_action-1', note_msgs[1].recovery_action)
     self.assertEqual('recovery_action-1', note_msgs[2].recovery_action)
+    self.assertEqual(self.TIMESTAMP, note_msgs[0].event_time)
+    self.assertEqual(self.TIMESTAMP, note_msgs[1].event_time)
+    self.assertEqual(self.TIMESTAMP, note_msgs[2].event_time)
 
     # Side Effect: Assert each PredefinedMessage is created only once.
     offline_reasons = list(
@@ -1121,10 +1135,16 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     ]
     keys = ndb.put_multi(existing_entities)
     api_request = {
-        'user': 'user-1',
-        'message': 'message-1',
-        'offline_reason_id': str(keys[1].id()),
-        'recovery_action_id': str(keys[2].id()),
+        'user':
+            'user-1',
+        'message':
+            'message-1',
+        'offline_reason_id':
+            str(keys[1].id()),
+        'recovery_action_id':
+            str(keys[2].id()),
+        'event_time':
+            self.TIMESTAMP.isoformat(),
         'notes': [
             {
                 'id': str(keys[0].id()),
@@ -1170,6 +1190,9 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual('recovery_action-1', note_msgs[0].recovery_action)
     self.assertEqual('recovery_action-1', note_msgs[1].recovery_action)
     self.assertEqual('recovery_action-1', note_msgs[2].recovery_action)
+    self.assertEqual(self.TIMESTAMP, note_msgs[0].event_time)
+    self.assertEqual(self.TIMESTAMP, note_msgs[1].event_time)
+    self.assertEqual(self.TIMESTAMP, note_msgs[2].event_time)
 
     # Side Effect: Assert each PredefinedMessage is created only once.
     offline_reasons = list(

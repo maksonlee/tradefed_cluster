@@ -306,15 +306,17 @@ class ApiMessagesTest(api_test.ApiTest):
 
   def testNoteFromEntity(self):
     """Tests converting a Note datastore entity a corresponding message."""
-    note_entity = datastore_entities.Note(user='user0',
-                                          timestamp=TIMESTAMP,
-                                          message='Hello, World',
-                                          offline_reason='something reasonable',
-                                          recovery_action='press the button',
-                                          type=common.NoteType.UNKNOWN,
-                                          cluster_id='acluser',
-                                          hostname='ahost',
-                                          device_serial='adevice')
+    note_entity = datastore_entities.Note(
+        user='user0',
+        timestamp=TIMESTAMP,
+        message='Hello, World',
+        offline_reason='something reasonable',
+        recovery_action='press the button',
+        type=common.NoteType.UNKNOWN,
+        cluster_id='acluser',
+        hostname='ahost',
+        device_serial='adevice',
+        event_time=TIMESTAMP)
     note_message = datastore_entities.ToMessage(note_entity)
     self.assertIsNone(note_message.id)
     self.assertEqual(note_entity.user, note_message.user)
@@ -326,6 +328,7 @@ class ApiMessagesTest(api_test.ApiTest):
     self.assertEqual(note_entity.cluster_id, note_message.cluster_id)
     self.assertEqual(note_entity.hostname, note_message.hostname)
     self.assertEqual(note_entity.device_serial, note_message.device_serial)
+    self.assertEqual(note_entity.event_time, note_message.event_time)
 
   def testNoteFromEntity_withId(self):
     note_entity = datastore_entities.Note(

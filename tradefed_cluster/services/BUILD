@@ -25,6 +25,7 @@ py2and3_test(
         ":app_manager_lib",
         third_party("absl/testing:absltest"),
         third_party("mock"),
+        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],
 )
 
@@ -50,6 +51,7 @@ py2and3_test(
         ":file_storage_lib",
         third_party("absl/testing:absltest"),
         third_party("mock"),
+        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],
 )
 
@@ -74,6 +76,7 @@ py2and3_test(
         ":mailer_lib",
         third_party("absl/testing:absltest"),
         third_party("mock"),
+        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],
 )
 
@@ -99,6 +102,7 @@ py2and3_test(
     ],
     deps = [
         ":task_scheduler_lib",
+        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster:env_config_lib",
         "//tradefed_cluster:testbed_dependent_test_lib",
         "//tradefed_cluster/util:ndb_shim_lib",

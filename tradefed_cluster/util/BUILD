@@ -50,6 +50,7 @@ py2and3_test(
     deps = [
         ":email_sender_lib",
         third_party("mock"),
+        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster:testbed_dependent_test_lib",
     ],
 )
@@ -91,6 +92,7 @@ py2and3_test(
     ],
     deps = [
         ":pubsub_client_lib",
+        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster:testbed_dependent_test_lib",
         third_party("mock"),
     ],
@@ -152,6 +154,7 @@ py2and3_test(
     deps = [
         ":datastore_emulator_lib",
         third_party("mock"),
+        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],
 )
 

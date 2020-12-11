@@ -21,6 +21,46 @@ from tradefed_cluster import datastore_entities
 from tradefed_cluster import testbed_dependent_test
 
 
+_JSON_RUN_TARGET_WITH_ATTRIBUTES = """
+{
+  "host": {
+    "groups": [{
+      "run_targets": [{
+        "name": "run_target6",
+          "device_attributes": [
+            {"name": "sim_state", "value": "READY"}
+          ]
+        }]
+      }]
+  }
+}
+"""
+
+_JSON_RUN_TARGETS_WITH_ATTRIBUTES = """
+{
+  "host": {
+    "groups": [{
+        "run_targets": [{
+            "name": "run_target7",
+            "device_attributes": [{"name": "sim_state", "value": "READY"}]
+          }, {
+            "name": "run_target8",
+            "device_attributes": [{"name": "sim_state", "value": "ABSENT"}]
+          }]
+      }, {
+        "run_targets": [{
+            "name": "run_target9",
+            "device_attributes": [{"name": "sim_state", "value": "READY"}]
+          }, {
+            "name": "run_target10",
+            "device_attributes": [{"name": "sim_state", "value": "ABSENT"}]
+          }]
+      }]
+  }
+}
+"""
+
+
 class TaskStoreTest(testbed_dependent_test.TestbedDependentTest):
   """Test cases for task store."""
 
@@ -50,6 +90,55 @@ class TaskStoreTest(testbed_dependent_test.TestbedDependentTest):
                     run_targets=[
                         datastore_entities.RunTarget(
                             name='run_target5')])]))
+    self.test_bench3_with_attributes = datastore_entities.TestBench(
+        cluster='cluster',
+        host=datastore_entities.Host(
+            groups=[
+                datastore_entities.Group(
+                    run_targets=[
+                        datastore_entities.RunTarget(
+                            name='run_target6',
+                            device_attributes=[
+                                datastore_entities.Attribute(
+                                    name='sim_state',
+                                    value='READY')
+                            ])])]))
+    self.test_bench4_with_attributes = datastore_entities.TestBench(
+        cluster='cluster',
+        host=datastore_entities.Host(
+            groups=[
+                datastore_entities.Group(
+                    run_targets=[
+                        datastore_entities.RunTarget(
+                            name='run_target7',
+                            device_attributes=[
+                                datastore_entities.Attribute(
+                                    name='sim_state',
+                                    value='READY')
+                            ]),
+                        datastore_entities.RunTarget(
+                            name='run_target8',
+                            device_attributes=[
+                                datastore_entities.Attribute(
+                                    name='sim_state',
+                                    value='ABSENT')
+                            ])]),
+                datastore_entities.Group(
+                    run_targets=[
+                        datastore_entities.RunTarget(
+                            name='run_target9',
+                            device_attributes=[
+                                datastore_entities.Attribute(
+                                    name='sim_state',
+                                    value='READY')
+                            ]),
+                        datastore_entities.RunTarget(
+                            name='run_target10',
+                            device_attributes=[
+                                datastore_entities.Attribute(
+                                    name='sim_state',
+                                    value='ABSENT')
+                            ])])]))
     self.command_task_args1 = command_task_store.CommandTaskArgs(
         request_id='request_id1',
         command_id='command_id1',
@@ -83,10 +172,6 @@ class TaskStoreTest(testbed_dependent_test.TestbedDependentTest):
     command_task_store.CreateTask(self.command_task_args1)
     command_task_store.CreateTask(self.command_task_args2)
 
-  def testGetTestBench(self):
-    test_bench = command_task_store._GetTestBench('cluster', 'run_target5')
-    self.assertEqual(self.test_bench2, test_bench)
-
   def testGetTask(self):
     task = command_task_store.GetTask('task_id1')
     self.assertEqual('task_id1', task.key.id())
@@ -101,10 +186,25 @@ class TaskStoreTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual('task_id1', tasks[0].key.id())
     self.assertEqual('task_id2', tasks[1].key.id())
 
-  def testGetTestBench_multipleRunTargets(self):
-    test_bench = command_task_store._GetTestBench(
+  def testGetLegacyTestBench(self):
+    test_bench = command_task_store._GetLegacyTestBench(
+        'cluster', 'run_target5')
+    self.assertEqual(self.test_bench2, test_bench)
+
+  def testGetLegacyTestBench_multipleRunTargets(self):
+    test_bench = command_task_store._GetLegacyTestBench(
         'cluster', 'run_target1,run_target2;run_target3,run_target4')
     self.assertEqual(self.test_bench1, test_bench)
+
+  def testGetTestBench(self):
+    test_bench = command_task_store._GetTestBench(
+        'cluster', _JSON_RUN_TARGET_WITH_ATTRIBUTES)
+    self.assertEqual(self.test_bench3_with_attributes, test_bench)
+
+  def testGetTestBench_multiDevice(self):
+    test_bench = command_task_store._GetTestBench(
+        'cluster', _JSON_RUN_TARGETS_WITH_ATTRIBUTES)
+    self.assertEqual(self.test_bench4_with_attributes, test_bench)
 
   def testCreateTask(self):
     task = command_task_store._Key('task_id1').get()

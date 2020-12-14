@@ -370,11 +370,6 @@ class ClusterDeviceApi(remote.Service):
 
     return device_note_msg
 
-  NOTES_BATCH_GET_RESOURCE = endpoints.ResourceContainer(
-      device_serial=messages.StringField(1, required=True),
-      ids=messages.IntegerField(2, repeated=True),
-  )
-
   @endpoints.method(
       api_messages.BatchUpdateNotesWithPredefinedMessageRequest,
       api_messages.NoteCollection,
@@ -464,6 +459,11 @@ class ClusterDeviceApi(remote.Service):
     return api_messages.NoteCollection(
         notes=note_msgs, more=False, next_cursor=None, prev_cursor=None)
 
+  NOTES_BATCH_GET_RESOURCE = endpoints.ResourceContainer(
+      device_serial=messages.StringField(1, required=True),
+      ids=messages.IntegerField(2, repeated=True),
+  )
+
   @endpoints.method(
       NOTES_BATCH_GET_RESOURCE,
       api_messages.NoteCollection,
@@ -495,6 +495,47 @@ class ClusterDeviceApi(remote.Service):
     ]
     return api_messages.NoteCollection(
         notes=note_msgs, more=False, next_cursor=None, prev_cursor=None)
+
+  NOTES_DELETE_RESOURCE = endpoints.ResourceContainer(
+      device_serial=messages.StringField(1, required=True),
+      ids=messages.IntegerField(2, repeated=True),
+  )
+
+  @endpoints.method(
+      NOTES_DELETE_RESOURCE,
+      message_types.VoidMessage,
+      path="{device_serial}/notes",
+      http_method="DELETE",
+      name="batchDeleteNotes")
+  @api_common.with_ndb_context
+  def BatchDeleteNotes(self, request):
+    """Delete notes of a device.
+
+    Args:
+      request: an API request.
+    Request Params:
+      device_serial: string, the serial of a lab device.
+      ids: a list of strings, the ids of notes to delete.
+
+    Returns:
+      a message_types.VoidMessage object.
+
+    Raises:
+      endpoints.BadRequestException, when request does not match existing notes.
+    """
+    keys = [
+        ndb.Key(datastore_entities.Note, entity_id)
+        for entity_id in request.ids
+    ]
+    note_entities = ndb.get_multi(keys)
+    for key, note_entity in zip(keys, note_entities):
+      if not note_entity or note_entity.device_serial != request.device_serial:
+        raise endpoints.BadRequestException(
+            "Note<id:{0}> does not exist under device<serial:{1}>.".format(
+                key.id(), note_entity.device_serial))
+    for key in keys:
+      key.delete()
+    return message_types.VoidMessage()
 
   NOTES_LIST_RESOURCE = endpoints.ResourceContainer(
       device_serial=messages.StringField(1, required=True),

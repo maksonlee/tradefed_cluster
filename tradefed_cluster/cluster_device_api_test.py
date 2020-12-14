@@ -1788,6 +1788,67 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual(note_msgs[1].recovery_action,
                      note_entities[1].recovery_action)
 
+  def testDeleteDeviceNotes(self):
+    note_entities = [
+        datastore_entities.Note(
+            type=common.NoteType.DEVICE_NOTE,
+            device_serial='device_1',
+            user='user1',
+            timestamp=datetime.datetime(1928, 1, 1),
+            message='message_1',
+            offline_reason='offline_reason_1',
+            recovery_action='recovery_action_1'),
+        datastore_entities.Note(
+            type=common.NoteType.DEVICE_NOTE,
+            device_serial='device_1',
+            user='user2',
+            timestamp=datetime.datetime(1918, 1, 1),
+            message='message_2',
+            offline_reason='offline_reason_2',
+            recovery_action='recovery_action_2'),
+        datastore_entities.Note(
+            type=common.NoteType.DEVICE_NOTE,
+            device_serial='device_1',
+            user='user3',
+            timestamp=datetime.datetime(1988, 1, 1),
+            message='message_3',
+            offline_reason='offline_reason_3',
+            recovery_action='recovery_action_3'),
+        datastore_entities.Note(
+            type=common.NoteType.DEVICE_NOTE,
+            device_serial='device_2',
+            user='user4',
+            timestamp=datetime.datetime(2008, 1, 1),
+            message='message_4',
+            offline_reason='offline_reason_4',
+            recovery_action='recovery_action_4'),
+    ]
+    keys = ndb.put_multi(note_entities)
+
+    # When the ID does not match device serial, none of notes will be deleted.
+    api_request = {
+        'device_serial': 'device_2',
+        'ids': [keys[0].id(), keys[1].id(), keys[3].id(), 100],
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterDeviceApi.BatchDeleteNotes', api_request,
+        expect_errors=True)
+    self.assertEqual('400 Bad Request', api_response.status)
+    self.assertLen(list(filter(None, ndb.get_multi(keys))), len(keys))
+
+    # When all IDs matches exactly, all requested notes get deleted.
+    api_request = {
+        'device_serial': 'device_1',
+        'ids': [keys[0].id(), keys[2].id()],
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterDeviceApi.BatchDeleteNotes', api_request)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertCountEqual([note_entities[1].key.id(),
+                           note_entities[3].key.id()],
+                          [entity.key.id() for entity in ndb.get_multi(keys)
+                           if entity])
+
   def testListDeviceHistories(self):
     """Tests ListHistories returns all device histories."""
     device_manager._CreateDeviceInfoHistory(self.ndb_device_0).put()

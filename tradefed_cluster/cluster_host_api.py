@@ -515,6 +515,47 @@ class ClusterHostApi(remote.Service):
       include_device_notes=messages.BooleanField(5, default=False),
   )
 
+  NOTES_DELETE_RESOURCE = endpoints.ResourceContainer(
+      hostname=messages.StringField(1, required=True),
+      ids=messages.IntegerField(2, repeated=True),
+  )
+
+  @endpoints.method(
+      NOTES_DELETE_RESOURCE,
+      message_types.VoidMessage,
+      path="{hostname}/notes",
+      http_method="DELETE",
+      name="batchDeleteNotes")
+  @api_common.with_ndb_context
+  def BatchDeleteNotes(self, request):
+    """Delete notes of a host.
+
+    Args:
+      request: an API request.
+    Request Params:
+      hostname: string, the name of a lab host.
+      ids: a list of strings, the ids of notes to delete.
+
+    Returns:
+      a message_types.VoidMessage object.
+
+    Raises:
+      endpoints.BadRequestException, when request does not match existing notes.
+    """
+    keys = [
+        ndb.Key(datastore_entities.Note, entity_id)
+        for entity_id in request.ids
+    ]
+    note_entities = ndb.get_multi(keys)
+    for key, note_entity in zip(keys, note_entities):
+      if not note_entity or note_entity.hostname != request.hostname:
+        raise endpoints.BadRequestException(
+            "Note<id:{0}> does not exist under host<{1}>.".format(
+                key.id(), note_entity.hostname))
+    for key in keys:
+      key.delete()
+    return message_types.VoidMessage()
+
   @endpoints.method(
       NOTES_LIST_RESOURCE,
       api_messages.NoteCollection,

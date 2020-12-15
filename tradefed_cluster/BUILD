@@ -142,16 +142,8 @@ pytype_strict_library(
     name = "app_lib",
     visibility = ["//visibility:public"],
     deps = [
-        ":api_lib",
-        ":command_event_handler_lib",
-        ":commander_lib",
-        ":config_syncer_gcs_to_ndb_lib",
-        ":device_history_cleaner_lib",
-        ":device_info_reporter_lib",
-        ":device_monitor_lib",
         ":env_config_lib",
-        ":notification_handler_lib",
-        ":notifier_lib",
+        ":server_lib",
         third_party("pytz"),
         "//tradefed_cluster/plugins:registry_lib",
         "//tradefed_cluster/util:env_util_lib",
@@ -1385,6 +1377,39 @@ py2and3_test(
         ":api_test_lib",
         ":datastore_test_util_lib",
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
+    ],
+)
+
+pytype_strict_library(
+    name = "server_lib",
+    srcs = [
+        "server.py",
+    ],
+    deps = [
+        ":api_lib",
+        ":command_event_handler_lib",
+        ":command_lib",
+        ":commander_lib",
+        ":config_syncer_gcs_to_ndb_lib",
+        ":device_history_cleaner_lib",
+        ":device_info_reporter_lib",
+        ":device_monitor_lib",
+        ":notification_handler_lib",
+        ":notifier_lib",
+        "//tradefed_cluster/services:task_scheduler_lib",
+    ],
+)
+
+py2and3_test(
+    name = "server_test",
+    srcs = [
+        "server_test.py",
+    ],
+    deps = [
+        ":server_lib",
+        third_party("absl/testing:absltest"),
+        third_party("mock"),
+        third_party("werkzeug"),
     ],
 )
 

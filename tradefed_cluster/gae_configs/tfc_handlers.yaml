@@ -13,44 +13,6 @@
 # limitations under the License.
 
 # Main handlers
-
 handlers:
-# A handler for callable task queues. See tradefed_cluster.services.task_scheduler.
-- url: /_ah/queue/(default|host-event-queue-ndb|notifcation-work-queue)
-  script: tradefed_cluster.services.task_scheduler.APP
-
-- url: /_ah/queue/command-attempt-sync-queue
-  script: tradefed_cluster.command_attempt_monitor.APP
-
-- url: /_ah/queue/command-event-queue
-  script: tradefed_cluster.command_event_handler.APP
-
-- url: /_ah/queue/command-sync-queue
-  script: tradefed_cluster.command_monitor.APP
-
-- url: /_ah/queue/host-sync-queue
-  script: tradefed_cluster.device_monitor.APP
-
-- url: /_ah/queue/request-state-notification-queue
-  script: tradefed_cluster.notifier.APP
-
-- url: /_ah/queue/test-request-queue
-  script: tradefed_cluster.commander.APP
-
-- url: /commander/.*
-  script: tradefed_cluster.commander.APP
-
-- url: /cron/monitor/devices/ndb
-  script: tradefed_cluster.device_monitor.APP
-
-- url: /cron/report/devices
-  script: tradefed_cluster.device_info_reporter.APP
-
-- url: /cron/cleanup/device_history
-  script: tradefed_cluster.device_history_cleaner.APP
-
-- url: /cron/notifier_update_request_status
-  script: tradefed_cluster.notification_handler.APP
-
-- url: /cron/syncer/sync_gcs_ndb
-  script: tradefed_cluster.config_syncer_gcs_to_ndb.APP
+- url: /.*
+  script: tradefed_cluster.server.TFC

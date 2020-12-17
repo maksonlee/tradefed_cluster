@@ -24,6 +24,7 @@ import json
 import unittest
 import zlib
 
+import endpoints
 import mock
 from protorpc import protojson
 from six.moves import range
@@ -35,6 +36,7 @@ from tradefed_cluster import command_manager
 from tradefed_cluster import command_monitor
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
+from tradefed_cluster import request_api
 from tradefed_cluster import request_manager
 from tradefed_cluster.util import ndb_shim as ndb
 
@@ -296,6 +298,30 @@ class RequestApiTest(api_test.ApiTest):
     self.assertEqual(request_msg.id, request_task['id'])
     self.assertEqual(command_line, request_task['command_line'])
     self.assertEqual('user', request_task['user'])
+
+  def testNewRequests_withTestBenchAttributes(self):
+    api_request = {
+        'user': 'user1',
+        'command_line': 'command_line1',
+        'cluster': 'cluster',
+        'run_target': 'run_target',
+        'test_bench_attributes': ['attr1=val1', 'attr2=val2'],
+    }
+
+    api_response = self.testapp.post_json('/_ah/api/RequestApi.NewRequest',
+                                          api_request)
+
+    return_request = protojson.decode_message(api_messages.RequestMessage,
+                                              api_response.body)
+    self.assertIsNotNone(return_request.id)
+    request_entity = request_manager.GetRequest(return_request.id)
+    run_target_json = json.loads(request_entity.run_target)
+    run_target_json = run_target_json['host']['groups'][0]['run_targets'][0]
+    self.assertEqual('run_target', run_target_json['name'])
+    self.assertEqual('attr1', run_target_json['device_attributes'][0]['name'])
+    self.assertEqual('val1', run_target_json['device_attributes'][0]['value'])
+    self.assertEqual('attr2', run_target_json['device_attributes'][1]['name'])
+    self.assertEqual('val2', run_target_json['device_attributes'][1]['value'])
 
   def testListRequests(self):
     for request_id in range(1, 11):
@@ -623,6 +649,21 @@ class RequestApiTest(api_test.ApiTest):
         },
         expect_errors=True)
     self.assertEqual('404 Not Found', api_response.status)
+
+  def testBuildRunTarget(self):
+    run_target = request_api._BuildRunTarget(
+        'a_run_target', ['attr1=val1', 'attr2=val2'])
+    run_target_json = json.loads(run_target)
+    run_target_json = run_target_json['host']['groups'][0]['run_targets'][0]
+    self.assertEqual('a_run_target', run_target_json['name'])
+    self.assertEqual('attr1', run_target_json['device_attributes'][0]['name'])
+    self.assertEqual('val1', run_target_json['device_attributes'][0]['value'])
+    self.assertEqual('attr2', run_target_json['device_attributes'][1]['name'])
+    self.assertEqual('val2', run_target_json['device_attributes'][1]['value'])
+
+  def testBuildRunTarget_invalidFormat(self):
+    with self.assertRaises(endpoints.BadRequestException):
+      request_api._BuildRunTarget('a_run_target', ['attr1'])
 
 
 if __name__ == '__main__':

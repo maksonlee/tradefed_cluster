@@ -334,3 +334,14 @@ def GetServiceName():
 def GetServiceVersion():
   """Returns a GAE service version."""
   return os.environ.get("GAE_VERSION")
+
+
+class TestBenchKey(object):
+  """Json keys for test bench."""
+  HOST = "host"
+  GROUPS = "groups"
+  RUN_TARGETS = "run_targets"
+  RUN_TARGET_NAME = "name"
+  DEVICE_ATTRIBUTES = "device_attributes"
+  ATTRIBUTE_NAME = "name"
+  ATTRIBUET_VALUE = "value"

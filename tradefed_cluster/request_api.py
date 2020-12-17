@@ -13,6 +13,7 @@
 # limitations under the License.
 
 """API module to serve request service calls."""
+import json
 import logging
 
 import endpoints
@@ -72,6 +73,11 @@ class RequestApi(remote.Service):
     if not request.command_line:
       raise endpoints.BadRequestException("command_line cannot be null.")
 
+    run_target = request.run_target
+    if request.test_bench_attributes:
+      run_target = _BuildRunTarget(
+          request.run_target, request.test_bench_attributes)
+
     prev_test_context_obj = None
     if request.prev_test_context:
       prev_test_context_obj = datastore_entities.TestContext.FromMessage(
@@ -89,7 +95,7 @@ class RequestApi(remote.Service):
         queue_timeout_seconds=request.queue_timeout_seconds,
         type_=request.type,
         cluster=request.cluster,
-        run_target=request.run_target,
+        run_target=run_target,
         run_count=request.run_count,
         shard_count=request.shard_count,
         plugin_data=plugin_data_,
@@ -449,3 +455,42 @@ def _SyncCommands(request_id):
   for command in request_manager.GetCommands(request_id):
     command_monitor.SyncCommand(
         request_id, command.key.id(), add_to_sync_queue=False)
+
+
+def _BuildRunTarget(run_target, test_bench_attributes):
+  """Build run target from test_bench_message.
+
+  For test bench with attributes, the run target should match format in
+  command_task_store._GetTestBench, which is a structured json format.
+  For test bench without attributes, the run target should match format in
+  command_task_store._GetLegacyTestBench.
+
+  Args:
+    run_target: simple run target represent a device type.
+    test_bench_attributes: a list of string represent device attribute
+        requirements.
+  Returns:
+    a string represent the run target.
+  """
+  json_attributes = []
+  for attribute in test_bench_attributes:
+    if "=" not in attribute:
+      raise endpoints.BadRequestException(
+          "Only 'name=value' format attribute is supported. "
+          "%s is not supported." % attribute)
+    name, value = attribute.split("=", 1)
+    json_attributes.append({
+        common.TestBenchKey.ATTRIBUTE_NAME: name,
+        common.TestBenchKey.ATTRIBUET_VALUE: value
+    })
+  run_target_json = {
+      common.TestBenchKey.HOST: {
+          common.TestBenchKey.GROUPS: [{
+              common.TestBenchKey.RUN_TARGETS: [{
+                  common.TestBenchKey.RUN_TARGET_NAME: run_target,
+                  common.TestBenchKey.DEVICE_ATTRIBUTES: json_attributes
+              }]
+          }]
+      }
+  }
+  return json.dumps(run_target_json)

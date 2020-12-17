@@ -27,17 +27,6 @@ from tradefed_cluster import datastore_entities
 DEFAULT_COMMAND_ATTEMPT_HEARTBEAT = datetime.timedelta(hours=24)
 
 
-class TestBenchKey(object):
-  """Json keys for test bench."""
-  HOST = 'host'
-  GROUPS = 'groups'
-  RUN_TARGETS = 'run_targets'
-  RUN_TARGET_NAME = 'name'
-  DEVICE_ATTRIBUTES = 'device_attributes'
-  ATTRIBUTE_NAME = 'name'
-  ATTRIBUET_VALUE = 'value'
-
-
 CommandTaskArgs = collections.namedtuple(
     'CommandTaskArgs',
     ['request_id',
@@ -91,19 +80,20 @@ def _GetTestBench(cluster, run_target):
     return _GetLegacyTestBench(cluster, run_target)
 
   test_bench_json = json.loads(run_target)
-  host_json = test_bench_json.get(TestBenchKey.HOST, {})
+  host_json = test_bench_json.get(common.TestBenchKey.HOST, {})
   groups = []
-  for group_json in host_json.get(TestBenchKey.GROUPS, []):
+  for group_json in host_json.get(common.TestBenchKey.GROUPS, []):
     run_targets = []
-    for run_target_json in group_json.get(TestBenchKey.RUN_TARGETS, []):
-      run_target_name = run_target_json.get(TestBenchKey.RUN_TARGET_NAME)
+    for run_target_json in group_json.get(common.TestBenchKey.RUN_TARGETS, []):
+      run_target_name = run_target_json.get(
+          common.TestBenchKey.RUN_TARGET_NAME)
       attributes = []
       for attribute_json in run_target_json.get(
-          TestBenchKey.DEVICE_ATTRIBUTES, []):
+          common.TestBenchKey.DEVICE_ATTRIBUTES, []):
         attributes.append(
             datastore_entities.Attribute(
-                name=attribute_json[TestBenchKey.ATTRIBUTE_NAME],
-                value=attribute_json[TestBenchKey.ATTRIBUET_VALUE]))
+                name=attribute_json[common.TestBenchKey.ATTRIBUTE_NAME],
+                value=attribute_json[common.TestBenchKey.ATTRIBUET_VALUE]))
       run_targets.append(
           datastore_entities.RunTarget(
               name=run_target_name,

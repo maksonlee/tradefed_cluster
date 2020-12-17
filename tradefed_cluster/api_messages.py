@@ -724,6 +724,7 @@ class NewRequestMessage(messages.Message):
   test_environment = messages.MessageField(TestEnvironment, 12)
   test_resources = messages.MessageField(TestResource, 13, repeated=True)
   plugin_data = messages.MessageField(KeyValuePair, 14, repeated=True)
+  test_bench_attributes = messages.StringField(15, repeated=True)
 
 
 class CommandEventType(messages.Enum):

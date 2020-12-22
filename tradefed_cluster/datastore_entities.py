@@ -1100,6 +1100,7 @@ def DeviceInfoToMessage(device_info_entity):
           device_info_entity.extra_info),
       test_harness=device_info_entity.test_harness,
       recovery_state=device_info_entity.recovery_state,
+      flated_extra_info=device_info_entity.flated_extra_info,
       last_recovery_time=device_info_entity.last_recovery_time)
 
 

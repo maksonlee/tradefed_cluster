@@ -186,7 +186,7 @@ DEVICE_OFFLINE_STATES = (
 class TestHarness(object):
   """Test harness."""
   UNKNOWN = "UNKNOWN"
-  TRADEFED = "tradefed"
+  TRADEFED = "TRADEFED"
   MH = "MH"
   GOATS = "GOATS"
 

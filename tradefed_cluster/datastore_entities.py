@@ -849,8 +849,6 @@ class HostInfo(ndb.Expando):
     host_group: a group of host using the same host config.
     clusters: all clusters this host belong to
     pools: pools of devices to manage device resources.
-    test_runner: test runner
-    test_runner_version: test runner version
     timestamp: the timestamp the host is updated.
     total_devices: total devices count
     offline_devices: offline device count
@@ -868,6 +866,8 @@ class HostInfo(ndb.Expando):
     last_recovery_time: last time the host was recovered.
     flated_extra_info: flated extra info for the host.
     recovery_state: recovery state for the host, e.g. assigned, fixed, verified.
+    test_harness: test harness
+    test_harness_version: test harness version
   """
   hostname = ndb.StringProperty()
   lab_name = ndb.StringProperty()
@@ -878,8 +878,6 @@ class HostInfo(ndb.Expando):
   # TODO: deprecate clusters, use pools.
   clusters = ndb.StringProperty(repeated=True)
   pools = ndb.StringProperty(repeated=True)
-  test_runner = ndb.StringProperty()
-  test_runner_version = ndb.StringProperty()
   # TODO: change timestamp to last_event_time.
   timestamp = ndb.DateTimeProperty(auto_now_add=True)
   hidden = ndb.BooleanProperty(default=False)
@@ -903,6 +901,8 @@ class HostInfo(ndb.Expando):
   last_recovery_time = ndb.DateTimeProperty()
   flated_extra_info = ndb.ComputedProperty(_FlatExtraInfo, repeated=True)
   recovery_state = ndb.StringProperty()
+  test_harness = ndb.StringProperty()
+  test_harness_version = ndb.StringProperty()
 
 
 @MessageConverter(HostInfo)
@@ -919,6 +919,8 @@ def HostInfoToMessage(host_info_entity, devices=None):
     host_state = host_info_entity.host_state.name
   else:
     host_state = 'UNKNOWN'
+  test_harness = host_info_entity.test_harness
+  test_harness_version = host_info_entity.test_harness_version
   return api_messages.HostInfo(
       hostname=host_info_entity.hostname,
       lab_name=host_info_entity.lab_name,
@@ -926,10 +928,10 @@ def HostInfoToMessage(host_info_entity, devices=None):
       cluster=host_info_entity.physical_cluster,
       host_group=host_info_entity.host_group,
       # TODO: deprecated test runner and test runner version.
-      test_runner=host_info_entity.test_runner,
-      test_runner_version=host_info_entity.test_runner_version,
-      test_harness=host_info_entity.test_runner,
-      test_harness_version=host_info_entity.test_runner_version,
+      test_runner=test_harness,
+      test_runner_version=test_harness_version,
+      test_harness=test_harness,
+      test_harness_version=test_harness_version,
       timestamp=host_info_entity.timestamp,
       total_devices=host_info_entity.total_devices,
       offline_devices=host_info_entity.offline_devices,

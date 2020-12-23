@@ -234,6 +234,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
       "data": {},
       "cluster": "test",
       "hostname": "test.mtv.corp.example.com",
+      # TODO: deprecated tf_version
       "tf_version": "0001",
       "event_type": "DEVICE_SNAPSHOT",
       "device_infos": [
@@ -249,6 +250,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
           }]
   }
 
+  # TODO: deprecated test runner and test runner version.
   HOST_EVENT_WITH_TEST_RUNNER = {
       "time": 1431712965,
       "data": {},
@@ -261,6 +263,22 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
               "state": "Available",
               "device_serial": "new_runner_device",
               "run_target": "new_runner_run_target",
+          },
+      ]
+  }
+
+  HOST_EVENT_WITH_TEST_HARNESS = {
+      "time": 1431712965,
+      "data": {},
+      "hostname": "new_harness.mtv.corp.example.com",
+      "test_runner": "new_harness",
+      "test_runner_version": "harness_v2",
+      "event_type": "DEVICE_SNAPSHOT",
+      "device_infos": [
+          {
+              "state": "Available",
+              "device_serial": "new_harness_device",
+              "run_target": "new_harness_run_target",
           },
       ]
   }
@@ -304,8 +322,8 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     device_manager.HandleDeviceSnapshotWithNDB(some_host_event)
     host = device_manager.GetHost("test.mtv.corp.example.com")
     metric_set_version.assert_called_once_with(
-        device_manager.TF_TEST_RUNNER,
-        host.test_runner_version,
+        common.TestHarness.TRADEFED,
+        host.test_harness_version,
         host.physical_cluster,
         host.hostname)
     device_0 = device_manager.GetDevice(device_serial=self.EMULATOR_SERIAL)
@@ -386,8 +404,8 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(["test", "cluster1", "cluster2"], host.clusters)
     self.assertEqual(["cluster1", "cluster2"], host.pools)
     self.assertEqual("alab", device_0.lab_name)
-    self.assertEqual("tradefed", host.test_runner)
-    self.assertEqual(self.HOST_EVENT["tf_version"], host.test_runner_version)
+    self.assertEqual("TRADEFED", host.test_harness)
+    self.assertEqual(self.HOST_EVENT["tf_version"], host.test_harness_version)
     self.assertEqual(
         datetime.datetime.utcfromtimestamp(self.HOST_EVENT["time"]),
         host.timestamp)
@@ -446,9 +464,9 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(["test", "cluster1"], device_1.clusters)
     host = device_manager.GetHost(self.HOST_EVENT["hostname"])
     self.assertIsNotNone(host)
-    self.assertEqual("tradefed", host.test_runner)
+    self.assertEqual("TRADEFED", host.test_harness)
     self.assertEqual(self.HOST_EVENT_UPDATE_AVAILABLE["tf_version"],
-                     host.test_runner_version)
+                     host.test_harness_version)
     self.assertEqual(
         self.HOST_EVENT_UPDATE_AVAILABLE["cluster"], host.physical_cluster)
     self.assertEqual(
@@ -521,9 +539,9 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
 
     host = device_manager.GetHost(self.HOST_EVENT["hostname"])
     self.assertIsNotNone(host)
-    self.assertEqual("tradefed", host.test_runner)
+    self.assertEqual("TRADEFED", host.test_harness)
     self.assertEqual(self.HOST_EVENT_UPDATE_UNAVAILABLE["tf_version"],
-                     host.test_runner_version)
+                     host.test_harness_version)
     self.assertEqual(
         self.HOST_EVENT_UPDATE_UNAVAILABLE["cluster"],
         host.physical_cluster)
@@ -543,9 +561,9 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
 
     host = device_manager.GetHost(self.HOST_EVENT_NO_DEVICES["hostname"])
     self.assertIsNotNone(host)
-    self.assertEqual("tradefed", host.test_runner)
+    self.assertEqual("TRADEFED", host.test_harness)
     self.assertEqual(self.HOST_EVENT_NO_DEVICES["tf_version"],
-                     host.test_runner_version)
+                     host.test_harness_version)
     self.assertEqual(self.HOST_EVENT_NO_DEVICES["cluster"],
                      host.physical_cluster)
     self.assertEqual(
@@ -561,9 +579,9 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
 
     host = device_manager.GetHost(self.HOST_EVENT_FAKE_DEVICE["hostname"])
     self.assertIsNotNone(host)
-    self.assertEqual("tradefed", host.test_runner)
+    self.assertEqual("TRADEFED", host.test_harness)
     self.assertEqual(self.HOST_EVENT_FAKE_DEVICE["tf_version"],
-                     host.test_runner_version)
+                     host.test_harness_version)
     self.assertEqual(self.HOST_EVENT_FAKE_DEVICE["cluster"],
                      host.physical_cluster)
     self.assertEqual(
@@ -580,9 +598,9 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     host = device_manager.GetHost(
         self.HOST_EVENT_LOCALHOST_DEVICE["hostname"])
     self.assertIsNotNone(host)
-    self.assertEqual("tradefed", host.test_runner)
+    self.assertEqual("TRADEFED", host.test_harness)
     self.assertEqual(self.HOST_EVENT_LOCALHOST_DEVICE["tf_version"],
-                     host.test_runner_version)
+                     host.test_harness_version)
     self.assertEqual(self.HOST_EVENT_LOCALHOST_DEVICE["cluster"],
                      host.physical_cluster)
     self.assertEqual(
@@ -603,9 +621,9 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     # Cluster, TF version, and timestamp should have been updated.
     host = device_manager.GetHost(self.HOST_EVENT_NO_DEVICES["hostname"])
     self.assertIsNotNone(host)
-    self.assertEqual("tradefed", host.test_runner)
+    self.assertEqual("TRADEFED", host.test_harness)
     self.assertEqual(self.HOST_EVENT_NO_DEVICES_UPDATE["tf_version"],
-                     host.test_runner_version)
+                     host.test_harness_version)
     self.assertEqual(self.HOST_EVENT_NO_DEVICES_UPDATE["cluster"],
                      host.physical_cluster)
     self.assertEqual(
@@ -620,10 +638,22 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
 
     host = device_manager.GetHost(self.HOST_EVENT_WITH_TEST_RUNNER["hostname"])
     self.assertIsNotNone(host)
-    self.assertEqual("new_runner", host.test_runner)
-    self.assertEqual("v2", host.test_runner_version)
+    self.assertEqual("NEW_RUNNER", host.test_harness)
+    self.assertEqual("v2", host.test_harness_version)
     device = device_manager.GetDevice(device_serial="new_runner_device")
-    self.assertEqual("new_runner", device.test_harness)
+    self.assertEqual("NEW_RUNNER", device.test_harness)
+
+  def testHandleDeviceSnapshot_withTestHarness(self):
+    """Tests that HandleDeviceSnapshot handle event with test harness."""
+    event = host_event.HostEvent(**self.HOST_EVENT_WITH_TEST_HARNESS)
+    device_manager.HandleDeviceSnapshotWithNDB(event)
+
+    host = device_manager.GetHost(self.HOST_EVENT_WITH_TEST_HARNESS["hostname"])
+    self.assertIsNotNone(host)
+    self.assertEqual("NEW_HARNESS", host.test_harness)
+    self.assertEqual("harness_v2", host.test_harness_version)
+    device = device_manager.GetDevice(device_serial="new_harness_device")
+    self.assertEqual("NEW_HARNESS", device.test_harness)
 
   def testUpdateGoneDevicesInNDB_alreadyGone(self):
     """Tests that devices are updated."""
@@ -679,9 +709,9 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     device_manager.HandleDeviceSnapshotWithNDB(new_host_event)
     host = device_manager.GetHost(self.HOST_EVENT_NO_DEVICES_UPDATE["hostname"])
     self.assertIsNotNone(host)
-    self.assertEqual("tradefed", host.test_runner)
+    self.assertEqual("TRADEFED", host.test_harness)
     self.assertEqual(self.HOST_EVENT_NO_DEVICES_UPDATE["tf_version"],
-                     host.test_runner_version)
+                     host.test_harness_version)
     self.assertEqual(self.HOST_EVENT_NO_DEVICES_UPDATE["cluster"],
                      host.physical_cluster)
     self.assertEqual(
@@ -694,9 +724,9 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     device_manager.HandleDeviceSnapshotWithNDB(old_host_event)
     host = device_manager.GetHost(self.HOST_EVENT_NO_DEVICES_UPDATE["hostname"])
     self.assertIsNotNone(host)
-    self.assertEqual("tradefed", host.test_runner)
+    self.assertEqual("TRADEFED", host.test_harness)
     self.assertEqual(self.HOST_EVENT_NO_DEVICES_UPDATE["tf_version"],
-                     host.test_runner_version)
+                     host.test_harness_version)
     self.assertEqual(self.HOST_EVENT_NO_DEVICES_UPDATE["cluster"],
                      host.physical_cluster)
     self.assertEqual(

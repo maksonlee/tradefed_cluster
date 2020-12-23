@@ -35,7 +35,6 @@ from tradefed_cluster import metric
 from tradefed_cluster.services import task_scheduler
 from tradefed_cluster.util import ndb_shim as ndb
 
-TF_TEST_RUNNER = "tradefed"
 MAX_DEVICE_HISTORY_SIZE = 100
 MAX_HOST_HISTORY_SIZE = 100
 DEFAULT_HOST_HISTORY_SIZE = 10
@@ -125,7 +124,7 @@ def HandleDeviceSnapshotWithNDB(event):
     host = _UpdateHostWithDeviceSnapshotEvent(event)
     _CountDeviceForHost(event.hostname)
     metric.SetHostTestRunnerVersion(
-        host.test_runner, host.test_runner_version,
+        host.test_harness, host.test_harness_version,
         host.physical_cluster, host.hostname)
   StartHostSync(event.hostname)
   logging.debug("Processed snapshot.")
@@ -177,8 +176,8 @@ def _UpdateHostWithDeviceSnapshotEvent(event):
   host.physical_cluster = event.cluster_id
   host.host_group = event.host_group
   host.timestamp = event.timestamp
-  host.test_runner = event.test_runner
-  host.test_runner_version = event.test_runner_version
+  host.test_harness = event.test_harness
+  host.test_harness_version = event.test_harness_version
   host.extra_info = event.data
   host.hidden = False
   # TODO: deprecate clusters, use pools.
@@ -395,7 +394,7 @@ def _UpdateDeviceInNDB(device, device_key, device_data, host_event):
   device_state = device_data.get(STATE_KEY, device_data.get("device_state"))
   if common.DeviceState.AVAILABLE == device_state:
     if _IsFastbootDevice(
-        device_state, device_type, product, host_event.test_runner):
+        device_state, device_type, product, host_event.test_harness):
       device_state = common.DeviceState.FASTBOOT
     device.product = product
     device.extra_info[PRODUCT_KEY] = product
@@ -432,7 +431,7 @@ def _UpdateDeviceInNDB(device, device_key, device_data, host_event):
   device.extra_info[SDK_VERSION_KEY] = device.sdk_version
   device.hostname = host_event.hostname
   device.lab_name = host_event.lab_name
-  device.test_harness = host_event.test_runner
+  device.test_harness = host_event.test_harness
   if host_event.cluster_id:
     device.physical_cluster = host_event.cluster_id
     device.clusters = ([host_event.cluster_id] +

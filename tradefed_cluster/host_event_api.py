@@ -79,9 +79,12 @@ class HostEvent(messages.Message):
   device_infos = messages.MessageField(
       api_messages.DeviceInfo, 7, repeated=True)
   data = messages.MessageField(HostEventData, 8)
+  # TODO: deprecated tf_version.
   tf_version = messages.StringField(9)
   host_state = messages.EnumField(api_messages.HostState, 10)
   lab_name = messages.StringField(11)
+  test_harness = messages.StringField(12)
+  test_harness_version = messages.StringField(13)
 
 
 class HostEventList(messages.Message):

@@ -125,10 +125,10 @@ class ClusterHostApi(remote.Service):
     test_harnesses = request.test_harness + request.test_harnesses
     if len(test_harnesses) == 1:
       query = query.filter(
-          datastore_entities.HostInfo.test_runner == test_harnesses[0])
+          datastore_entities.HostInfo.test_harness == test_harnesses[0])
     if len(request.test_harness_versions) == 1:
       query = query.filter(
-          datastore_entities.HostInfo.test_runner_version ==
+          datastore_entities.HostInfo.test_harness_version ==
           request.test_harness_versions[0])
     if len(request.pools) == 1:
       query = query.filter(
@@ -146,12 +146,11 @@ class ClusterHostApi(remote.Service):
         return
       if request.hostnames and host.hostname not in request.hostnames:
         return
-      # TODO: Change test_runner to test_harness.
       if (test_harnesses and
-          host.test_runner not in test_harnesses):
+          host.test_harness not in test_harnesses):
         return
       if request.test_harness_versions and \
-          host.test_runner_version not in request.test_harness_versions:
+          host.test_harness_version not in request.test_harness_versions:
         return
       if request.pools and not set(host.pools).intersection(set(request.pools)):
         return

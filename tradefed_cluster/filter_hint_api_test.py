@@ -135,8 +135,8 @@ class FilterHintApiTest(api_test.ApiTest):
         cluster='paid',
         hostname='host_1',
         timestamp=self.TIMESTAMP,
-        test_runner='mobile harness',
-        test_runner_version='3.0.1',
+        test_harness='MOBILE_HARNESS',
+        test_harness_version='3.0.1',
     )
     datastore_test_util.CreateHost(
         cluster='free',
@@ -153,8 +153,8 @@ class FilterHintApiTest(api_test.ApiTest):
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(2, len(test_harness_collection.filter_hints))
     harness = list(test_harness_collection.filter_hints)
-    self.assertEqual(harness[0].value, 'mobile harness')
-    self.assertEqual(harness[1].value, 'tradefed')
+    self.assertEqual(harness[0].value, 'MOBILE_HARNESS')
+    self.assertEqual(harness[1].value, 'TRADEFED')
 
   def testListTestHarnessVersion(self):
     """Tests ListTestHarnessVersion."""
@@ -167,8 +167,8 @@ class FilterHintApiTest(api_test.ApiTest):
         cluster='paid',
         hostname='host_1',
         timestamp=self.TIMESTAMP,
-        test_runner='mobile harness',
-        test_runner_version='3.0.1',
+        test_harness='MOBILE_HARNESS',
+        test_harness_version='3.0.1',
     )
     datastore_test_util.CreateHost(
         cluster='free',

@@ -91,8 +91,8 @@ class HostEventTest(unittest.TestCase):
     self.assertEqual(api_messages.HostState.RUNNING.name, event.host_state)
     self.assertEqual(datetime.datetime.utcfromtimestamp(123456789),
                      event.tf_start_time)
-    self.assertEqual("v1", event.test_runner_version)
-    self.assertEqual("tradefed", event.test_runner)
+    self.assertEqual("v1", event.test_harness_version)
+    self.assertEqual("TRADEFED", event.test_harness)
 
   def testHostEvent_newEvent(self):
     event = host_event.HostEvent(**self.MH_HOST_EVENT)
@@ -101,8 +101,8 @@ class HostEventTest(unittest.TestCase):
     self.assertEqual("test2.mtv.corp.example.com", event.hostname)
     self.assertEqual("alab2", event.lab_name)
     self.assertEqual(api_messages.HostState.RUNNING.name, event.host_state)
-    self.assertEqual("v2", event.test_runner_version)
-    self.assertEqual("mobileharness", event.test_runner)
+    self.assertEqual("v2", event.test_harness_version)
+    self.assertEqual("MOBILEHARNESS", event.test_harness)
 
   def testHostEvent_noCluster(self):
     event = host_event.HostEvent(**self.HOST_EVENT3)

@@ -150,6 +150,16 @@ indexes:
 
 - kind: HostInfo
   properties:
+  - name: hidden
+  - name: test_harness
+
+- kind: HostInfo
+  properties:
+  - name: hidden
+  - name: test_harness_version
+
+- kind: HostInfo
+  properties:
   - name: is_bad
   - name: timestamp
 

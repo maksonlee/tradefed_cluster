@@ -119,12 +119,12 @@ class ClusterHostApiTest(api_test.ApiTest):
                      host_message.device_count_timestamp)
     self.assertEqual(host_entity.physical_cluster, host_message.cluster)
     self.assertEqual(host_entity.hidden, host_message.hidden)
-    self.assertEqual(host_entity.test_runner_version,
+    self.assertEqual(host_entity.test_harness_version,
                      host_message.test_runner_version)
-    self.assertEqual(host_entity.test_runner, host_message.test_runner)
-    self.assertEqual(host_entity.test_runner_version,
+    self.assertEqual(host_entity.test_harness, host_message.test_runner)
+    self.assertEqual(host_entity.test_harness_version,
                      host_message.test_harness_version)
-    self.assertEqual(host_entity.test_runner, host_message.test_harness)
+    self.assertEqual(host_entity.test_harness, host_message.test_harness)
 
   def testListHosts(self):
     """Tests ListHosts returns all visible hosts."""
@@ -334,8 +334,8 @@ class ClusterHostApiTest(api_test.ApiTest):
         cluster='mh_cluster',
         hostname='mh_host',
         lab_name='mh_lab',
-        test_runner='MH',
-        test_runner_version='v1')
+        test_harness='MH',
+        test_harness_version='v1')
     mh_host.put()
     api_request = {'test_harness': 'MH'}
     api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
@@ -352,17 +352,17 @@ class ClusterHostApiTest(api_test.ApiTest):
         cluster='mh_cluster',
         hostname='mh_host',
         lab_name='mh_lab',
-        test_runner='MH',
-        test_runner_version='v1')
+        test_harness='MH',
+        test_harness_version='v1')
     mh_host.put()
     goats_host = datastore_test_util.CreateHost(
         cluster='goats_cluster',
         hostname='goats_host',
         lab_name='goats_lab',
-        test_runner='GOATS',
-        test_runner_version='v3.2')
+        test_harness='GOATS',
+        test_harness_version='v3.2')
     goats_host.put()
-    api_request = {'test_harness': ['MH', 'tradefed']}
+    api_request = {'test_harness': ['MH', 'TRADEFED']}
     api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
                                           api_request)
     host_collection = protojson.decode_message(api_messages.HostInfoCollection,
@@ -376,15 +376,15 @@ class ClusterHostApiTest(api_test.ApiTest):
         cluster='mh_cluster',
         hostname='mh_host',
         lab_name='mh_lab',
-        test_runner='MH',
-        test_runner_version='v1')
+        test_harness='MH',
+        test_harness_version='v1')
     mh_host.put()
     goats_host = datastore_test_util.CreateHost(
         cluster='goats_cluster',
         hostname='goats_host',
         lab_name='goats_lab',
-        test_runner='GOATS',
-        test_runner_version='v3.2')
+        test_harness='GOATS',
+        test_harness_version='v3.2')
     goats_host.put()
     api_request = {'test_harness_versions': ['v1', 'v3.2']}
     api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',

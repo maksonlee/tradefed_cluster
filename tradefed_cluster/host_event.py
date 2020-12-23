@@ -18,7 +18,7 @@ import datetime
 
 HOST_EVENT_QUEUE_NDB = "host-event-queue-ndb"
 # TODO: TF should upload test runner and version.
-TF_TEST_RUNNER = "tradefed"
+TF_TEST_HARNESS = "TRADEFED"
 UNKNOWN = "UNKNOWN"
 
 
@@ -38,12 +38,18 @@ class HostEvent(object):
     self.host_group = kwargs.get("host_group", self.cluster_id)
     # TODO: TF should upload test runner and version.
     if "tf_version" in kwargs:
-      self.test_runner = kwargs.get("test_runner", TF_TEST_RUNNER)
-      self.test_runner_version = kwargs.get(
+      self.test_harness = kwargs.get("test_runner", TF_TEST_HARNESS)
+      self.test_harness_version = kwargs.get(
           "test_runner_version", kwargs.get("tf_version", UNKNOWN))
+    elif "test_runner" in kwargs:
+      # TODO: deprecated test runner and test runner version.
+      self.test_harness = kwargs.get("test_runner", UNKNOWN)
+      self.test_harness_version = kwargs.get("test_runner_version", UNKNOWN)
     else:
-      self.test_runner = kwargs.get("test_runner", UNKNOWN)
-      self.test_runner_version = kwargs.get("test_runner_version", UNKNOWN)
+      self.test_harness = kwargs.get("test_harness", UNKNOWN)
+      self.test_harness_version = kwargs.get("test_harness_version", UNKNOWN)
+    self.test_harness = self.test_harness.upper()
+
     self.device_info = kwargs.get("device_infos", [])
     self.data = kwargs.get("data", {})
     # TODO: deprecate clusters, use pools.

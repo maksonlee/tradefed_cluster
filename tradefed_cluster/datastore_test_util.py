@@ -62,8 +62,8 @@ def CreateHost(cluster,
                tf_start_time=None,
                assignee=None,
                device_count_summaries=None,
-               test_runner='tradefed',
-               test_runner_version='1234'):
+               test_harness='TRADEFED',
+               test_harness_version='1234'):
   """Create a host."""
   total_devices = 0
   offline_devices = 0
@@ -94,8 +94,8 @@ def CreateHost(cluster,
       tf_start_time=tf_start_time,
       assignee=assignee,
       device_count_summaries=device_count_summaries or [],
-      test_runner=test_runner,
-      test_runner_version=test_runner_version)
+      test_harness=test_harness,
+      test_harness_version=test_harness_version)
   ndb_host.put()
   return ndb_host
 

@@ -108,11 +108,11 @@ class FilterHintApi(remote.Service):
   def _ListTestHarness(self):
     """Fetches a list of test harness."""
     entities = datastore_entities.HostInfo.query(
-        projection=[datastore_entities.HostInfo.test_runner],
+        projection=[datastore_entities.HostInfo.test_harness],
         distinct=True).filter(
-            datastore_entities.HostInfo.hidden == False).fetch(                  projection=[datastore_entities.HostInfo.test_runner])
+            datastore_entities.HostInfo.hidden == False).fetch(                  projection=[datastore_entities.HostInfo.test_harness])
     infos = [
-        api_messages.FilterHintMessage(value=item.test_runner)
+        api_messages.FilterHintMessage(value=item.test_harness)
         for item in entities
     ]
     return api_messages.FilterHintCollection(filter_hints=infos)
@@ -120,11 +120,11 @@ class FilterHintApi(remote.Service):
   def _ListTestHarnessVersion(self):
     """Fetches a list of test harness version."""
     entities = datastore_entities.HostInfo.query(
-        projection=[datastore_entities.HostInfo.test_runner_version],
+        projection=[datastore_entities.HostInfo.test_harness_version],
         distinct=True).filter(
-            datastore_entities.HostInfo.hidden == False).fetch(                  projection=[datastore_entities.HostInfo.test_runner_version])
+            datastore_entities.HostInfo.hidden == False).fetch(                  projection=[datastore_entities.HostInfo.test_harness_version])
     infos = [
-        api_messages.FilterHintMessage(value=item.test_runner_version)
+        api_messages.FilterHintMessage(value=item.test_harness_version)
         for item in entities
     ]
     return api_messages.FilterHintCollection(filter_hints=infos)

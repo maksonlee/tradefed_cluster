@@ -659,7 +659,7 @@ class PredefinedMessage(ndb.Model):
     create_timestamp: datetime, time the message is created.
     used_count: int, how many times the message is used.
   """
-  lab_name = ndb.StringProperty(required=True)
+  lab_name = ndb.StringProperty()
   type = ndb.EnumProperty(common.PredefinedMessageType, required=True)
   content = ndb.StringProperty(required=True)
   create_timestamp = ndb.DateTimeProperty()

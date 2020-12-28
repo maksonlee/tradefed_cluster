@@ -545,6 +545,51 @@ class ClusterHostApiTest(api_test.ApiTest):
         host_note_event, common.PublishEventType.HOST_NOTE_EVENT)
 
   @mock.patch.object(note_manager, 'PublishMessage')
+  def testAddOrUpdateHostNote_addWithTextOfflineReasonAndRecoveryActionNoLab(
+      self, mock_publish_host_note_message):
+    """Tests adding a non-existing host note."""
+    api_request = {
+        'hostname': self.ndb_host_0.hostname,
+        'user': 'user-1',
+        'message': 'message-1',
+        'offline_reason': 'offline-reason-1',
+        'recovery_action': 'recovery-action-1',
+        'event_time': self.TIMESTAMP.isoformat(),
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.AddOrUpdateNote', api_request)
+    self.assertEqual('200 OK', api_response.status)
+    host_note = protojson.decode_message(api_messages.Note,
+                                         api_response.body)
+    host_note_event = api_messages.NoteEvent(note=host_note)
+    # Assert datastore id is generated.
+    self.assertIsNotNone(host_note.id)
+    # Assert fields equal.
+    self.assertEqual(api_request['hostname'], host_note.hostname)
+    self.assertEqual(api_request['user'], host_note.user)
+    self.assertEqual(api_request['message'], host_note.message)
+    self.assertEqual(api_request['offline_reason'], host_note.offline_reason)
+    self.assertEqual(api_request['recovery_action'], host_note.recovery_action)
+    self.assertEqual(api_request['event_time'],
+                     host_note.event_time.isoformat())
+    # Assert PredefinedMessage entities are written into datastore.
+    self.assertIsNotNone(datastore_entities.PredefinedMessage.query().filter(
+        datastore_entities.PredefinedMessage.content ==
+        api_request['offline_reason']).get())
+    self.assertIsNotNone(datastore_entities.PredefinedMessage.query().filter(
+        datastore_entities.PredefinedMessage.content ==
+        api_request['recovery_action']).get())
+    # Side Effect: Assert HostInfoHistory is written into datastore.
+    histories = list(
+        datastore_entities.HostInfoHistory.query(
+            datastore_entities.HostInfoHistory.hostname ==
+            self.ndb_host_0.hostname).fetch())
+    self.assertEqual(1, len(histories))
+    self.assertEqual(int(host_note.id), histories[0].extra_info['host_note_id'])
+    mock_publish_host_note_message.assert_called_once_with(
+        host_note_event, common.PublishEventType.HOST_NOTE_EVENT)
+
+  @mock.patch.object(note_manager, 'PublishMessage')
   def testAddOrUpdateHostNote_updateWithTextOfflineReasonAndRecoveryAction(
       self, mock_publish_host_note_message):
     """Tests updating an existing host note."""

@@ -32,21 +32,31 @@ class FilterHintApiTest(api_test.ApiTest):
   def setUp(self):
     api_test.ApiTest.setUp(self)
 
-  def testListClusters_keys(self):
-    """Tests ListClusters' keys."""
-    cluster_list = [
-        datastore_test_util.CreateCluster(cluster='free'),
-        datastore_test_util.CreateCluster(cluster='paid')
-    ]
+  def testListPools(self):
+    """Tests ListPools."""
+    datastore_test_util.CreateHost(
+        cluster='free',
+        hostname='host_0',
+        pools=['pool_1'],
+        timestamp=self.TIMESTAMP,
+    )
+    datastore_test_util.CreateHost(
+        cluster='paid',
+        hostname='host_1',
+        pools=['pool_2', 'pool_3'],
+        timestamp=self.TIMESTAMP,
+    )
     api_request = {'type': 'POOL'}
     api_response = self.testapp.post_json(
         '/_ah/api/FilterHintApi.ListFilterHints', api_request)
-    cluster_collection = protojson.decode_message(
+    pool_collection = protojson.decode_message(
         api_messages.FilterHintCollection, api_response.body)
     self.assertEqual('200 OK', api_response.status)
-    clusters = list(cluster_collection.filter_hints)
-    self.assertEqual(clusters[0].value, cluster_list[0].cluster)
-    self.assertEqual(clusters[1].value, cluster_list[1].cluster)
+
+    pools = list(pool_collection.filter_hints)
+    self.assertLen(pool_collection.filter_hints, 3)
+    self.assertCountEqual(('pool_1', 'pool_2', 'pool_3'),
+                          (pool.value for pool in pools))
 
   def testListLabs_keys(self):
     """Tests ListLabs's key."""

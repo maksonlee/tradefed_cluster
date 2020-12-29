@@ -63,7 +63,8 @@ def CreateHost(cluster,
                assignee=None,
                device_count_summaries=None,
                test_harness='TRADEFED',
-               test_harness_version='1234'):
+               test_harness_version='1234',
+               pools=None):
   """Create a host."""
   total_devices = 0
   offline_devices = 0
@@ -81,7 +82,7 @@ def CreateHost(cluster,
       physical_cluster=cluster,
       host_group=cluster,
       clusters=[cluster],
-      pools=[cluster],
+      pools=pools or [],
       timestamp=timestamp,
       extra_info=extra_info,
       hidden=hidden,

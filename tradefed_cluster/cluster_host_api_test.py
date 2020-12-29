@@ -46,7 +46,8 @@ class ClusterHostApiTest(api_test.ApiTest):
         device_count_summaries=[
             datastore_test_util.CreateDeviceCountSummary(
                 run_target='run_target1', available=3, allocated=7)
-        ])
+        ],
+        pools=['pool_1'])
     self.ndb_device_0 = datastore_test_util.CreateDevice(
         cluster='free',
         hostname='host_0',
@@ -396,7 +397,7 @@ class ClusterHostApiTest(api_test.ApiTest):
 
   def testListHosts_filterByPools(self):
     """Tests ListHosts returns hosts the under pools."""
-    api_request = {'pools': ['paid']}
+    api_request = {'pools': ['pool_1']}
     api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
                                           api_request)
     host_collection = protojson.decode_message(api_messages.HostInfoCollection,
@@ -404,7 +405,7 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(1, len(host_collection.host_infos))
     for host in host_collection.host_infos:
-      self.assertEqual('paid', host.host_group)
+      self.assertIn('pool_1', host.pools)
 
   def testListHosts_filterByHostStates(self):
     """Tests ListHosts returns hosts the under host states."""

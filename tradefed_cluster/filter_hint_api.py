@@ -11,14 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """API module to serve dimension calls."""
 
 import endpoints
 from protorpc import message_types
 from protorpc import messages
 from protorpc import remote
-
 
 from tradefed_cluster import api_common
 from tradefed_cluster import api_messages
@@ -27,8 +25,8 @@ from tradefed_cluster import datastore_entities
 from tradefed_cluster import device_manager
 
 
-@api_common.tradefed_cluster_api.api_class(resource_name="filterHints",
-                                           path="filterHints")
+@api_common.tradefed_cluster_api.api_class(
+    resource_name="filterHints", path="filterHints")
 class FilterHintApi(remote.Service):
   """A class for filter hint API service."""
 
@@ -74,10 +72,17 @@ class FilterHintApi(remote.Service):
       raise endpoints.BadRequestException("Invalid type: %s" % request.type)
 
   def _ListPools(self):
-    """Fetches a list of pools."""
-    entities = datastore_entities.ClusterInfo.query().fetch(keys_only=True)
+    """Fetches a list of pool."""
+    entities = datastore_entities.HostInfo.query(
+        projection=[datastore_entities.HostInfo.pools], distinct=True).filter(
+            datastore_entities.HostInfo.hidden == False).fetch(                  projection=[datastore_entities.HostInfo.pools])
+    mergedlist = []
+    for item in entities:
+      mergedlist += item.pools
+    mergedlist = list(set(mergedlist))
+    mergedlist.sort()
     infos = [
-        api_messages.FilterHintMessage(value=item.id()) for item in entities
+        api_messages.FilterHintMessage(value=item) for item in mergedlist
     ]
     return api_messages.FilterHintCollection(filter_hints=infos)
 
@@ -92,9 +97,7 @@ class FilterHintApi(remote.Service):
   def _ListRunTargets(self):
     """Fetches a list of run targets."""
     entities = device_manager.GetRunTargetsFromNDB()
-    infos = [
-        api_messages.FilterHintMessage(value=item) for item in entities
-    ]
+    infos = [api_messages.FilterHintMessage(value=item) for item in entities]
     return api_messages.FilterHintCollection(filter_hints=infos)
 
   def _ListHosts(self):
@@ -140,10 +143,7 @@ class FilterHintApi(remote.Service):
   def _ListDeviceStates(self):
     """Fetches a list of device state."""
     entities = list(common.DEVICE_ALL_STATES)
-    infos = [
-        api_messages.FilterHintMessage(value=state)
-        for state in entities
-    ]
+    infos = [api_messages.FilterHintMessage(value=state) for state in entities]
     return api_messages.FilterHintCollection(filter_hints=infos)
 
   def _ListHostGroup(self):

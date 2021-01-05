@@ -160,6 +160,11 @@ indexes:
 
 - kind: HostInfo
   properties:
+  - name: hidden
+  - name: pools
+
+- kind: HostInfo
+  properties:
   - name: is_bad
   - name: timestamp
 

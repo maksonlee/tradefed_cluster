@@ -20,5 +20,7 @@ runtime: python27
 api_version: 1
 threadsafe: true
 
-includes:
-- app_handlers.yaml
+handlers:
+- url: /.*
+  script: tradefed_cluster.server.APP
+  secure: always

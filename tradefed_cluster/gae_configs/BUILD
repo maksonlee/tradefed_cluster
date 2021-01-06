@@ -23,28 +23,6 @@ filegroup(
 )
 
 filegroup(
-    name = "handler_yamls",
-    srcs = [
-        "app_handlers.yaml",
-        "tfc_handlers.yaml",
-    ],
-)
-
-filegroup(
-    name = "app_handlers_yaml",
-    srcs = [
-        "app_handlers.yaml",
-    ],
-)
-
-filegroup(
-    name = "tfc_handlers_yaml",
-    srcs = [
-        "tfc_handlers.yaml",
-    ],
-)
-
-filegroup(
     name = "index_yaml",
     srcs = [
         "index.yaml",
@@ -77,7 +55,6 @@ filegroup(
     srcs = [
         "app.yaml",
         "tfc.yaml",
-        ":handler_yamls",
     ],
 )
 

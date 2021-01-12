@@ -1384,3 +1384,15 @@ def DeviceBlocklistArchiveToMessage(device_blocklist_archive):
       start_timestamp=device_blocklist_archive.start_timestamp,
       end_timestamp=device_blocklist_archive.end_timestamp,
       archived_by=device_blocklist_archive.archived_by)
+
+
+class TestHarnessImageMetadata(ndb.Model):
+  """Test harness image metadata."""
+  repo_name = ndb.StringProperty(required=True)
+  digest = ndb.StringProperty(required=True)
+  test_harness = ndb.StringProperty()
+  test_harness_version = ndb.StringProperty()
+  create_time = ndb.DateTimeProperty()
+  sync_time = ndb.DateTimeProperty()
+  current_tags = ndb.StringProperty(repeated=True)
+  historical_tags = ndb.StringProperty(repeated=True)

@@ -670,6 +670,24 @@ pytype_strict_library(
     ],
 )
 
+pytype_strict_library(
+    name = "harness_image_metadata_syncer_lib",
+    srcs = [
+        "harness_image_metadata_syncer.py",
+    ],
+    deps = [
+        ":common_lib",
+        ":datastore_entities_lib",
+        ":env_config_lib",
+        "//tradefed_cluster/util:auth_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
+        third_party("flask"),
+        third_party("google/auth:__init__"),
+        third_party("google/auth:compute_engine/__init__"),
+        third_party("requests"),
+    ],
+)
+
 py2and3_test(
     name = "config_syncer_gcs_to_ndb_test",
     srcs = [
@@ -1075,6 +1093,20 @@ pytype_strict_library(
 )
 
 py2and3_test(
+    name = "harness_image_metadata_syncer_test",
+    srcs = [
+        "harness_image_metadata_syncer_test.py",
+    ],
+    deps = [
+        ":datastore_entities_lib",
+        ":harness_image_metadata_syncer_lib",
+        ":testbed_dependent_test_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
+        third_party("mock"),
+    ],
+)
+
+py2and3_test(
     name = "host_event_api_test",
     srcs = [
         "host_event_api_test.py",
@@ -1394,6 +1426,7 @@ pytype_strict_library(
         ":device_history_cleaner_lib",
         ":device_info_reporter_lib",
         ":device_monitor_lib",
+        ":harness_image_metadata_syncer_lib",
         ":notification_handler_lib",
         ":notifier_lib",
         "//tradefed_cluster/services:task_scheduler_lib",

@@ -33,3 +33,8 @@ cron:
   url: /cron/syncer/sync_gcs_ndb
   schedule: every 10 minutes
   target: tfc
+
+- description: sync test harness image metadata from GCR to NDB
+  url: /cron/syncer/sync_harness_image_metadata
+  schedule: every 30 minutes
+  target: tfc

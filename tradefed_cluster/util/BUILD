@@ -5,6 +5,18 @@ package(default_visibility = ["//tradefed_cluster:tradefed_cluster_clients"])
 licenses(["notice"])
 
 pytype_strict_library(
+    name = "auth_lib",
+    srcs = [
+        "auth.py",
+    ],
+    srcs_version = "PY2AND3",
+    deps = [
+        third_party("google/auth:compute_engine/__init__"),
+        third_party("google/auth:transport/requests"),
+    ],
+)
+
+pytype_strict_library(
     name = "command_util",
     srcs = [
         "command_util.py",

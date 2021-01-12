@@ -34,7 +34,8 @@ class EnvConfig(env_util.EnvConfig):
     self.db_instance = None
     self.use_admin_api = True
     self.use_google_api = True
-    self.should_sync_lab_config = True,
+    self.should_sync_lab_config = True
+    self.should_sync_harness_image = True
     self.event_queue_name = None
     self.object_event_filter = [
         common.ObjectEventType.REQUEST_STATE_CHANGED,

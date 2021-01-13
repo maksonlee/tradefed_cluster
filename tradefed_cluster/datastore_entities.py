@@ -986,6 +986,26 @@ def HostStateHistoryToMessage(host_state_history_entity):
       state=host_state_history_entity.state.name)
 
 
+class HostUpdateState(ndb.Model):
+  """Host update state."""
+  hostname = ndb.StringProperty()
+  state = ndb.EnumProperty(
+      api_messages.HostUpdateState,
+      default=api_messages.HostUpdateState.UNKNOWN)
+  update_timestamp = ndb.DateTimeProperty()
+  update_task_id = ndb.DateTimeProperty()
+
+
+class HostUpdateStateHistory(ndb.Model):
+  """The host update state history."""
+  hostname = ndb.StringProperty()
+  state = ndb.EnumProperty(
+      api_messages.HostUpdateState,
+      default=api_messages.HostUpdateState.UNKNOWN)
+  update_timestamp = ndb.DateTimeProperty()
+  update_task_id = ndb.DateTimeProperty()
+
+
 class HostSync(ndb.Model):
   """Keep track of task that sync host's status.
 

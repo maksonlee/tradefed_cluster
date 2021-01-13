@@ -572,6 +572,27 @@ class HostStateHistory(messages.Message):
   state = messages.StringField(3, required=True)
 
 
+class HostUpdateState(messages.Enum):
+  """Enum for host update states."""
+  # An unknown state.
+  UNKNOWN = 0
+  # The update task is scheduled, but not started.
+  PENDING = 1
+  # The step "syncing image" during an update.
+  SYNCING = 2
+  # The step "shutting down container" during an update.
+  SHUTTING_DOWN = 3
+  # The step "starting a new container" during an update.
+  RESTARTING = 4
+  # The update task is considered timeout because not receiving state report
+  # after the timeout.
+  FAILED_TIMED_OUT = 5
+  # The update failed because of error state reported.
+  FAILED_ERRORED = 6
+  # The update succeeded.
+  SUCCEEDED = 7
+
+
 class HostConfig(messages.Message):
   """Information for a given host config."""
   hostname = messages.StringField(1)

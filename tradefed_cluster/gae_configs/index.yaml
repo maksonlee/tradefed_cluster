@@ -215,6 +215,18 @@ indexes:
   - name: hostname
   - name: timestamp
 
+- kind: Note
+  properties:
+  - name: device_serial
+  - name: type
+  - name: timestamp
+
+- kind: Note
+  properties:
+  - name: type
+  - name: hostname
+  - name: timestamp
+
 - kind: Request
   properties:
   - name: user

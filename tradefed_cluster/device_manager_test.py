@@ -1157,6 +1157,12 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
             .order(-datastore_entities.HostInfoHistory.timestamp)
             .fetch())
 
+  def _GetHostUpdateStateHistories(self, hostname):
+    return (datastore_entities.HostUpdateStateHistory
+            .query(ancestor=ndb.Key(datastore_entities.HostInfo, hostname))
+            .order(-datastore_entities.HostUpdateStateHistory.update_timestamp)
+            .fetch())
+
   def testUpdateHostWithHostChangedEvent_newState(self):
     # Test update host with a new state
     hostname = "test-1.mtv.corp.example.com"
@@ -1824,6 +1830,171 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.RecoveryState.UNKNOWN, device.recovery_state)
     self.assertEqual(common.RecoveryState.UNKNOWN, histories[0].recovery_state)
     self.assertEqual(common.RecoveryState.VERIFIED, histories[1].recovery_state)
+
+  def testHandleHostUpdateStateChangedEvent_newStatePENDING(self):
+    """Test update host with a new pending state."""
+    hostname = "test-1.mtv.corp.example.com"
+    host_event_msg = {
+        "time": 1,
+        "event_type": "HOST_UPDATE_STATE_CHANGED",
+        "hostname": hostname,
+        "host_update_state": "PENDING",
+    }
+
+    event = host_event.HostEvent(**host_event_msg)
+    device_manager._UpdateHostUpdateStateWithEvent(event)
+    state = datastore_entities.HostUpdateState.get_by_id(hostname)
+    self.assertEqual(api_messages.HostUpdateState.PENDING, state.state)
+
+  def testHandleHostUpdateStateChangedEvent_newStateSYNCING(self):
+    """Test update host with a new syncing state."""
+    hostname = "test-1.mtv.corp.example.com"
+    update_task_id = "task-id-111"
+    host_event_msg = {
+        "time": 2,
+        "event_type": "HOST_UPDATE_STATE_CHANGED",
+        "hostname": hostname,
+        "host_update_state": "SYNCING",
+        "host_update_task_id": update_task_id,
+    }
+
+    event = host_event.HostEvent(**host_event_msg)
+    device_manager._UpdateHostUpdateStateWithEvent(event)
+    state = datastore_entities.HostUpdateState.get_by_id(hostname)
+    self.assertEqual(api_messages.HostUpdateState.SYNCING, state.state)
+    self.assertEqual(update_task_id, state.update_task_id)
+
+  def testHandleHostUpdateStateChangedEvent_newStateSHUTTINGDOWN(self):
+    """Test update host with a new shutting down state."""
+    hostname = "test-1.mtv.corp.example.com"
+    update_task_id = "task-id-111"
+    host_event_msg = {
+        "time": 3,
+        "event_type": "HOST_UPDATE_STATE_CHANGED",
+        "hostname": hostname,
+        "host_update_state": "SHUTTING_DOWN",
+        "host_update_task_id": update_task_id,
+    }
+
+    event = host_event.HostEvent(**host_event_msg)
+    device_manager._UpdateHostUpdateStateWithEvent(event)
+    state = datastore_entities.HostUpdateState.get_by_id(hostname)
+    self.assertEqual(api_messages.HostUpdateState.SHUTTING_DOWN, state.state)
+    self.assertEqual(update_task_id, state.update_task_id)
+
+  def testHandleHostUpdateStateChangedEvent_newStateSUCCEEDED(self):
+    """Test update host with a new succeeded state."""
+    hostname = "test-1.mtv.corp.example.com"
+    update_task_id = "task-id-111"
+    host_event_msg = {
+        "time": 2,
+        "event_type": "HOST_UPDATE_STATE_CHANGED",
+        "hostname": hostname,
+        "host_update_state": "SUCCEEDED",
+        "host_update_task_id": update_task_id,
+    }
+
+    event = host_event.HostEvent(**host_event_msg)
+    device_manager._UpdateHostUpdateStateWithEvent(event)
+    state = datastore_entities.HostUpdateState.get_by_id(hostname)
+    self.assertEqual(api_messages.HostUpdateState.SUCCEEDED, state.state)
+    self.assertEqual(update_task_id, state.update_task_id)
+
+  def testHandleHostUpdateStateChangedEvent_newStateRESTARTING(self):
+    """Test update host with a new restarting state."""
+    hostname = "test-1.mtv.corp.example.com"
+    update_task_id = "task-id-111"
+    host_event_msg = {
+        "time": 2,
+        "event_type": "HOST_UPDATE_STATE_CHANGED",
+        "hostname": hostname,
+        "host_update_state": "SYNCING",
+        "host_update_task_id": update_task_id,
+    }
+
+    event = host_event.HostEvent(**host_event_msg)
+    device_manager._UpdateHostUpdateStateWithEvent(event)
+    state = datastore_entities.HostUpdateState.get_by_id(hostname)
+    self.assertEqual(api_messages.HostUpdateState.SYNCING, state.state)
+    self.assertEqual(update_task_id, state.update_task_id)
+
+  def testHandleHostUpdateStateChangedEvent_MultipleEventsNoOutdated(self):
+    """Test update state histories are preserved."""
+    hostname = "test-1.mtv.corp.example.com"
+    update_task_id = "task-id-111"
+    host_event_1 = {
+        "time": 1,
+        "event_type": "HOST_UPDATE_STATE_CHANGED",
+        "hostname": hostname,
+        "host_update_state": "PENDING",
+    }
+    host_event_2 = {
+        "time": 2,
+        "event_type": "HOST_UPDATE_STATE_CHANGED",
+        "hostname": hostname,
+        "host_update_state": "SYNCING",
+        "host_update_task_id": update_task_id,
+    }
+
+    event_1 = host_event.HostEvent(**host_event_1)
+    device_manager._UpdateHostUpdateStateWithEvent(event_1)
+    state = datastore_entities.HostUpdateState.get_by_id(hostname)
+    self.assertEqual(api_messages.HostUpdateState.PENDING, state.state)
+    event_2 = host_event.HostEvent(**host_event_2)
+    device_manager._UpdateHostUpdateStateWithEvent(event_2)
+    state = datastore_entities.HostUpdateState.get_by_id(hostname)
+    self.assertEqual(api_messages.HostUpdateState.SYNCING, state.state)
+
+    state_histories = self._GetHostUpdateStateHistories(hostname)
+
+    self.assertLen(state_histories, 2)
+    self.assertEqual(hostname, state_histories[0].hostname)
+    self.assertEqual(api_messages.HostUpdateState.SYNCING,
+                     state_histories[0].state)
+    self.assertEqual(api_messages.HostUpdateState.PENDING,
+                     state_histories[1].state)
+
+  def testHandleHostUpdateStateChangedEvent_MultipleEventsIgnoreOutdatedState(
+      self):
+    """Test outdated event does not overwrite the state."""
+    hostname = "test-1.mtv.corp.example.com"
+    update_task_id = "task-id-111"
+    host_event_1 = {
+        "time": 2,
+        "event_type": "HOST_UPDATE_STATE_CHANGED",
+        "hostname": hostname,
+        "host_update_state": "RESTARTING",
+        "host_update_task_id": update_task_id,
+    }
+    host_event_2 = {
+        "time": 1,
+        "event_type": "HOST_UPDATE_STATE_CHANGED",
+        "hostname": hostname,
+        "host_update_state": "SYNCING",
+        "host_update_task_id": update_task_id,
+    }
+
+    event_1 = host_event.HostEvent(**host_event_1)
+    device_manager._UpdateHostUpdateStateWithEvent(event_1)
+    state = datastore_entities.HostUpdateState.get_by_id(hostname)
+    self.assertEqual(api_messages.HostUpdateState.RESTARTING, state.state)
+    # The 2nd event does not overwrite host update state, because the event time
+    # is older.
+    event_2 = host_event.HostEvent(**host_event_2)
+    device_manager._UpdateHostUpdateStateWithEvent(event_2)
+    state = datastore_entities.HostUpdateState.get_by_id(hostname)
+    self.assertEqual(api_messages.HostUpdateState.RESTARTING, state.state)
+    self.assertEqual(update_task_id, state.update_task_id)
+
+    state_histories = self._GetHostUpdateStateHistories(hostname)
+
+    # The histories are still preserved for outdated events.
+    self.assertLen(state_histories, 2)
+    self.assertEqual(hostname, state_histories[0].hostname)
+    self.assertEqual(api_messages.HostUpdateState.RESTARTING,
+                     state_histories[0].state)
+    self.assertEqual(api_messages.HostUpdateState.SYNCING,
+                     state_histories[1].state)
 
 
 if __name__ == "__main__":

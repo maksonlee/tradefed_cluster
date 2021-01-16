@@ -60,6 +60,7 @@ class HostEventType(messages.Enum):
   """The different types of host events."""
   DEVICE_SNAPSHOT = 1
   HOST_STATE_CHANGED = 2
+  HOST_UPDATE_STATE_CHANGED = 3
 
 
 class HostEventData(messages.Message):

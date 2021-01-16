@@ -993,17 +993,11 @@ class HostUpdateState(ndb.Model):
       api_messages.HostUpdateState,
       default=api_messages.HostUpdateState.UNKNOWN)
   update_timestamp = ndb.DateTimeProperty()
-  update_task_id = ndb.DateTimeProperty()
+  update_task_id = ndb.StringProperty()
 
 
-class HostUpdateStateHistory(ndb.Model):
+class HostUpdateStateHistory(HostUpdateState):
   """The host update state history."""
-  hostname = ndb.StringProperty()
-  state = ndb.EnumProperty(
-      api_messages.HostUpdateState,
-      default=api_messages.HostUpdateState.UNKNOWN)
-  update_timestamp = ndb.DateTimeProperty()
-  update_task_id = ndb.DateTimeProperty()
 
 
 class HostSync(ndb.Model):

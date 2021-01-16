@@ -62,3 +62,5 @@ class HostEvent(object):
         self.tf_start_time, datetime.datetime):
       self.tf_start_time = datetime.datetime.utcfromtimestamp(
           self.tf_start_time)
+    self.host_update_state = kwargs.get("host_update_state", UNKNOWN)
+    self.host_update_task_id = kwargs.get("host_update_task_id")

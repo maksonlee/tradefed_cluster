@@ -76,7 +76,9 @@ HOSTNAME_KEY = "hostname"
 HOST_NOTE_ID_KEY = "host_note_id"
 DEVICE_NOTE_ID_KEY = "device_note_id"
 
+DEVICE_SNAPSHOT_EVENT_TYPE = "DEVICE_SNAPSHOT"
 HOST_STATE_CHANGED_EVENT_TYPE = "HOST_STATE_CHANGED"
+HOST_UPDATE_STATE_CHANGED_EVENT_TYPE = "HOST_UPDATE_STATE_CHANGED"
 
 HOST_SYNC_QUEUE = "host-sync-queue"
 HOST_SYNC_ID_KEY = "host_sync_id"
@@ -119,13 +121,17 @@ def HandleDeviceSnapshotWithNDB(event):
     return
   if event.type == HOST_STATE_CHANGED_EVENT_TYPE:
     _UpdateHostWithHostChangedEvent(event)
-  else:
+  elif event.type == DEVICE_SNAPSHOT_EVENT_TYPE:
     _UpdateDevicesInNDB(event)
     host = _UpdateHostWithDeviceSnapshotEvent(event)
     _CountDeviceForHost(event.hostname)
     metric.SetHostTestRunnerVersion(
         host.test_harness, host.test_harness_version,
         host.physical_cluster, host.hostname)
+  elif event.type == HOST_UPDATE_STATE_CHANGED_EVENT_TYPE:
+    _UpdateHostUpdateStateWithEvent(event)
+  else:
+    logging.warning("Skip unsupported type of event: <%s>", event)
   StartHostSync(event.hostname)
   logging.debug("Processed snapshot.")
 
@@ -154,6 +160,45 @@ def _UpdateHostWithHostChangedEvent(event):
     entities_to_update.append(host_history)
   ndb.put_multi(entities_to_update)
   return
+
+
+@ndb.transactional()
+def _UpdateHostUpdateStateWithEvent(event):
+  """Update the host with a host update state change event.
+
+  Args:
+    event: HostEvent object.
+  """
+  entities_to_update = []
+
+  host_update_state_enum = api_messages.HostUpdateState(event.host_update_state)
+  host_update_state = datastore_entities.HostUpdateState.get_by_id(
+      event.hostname)
+
+  if not host_update_state:
+    host_update_state = datastore_entities.HostUpdateState(
+        id=event.hostname,
+        hostname=event.hostname)
+
+  if (host_update_state.update_timestamp and event.timestamp and
+      host_update_state.update_timestamp > event.timestamp):
+    logging.info("Ignore outdated event.")
+  else:
+    host_update_state.populate(
+        state=host_update_state_enum,
+        update_timestamp=event.timestamp,
+        update_task_id=event.host_update_task_id)
+    entities_to_update.append(host_update_state)
+
+  host_update_state_history = datastore_entities.HostUpdateStateHistory(
+      parent=ndb.Key(datastore_entities.HostInfo, event.hostname),
+      hostname=event.hostname,
+      state=host_update_state_enum,
+      update_timestamp=event.timestamp,
+      update_task_id=event.host_update_task_id)
+  entities_to_update.append(host_update_state_history)
+
+  ndb.put_multi(entities_to_update)
 
 
 @ndb.transactional()

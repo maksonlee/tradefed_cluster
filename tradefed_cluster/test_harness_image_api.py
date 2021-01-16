@@ -32,7 +32,8 @@ class TestHarnessImageApi(remote.Service):
 
   TEST_HARNESS_IMAGE_LIST_RESOURCE = endpoints.ResourceContainer(
       count=messages.IntegerField(1, default=_DEFAULT_LIST_IMAGES_COUNT),
-      cursor=messages.StringField(2))
+      cursor=messages.StringField(2),
+      tag_prefix=messages.StringField(3))
 
   @endpoints.method(
       TEST_HARNESS_IMAGE_LIST_RESOURCE,
@@ -50,9 +51,18 @@ class TestHarnessImageApi(remote.Service):
     Returns:
       An api_messages.TestHarnessImageMetadataCollection object.
     """
-    query = (
-        datastore_entities.TestHarnessImageMetadata.query().order(
-            -datastore_entities.TestHarnessImageMetadata.create_time))
+    query = datastore_entities.TestHarnessImageMetadata.query()
+
+    if request.tag_prefix:
+      query = (
+          query.filter(datastore_entities.TestHarnessImageMetadata.current_tags
+                       >= request.tag_prefix).filter(
+                           datastore_entities.TestHarnessImageMetadata
+                           .current_tags < request.tag_prefix + u"\ufffd")
+          .order(-datastore_entities.TestHarnessImageMetadata.current_tags))
+
+    query = query.order(
+        -datastore_entities.TestHarnessImageMetadata.create_time)
 
     entities, _, next_cursor = datastore_util.FetchPage(query, request.count,
                                                         request.cursor)

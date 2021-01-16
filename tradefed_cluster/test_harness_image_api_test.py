@@ -25,6 +25,24 @@ from tradefed_cluster import datastore_test_util
 _FAKE_SYNC_TIME = datetime.datetime(2020, 12, 25)
 
 
+def _CheckTestHarnessImageEntityAndApiMessageEqual(entity, message):
+  """A helper method to check equility.
+
+  Args:
+    entity: an instance of datastore_entities.TestHarnessImageMetadata.
+    message: an instance of api_messages.TestHarnessImageMetadataMessage.
+
+  Returns:
+    A bool, whether the entity and message are considered equal.
+  """
+  return (entity.repo_name == message.repo_name and
+          entity.digest == message.digest and
+          entity.test_harness == message.test_harness and
+          entity.test_harness_version == message.test_harness_version and
+          entity.current_tags == message.tags and
+          entity.create_time == message.create_time)
+
+
 class TestHarnessImageApiTest(api_test.ApiTest):
   """Unit tests for TestHarnessImageApi."""
 
@@ -73,37 +91,18 @@ class TestHarnessImageApiTest(api_test.ApiTest):
     self.assertLen(images, 4)
     self.assertIsNone(next_cursor)
 
-    self.assertEqual(self._entities[0].digest, images[0].digest)
-    self.assertEqual(self._entities[0].repo_name, images[0].repo_name)
-    self.assertEqual(self._entities[0].test_harness, images[0].test_harness)
-    self.assertEqual(self._entities[0].test_harness_version,
-                     images[0].test_harness_version)
-    self.assertEqual(self._entities[0].current_tags, images[0].tags)
-    self.assertEqual(self._entities[0].create_time, images[0].create_time)
-
-    self.assertEqual(self._entities[1].digest, images[1].digest)
-    self.assertEqual(self._entities[1].repo_name, images[1].repo_name)
-    self.assertEqual(self._entities[1].test_harness, images[1].test_harness)
-    self.assertEqual(self._entities[1].test_harness_version,
-                     images[1].test_harness_version)
-    self.assertEqual(self._entities[1].current_tags, images[1].tags)
-    self.assertEqual(self._entities[1].create_time, images[1].create_time)
-
-    self.assertEqual(self._entities[2].digest, images[2].digest)
-    self.assertEqual(self._entities[2].repo_name, images[2].repo_name)
-    self.assertEqual(self._entities[2].test_harness, images[2].test_harness)
-    self.assertEqual(self._entities[2].test_harness_version,
-                     images[2].test_harness_version)
-    self.assertEqual(self._entities[2].current_tags, images[2].tags)
-    self.assertEqual(self._entities[2].create_time, images[2].create_time)
-
-    self.assertEqual(self._entities[3].digest, images[3].digest)
-    self.assertEqual(self._entities[3].repo_name, images[3].repo_name)
-    self.assertEqual(self._entities[3].test_harness, images[3].test_harness)
-    self.assertEqual(self._entities[3].test_harness_version,
-                     images[3].test_harness_version)
-    self.assertEqual(self._entities[3].current_tags, images[3].tags)
-    self.assertEqual(self._entities[3].create_time, images[3].create_time)
+    self.assertTrue(
+        _CheckTestHarnessImageEntityAndApiMessageEqual(
+            self._entities[0], images[0]))
+    self.assertTrue(
+        _CheckTestHarnessImageEntityAndApiMessageEqual(
+            self._entities[1], images[1]))
+    self.assertTrue(
+        _CheckTestHarnessImageEntityAndApiMessageEqual(
+            self._entities[2], images[2]))
+    self.assertTrue(
+        _CheckTestHarnessImageEntityAndApiMessageEqual(
+            self._entities[3], images[3]))
 
   def testTestListHarnessImages_multiplePages(self):
 
@@ -119,21 +118,12 @@ class TestHarnessImageApiTest(api_test.ApiTest):
     self.assertLen(images, 2)
     self.assertIsNotNone(next_cursor)
 
-    self.assertEqual(self._entities[0].digest, images[0].digest)
-    self.assertEqual(self._entities[0].repo_name, images[0].repo_name)
-    self.assertEqual(self._entities[0].test_harness, images[0].test_harness)
-    self.assertEqual(self._entities[0].test_harness_version,
-                     images[0].test_harness_version)
-    self.assertEqual(self._entities[0].current_tags, images[0].tags)
-    self.assertEqual(self._entities[0].create_time, images[0].create_time)
-
-    self.assertEqual(self._entities[1].digest, images[1].digest)
-    self.assertEqual(self._entities[1].repo_name, images[1].repo_name)
-    self.assertEqual(self._entities[1].test_harness, images[1].test_harness)
-    self.assertEqual(self._entities[1].test_harness_version,
-                     images[1].test_harness_version)
-    self.assertEqual(self._entities[1].current_tags, images[1].tags)
-    self.assertEqual(self._entities[1].create_time, images[1].create_time)
+    self.assertTrue(
+        _CheckTestHarnessImageEntityAndApiMessageEqual(
+            self._entities[0], images[0]))
+    self.assertTrue(
+        _CheckTestHarnessImageEntityAndApiMessageEqual(
+            self._entities[1], images[1]))
 
     api_request = {
         'count': 2,
@@ -150,21 +140,60 @@ class TestHarnessImageApiTest(api_test.ApiTest):
     self.assertLen(images, 2)
     self.assertIsNone(next_cursor)
 
-    self.assertEqual(self._entities[2].digest, images[0].digest)
-    self.assertEqual(self._entities[2].repo_name, images[0].repo_name)
-    self.assertEqual(self._entities[2].test_harness, images[0].test_harness)
-    self.assertEqual(self._entities[2].test_harness_version,
-                     images[0].test_harness_version)
-    self.assertEqual(self._entities[2].current_tags, images[0].tags)
-    self.assertEqual(self._entities[2].create_time, images[0].create_time)
+    self.assertTrue(
+        _CheckTestHarnessImageEntityAndApiMessageEqual(
+            self._entities[2], images[0]))
+    self.assertTrue(
+        _CheckTestHarnessImageEntityAndApiMessageEqual(
+            self._entities[3], images[1]))
 
-    self.assertEqual(self._entities[3].digest, images[1].digest)
-    self.assertEqual(self._entities[3].repo_name, images[1].repo_name)
-    self.assertEqual(self._entities[3].test_harness, images[1].test_harness)
-    self.assertEqual(self._entities[3].test_harness_version,
-                     images[1].test_harness_version)
-    self.assertEqual(self._entities[3].current_tags, images[1].tags)
-    self.assertEqual(self._entities[3].create_time, images[1].create_time)
+  def testTestListHarnessImages_withFilter_goldenImages(self):
+
+    api_request = {
+        'count': 4,
+        'tag_prefix': 'golden_tradefed',
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/TestHarnessImageApi.ListTestHarnessImages', api_request)
+    image_collection = protojson.decode_message(
+        api_messages.TestHarnessImageMetadataCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+
+    images = image_collection.images
+    next_cursor = image_collection.next_cursor
+    self.assertLen(images, 3)
+    self.assertIsNone(next_cursor)
+
+    self.assertTrue(
+        _CheckTestHarnessImageEntityAndApiMessageEqual(
+            self._entities[1], images[0]))
+    self.assertTrue(
+        _CheckTestHarnessImageEntityAndApiMessageEqual(
+            self._entities[2], images[1]))
+    self.assertTrue(
+        _CheckTestHarnessImageEntityAndApiMessageEqual(
+            self._entities[3], images[2]))
+
+  def testTestListHarnessImages_withFilter_versionNumberPrefix(self):
+
+    api_request = {
+        'count': 4,
+        'tag_prefix': '3333',
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/TestHarnessImageApi.ListTestHarnessImages', api_request)
+    image_collection = protojson.decode_message(
+        api_messages.TestHarnessImageMetadataCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+
+    images = image_collection.images
+    next_cursor = image_collection.next_cursor
+    self.assertLen(images, 1)
+    self.assertIsNone(next_cursor)
+
+    self.assertTrue(
+        _CheckTestHarnessImageEntityAndApiMessageEqual(
+            self._entities[2], images[0]))
 
 
 if __name__ == '__main__':

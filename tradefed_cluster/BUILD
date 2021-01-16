@@ -67,6 +67,7 @@ pytype_strict_library(
         ":report_api_lib",
         ":request_api_lib",
         ":run_target_api_lib",
+        ":test_harness_image_api_lib",
         third_party("endpoints:endpoints_library"),
     ],
 )
@@ -122,6 +123,7 @@ pytype_strict_library(
         ":report_api_lib",
         ":request_api_lib",
         ":run_target_api_lib",
+        ":test_harness_image_api_lib",
         ":testbed_dependent_test_lib",
         third_party("endpoints:endpoints_library"),
         third_party("hamcrest"),
@@ -566,6 +568,34 @@ py2and3_test(
         ":api_messages_lib",
         ":command_task_matcher_lib",
         ":testbed_dependent_test_lib",
+        third_party("mock"),
+        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
+    ],
+)
+
+pytype_strict_library(
+    name = "test_harness_image_api_lib",
+    srcs = [
+        "test_harness_image_api.py",
+    ],
+    deps = [
+        ":api_common_lib",
+        ":api_messages_lib",
+        ":datastore_entities_lib",
+        ":datastore_util_lib",
+        third_party("endpoints:endpoints_library"),
+        third_party("protorpc:protorpc_all"),
+    ],
+)
+
+py2and3_test(
+    name = "test_harness_image_api_test",
+    srcs = [
+        "test_harness_image_api_test.py",
+    ],
+    deps = [
+        ":api_test_lib",
+        ":datastore_test_util_lib",
         third_party("mock"),
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],

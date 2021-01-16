@@ -1416,3 +1416,15 @@ class TestHarnessImageMetadata(ndb.Model):
   sync_time = ndb.DateTimeProperty()
   current_tags = ndb.StringProperty(repeated=True)
   historical_tags = ndb.StringProperty(repeated=True)
+
+
+@MessageConverter(TestHarnessImageMetadata)
+def TestHarnessImageMetadataToMessage(entity):
+  """Convert a TradefedImageMetadata entity to a message."""
+  return api_messages.TestHarnessImageMetadataMessage(
+      repo_name=entity.repo_name,
+      digest=entity.digest,
+      test_harness=entity.test_harness,
+      test_harness_version=entity.test_harness_version,
+      create_time=entity.create_time,
+      tags=entity.current_tags)

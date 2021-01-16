@@ -265,6 +265,23 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual('lab outage', msg.device_blocklist.note)
     self.assertEqual('auser', msg.device_blocklist.user)
 
+  def testHarnessImageMetadataToMessage(self):
+    entity = datastore_entities.TestHarnessImageMetadata(
+        repo_name='gcr.io/dockerized-tradefed/tradefed',
+        digest='sha1',
+        test_harness='tradefed',
+        test_harness_version='111111',
+        current_tags=['111111'],
+        create_time=TIMESTAMP_OLD,
+        sync_time=TIMESTAMP_NEW)
+    msg = datastore_entities.ToMessage(entity)
+    self.assertEqual('gcr.io/dockerized-tradefed/tradefed', msg.repo_name)
+    self.assertEqual('sha1', msg.digest)
+    self.assertEqual('tradefed', msg.test_harness)
+    self.assertEqual('111111', msg.test_harness_version)
+    self.assertEqual(['111111'], msg.tags)
+    self.assertEqual(TIMESTAMP_OLD, msg.create_time)
+
 
 if __name__ == '__main__':
   unittest.main()

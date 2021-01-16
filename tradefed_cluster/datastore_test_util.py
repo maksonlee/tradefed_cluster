@@ -233,3 +233,20 @@ def CreateDeviceBlocklist(lab_name, user='user@example.com'):
       note='lab outage')
   device_blocklist.put()
   return device_blocklist
+
+
+def CreateTestHarnessImageMetadata(repo_name='test_repo',
+                                   digest=None,
+                                   test_harness_version=None,
+                                   current_tags=None,
+                                   create_time=None):
+  """Create a test harness image metadata entity."""
+  image_metadata = datastore_entities.TestHarnessImageMetadata(
+      repo_name=repo_name,
+      digest=digest,
+      test_harness='tradefed',
+      test_harness_version=test_harness_version,
+      current_tags=current_tags,
+      create_time=create_time)
+  image_metadata.put()
+  return image_metadata

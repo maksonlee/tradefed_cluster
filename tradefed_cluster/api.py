@@ -27,6 +27,7 @@ from tradefed_cluster import device_blocklist_api
 from tradefed_cluster import device_snapshot_api
 from tradefed_cluster import filter_hint_api
 from tradefed_cluster import env_config
+from tradefed_cluster import test_harness_image_api
 from tradefed_cluster import host_event_api
 from tradefed_cluster import lab_management_api
 from tradefed_cluster import predefined_message_api
@@ -45,6 +46,7 @@ API_HANDLERS = [
     device_blocklist_api.DeviceBlocklistApi,
     device_snapshot_api.DeviceSnapshotApi,
     filter_hint_api.FilterHintApi,
+    test_harness_image_api.TestHarnessImageApi,
     host_event_api.HostEventApi,
     lab_management_api.LabManagementApi,
     predefined_message_api.PredefinedMessageApi,

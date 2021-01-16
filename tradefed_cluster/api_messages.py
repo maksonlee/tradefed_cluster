@@ -962,3 +962,20 @@ class DeviceRecoveryStateRequests(messages.Message):
   """A list of device recovery state request."""
   device_recovery_state_requests = messages.MessageField(
       DeviceRecoveryStateRequest, 1, repeated=True)
+
+
+class TestHarnessImageMetadataMessage(messages.Message):
+  """Test harness image metadata message."""
+  repo_name = messages.StringField(1)
+  digest = messages.StringField(2)
+  test_harness = messages.StringField(3)
+  test_harness_version = messages.StringField(4)
+  create_time = message_types.DateTimeField(5)
+  tags = messages.StringField(9, repeated=True)
+
+
+class TestHarnessImageMetadataCollection(messages.Message):
+  """A collection of test harness image metadata."""
+  images = messages.MessageField(
+      TestHarnessImageMetadataMessage, 1, repeated=True)
+  next_cursor = messages.StringField(2)

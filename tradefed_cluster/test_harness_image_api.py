@@ -38,7 +38,7 @@ class TestHarnessImageApi(remote.Service):
   @endpoints.method(
       TEST_HARNESS_IMAGE_LIST_RESOURCE,
       api_messages.TestHarnessImageMetadataCollection,
-      path="/",
+      path="/test_harness_images",
       http_method="GET",
       name="list")
   @api_common.with_ndb_context

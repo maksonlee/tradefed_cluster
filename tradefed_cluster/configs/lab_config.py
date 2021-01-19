@@ -212,6 +212,13 @@ class HostConfig(object):
       path_to_tmpfs[tmpfs_config.path] = tmpfs_config
     return list(path_to_tmpfs.values())
 
+  @property
+  def enable_ui_update(self):
+    """Whether host update from UI is enabled."""
+    return bool(self.host_config_pb.enable_ui_update or
+                self.cluster_config_pb.enable_ui_update or
+                self.lab_config_pb.enable_ui_update)
+
   def Save(self, output_file_path):
     """Save the config to a file."""
     lab_config_pb = lab_config_pb2.LabConfig()
@@ -264,7 +271,8 @@ def CreateHostConfig(
     control_server_url=None,
     secret_project_id=None,
     service_account_key_secret_id=None,
-    service_account=None):
+    service_account=None,
+    enable_ui_update=None):
   """Create a host config from raw data.
 
   Args:
@@ -287,6 +295,7 @@ def CreateHostConfig(
     secret_project_id: Google Cloud Project for storing secret.
     service_account_key_secret_id: Secret id for service account key.
     service_account: Service account for the lab.
+    enable_ui_update: bool, whether host update from UI is enabled.
   Returns:
     a HostConfig have all those data.
   """
@@ -297,7 +306,8 @@ def CreateHostConfig(
       enable_autoupdate=enable_autoupdate,
       docker_image=docker_image,
       docker_server=docker_server,
-      extra_docker_args=list(extra_docker_args))
+      extra_docker_args=list(extra_docker_args),
+      enable_ui_update=enable_ui_update)
   cluster_config_pb = lab_config_pb2.ClusterConfig(
       cluster_name=cluster_name,
       host_login_name=host_login_name,

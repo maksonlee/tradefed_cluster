@@ -46,6 +46,7 @@ class ConfigTest(unittest.TestCase):
     self.assertEqual('docker_server_1', lab_config_pb.docker_server)
     self.assertTrue(lab_config_pb.enable_stackdriver)
     self.assertTrue(lab_config_pb.enable_autoupdate)
+    self.assertTrue(lab_config_pb.enable_ui_update)
     self.assertEqual('path/to/key.json',
                      lab_config_pb.service_account_json_key_path)
     self.assertEqual('lab_sv_key',
@@ -83,6 +84,7 @@ class ConfigTest(unittest.TestCase):
     self.assertEqual('750', host.tmpfs_configs[0].mode)
     host = cluster.host_configs[1]
     self.assertEqual('host2', host.hostname)
+    self.assertTrue(host.enable_ui_update)
     host = cluster.host_configs[2]
     self.assertEqual('host3', host.hostname)
     self.assertEqual('path/to/new/config.xml',
@@ -96,6 +98,7 @@ class ConfigTest(unittest.TestCase):
     self.assertEqual('host4', cluster.host_configs[0].hostname)
     self.assertEqual('host5', cluster.host_configs[1].hostname)
     self.assertEqual(3600, cluster.shutdown_timeout_sec)
+    self.assertTrue(cluster.enable_ui_update)
 
   def testParse_invalidYaml(self):
     """Test config file not used lines."""

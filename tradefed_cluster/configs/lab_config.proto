@@ -49,6 +49,8 @@ message LabConfig {
   optional string service_account_key_secret_id = 13;
   // Service account for the lab.
   optional string service_account = 14;
+  // Enable host update from UI.
+  optional bool enable_ui_update = 15;
 }
 
 // Config for a cluster.
@@ -84,6 +86,8 @@ message ClusterConfig {
   optional string docker_server = 14;
   // The max wait timeout to shutdown dockerized TradeFed.
   optional uint64 shutdown_timeout_sec = 15 [default = 3600];
+  // Enable host update from UI.
+  optional bool enable_ui_update = 16;
 }
 
 // Config for a host.
@@ -102,8 +106,10 @@ message HostConfig {
   optional string docker_image = 6;
   // The docker server that hosts the image.
   optional string docker_server = 7;
+  // Enable host update from UI.
+  optional bool enable_ui_update = 8;
   // Extra docker args
-  repeated string extra_docker_args = 12;
+  repeated string extra_docker_args = 9;
 }
 
 

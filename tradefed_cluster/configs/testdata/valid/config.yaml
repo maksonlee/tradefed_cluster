@@ -23,6 +23,7 @@ docker_image: lab_docker_image
 docker_server: docker_server_1
 enable_stackdriver: True
 enable_autoupdate: True
+enable_ui_update: True
 service_account_json_key_path: path/to/key.json
 secret_project_id: secret_project_id
 service_account_key_secret_id: lab_sv_key
@@ -54,6 +55,7 @@ cluster_configs:
       size: 2000
       mode: '750'
   - hostname: host2
+    enable_ui_update: True
   - hostname: host3
     tf_global_config_path: path/to/new/config.xml
     docker_image: gcr.io/dockerized-tradefed/tradefed:canary
@@ -62,6 +64,7 @@ cluster_configs:
 - cluster_name: cluster2
   tf_global_config_path: path/to/config.xml
   control_server_url: tfc_control_server_url
+  enable_ui_update: True
   host_configs:
   - hostname: host4
   - hostname: host5

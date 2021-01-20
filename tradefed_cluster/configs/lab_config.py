@@ -219,6 +219,12 @@ class HostConfig(object):
                 self.cluster_config_pb.enable_ui_update or
                 self.lab_config_pb.enable_ui_update)
 
+  @property
+  def owners(self):
+    """Inherit the owners field from parent cluster or lab."""
+    return (self.cluster_config_pb.owners or
+            self.lab_config_pb.owners)
+
   def Save(self, output_file_path):
     """Save the config to a file."""
     lab_config_pb = lab_config_pb2.LabConfig()

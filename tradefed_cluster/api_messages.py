@@ -598,6 +598,12 @@ class HostConfig(messages.Message):
   hostname = messages.StringField(1)
   tf_global_config_path = messages.StringField(2)
   host_login_name = messages.StringField(3)
+  lab_name = messages.StringField(4)
+  cluster_name = messages.StringField(5)
+  graceful_shutdown = messages.BooleanField(6)
+  shutdown_timeout_sec = messages.IntegerField(7)
+  enable_ui_update = messages.BooleanField(8)
+  owners = messages.StringField(9, repeated=True)
 
 
 class DeviceCountSummary(messages.Message):

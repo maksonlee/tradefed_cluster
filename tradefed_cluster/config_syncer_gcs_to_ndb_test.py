@@ -112,16 +112,28 @@ class ConfigSyncerGCSToNdbTest(testbed_dependent_test.TestbedDependentTest):
         config_syncer_gcs_to_ndb.LAB_CONFIG_DIR_PATH + TEST_CLUSTER_YAML_FILE)
     config_syncer_gcs_to_ndb._UpdateHostConfigs(
         lab_config_pb.cluster_configs[0].host_configs,
-        lab_config_pb.cluster_configs[0].cluster_name)
+        lab_config_pb.cluster_configs[0],
+        lab_config_pb)
 
     ndb.get_context().clear_cache()
     # homer-atc1 is overrided.
     res = datastore_entities.HostConfig.get_by_id('homer-atc1')
     self.assertEqual(res.hostname, 'homer-atc1')
     self.assertEqual(res.tf_global_config_path, 'configs/homer-atc1/config.xml')
+    self.assertEqual(res.lab_name, 'lab1')
+    self.assertEqual(res.cluster_name, 'cluster1')
+    self.assertCountEqual(res.owners, ['owner1', 'owner2'])
+    self.assertTrue(res.graceful_shutdown)
+    self.assertTrue(res.enable_ui_update)
+    self.assertEqual(res.shutdown_timeout_sec, 1000)
     res = datastore_entities.HostConfig.get_by_id('homer-atc2')
     self.assertEqual(res.hostname, 'homer-atc2')
     self.assertEqual(res.tf_global_config_path, 'configs/homer-atc2/config.xml')
+    self.assertEqual(res.lab_name, 'lab1')
+    self.assertCountEqual(res.owners, ['owner1', 'owner2'])
+    self.assertTrue(res.graceful_shutdown)
+    self.assertFalse(res.enable_ui_update)
+    self.assertEqual(res.shutdown_timeout_sec, 1000)
 
   def testSyncToNDB(self):
     """test SyncToNDB."""

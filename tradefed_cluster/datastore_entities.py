@@ -684,11 +684,23 @@ class HostConfig(ndb.Model):
     hostname: a string of a host name.
     tf_global_config_path: a string of the global path of host config xml file.
     host_login_name: login name to for the host
+    lab_name: string, the lab where the host is.
+    cluster_name: string, the physical cluster(host group) of the host.
+    graceful_shutdown: bool, whether to gracefully shutdown the host.
+    shutdown_timeout_sec: int, customized shutdown timeout in seconds.
+    enable_ui_update: bool, whether the host can be updated from UI.
+    owners: list of string, the lab owners.
     update_time: the time the config is update.
   """
   hostname = ndb.StringProperty()
   tf_global_config_path = ndb.StringProperty()
   host_login_name = ndb.StringProperty()
+  lab_name = ndb.StringProperty()
+  cluster_name = ndb.StringProperty()
+  graceful_shutdown = ndb.BooleanProperty()
+  shutdown_timeout_sec = ndb.IntegerProperty()
+  enable_ui_update = ndb.BooleanProperty()
+  owners = ndb.StringProperty(repeated=True)
   update_time = ndb.DateTimeProperty(auto_now=True)
 
   @classmethod
@@ -697,7 +709,13 @@ class HostConfig(ndb.Model):
         id=msg.hostname,
         hostname=msg.hostname,
         tf_global_config_path=msg.tf_global_config_path,
-        host_login_name=msg.host_login_name)
+        host_login_name=msg.host_login_name,
+        lab_name=msg.lab_name,
+        cluster_name=msg.cluster_name,
+        graceful_shutdown=msg.graceful_shutdown,
+        shutdown_timeout_sec=msg.shutdown_timeout_sec,
+        enable_ui_update=msg.enable_ui_update,
+        owners=list(msg.owners))
 
 
 @MessageConverter(HostConfig)
@@ -707,7 +725,13 @@ def HostConfigToMessage(host_config_entity):
     return api_messages.HostConfig(
         hostname=host_config_entity.hostname,
         tf_global_config_path=host_config_entity.tf_global_config_path,
-        host_login_name=host_config_entity.host_login_name)
+        host_login_name=host_config_entity.host_login_name,
+        lab_name=host_config_entity.lab_name,
+        cluster_name=host_config_entity.cluster_name,
+        graceful_shutdown=host_config_entity.graceful_shutdown,
+        shutdown_timeout_sec=host_config_entity.shutdown_timeout_sec,
+        enable_ui_update=host_config_entity.enable_ui_update,
+        owners=list(host_config_entity.owners))
 
 
 class ClusterConfig(ndb.Model):

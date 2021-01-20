@@ -35,9 +35,12 @@ cluster_configs:
   - owner1
   - owner2
   tf_global_config_path: configs/cluster1/config.xml
+  graceful_shutdown: True
+  shutdown_timeout_sec: 1000
   host_configs:
   - hostname: homer-atc1
     tf_global_config_path: configs/homer-atc1/config.xml
+    enable_ui_update: True
   - hostname: homer-atc2
     tf_global_config_path: configs/homer-atc2/config.xml
 

@@ -116,24 +116,28 @@ def _UpdateClusterConfigs(cluster_configs):
   logging.debug('Cluster configs updated.')
 
 
-def _UpdateHostConfigs(host_configs, cluster_name):
+def _UpdateHostConfigs(host_config_pbs, cluster_config_pb, lab_config_pb):
   """Update host configs in HostInfo entities to ndb.
 
   Args:
-    host_configs: a list of host configs.
-    cluster_name: the name of cluster the hosts belong to.
+    host_config_pbs: a list of host config protos.
+    cluster_config_pb: the cluster config proto.
+    lab_config_pb: the lab config proto.
   """
-  logging.debug('Updating host configs for cluster: %s.', cluster_name)
+  logging.debug('Updating host configs for <lab: %s, cluster: %s.>',
+                lab_config_pb.lab_name, cluster_config_pb.cluster_name)
   host_config_keys = []
-  for host_config in host_configs:
+  for host_config_pb in host_config_pbs:
     host_config_keys.append(
-        ndb.Key(datastore_entities.HostConfig, host_config.hostname))
+        ndb.Key(datastore_entities.HostConfig, host_config_pb.hostname))
   entities = ndb.get_multi(host_config_keys)
   entities_to_update = []
   # Update the exist host config entity.
-  for entity, host_config in zip(entities, host_configs):
+  for entity, host_config_pb in zip(entities, host_config_pbs):
+    host_config_msg = lab_config_util.HostConfig(
+        host_config_pb, cluster_config_pb, lab_config_pb)
     new_host_config_entity = datastore_entities.HostConfig.FromMessage(
-        host_config)
+        host_config_msg)
     if not _CheckConfigEntitiesEqual(entity, new_host_config_entity):
       logging.debug('Updating host config entity: %s.', new_host_config_entity)
       entities_to_update.append(new_host_config_entity)
@@ -150,9 +154,9 @@ def SyncToNDB():
       lab_config_pb = GetLabConfigFromGCS(stat.filename)
       _UpdateLabConfig(lab_config_pb)
       _UpdateClusterConfigs(lab_config_pb.cluster_configs)
-      for cluster_config in lab_config_pb.cluster_configs:
+      for cluster_config_pb in lab_config_pb.cluster_configs:
         _UpdateHostConfigs(
-            cluster_config.host_configs, cluster_config.cluster_name)
+            cluster_config_pb.host_configs, cluster_config_pb, lab_config_pb)
 
 
 @APP.route('/cron/syncer/sync_gcs_ndb')

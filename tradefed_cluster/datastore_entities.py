@@ -906,7 +906,8 @@ class HostInfo(ndb.Expando):
 
 
 @MessageConverter(HostInfo)
-def HostInfoToMessage(host_info_entity, devices=None):
+def HostInfoToMessage(
+    host_info_entity, devices=None, host_update_state_entity=None):
   """Convert a HostInfo entity into a HostInfoMessage."""
   device_infos = [ToMessage(device) for device in devices or []]
   next_cluster_ids = list(host_info_entity.clusters or [])
@@ -919,6 +920,10 @@ def HostInfoToMessage(host_info_entity, devices=None):
     host_state = host_info_entity.host_state.name
   else:
     host_state = 'UNKNOWN'
+  if host_update_state_entity:
+    update_state = host_update_state_entity.state.name
+  else:
+    update_state = None
   test_harness = host_info_entity.test_harness
   test_harness_version = host_info_entity.test_harness_version
   return api_messages.HostInfo(
@@ -952,7 +957,8 @@ def HostInfoToMessage(host_info_entity, devices=None):
       is_bad=host_info_entity.is_bad,
       last_recovery_time=host_info_entity.last_recovery_time,
       flated_extra_info=host_info_entity.flated_extra_info,
-      recovery_state=host_info_entity.recovery_state)
+      recovery_state=host_info_entity.recovery_state,
+      update_state=update_state)
 
 
 class HostInfoHistory(HostInfo):

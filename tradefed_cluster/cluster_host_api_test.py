@@ -497,6 +497,40 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual('ASSIGNED', host_collection.host_infos[0].recovery_state)
     self.assertEqual('FIXED', host_collection.host_infos[1].recovery_state)
 
+  def testListHosts_includeHostUpdateState(self):
+    host_update_state_0 = datastore_entities.HostUpdateState(
+        id=self.ndb_host_0.hostname,
+        hostname=self.ndb_host_0.hostname,
+        state=api_messages.HostUpdateState.SYNCING)
+    host_update_state_2 = datastore_entities.HostUpdateState(
+        id=self.ndb_host_2.hostname,
+        hostname=self.ndb_host_2.hostname,
+        state=api_messages.HostUpdateState.RESTARTING)
+    ndb.put_multi(
+        [host_update_state_0, host_update_state_2])
+
+    api_request = {}
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
+                                          api_request)
+    host_collection = protojson.decode_message(api_messages.HostInfoCollection,
+                                               api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(3, len(host_collection.host_infos))
+    for host in host_collection.host_infos:
+      self.assertEqual(0, len(host.device_infos))
+      if host.hostname == 'host_0':
+        self.AssertEqualHostInfo(self.ndb_host_0, host)
+        self.assertEqual('SYNCING', host.update_state)
+      elif host.hostname == 'host_2':
+        self.AssertEqualHostInfo(self.ndb_host_2, host)
+        self.assertEqual('RESTARTING', host.update_state)
+      elif host.hostname == 'host_3':
+        self.AssertEqualHostInfo(self.ndb_host_3, host)
+        self.assertIsNone(host.update_state)
+      else:
+        # host_1 is hidden and should not be reported
+        self.fail()
+
   @mock.patch.object(note_manager, 'PublishMessage')
   def testAddOrUpdateHostNote_addWithTextOfflineReasonAndRecoveryAction(
       self, mock_publish_host_note_message):

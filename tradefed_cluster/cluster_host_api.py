@@ -176,15 +176,21 @@ class ClusterHostApi(remote.Service):
     hosts, prev_cursor, next_cursor = datastore_util.FetchPage(
         query, request.count, request.cursor, result_filter=_PostFilter)
 
+    host_update_state_keys = [
+        ndb.Key(datastore_entities.HostUpdateState, host.hostname)
+        for host in hosts]
+    host_update_states = ndb.get_multi(host_update_state_keys)
     host_infos = []
-    for host in hosts:
+    for host, host_update_state in zip(hosts, host_update_states):
       devices = []
       if request.include_devices:
         device_query = datastore_entities.DeviceInfo.query(ancestor=host.key)
         if not request.include_hidden:
           device_query = device_query.filter(
               datastore_entities.DeviceInfo.hidden == False)          devices = device_query.fetch()
-      host_infos.append(datastore_entities.ToMessage(host, devices=devices))
+      host_infos.append(datastore_entities.ToMessage(
+          host, devices=devices,
+          host_update_state_entity=host_update_state))
     return api_messages.HostInfoCollection(
         host_infos=host_infos,
         more=bool(next_cursor),

@@ -646,6 +646,7 @@ class HostInfo(messages.Message):
   flated_extra_info = messages.StringField(27, repeated=True)
   last_recovery_time = message_types.DateTimeField(28)
   recovery_state = messages.StringField(29)
+  update_state = messages.StringField(30)
 
 
 class HostInfoCollection(messages.Message):

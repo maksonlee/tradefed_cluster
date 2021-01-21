@@ -51,7 +51,8 @@ MAX_CANCELED_COUNT_BASE = MAX_TASK_COUNT
 MAX_CANCELED_COUNT_RATIO = 0.1
 MAX_ERROR_COUNT_BASE = 3
 MAX_ERROR_COUNT_RATIO = 0.1
-MAX_DEVICE_LOST_DETECTED_COUNT = 2
+MAX_DEVICE_LOST_COUNT_BASE = 2
+MAX_DEVICE_LOST_COUNT_RATIO = 0.05
 
 COMMAND_ATTEMPT_SYNC_QUEUE = "command-attempt-sync-queue"
 
@@ -230,7 +231,7 @@ class CommandSummary(object):
                max_retry_on_test_failures=0,
                max_canceled_count=1,
                max_error_count=1,
-               max_devices_lost_detected_count=MAX_DEVICE_LOST_DETECTED_COUNT):
+               max_devices_lost_count=1):
     """Gets the computed state.
 
     Args:
@@ -243,7 +244,7 @@ class CommandSummary(object):
         command.
       max_error_count: The number of errored attempts before erroring the
         command.
-      max_devices_lost_detected_count: The max number of attempts detected to
+      max_devices_lost_count: The max number of attempts detected to
         have had lost devices.
 
     Returns:
@@ -263,7 +264,7 @@ class CommandSummary(object):
       return common.CommandState.CANCELED
     if self.error_count >= max_error_count:
       return common.CommandState.ERROR
-    if self.device_lost_attempt_counter >= max_devices_lost_detected_count:
+    if self.device_lost_attempt_counter >= max_devices_lost_count:
       self.command_error_reason = common.ErrorReason.TOO_MANY_LOST_DEVICES
       return common.CommandState.ERROR
     if common.IsFinalCommandState(state):
@@ -427,7 +428,8 @@ def _UpdateState(
         state,
         max_retry_on_test_failures=max_retry_on_test_failures,
         max_canceled_count=_GetCommandMaxCancelCount(command),
-        max_error_count=_GetCommandMaxErrorCount(command))
+        max_error_count=_GetCommandMaxErrorCount(command),
+        max_devices_lost_count=_GetCommandMaxDeviceLostCount(command))
     start_time = summary.start_time
     end_time = summary.end_time
     error_reason = summary.GetErrorReason()
@@ -471,8 +473,17 @@ def _GetCommandMaxErrorCount(command):
   return MAX_ERROR_COUNT_BASE + int(command.run_count * MAX_ERROR_COUNT_RATIO)
 
 
-def _RescheduleOrDeleteTask(
-    task_id, command, summary, attempt_state, max_retry_on_test_failures=0):
+def _GetCommandMaxDeviceLostCount(command):
+  """Get a command's max device lost count."""
+  return MAX_DEVICE_LOST_COUNT_BASE + int(
+      command.run_count * MAX_DEVICE_LOST_COUNT_RATIO)
+
+
+def _RescheduleOrDeleteTask(task_id,
+                            command,
+                            summary,
+                            attempt_state,
+                            max_retry_on_test_failures=0):
   """Reschdules a task if more tasks are needed, or deletes it.
 
   Args:

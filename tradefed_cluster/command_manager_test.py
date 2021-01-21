@@ -1319,6 +1319,18 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     tasks = self.mock_task_scheduler.GetTasks()
     self.assertEqual(len(tasks), 0)
 
+  def test_GetCommandMaxDeviceLostCount(self):
+    expected_max_device_count = 6
+    command = self._CreateCommand(run_count=80)
+    self.assertEqual(expected_max_device_count,
+                     command_manager._GetCommandMaxDeviceLostCount(command))
+
+  def test_GetCommandMaxErrorCount(self):
+    expected_max_device_count = 11
+    command = self._CreateCommand(run_count=80)
+    self.assertEqual(expected_max_device_count,
+                     command_manager._GetCommandMaxErrorCount(command))
+
 
 class CommandSummaryTest(unittest.TestCase):
 
@@ -1658,13 +1670,14 @@ class CommandSummaryTest(unittest.TestCase):
   def testGetState_error_devices_lost(self):
     self.summary.total_count = 1
     self.summary.device_lost_attempt_counter = 1
-    state = self.summary.GetState(common.CommandState.UNKNOWN)
+    state = self.summary.GetState(
+        common.CommandState.UNKNOWN, max_devices_lost_count=2)
     self.assertEqual(state, common.CommandState.QUEUED)
     self.assertEqual(common.ErrorReason.UNKNOWN, self.summary.GetErrorReason())
     # Simulates an extra attempt that crosses the device lost threshold.
     self.summary.total_count = 2
     self.summary.device_lost_attempt_counter = 2
-    state = self.summary.GetState(state)
+    state = self.summary.GetState(state, max_devices_lost_count=2)
     self.assertEqual(state, common.CommandState.ERROR)
     self.assertEqual(common.ErrorReason.TOO_MANY_LOST_DEVICES,
                      self.summary.GetErrorReason())

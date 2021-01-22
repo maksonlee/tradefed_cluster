@@ -87,14 +87,54 @@ def _UpdateClusters():
     cluster_entity.available_devices = 0
     cluster_entity.allocated_devices = 0
     cluster_entity.device_count_timestamp = _Now()
+    host_update_state_keys = []
     for host in hosts:
+      host_update_state_keys.append(
+          ndb.Key(datastore_entities.HostUpdateState, host.hostname))
       cluster_entity.total_devices += host.total_devices or 0
       cluster_entity.offline_devices += host.offline_devices or 0
       cluster_entity.available_devices += host.available_devices or 0
       cluster_entity.allocated_devices += host.allocated_devices or 0
+    host_update_states = ndb.get_multi(host_update_state_keys)
+    cluster_entity.host_update_state_summary = _CreateHostUpdateStateSummary(
+        host_update_states)
     clusters_to_upsert.append(cluster_entity)
   ndb.put_multi(clusters_to_upsert)
   logging.debug('Updated clusters.')
+
+
+def _CreateHostUpdateStateSummary(host_update_states):
+  """Create host update state summary entity.
+
+  Args:
+    host_update_states: list of HostUpdateState entities.
+
+  Returns:
+    a HostUpdateStateSummary datastore entity.
+  """
+  summary = datastore_entities.HostUpdateStateSummary(
+      total=len(host_update_states))
+  for host_update_state in host_update_states:
+    if not host_update_state:
+      continue
+    if host_update_state.state == api_messages.HostUpdateState.PENDING:
+      summary.pending += 1
+    elif host_update_state.state == api_messages.HostUpdateState.SYNCING:
+      summary.syncing += 1
+    elif host_update_state.state == api_messages.HostUpdateState.SHUTTING_DOWN:
+      summary.shutting_down += 1
+    elif host_update_state.state == api_messages.HostUpdateState.RESTARTING:
+      summary.restarting += 1
+    elif host_update_state.state == api_messages.HostUpdateState.SUCCEEDED:
+      summary.succeeded += 1
+    elif (host_update_state.state ==
+          api_messages.HostUpdateState.TIMED_OUT):
+      summary.timed_out += 1
+    elif host_update_state.state == api_messages.HostUpdateState.ERRORED:
+      summary.errored += 1
+    elif host_update_state.state == api_messages.HostUpdateState.UNKNOWN:
+      summary.unknown += 1
+  return summary
 
 
 def _UpdateLabs():

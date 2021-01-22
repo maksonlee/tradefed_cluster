@@ -122,6 +122,56 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
     self.assertIsNone(
         datastore_entities.ClusterInfo.get_by_id('cluster_to_delete'))
 
+  def testUpdateClusters_calculateHostUpdateStateSummary(self):
+    cluster_name = 'cluster1'
+    host1 = datastore_test_util.CreateHost(
+        cluster_name, 'host1.mtv', lab_name='alab')
+    host2 = datastore_test_util.CreateHost(
+        cluster_name, 'host2.mtv', lab_name='alab')
+    host3 = datastore_test_util.CreateHost(
+        cluster_name, 'host3.mtv', lab_name='alab')
+    host4 = datastore_test_util.CreateHost(
+        cluster_name, 'host4.mtv', lab_name='alab')
+    host5 = datastore_test_util.CreateHost(
+        cluster_name, 'host5.mtv', lab_name='alab')
+    host6 = datastore_test_util.CreateHost(
+        cluster_name, 'host6.mtv', lab_name='alab')
+    host7 = datastore_test_util.CreateHost(
+        cluster_name, 'host7.mtv', lab_name='alab')
+    host8 = datastore_test_util.CreateHost(
+        cluster_name, 'host8.mtv', lab_name='alab')
+    host9 = datastore_test_util.CreateHost(
+        cluster_name, 'host9.mtv', lab_name='alab')
+    datastore_test_util.CreateHostUpdateState(
+        host1.hostname, state=api_messages.HostUpdateState.SYNCING)
+    datastore_test_util.CreateHostUpdateState(
+        host2.hostname, state=api_messages.HostUpdateState.SYNCING)
+    datastore_test_util.CreateHostUpdateState(
+        host3.hostname, state=api_messages.HostUpdateState.RESTARTING)
+    datastore_test_util.CreateHostUpdateState(
+        host4.hostname, state=api_messages.HostUpdateState.ERRORED)
+    datastore_test_util.CreateHostUpdateState(
+        host5.hostname, state=api_messages.HostUpdateState.PENDING)
+    datastore_test_util.CreateHostUpdateState(
+        host6.hostname, state=api_messages.HostUpdateState.TIMED_OUT)
+    datastore_test_util.CreateHostUpdateState(
+        host7.hostname, state=api_messages.HostUpdateState.SUCCEEDED)
+    datastore_test_util.CreateHostUpdateState(
+        host8.hostname, state=api_messages.HostUpdateState.SHUTTING_DOWN)
+    datastore_test_util.CreateHostUpdateState(
+        host9.hostname, state=api_messages.HostUpdateState.UNKNOWN)
+    device_monitor._UpdateClusters()
+    cluster = datastore_entities.ClusterInfo.get_by_id(cluster_name)
+    self.assertEqual(9, cluster.host_update_state_summary.total)
+    self.assertEqual(1, cluster.host_update_state_summary.pending)
+    self.assertEqual(2, cluster.host_update_state_summary.syncing)
+    self.assertEqual(1, cluster.host_update_state_summary.shutting_down)
+    self.assertEqual(1, cluster.host_update_state_summary.restarting)
+    self.assertEqual(1, cluster.host_update_state_summary.errored)
+    self.assertEqual(1, cluster.host_update_state_summary.timed_out)
+    self.assertEqual(1, cluster.host_update_state_summary.succeeded)
+    self.assertEqual(1, cluster.host_update_state_summary.unknown)
+
   def testUpdateLabs(self):
     device_monitor._UpdateLabs()
     labs = datastore_entities.LabInfo.query()

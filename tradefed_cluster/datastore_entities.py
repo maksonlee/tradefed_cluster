@@ -780,6 +780,33 @@ class LabConfig(ndb.Model):
         owners=list(msg.owners))
 
 
+class HostUpdateStateSummary(ndb.Model):
+  """Summary of host update states under a lab or a host group.
+
+  Attributes:
+    total: total number of hosts.
+    unknown: number of host with HostUpdateState.UNKNOWN .
+    pending: number of host with HostUpdateState.PENDING .
+    syncing: number of host with HostUpdateState.SYNCING .
+    shutting_down: number of host with HostUpdateState.SHUTTING_DOWN .
+    restarting: number of host with HostUpdateState.RESTARTING .
+    timed_out: number of host with HostUpdateState.TIMED_OUT .
+    errored: number of host with HostUpdateState.ERRORED .
+    succeeded: number of host with HostUpdateState.SUCCEEDED .
+    summary_update_timestamp: time when the summary is calculated.
+  """
+  total = ndb.IntegerProperty(default=0)
+  unknown = ndb.IntegerProperty(default=0)
+  pending = ndb.IntegerProperty(default=0)
+  syncing = ndb.IntegerProperty(default=0)
+  shutting_down = ndb.IntegerProperty(default=0)
+  restarting = ndb.IntegerProperty(default=0)
+  timed_out = ndb.IntegerProperty(default=0)
+  errored = ndb.IntegerProperty(default=0)
+  succeeded = ndb.IntegerProperty(default=0)
+  summary_update_timestamp = ndb.DateTimeProperty(auto_now=True)
+
+
 class ClusterInfo(ndb.Expando):
   """Cluster information entity. Key should be cluster name.
 
@@ -790,6 +817,7 @@ class ClusterInfo(ndb.Expando):
     available_devices: available devices count
     allocated_devices: allocated devices count
     device_count_timestamp: time when the device counts were calculated
+    host_update_state_summary: host update states summary under the cluster
   """
   cluster = ndb.StringProperty()
   total_devices = ndb.IntegerProperty(default=0)
@@ -798,6 +826,7 @@ class ClusterInfo(ndb.Expando):
   allocated_devices = ndb.IntegerProperty(default=0)
   # Time when the device counts were calculated and persisted
   device_count_timestamp = ndb.DateTimeProperty()
+  host_update_state_summary = ndb.StructuredProperty(HostUpdateStateSummary)
 
 
 class DeviceCountSummary(ndb.Model):

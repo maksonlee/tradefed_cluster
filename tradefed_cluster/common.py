@@ -125,6 +125,35 @@ FINAL_REQUEST_STATES = (
 )
 
 
+class HostUpdateState(messages.Enum):
+  """Enum for host update states."""
+  # An unknown state.
+  UNKNOWN = 0
+  # The update task is scheduled, but not started.
+  PENDING = 1
+  # The step "syncing image" during an update.
+  SYNCING = 2
+  # The step "shutting down container" during an update.
+  SHUTTING_DOWN = 3
+  # The step "starting a new container" during an update.
+  RESTARTING = 4
+  # The update task is considered timeout because not receiving state report
+  # after the timeout.
+  TIMED_OUT = 5
+  # The update failed because of error state reported.
+  ERRORED = 6
+  # The update succeeded.
+  SUCCEEDED = 7
+
+
+NON_FINAL_HOST_UPDATE_STATES = (
+    HostUpdateState.PENDING,
+    HostUpdateState.SYNCING,
+    HostUpdateState.SHUTTING_DOWN,
+    HostUpdateState.RESTARTING,
+)
+
+
 class CommandErrorType(messages.Enum):
   """Command error type codes."""
   UNKNOWN = 0

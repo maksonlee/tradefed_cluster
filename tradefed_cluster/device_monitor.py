@@ -45,6 +45,8 @@ CLOUD_TF_LAB_NAME = 'cloud-tf'
 
 # TODO: Make the TTL configurable.
 ONE_MONTH = datetime.timedelta(days=30)
+# TODO: Make use of timeouts defined in lab config.
+_DEFAULT_HOST_UPDATE_STATE_TIMEOUT = datetime.timedelta(hours=2)
 
 BATCH = 1000
 
@@ -248,6 +250,69 @@ def _PublishHostMessage(hostname):
       }])
 
 
+@ndb.transactional()
+def _MarkHostUpdateStateIfTimedOut(hostname):
+  """Mark HostUpdateState as TIMED_OUT if it times out.
+
+  Args:
+    hostname: text, the host to check the update timeouts.
+
+  Returns:
+    An instance of HostUpdateState entity, None if it does not exist previously.
+  """
+  host_update_state = datastore_entities.HostUpdateState.get_by_id(hostname)
+  if not host_update_state:
+    logging.info('No update state is found for host: %s.', hostname)
+    return
+
+  now = _Now()
+
+  entities_to_update = []
+
+  if (host_update_state.state and
+      host_update_state.state in common.NON_FINAL_HOST_UPDATE_STATES):
+    if host_update_state.update_timestamp:
+      update_state_age = now - host_update_state.update_timestamp
+      if _DEFAULT_HOST_UPDATE_STATE_TIMEOUT < update_state_age:
+        logging.info('Host<%s> has HostUpdateState<%s> changed on %s, '
+                     'which is %s seconds ago. '
+                     'Marking update state as TIMED_OUT.',
+                     hostname, host_update_state.state,
+                     host_update_state.update_timestamp,
+                     update_state_age.total_seconds())
+        host_update_state.state = api_messages.HostUpdateState.TIMED_OUT
+        host_update_state.update_timestamp = now
+        entities_to_update.append(host_update_state)
+        host_update_state_history = datastore_entities.HostUpdateStateHistory(
+            parent=ndb.Key(datastore_entities.HostInfo, hostname),
+            hostname=host_update_state.hostname,
+            state=host_update_state.state,
+            update_timestamp=now,
+            update_task_id=host_update_state.update_task_id)
+        entities_to_update.append(host_update_state_history)
+      else:
+        logging.debug('Host<%s> is in HostUpdateState<%s> since %s.',
+                      hostname, host_update_state.state,
+                      host_update_state.update_timestamp)
+    else:
+      logging.debug('Host<%s> has no timestamp in the HostUpdateState. '
+                    'Auto adding a timestamp on it.',
+                    hostname)
+      host_update_state.update_timestamp = now
+      entities_to_update.append(host_update_state)
+      host_update_state_history = datastore_entities.HostUpdateStateHistory(
+          parent=ndb.Key(datastore_entities.HostInfo, hostname),
+          hostname=host_update_state.hostname,
+          state=host_update_state.state,
+          update_timestamp=now,
+          update_task_id=host_update_state.update_task_id)
+      entities_to_update.append(host_update_state_history)
+
+  ndb.put_multi(entities_to_update)
+
+  return host_update_state
+
+
 @APP.route('/_ah/queue/%s' % device_manager.HOST_SYNC_QUEUE, methods=['POST'])
 def HandleHostSyncTask():
   """Handle host sync tasks."""
@@ -256,6 +321,7 @@ def HandleHostSyncTask():
   logging.debug('HostSyncTaskHandler syncing %s.', host_info)
   hostname = host_info[device_manager.HOSTNAME_KEY]
   host_sync_id = host_info.get(device_manager.HOST_SYNC_ID_KEY)
+  _MarkHostUpdateStateIfTimedOut(hostname)
   should_sync = _SyncHost(hostname)
   if should_sync:
     device_manager.StartHostSync(hostname, host_sync_id)

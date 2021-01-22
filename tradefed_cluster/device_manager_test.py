@@ -1157,12 +1157,6 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
             .order(-datastore_entities.HostInfoHistory.timestamp)
             .fetch())
 
-  def _GetHostUpdateStateHistories(self, hostname):
-    return (datastore_entities.HostUpdateStateHistory
-            .query(ancestor=ndb.Key(datastore_entities.HostInfo, hostname))
-            .order(-datastore_entities.HostUpdateStateHistory.update_timestamp)
-            .fetch())
-
   def testUpdateHostWithHostChangedEvent_newState(self):
     # Test update host with a new state
     hostname = "test-1.mtv.corp.example.com"
@@ -1945,7 +1939,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     state = datastore_entities.HostUpdateState.get_by_id(hostname)
     self.assertEqual(api_messages.HostUpdateState.SYNCING, state.state)
 
-    state_histories = self._GetHostUpdateStateHistories(hostname)
+    state_histories = device_manager.GetHostUpdateStateHistories(hostname)
 
     self.assertLen(state_histories, 2)
     self.assertEqual(hostname, state_histories[0].hostname)
@@ -1986,7 +1980,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(api_messages.HostUpdateState.RESTARTING, state.state)
     self.assertEqual(update_task_id, state.update_task_id)
 
-    state_histories = self._GetHostUpdateStateHistories(hostname)
+    state_histories = device_manager.GetHostUpdateStateHistories(hostname)
 
     # The histories are still preserved for outdated events.
     self.assertLen(state_histories, 2)

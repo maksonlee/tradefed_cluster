@@ -1017,7 +1017,14 @@ def HostStateHistoryToMessage(host_state_history_entity):
 
 
 class HostUpdateState(ndb.Model):
-  """Host update state."""
+  """Host update state.
+
+  Attreibutes:
+    hostname: hostname.
+    update_timestamp: timestamp the update state is changed.
+    update_task_id: the host update task ID.
+    state: host update state, see HostUpdateState in api message.
+  """
   hostname = ndb.StringProperty()
   state = ndb.EnumProperty(
       api_messages.HostUpdateState,

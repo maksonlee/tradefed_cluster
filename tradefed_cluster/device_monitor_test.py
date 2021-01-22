@@ -240,6 +240,105 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
       self.assertEqual(d.device_serial, msg.device_serial)
       self.assertEqual(d.state, msg.state)
 
+  @mock.patch.object(device_monitor, '_Now')
+  def testMarkHostUpdateStateIfTimedOut_NonFinalStateUpdateIsNotTimedOut(
+      self, mock_now):
+    now = datetime.datetime(2021, 1, 15, 10, 10)
+    mock_now.return_value = now
+    state_updated_time = (
+        now - device_monitor._DEFAULT_HOST_UPDATE_STATE_TIMEOUT +
+        datetime.timedelta(minutes=5))
+    datastore_test_util.CreateHostUpdateState(
+        self.host1.hostname, state=api_messages.HostUpdateState.PENDING,
+        update_timestamp=state_updated_time)
+
+    host_update_state = device_monitor._MarkHostUpdateStateIfTimedOut(
+        self.host1.hostname)
+
+    self.assertEqual(self.host1.hostname, host_update_state.hostname)
+    self.assertEqual(api_messages.HostUpdateState.PENDING,
+                     host_update_state.state)
+    self.assertEqual(state_updated_time, host_update_state.update_timestamp)
+
+    new_state_histories = device_manager.GetHostUpdateStateHistories(
+        self.host1.hostname)
+    self.assertEmpty(new_state_histories)
+
+  @mock.patch.object(device_monitor, '_Now')
+  def testMarkHostUpdateStateIfTimedOut_NonFinalStateUpdateIsTimedOut(
+      self, mock_now):
+    now = datetime.datetime(2021, 1, 15, 10, 10)
+    mock_now.return_value = now
+    state_updated_time = (
+        now - device_monitor._DEFAULT_HOST_UPDATE_STATE_TIMEOUT -
+        datetime.timedelta(minutes=5))
+    datastore_test_util.CreateHostUpdateState(
+        self.host1.hostname, state=api_messages.HostUpdateState.PENDING,
+        update_timestamp=state_updated_time)
+
+    host_update_state = device_monitor._MarkHostUpdateStateIfTimedOut(
+        self.host1.hostname)
+
+    self.assertEqual(self.host1.hostname, host_update_state.hostname)
+    self.assertEqual(api_messages.HostUpdateState.TIMED_OUT,
+                     host_update_state.state)
+    self.assertEqual(now, host_update_state.update_timestamp)
+
+    new_state_histories = device_manager.GetHostUpdateStateHistories(
+        self.host1.hostname)
+    self.assertLen(new_state_histories, 1)
+    self.assertEqual(api_messages.HostUpdateState.TIMED_OUT,
+                     new_state_histories[0].state)
+    self.assertEqual(now, new_state_histories[0].update_timestamp)
+
+  @mock.patch.object(device_monitor, '_Now')
+  def testMarkHostUpdateStateIfTimedOut_FinalStateUpdateNotBeingChecked(
+      self, mock_now):
+    now = datetime.datetime(2021, 1, 15, 10, 10)
+    mock_now.return_value = now
+    state_updated_time = (
+        now - device_monitor._DEFAULT_HOST_UPDATE_STATE_TIMEOUT -
+        datetime.timedelta(minutes=5))
+    datastore_test_util.CreateHostUpdateState(
+        self.host1.hostname, state=api_messages.HostUpdateState.SUCCEEDED,
+        update_timestamp=state_updated_time)
+
+    host_update_state = device_monitor._MarkHostUpdateStateIfTimedOut(
+        self.host1.hostname)
+
+    self.assertEqual(self.host1.hostname, host_update_state.hostname)
+    self.assertEqual(api_messages.HostUpdateState.SUCCEEDED,
+                     host_update_state.state)
+    self.assertEqual(state_updated_time, host_update_state.update_timestamp)
+
+    new_state_histories = device_manager.GetHostUpdateStateHistories(
+        self.host1.hostname)
+    self.assertEmpty(new_state_histories)
+
+  @mock.patch.object(device_monitor, '_Now')
+  def testMarkHostUpdateStateIfTimedOut_AddMissingTimestamp(
+      self, mock_now):
+    now = datetime.datetime(2021, 1, 15, 10, 10)
+    mock_now.return_value = now
+    datastore_test_util.CreateHostUpdateState(
+        self.host1.hostname, state=api_messages.HostUpdateState.SYNCING,
+        update_timestamp=None)
+
+    host_update_state = device_monitor._MarkHostUpdateStateIfTimedOut(
+        self.host1.hostname)
+
+    self.assertEqual(self.host1.hostname, host_update_state.hostname)
+    self.assertEqual(api_messages.HostUpdateState.SYNCING,
+                     host_update_state.state)
+    self.assertEqual(now, host_update_state.update_timestamp)
+
+    new_state_histories = device_manager.GetHostUpdateStateHistories(
+        self.host1.hostname)
+    self.assertLen(new_state_histories, 1)
+    self.assertEqual(api_messages.HostUpdateState.SYNCING,
+                     new_state_histories[0].state)
+    self.assertEqual(now, new_state_histories[0].update_timestamp)
+
 
 if __name__ == '__main__':
   unittest.main()

@@ -250,3 +250,16 @@ def CreateTestHarnessImageMetadata(repo_name='test_repo',
       create_time=create_time)
   image_metadata.put()
   return image_metadata
+
+
+def CreateHostUpdateState(
+    hostname, state=None, update_timestamp=None, update_task_id=None):
+  """Create a HostUpdateState."""
+  host_update_state = datastore_entities.HostUpdateState(
+      id=hostname,
+      hostname=hostname,
+      state=state,
+      update_timestamp=update_timestamp,
+      update_task_id=update_task_id)
+  host_update_state.put()
+  return host_update_state

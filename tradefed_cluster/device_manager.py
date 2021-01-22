@@ -38,6 +38,7 @@ from tradefed_cluster.util import ndb_shim as ndb
 MAX_DEVICE_HISTORY_SIZE = 100
 MAX_HOST_HISTORY_SIZE = 100
 DEFAULT_HOST_HISTORY_SIZE = 10
+DEFAULT_HOST_UPDATE_STATE_HISTORY_SIZE = 10
 
 TCP_DEVICE_PREFIX = "tcp-device"
 EMULATOR_DEVICE_PREFIX = "emulator"
@@ -1108,6 +1109,23 @@ def GetHostStateHistory(hostname, limit=DEFAULT_HOST_HISTORY_SIZE):
                      "but got %d" % MAX_HOST_HISTORY_SIZE % limit)
   return (datastore_entities.HostStateHistory.query(ancestor=host_key)
           .order(-datastore_entities.HostStateHistory.timestamp)
+          .fetch(limit=limit))
+
+
+def GetHostUpdateStateHistories(hostname,
+                                limit=DEFAULT_HOST_UPDATE_STATE_HISTORY_SIZE):
+  """Function to get host update state history from NDB.
+
+  Args:
+    hostname: host name.
+    limit: an integer about the max number of state history returned.
+
+  Returns:
+    A datastore entity list of HostUpdateStateHistory.
+  """
+  return (datastore_entities.HostUpdateStateHistory
+          .query(ancestor=ndb.Key(datastore_entities.HostInfo, hostname))
+          .order(-datastore_entities.HostUpdateStateHistory.update_timestamp)
           .fetch(limit=limit))
 
 

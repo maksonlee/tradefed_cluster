@@ -77,9 +77,10 @@ HOSTNAME_KEY = "hostname"
 HOST_NOTE_ID_KEY = "host_note_id"
 DEVICE_NOTE_ID_KEY = "device_note_id"
 
-DEVICE_SNAPSHOT_EVENT_TYPE = "DEVICE_SNAPSHOT"
-HOST_STATE_CHANGED_EVENT_TYPE = "HOST_STATE_CHANGED"
-HOST_UPDATE_STATE_CHANGED_EVENT_TYPE = "HOST_UPDATE_STATE_CHANGED"
+DEVICE_SNAPSHOT_TYPES = ("DeviceSnapshot", "DEVICE_SNAPSHOT")
+HOST_STATE_CHANGED_TYPES = ("HostStateChanged", "HOST_STATE_CHANGED")
+HOST_UPDATE_STATE_CHANGED_TYPES = ("HostUpdateStateChanged",
+                                   "HOST_UPDATE_STATE_CHANGED")
 
 HOST_SYNC_QUEUE = "host-sync-queue"
 HOST_SYNC_ID_KEY = "host_sync_id"
@@ -120,19 +121,19 @@ def HandleDeviceSnapshotWithNDB(event):
         "Ignoring old event (%s) for host [%s] (%s).",
         event.timestamp, event.hostname, host.timestamp)
     return
-  if event.type == HOST_STATE_CHANGED_EVENT_TYPE:
+  if event.type in HOST_STATE_CHANGED_TYPES:
     _UpdateHostWithHostChangedEvent(event)
-  elif event.type == DEVICE_SNAPSHOT_EVENT_TYPE:
+  elif event.type in DEVICE_SNAPSHOT_TYPES:
     _UpdateDevicesInNDB(event)
     host = _UpdateHostWithDeviceSnapshotEvent(event)
     _CountDeviceForHost(event.hostname)
     metric.SetHostTestRunnerVersion(
         host.test_harness, host.test_harness_version,
         host.physical_cluster, host.hostname)
-  elif event.type == HOST_UPDATE_STATE_CHANGED_EVENT_TYPE:
+  elif event.type in HOST_UPDATE_STATE_CHANGED_TYPES:
     _UpdateHostUpdateStateWithEvent(event)
   else:
-    logging.warning("Skip unsupported type of event: <%s>", event)
+    logging.warning("Skip unsupported type of event: <%s>", event.type)
   StartHostSync(event.hostname)
   logging.debug("Processed snapshot.")
 

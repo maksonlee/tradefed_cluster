@@ -725,7 +725,7 @@ def ProcessCommandEvent(event):
   env_config.CONFIG.plugin.OnProcessCommandEvent(
       GetCommand(event.request_id, event.command_id),
       GetCommandAttempt(event.request_id, event.command_id, event.attempt_id),
-      )
+      event_data=event.data)
 
 
 def ScheduleTasks(commands):

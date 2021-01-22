@@ -1164,7 +1164,16 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
                     hamcrest.has_property("command_id", attempt.command_id),
                     hamcrest.has_property("attempt_id", attempt.attempt_id),
                     hamcrest.has_property("task_id", attempt.task_id),
-                ))),
+                )),
+            event_data={
+                "summary": "summary",
+                "total_test_count": 1000,
+                "failed_test_count": 100,
+                "passed_test_count": 900,
+                "failed_test_run_count": 10,
+                "device_lost_detected": 0,
+                "error": "error"
+            }),
     ])
 
   @mock.patch.object(metric, "RecordCommandAttemptMetric")
@@ -1282,7 +1291,15 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
                     hamcrest.has_property("command_id", attempt.command_id),
                     hamcrest.has_property("attempt_id", attempt.attempt_id),
                     hamcrest.has_property("task_id", attempt.task_id),
-                ))),
+                )),
+            event_data={
+                "total_test_count": 1000,
+                "device_lost_detected": 0,
+                "failed_test_run_count": 10,
+                "passed_test_count": 900,
+                "failed_test_count": 100,
+                "summary": "summary"
+            }),
     ])
 
   def testNotifyAttemptState(self):

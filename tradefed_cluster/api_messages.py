@@ -656,6 +656,20 @@ class RunTarget(messages.Message):
   name = messages.StringField(1, required=True)
 
 
+class HostUpdateStateSummary(messages.Message):
+  """Host update state summary."""
+  total = messages.IntegerField(1)
+  unknown = messages.IntegerField(2)
+  pending = messages.IntegerField(3)
+  syncing = messages.IntegerField(4)
+  shutting_down = messages.IntegerField(5)
+  restarting = messages.IntegerField(6)
+  timed_out = messages.IntegerField(7)
+  errored = messages.IntegerField(8)
+  succeeded = messages.IntegerField(9)
+  update_timestamp = message_types.DateTimeField(10)
+
+
 class ClusterInfo(messages.Message):
   """Information for a given Cluster."""
   cluster_id = messages.StringField(1)
@@ -667,6 +681,7 @@ class ClusterInfo(messages.Message):
   host_infos = messages.MessageField(HostInfo, 7, repeated=True)
   notes = messages.MessageField(Note, 8, repeated=True)
   run_targets = messages.MessageField(RunTarget, 9, repeated=True)
+  host_update_state_summary = messages.MessageField(HostUpdateStateSummary, 10)
 
 
 class LabInfo(messages.Message):

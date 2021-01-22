@@ -179,4 +179,6 @@ class ClusterApi(remote.Service):
         allocated_devices=cluster.allocated_devices,
         device_count_timestamp=cluster.device_count_timestamp,
         host_infos=host_infos,
-        run_targets=run_target_messages)
+        run_targets=run_target_messages,
+        host_update_state_summary=datastore_entities.ToMessage(
+            cluster.host_update_state_summary))

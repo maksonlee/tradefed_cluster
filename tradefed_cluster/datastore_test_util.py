@@ -27,7 +27,8 @@ def CreateCluster(cluster,
                   offline_devices=0,
                   available_devices=1,
                   allocated_devices=0,
-                  device_count_timestamp=None):
+                  device_count_timestamp=None,
+                  host_update_state_summary=None):
   """Create a cluster."""
   cluster = datastore_entities.ClusterInfo(
       id=cluster,
@@ -36,7 +37,9 @@ def CreateCluster(cluster,
       offline_devices=offline_devices,
       available_devices=available_devices,
       allocated_devices=allocated_devices,
-      device_count_timestamp=device_count_timestamp)
+      device_count_timestamp=device_count_timestamp,
+      host_update_state_summary=(host_update_state_summary or
+                                 datastore_entities.HostUpdateStateSummary()))
   cluster.put()
   return cluster
 

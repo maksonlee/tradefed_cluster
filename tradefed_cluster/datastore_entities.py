@@ -807,6 +807,26 @@ class HostUpdateStateSummary(ndb.Model):
   summary_update_timestamp = ndb.DateTimeProperty(auto_now=True)
 
 
+@MessageConverter(HostUpdateStateSummary)
+def HostUpdateStateSummaryToMessage(host_update_state_summary_entity):
+  """Convert HostUpdateStateSummary from entity to message."""
+  if not host_update_state_summary_entity:
+    return None
+  return api_messages.HostUpdateStateSummary(
+      total=host_update_state_summary_entity.total,
+      unknown=host_update_state_summary_entity.unknown,
+      pending=host_update_state_summary_entity.pending,
+      syncing=host_update_state_summary_entity.syncing,
+      shutting_down=host_update_state_summary_entity.shutting_down,
+      restarting=host_update_state_summary_entity.restarting,
+      timed_out=host_update_state_summary_entity.timed_out,
+      errored=host_update_state_summary_entity.errored,
+      succeeded=host_update_state_summary_entity.succeeded,
+      update_timestamp=(
+          host_update_state_summary_entity.summary_update_timestamp),
+      )
+
+
 class ClusterInfo(ndb.Expando):
   """Cluster information entity. Key should be cluster name.
 

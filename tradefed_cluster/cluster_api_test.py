@@ -32,13 +32,18 @@ class ClusterApiTest(api_test.ApiTest):
 
   def setUp(self):
     api_test.ApiTest.setUp(self)
+    self.host_update_state_summary_0 = (
+        datastore_entities.HostUpdateStateSummary(
+            total=2,
+            succeeded=2))
     self.cluster_0 = datastore_test_util.CreateCluster(
         cluster='free',
         total_devices=10,
         offline_devices=1,
         available_devices=2,
         allocated_devices=7,
-        device_count_timestamp=self.TIMESTAMP)
+        device_count_timestamp=self.TIMESTAMP,
+        host_update_state_summary=self.host_update_state_summary_0)
     self.cluster_1 = datastore_test_util.CreateCluster(
         cluster='paid',
         total_devices=2,
@@ -230,6 +235,27 @@ class ClusterApiTest(api_test.ApiTest):
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual('paid', cluster_info.cluster_id)
     self.assertEqual(0, len(cluster_info.notes))
+
+  def testGetCluster_withHostUpdateStateSummary(self):
+    """Tests GetCluster where the cluster has host update state summary."""
+    api_request = {'cluster_id': 'free'}
+    api_response = self.testapp.post_json('/_ah/api/ClusterApi.GetCluster',
+                                          api_request)
+    cluster_info = protojson.decode_message(api_messages.ClusterInfo,
+                                            api_response.body)
+    host_update_state_summary = cluster_info.host_update_state_summary
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual('free', cluster_info.cluster_id)
+    self.assertEqual(2, host_update_state_summary.total)
+    self.assertEqual(2, host_update_state_summary.succeeded)
+    self.assertEqual(0, host_update_state_summary.pending)
+    self.assertEqual(0, host_update_state_summary.syncing)
+    self.assertEqual(0, host_update_state_summary.shutting_down)
+    self.assertEqual(0, host_update_state_summary.restarting)
+    self.assertEqual(0, host_update_state_summary.timed_out)
+    self.assertEqual(0, host_update_state_summary.errored)
+    self.assertEqual(0, host_update_state_summary.unknown)
+    self.assertIsNotNone(host_update_state_summary.update_timestamp)
 
   def testNewNote_withNoneExisting(self):
     """Tests adding a note to a cluster when none exist already."""

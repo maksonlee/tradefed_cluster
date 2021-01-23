@@ -734,6 +734,19 @@ def HostConfigToMessage(host_config_entity):
         owners=list(host_config_entity.owners))
 
 
+class HostMetadata(ndb.Model):
+  """HostMetadata stored dynamic host configs.
+
+  Attributes:
+    hostname: string, a host name.
+    test_harness_image: string, url to test harness docker image.
+    update_time: time when the host metadata is changed.
+  """
+  hostname = ndb.StringProperty()
+  test_harness_image = ndb.StringProperty()
+  update_time = ndb.DateTimeProperty(auto_now=True)
+
+
 class ClusterConfig(ndb.Model):
   """A cluster config entity.
 

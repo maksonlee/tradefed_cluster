@@ -125,6 +125,7 @@ FINAL_REQUEST_STATES = (
 )
 
 
+# LINT.IfChange(host_update_state)
 class HostUpdateState(messages.Enum):
   """Enum for host update states."""
   # An unknown state.
@@ -144,6 +145,8 @@ class HostUpdateState(messages.Enum):
   ERRORED = 6
   # The update succeeded.
   SUCCEEDED = 7
+
+#                 cli/host_util.py:host_update_state)
 
 
 NON_FINAL_HOST_UPDATE_STATES = (

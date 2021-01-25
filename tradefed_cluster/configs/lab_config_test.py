@@ -44,6 +44,7 @@ class ConfigTest(unittest.TestCase):
     self.assertEqual('tfc_master_url', lab_config_pb.master_url)
     self.assertEqual('lab_docker_image', lab_config_pb.docker_image)
     self.assertEqual('docker_server_1', lab_config_pb.docker_server)
+    self.assertEqual('AStringToRepresentApiKey', lab_config_pb.engprod_api_key)
     self.assertTrue(lab_config_pb.enable_stackdriver)
     self.assertTrue(lab_config_pb.enable_autoupdate)
     self.assertTrue(lab_config_pb.enable_ui_update)

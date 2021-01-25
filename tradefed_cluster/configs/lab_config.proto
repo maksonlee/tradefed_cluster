@@ -51,6 +51,8 @@ message LabConfig {
   optional string service_account = 14;
   // Enable host update from UI.
   optional bool enable_ui_update = 15;
+  // API Key for Android Engprod API discovery.
+  optional string engprod_api_key = 16;
 }
 
 // Config for a cluster.

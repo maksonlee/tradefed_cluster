@@ -225,6 +225,11 @@ class HostConfig(object):
     return (self.cluster_config_pb.owners or
             self.lab_config_pb.owners)
 
+  @property
+  def engprod_api_key(self):
+    """API Key for Android Engprod API discovery."""
+    return self.lab_config_pb.engprod_api_key
+
   def Save(self, output_file_path):
     """Save the config to a file."""
     lab_config_pb = lab_config_pb2.LabConfig()
@@ -278,7 +283,8 @@ def CreateHostConfig(
     secret_project_id=None,
     service_account_key_secret_id=None,
     service_account=None,
-    enable_ui_update=None):
+    enable_ui_update=None,
+    engprod_api_key=None):
   """Create a host config from raw data.
 
   Args:
@@ -302,6 +308,7 @@ def CreateHostConfig(
     service_account_key_secret_id: Secret id for service account key.
     service_account: Service account for the lab.
     enable_ui_update: bool, whether host update from UI is enabled.
+    engprod_api_key: string, API Key for Android Engprod API discovery.
   Returns:
     a HostConfig have all those data.
   """
@@ -330,7 +337,8 @@ def CreateHostConfig(
       service_account_json_key_path=service_account_json_key_path,
       secret_project_id=secret_project_id,
       service_account_key_secret_id=service_account_key_secret_id,
-      service_account=service_account)
+      service_account=service_account,
+      engprod_api_key=engprod_api_key)
   return HostConfig(host_config_pb, cluster_config_pb, lab_config_pb)
 
 

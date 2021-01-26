@@ -391,6 +391,7 @@ pytype_strict_library(
 
 py2and3_test(
     name = "command_event_handler_test",
+    timeout = "long",
     srcs = [
         "command_event_handler_test.py",
     ],

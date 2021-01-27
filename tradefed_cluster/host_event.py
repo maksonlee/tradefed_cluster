@@ -57,10 +57,5 @@ class HostEvent(object):
     self.pools = kwargs.get("pools", self.next_cluster_ids)
     # TODO: deprecate state field, use host_state instead.
     self.host_state = kwargs.get("host_state", kwargs.get("state"))
-    self.tf_start_time = kwargs.get("tf_start_time_seconds")
-    if self.tf_start_time and not isinstance(
-        self.tf_start_time, datetime.datetime):
-      self.tf_start_time = datetime.datetime.utcfromtimestamp(
-          self.tf_start_time)
     self.host_update_state = kwargs.get("host_update_state", UNKNOWN)
     self.host_update_task_id = kwargs.get("host_update_task_id")

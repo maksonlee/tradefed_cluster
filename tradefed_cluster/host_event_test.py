@@ -14,7 +14,6 @@
 
 """Unit tests for host_event module."""
 
-import datetime
 import unittest
 
 from tradefed_cluster import api_messages
@@ -50,7 +49,6 @@ class HostEventTest(unittest.TestCase):
               "run_target": "flounder"
           }],
       "state": "RUNNING",
-      "tf_start_time_seconds": 123456789,
       "tf_version": "v1"
   }
   HOST_EVENT2 = {
@@ -58,7 +56,6 @@ class HostEventTest(unittest.TestCase):
       "hostname": "test.mtv.corp.example.com",
       "event_type": "HOST_STATE_CHANGED",
       "state": "KILLING",
-      "tf_start_time_seconds": 123456789
   }
   HOST_EVENT3 = {
       "time": 1431712965,
@@ -67,7 +64,6 @@ class HostEventTest(unittest.TestCase):
       "lab_name": "alab",
       "event_type": "DEVICE_SNAPSHOT",
       "state": "RUNNING",
-      "tf_start_time_seconds": 123456789
   }
   MH_HOST_EVENT = {
       "time": 1431712965,
@@ -89,8 +85,6 @@ class HostEventTest(unittest.TestCase):
     self.assertEqual("alab", event.lab_name)
     self.assertEqual(2, len(event.device_info))
     self.assertEqual(api_messages.HostState.RUNNING.name, event.host_state)
-    self.assertEqual(datetime.datetime.utcfromtimestamp(123456789),
-                     event.tf_start_time)
     self.assertEqual("v1", event.test_harness_version)
     self.assertEqual("TRADEFED", event.test_harness)
 

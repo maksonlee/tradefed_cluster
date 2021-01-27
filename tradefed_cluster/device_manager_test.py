@@ -14,6 +14,7 @@
 
 """Unit tests for device manager module."""
 
+import copy
 import datetime
 import json
 import unittest
@@ -90,7 +91,6 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
       "event_type": "HOST_STATE_CHANGED",
       "hostname": "test.mtv.corp.example.com",
       "state": "RUNNING",
-      "tf_start_time_seconds": 1331712960
   }
 
   HOST_EVENT_UPDATE_AVAILABLE = {
@@ -115,7 +115,6 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
           }],
       "next_cluster_ids": ["cluster1"],
       "state": None,
-      "tf_start_time_seconds": None
   }
 
   HOST_EVENT_MAC_UPDATE_AVAILABLE = {
@@ -140,7 +139,6 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
               "mac_address": "58:a2:b5:7d:49:25",
           }],
       "state": None,
-      "tf_start_time_seconds": None
   }
 
   HOST_EVENT_RUN_TARGET_UPDATE_AVAILABLE = {
@@ -162,7 +160,6 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
               "battery_level": "unknown"
           }],
       "state": None,
-      "tf_start_time_seconds": None
   }
 
   HOST_EVENT_UPDATE_UNAVAILABLE = {
@@ -186,7 +183,6 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
               "sim_operator": ""
           }],
       "state": None,
-      "tf_start_time_seconds": None
   }
 
   HOST_EVENT_NO_DEVICES = {
@@ -281,6 +277,15 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
               "run_target": "new_harness_run_target",
           },
       ]
+  }
+
+  HOST_EVENT_WITH_TEST_HARNESS_START_TIME = {
+      "time": 1431712965,
+      "data": {"test_harness_start_time_ms": "1431712965000"},
+      "hostname": "host1.mtv.corp.example.com",
+      "test_runner": "TRADEFED",
+      "test_runner_version": "v1",
+      "event_type": "DEVICE_SNAPSHOT",
   }
 
   def testIsHostEventValid(self):
@@ -421,8 +426,6 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     device_manager.HandleDeviceSnapshotWithNDB(some_host_event)
     host = device_manager.GetHost(self.HOST_EVENT_STATE_INFO["hostname"])
     self.assertIsNotNone(host)
-    self.assertEqual(self.HOST_EVENT_STATE_INFO["cluster"],
-                     host.physical_cluster)
     self.assertEqual(
         datetime.datetime.utcfromtimestamp(self.HOST_EVENT_STATE_INFO["time"]),
         host.timestamp)
@@ -1134,7 +1137,6 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     host.physical_cluster = "test"
     host.timestamp = datetime.datetime.utcfromtimestamp(1)
     host.host_state = api_messages.HostState.GONE
-    host.tf_start_time = datetime.datetime.utcfromtimestamp(12345)
     host.put()
     host_event_1 = {
         "time": 2,
@@ -1142,12 +1144,31 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
         "event_type": "NOT_HOST_STATE_CHANGED",
         "hostname": hostname,
         "state": "RUNNING",
-        "tf_start_time_seconds": 12345,
     }
     event_1 = host_event.HostEvent(**host_event_1)
     device_manager._UpdateHostWithDeviceSnapshotEvent(event_1)
     ndb_host = device_manager.GetHost(hostname)
     self.assertEqual(api_messages.HostState.RUNNING, ndb_host.host_state)
+    host_history_list = device_manager.GetHostStateHistory(hostname)
+    self.assertEqual(host_history_list[0].state, api_messages.HostState.RUNNING)
+
+  def testUpdateHostWithDeviceSnapshotEvent_newTestHarnessInstance(self):
+    """Test update host with new test harness instance host event."""
+    hostname = "host1.mtv.corp.example.com"
+    host = datastore_test_util.CreateHost(
+        cluster="test",
+        lab_name="alab",
+        hostname=hostname,
+        timestamp=datetime.datetime.utcfromtimestamp(1),
+        host_state=api_messages.HostState.KILLING,
+        extra_info={
+            "test_harness_start_time_ms": "1400000000000"
+        })
+    event = host_event.HostEvent(**self.HOST_EVENT_WITH_TEST_HARNESS_START_TIME)
+    device_manager._UpdateHostWithDeviceSnapshotEvent(event)
+    host = device_manager.GetHost(hostname)
+    # The new instance should override the old KILLING state.
+    self.assertEqual(api_messages.HostState.RUNNING, host.host_state)
     host_history_list = device_manager.GetHostStateHistory(hostname)
     self.assertEqual(host_history_list[0].state, api_messages.HostState.RUNNING)
 
@@ -1213,6 +1234,54 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(
         api_messages.HostState.RUNNING, host_histories[1].host_state)
     self.assertEqual(event_1.timestamp, host_histories[1].timestamp)
+
+  def testIsNewTestHarnessInstance(self):
+    hostname = self.HOST_EVENT_WITH_TEST_HARNESS_START_TIME["hostname"]
+    host = datastore_test_util.CreateHost(
+        "free", hostname, host_state=api_messages.HostState.RUNNING,
+        extra_info={
+            "test_harness_start_time_ms": "1430000000000"
+        })
+    event = host_event.HostEvent(**self.HOST_EVENT_WITH_TEST_HARNESS_START_TIME)
+    self.assertTrue(device_manager._IsNewTestHarnessInstance(host, event))
+
+  def testIsNewTestHarnessInstance_oldInstanceEvent(self):
+    hostname = self.HOST_EVENT_WITH_TEST_HARNESS_START_TIME["hostname"]
+    host = datastore_test_util.CreateHost(
+        "free", hostname, host_state=api_messages.HostState.RUNNING,
+        extra_info={
+            "test_harness_start_time_ms": "1440000000000"
+        })
+    event = host_event.HostEvent(**self.HOST_EVENT_WITH_TEST_HARNESS_START_TIME)
+    self.assertFalse(device_manager._IsNewTestHarnessInstance(host, event))
+
+  def testIsNewTestHarnessInstance_hostIsGONE(self):
+    """Test _IsNewTestHarnessInstance, host is GONE."""
+    hostname = self.HOST_EVENT_WITH_TEST_HARNESS_START_TIME["hostname"]
+    host = datastore_test_util.CreateHost(
+        "free", hostname, host_state=api_messages.HostState.GONE)
+    event = host_event.HostEvent(**self.HOST_EVENT_WITH_TEST_HARNESS_START_TIME)
+    self.assertTrue(device_manager._IsNewTestHarnessInstance(host, event))
+
+  def testIsNewTestHarnessInstance_hostNoTestHarnessStartTime(self):
+    """Test _IsNewTestHarnessInstance, host has no start time but event has."""
+    hostname = self.HOST_EVENT_WITH_TEST_HARNESS_START_TIME["hostname"]
+    host = datastore_test_util.CreateHost(
+        "free", hostname, host_state=api_messages.HostState.RUNNING,
+        extra_info={})
+    event = host_event.HostEvent(**self.HOST_EVENT_WITH_TEST_HARNESS_START_TIME)
+    self.assertTrue(device_manager._IsNewTestHarnessInstance(host, event))
+
+  def testIsNewTestHarnessInstance_eventNoTestHarnessStartTime(self):
+    """Test _IsNewTestHarnessInstance, event has no start time."""
+    event_dict = copy.deepcopy(self.HOST_EVENT_WITH_TEST_HARNESS_START_TIME)
+    event_dict["data"] = {}
+    hostname = event_dict.get("hostname")
+    host = datastore_test_util.CreateHost(
+        "free", hostname, host_state=api_messages.HostState.RUNNING,
+        extra_info={})
+    event = host_event.HostEvent(**event_dict)
+    self.assertFalse(device_manager._IsNewTestHarnessInstance(host, event))
 
   def _BuildDeviceStateHistory(self, timestamp, serial, state):
     """Helper to build and persist device state history records."""

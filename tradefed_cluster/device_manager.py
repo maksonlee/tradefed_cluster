@@ -76,6 +76,7 @@ BATTERY_LEVEL_KEY = "battery_level"
 HOSTNAME_KEY = "hostname"
 HOST_NOTE_ID_KEY = "host_note_id"
 DEVICE_NOTE_ID_KEY = "device_note_id"
+TEST_HARNESS_START_TIME_MS = "test_harness_start_time_ms"
 
 DEVICE_SNAPSHOT_TYPES = ("DeviceSnapshot", "DEVICE_SNAPSHOT")
 HOST_STATE_CHANGED_TYPES = ("HostStateChanged", "HOST_STATE_CHANGED")
@@ -147,12 +148,14 @@ def _UpdateHostWithHostChangedEvent(event):
   """
   host = GetHost(event.hostname)
   if not host:
-    host = datastore_entities.HostInfo(
-        id=event.hostname,
-        hostname=event.hostname,
-        physical_cluster=event.cluster_id,
-        host_group=event.host_group,
-        lab_name=event.lab_name)
+    host = datastore_entities.HostInfo(id=event.hostname)
+  host.hostname = event.hostname
+  host.lab_name = event.lab_name
+  host.timestamp = event.timestamp
+  host.test_harness = event.test_harness
+  host.test_harness_version = event.test_harness_version
+  host.extra_info = event.data
+  host.hidden = False
   host_state_history, host_history = _UpdateHostState(
       host, event.host_state, event.timestamp)
   entities_to_update = [host]
@@ -225,7 +228,6 @@ def _UpdateHostWithDeviceSnapshotEvent(event):
   host.timestamp = event.timestamp
   host.test_harness = event.test_harness
   host.test_harness_version = event.test_harness_version
-  host.extra_info = event.data
   host.hidden = False
   # TODO: deprecate clusters, use pools.
   if event.cluster_id:
@@ -233,19 +235,53 @@ def _UpdateHostWithDeviceSnapshotEvent(event):
   else:
     host.clusters = event.next_cluster_ids[:]
   host.pools = event.pools
-  if event.tf_start_time:
-    host.tf_start_time = event.tf_start_time
   entities_to_update = [host]
-  if host.host_state in (None, api_messages.HostState.UNKNOWN,
-                         api_messages.HostState.GONE):
+  if _IsNewTestHarnessInstance(host, event):
+    # If it's a new instance, we change the host state to RUNNING.
     host_state_history, host_history = _UpdateHostState(
         host, api_messages.HostState.RUNNING, event.timestamp)
     if host_state_history:
       entities_to_update.append(host_state_history)
     if host_history:
       entities_to_update.append(host_history)
+  # Extra info need to be update after checking _IsNewTestHarnessInstance,
+  # since we use insit_harness_start_time_ms in extra info.
+  host.extra_info = event.data
   ndb.put_multi(entities_to_update)
   return host
+
+
+def _IsNewTestHarnessInstance(host, event):
+  """Check if the even comes from a new test harness instance.
+
+  Args:
+    host: a datastore_entities.HostInfo object.
+    event: a HostEvent object.
+  Returns:
+    True if it's a new instance, otherwise False .
+  """
+  if host.host_state in (None, api_messages.HostState.UNKNOWN,
+                         api_messages.HostState.GONE):
+    # The host was GONE or have never receive any event.
+    logging.debug("%s state was %s.", host.hostname, host.host_state)
+    return True
+  if not (event.data or {}).get(TEST_HARNESS_START_TIME_MS, None):
+    # The event doesn't have test_harness_start_time_ms, there is no way
+    # to tell the event is from a new instance or not.
+    return False
+  if not (host.extra_info or {}).get(TEST_HARNESS_START_TIME_MS, None):
+    # The old host doesn't have test_harness_start_time_ms but
+    # the event has, so it must come from a new instance.
+    logging.debug("%s doesn't have 'test_harness_start_time_ms '.",
+                  host.hostname)
+    return True
+  # Last, compare event's test_harness_start_time_ms with host's.
+  if (event.data.get(TEST_HARNESS_START_TIME_MS) >
+      host.extra_info.get(TEST_HARNESS_START_TIME_MS)):
+    logging.debug("%s has a new instance with start time %r.",
+                  host.hostname, event.data.get(TEST_HARNESS_START_TIME_MS))
+    return True
+  return False
 
 
 @ndb.transactional()

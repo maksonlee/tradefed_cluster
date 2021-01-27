@@ -944,7 +944,6 @@ class HostInfo(ndb.Expando):
     hidden: is the device hidden or not
     extra_info: extra info for the host
     host_state: the state of the host
-    tf_start_time: the start time of the host, in seconds.
     assignee: the user who will recover this host.
     device_count_summaries: device count by run target under the host.
     is_bad: is the host bad or not. Right now bad means host offline or there
@@ -977,7 +976,6 @@ class HostInfo(ndb.Expando):
   is_bad = ndb.ComputedProperty(_IsBadHost)
   # TODO: remove the following fields once
   # we move the fields into extra_info.
-  tf_start_time = ndb.DateTimeProperty()
   total_devices = ndb.IntegerProperty(default=0)
   offline_devices = ndb.IntegerProperty(default=0)
   available_devices = ndb.IntegerProperty(default=0)
@@ -1036,7 +1034,6 @@ def HostInfoToMessage(
       # TODO: deprecate clusters, use pools.
       next_cluster_ids=next_cluster_ids,
       pools=host_info_entity.pools,
-      tf_start_time=host_info_entity.tf_start_time,
       host_state=host_state,
       assignee=host_info_entity.assignee,
       device_count_summaries=device_count_summaries,

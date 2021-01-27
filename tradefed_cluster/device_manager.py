@@ -265,11 +265,11 @@ def _IsNewTestHarnessInstance(host, event):
     # The host was GONE or have never receive any event.
     logging.debug("%s state was %s.", host.hostname, host.host_state)
     return True
-  if not (event.data or {}).get(TEST_HARNESS_START_TIME_MS, None):
+  if not (event.data or {}).get(TEST_HARNESS_START_TIME_MS):
     # The event doesn't have test_harness_start_time_ms, there is no way
     # to tell the event is from a new instance or not.
     return False
-  if not (host.extra_info or {}).get(TEST_HARNESS_START_TIME_MS, None):
+  if not (host.extra_info or {}).get(TEST_HARNESS_START_TIME_MS):
     # The old host doesn't have test_harness_start_time_ms but
     # the event has, so it must come from a new instance.
     logging.debug("%s doesn't have 'test_harness_start_time_ms '.",

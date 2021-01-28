@@ -81,12 +81,13 @@ class Plugin(six.with_metaclass(PluginMetaClass, object)):
     """
     pass
 
-  def OnProcessCommandEvent(self, command, attempt):
+  def OnProcessCommandEvent(self, command, attempt, event_data=None):
     """A callback function to be executed before a plugin executed.
 
     Args:
       command: a datastore_entities.Command.
       attempt: a datastore_entities.CommandAttempt.
+      event_data: additional event data dict.
     """
     pass
 

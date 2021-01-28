@@ -47,6 +47,8 @@ OBJECT_EVENT_QUEUE = "request-state-notification-queue"
 
 HTTP_OK = ("", 200)
 
+TASK_RESET_ERROR_MESSAGE = "A task reset by command attempt monitor."
+
 
 class TooMuchContentionError(Exception):
   """Exception identifier used for retrying too much contention errors."""

@@ -88,7 +88,7 @@ def SyncCommandAttempt(request_id, command_id, attempt_id):
         task_id=attempt.task_id,
         attempt_id=attempt_id,
         type=common.InvocationEventType.INVOCATION_COMPLETED,
-        data={'error': 'A task reset by command attempt monitor.'},
+        data={'error': common.TASK_RESET_ERROR_MESSAGE},
         time=now)
     command_manager.ProcessCommandEvent(event)
     return

@@ -237,7 +237,11 @@ class ClusterHostApi(remote.Service):
       device_query = device_query.filter(
           datastore_entities.DeviceInfo.hidden == False)      devices = device_query.fetch()
 
-    host_info = datastore_entities.ToMessage(host, devices=devices)
+    host_update_state = ndb.Key(
+        datastore_entities.HostUpdateState, hostname).get()
+
+    host_info = datastore_entities.ToMessage(
+        host, devices=devices, host_update_state_entity=host_update_state)
     # TODO: deprecate "include_notes".
     if request.include_notes:
       host_notes = (

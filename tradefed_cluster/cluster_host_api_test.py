@@ -1267,6 +1267,22 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual(host.state_history[1].state, state1.name)
     self.assertEqual(host.state_history[1].timestamp, timestamp1)
 
+  def testGetHost_includeUpdateState(self):
+    """Test GetHost includeing update state."""
+    datastore_test_util.CreateHostUpdateState(
+        self.ndb_host_0.hostname, state=api_messages.HostUpdateState.SYNCING)
+
+    api_request = {
+        'hostname': self.ndb_host_0.hostname,
+        'include_host_state_history': True
+    }
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.GetHost',
+                                          api_request)
+    host = protojson.decode_message(api_messages.HostInfo, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(self.ndb_host_0.hostname, host.hostname)
+    self.assertEqual('SYNCING', host.update_state)
+
   def testNewNote_withNoneExisting(self):
     """Tests adding a note to a host when none exist already."""
     user = 'some_user'

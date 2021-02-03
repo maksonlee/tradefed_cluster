@@ -586,6 +586,12 @@ class HostConfig(messages.Message):
   owners = messages.StringField(9, repeated=True)
 
 
+class HostConfigCollection(messages.Message):
+  """Collection of HostConfigs."""
+  host_configs = messages.MessageField(HostConfig, 1, repeated=True)
+  next_cursor = messages.StringField(2)
+
+
 class DeviceCountSummary(messages.Message):
   """Information of device count for a host."""
   run_target = messages.StringField(1)

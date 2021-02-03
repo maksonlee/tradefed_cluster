@@ -2021,6 +2021,62 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual('user1', self.ndb_host_1.assignee)
     self.assertEqual('FIXED', self.ndb_host_1.recovery_state)
 
+  def testListHostConfigs(self):
+    """Test ListHostConfigs."""
+    configs = [
+        datastore_test_util.CreateHostConfig(
+            'host1', 'lab1', cluster_name='cluster1'),
+        datastore_test_util.CreateHostConfig(
+            'host2', 'lab1', cluster_name='cluster2'),
+        datastore_test_util.CreateHostConfig(
+            'host3', 'lab2', cluster_name='cluster3'),
+    ]
+    api_request = {}
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.ListHostConfigs',
+        api_request)
+    self.assertEqual('200 OK', api_response.status)
+    host_config_collection = protojson.decode_message(
+        api_messages.HostConfigCollection, api_response.body)
+    self.assertLen(host_config_collection.host_configs, 3)
+    self.assertCountEqual(
+        [config.hostname for config in configs],
+        [config.hostname for config in host_config_collection.host_configs])
+    self.assertCountEqual(
+        [config.lab_name for config in configs],
+        [config.lab_name for config in host_config_collection.host_configs])
+    self.assertCountEqual(
+        [config.cluster_name for config in configs],
+        [config.cluster_name for config in host_config_collection.host_configs])
+
+  def testListHostConfigs_withLabNameFilter(self):
+    """Test ListHostConfigs with lab_name filter."""
+    datastore_test_util.CreateHostConfig(
+        'host1', 'lab1', cluster_name='cluster1')
+    datastore_test_util.CreateHostConfig(
+        'host2', 'lab1', cluster_name='cluster2')
+    datastore_test_util.CreateHostConfig(
+        'host3', 'lab2', cluster_name='cluster3')
+    api_request = {
+        'lab_name': 'lab1',
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.ListHostConfigs',
+        api_request)
+    self.assertEqual('200 OK', api_response.status)
+    host_config_collection = protojson.decode_message(
+        api_messages.HostConfigCollection, api_response.body)
+    self.assertLen(host_config_collection.host_configs, 2)
+    self.assertCountEqual(
+        ['host1', 'host2'],
+        [config.hostname for config in host_config_collection.host_configs])
+    self.assertCountEqual(
+        ['lab1', 'lab1'],
+        [config.lab_name for config in host_config_collection.host_configs])
+    self.assertCountEqual(
+        ['cluster1', 'cluster2'],
+        [config.cluster_name for config in host_config_collection.host_configs])
+
 
 if __name__ == '__main__':
   unittest.main()

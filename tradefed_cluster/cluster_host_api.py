@@ -34,6 +34,7 @@ from tradefed_cluster import note_manager
 _DEFAULT_LIST_NOTES_COUNT = 10
 _DEFAULT_LIST_HOST_COUNT = 100
 _DEFAULT_LIST_HISTORIES_COUNT = 100
+_DEFAULT_LIST_CONFIGS_COUNT = 100
 
 
 def _CheckTimestamp(t1, operator, t2):
@@ -754,3 +755,38 @@ class ClusterHostApi(remote.Service):
         histories=history_msgs,
         next_cursor=next_cursor,
         prev_cursor=prev_cursor)
+
+  CONFIGS_LIST_RESOURCE = endpoints.ResourceContainer(
+      lab_name=messages.StringField(1),
+      count=messages.IntegerField(2, default=_DEFAULT_LIST_CONFIGS_COUNT),
+      cursor=messages.StringField(3),
+  )
+
+  @endpoints.method(
+      CONFIGS_LIST_RESOURCE,
+      api_messages.HostConfigCollection,
+      path="configs",
+      http_method="GET",
+      name="listHostConfigs")
+  @api_common.with_ndb_context
+  def ListHostConfigs(self, request):
+    """List host configs.
+
+    Args:
+      request: an API request.
+
+    Returns:
+      an api_messages.HostConfigCollection object.
+    """
+    query = datastore_entities.HostConfig.query()
+    if request.lab_name:
+      query = query.filter(
+          datastore_entities.HostConfig.lab_name == request.lab_name)
+    host_configs, _, next_cursor = datastore_util.FetchPage(
+        query, request.count, request.cursor)
+
+    host_config_msgs = [datastore_entities.ToMessage(host_config)
+                        for host_config in host_configs]
+
+    return api_messages.HostConfigCollection(
+        host_configs=host_config_msgs, next_cursor=next_cursor)

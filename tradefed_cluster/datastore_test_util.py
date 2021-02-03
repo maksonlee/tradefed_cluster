@@ -264,3 +264,12 @@ def CreateHostUpdateState(
       update_task_id=update_task_id)
   host_update_state.put()
   return host_update_state
+
+
+def CreateHostConfig(
+    hostname, lab_name, **kwargs):
+  """Create a HostConfig."""
+  host_config = datastore_entities.HostConfig(
+      hostname=hostname, lab_name=lab_name, **kwargs)
+  host_config.put()
+  return host_config

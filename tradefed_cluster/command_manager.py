@@ -718,14 +718,14 @@ def ProcessCommandEvent(event):
                   command.key)
     DeleteTasks(command)
 
-  # Update request.
-  request_manager.EvaluateState(event.request_id)
-
   # Update AnTS.
   env_config.CONFIG.plugin.OnProcessCommandEvent(
       GetCommand(event.request_id, event.command_id),
       GetCommandAttempt(event.request_id, event.command_id, event.attempt_id),
       event_data=event.data)
+
+  # Update request.
+  request_manager.EvaluateState(event.request_id)
 
 
 def ScheduleTasks(commands):

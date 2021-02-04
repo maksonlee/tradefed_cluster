@@ -2077,6 +2077,66 @@ class ClusterHostApiTest(api_test.ApiTest):
         ['cluster1', 'cluster2'],
         [config.cluster_name for config in host_config_collection.host_configs])
 
+  def testGetHostMetadata(self):
+    """Tests GetHostMetadata."""
+    datastore_test_util.CreateHostMetadata(
+        'host1', test_harness_image='a_test_harness_image')
+    api_request = {
+        'hostname': 'host1',
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.GetMetadata',
+        api_request)
+    self.assertEqual('200 OK', api_response.status)
+    host_metadata = protojson.decode_message(
+        api_messages.HostMetadata, api_response.body)
+    self.assertEqual('host1', host_metadata.hostname)
+    self.assertEqual('a_test_harness_image', host_metadata.test_harness_image)
+
+  def testGetHostMetadata_noHostMetadata(self):
+    """Tests GetHostMetadata with no metadata."""
+    api_request = {
+        'hostname': 'host1',
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.GetMetadata',
+        api_request)
+    self.assertEqual('200 OK', api_response.status)
+    host_metadata = protojson.decode_message(
+        api_messages.HostMetadata, api_response.body)
+    self.assertEqual('host1', host_metadata.hostname)
+    self.assertIsNone(host_metadata.test_harness_image)
+
+  def testPatchHostMetadata_previouslyNotExist(self):
+    """Tests PatchHostMetadata previously not exist."""
+    api_request = {
+        'hostname': 'host1',
+        'test_harness_image': 'image_a',
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.PatchMetadata',
+        api_request)
+    self.assertEqual('200 OK', api_response.status)
+
+    metadata_entity = datastore_entities.HostMetadata.get_by_id('host1')
+    self.assertEqual('image_a', metadata_entity.test_harness_image)
+
+  def testPatchHostMetadata_patchExisting(self):
+    """Tests PatchHostMetadata previously not exist."""
+    datastore_test_util.CreateHostMetadata(
+        'host1', test_harness_image='image_a')
+    api_request = {
+        'hostname': 'host1',
+        'test_harness_image': 'image_b',
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.PatchMetadata',
+        api_request)
+    self.assertEqual('200 OK', api_response.status)
+
+    metadata_entity = datastore_entities.HostMetadata.get_by_id('host1')
+    self.assertEqual('image_b', metadata_entity.test_harness_image)
+
 
 if __name__ == '__main__':
   unittest.main()

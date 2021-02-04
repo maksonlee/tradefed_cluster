@@ -592,6 +592,13 @@ class HostConfigCollection(messages.Message):
   next_cursor = messages.StringField(2)
 
 
+class HostMetadata(messages.Message):
+  """Host metadata."""
+  hostname = messages.StringField(1)
+  test_harness_image = messages.StringField(2)
+  update_time = message_types.DateTimeField(3)
+
+
 class DeviceCountSummary(messages.Message):
   """Information of device count for a host."""
   run_target = messages.StringField(1)

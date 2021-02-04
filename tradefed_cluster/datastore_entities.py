@@ -747,6 +747,14 @@ class HostMetadata(ndb.Model):
   update_time = ndb.DateTimeProperty(auto_now=True)
 
 
+@MessageConverter(HostMetadata)
+def HostMetadataToMessage(entity):
+  """Convert host metadata entity to host metadata api message."""
+  return api_messages.HostMetadata(
+      hostname=entity.hostname, test_harness_image=entity.test_harness_image,
+      update_time=entity.update_time)
+
+
 class ClusterConfig(ndb.Model):
   """A cluster config entity.
 

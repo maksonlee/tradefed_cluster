@@ -273,3 +273,14 @@ def CreateHostConfig(
       hostname=hostname, lab_name=lab_name, **kwargs)
   host_config.put()
   return host_config
+
+
+def CreateHostMetadata(
+    hostname, test_harness_image=None, update_time=None):
+  """Create a HostMetadata entity."""
+  host_metadata = datastore_entities.HostMetadata(
+      id=hostname,
+      hostname=hostname, test_harness_image=test_harness_image,
+      update_time=update_time)
+  host_metadata.put()
+  return host_metadata

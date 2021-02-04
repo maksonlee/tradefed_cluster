@@ -790,3 +790,63 @@ class ClusterHostApi(remote.Service):
 
     return api_messages.HostConfigCollection(
         host_configs=host_config_msgs, next_cursor=next_cursor)
+
+  METADATA_GET_RESOURCE = endpoints.ResourceContainer(
+      hostname=messages.StringField(1, required=True),
+  )
+
+  @endpoints.method(
+      METADATA_GET_RESOURCE,
+      api_messages.HostMetadata,
+      path="{hostname}/metadata",
+      http_method="GET",
+      name="getMetadata")
+  @api_common.with_ndb_context
+  def GetMetadata(self, request):
+    """Get a host metadata.
+
+    Args:
+      request: an API request.
+
+    Returns:
+      an api_messages.HostMetadata object.
+    """
+    metadata = datastore_entities.HostMetadata.get_by_id(request.hostname)
+    if not metadata:
+      metadata = datastore_entities.HostMetadata(hostname=request.hostname)
+    metadata_msg = datastore_entities.ToMessage(metadata)
+
+    return metadata_msg
+
+  METADATA_PATCH_RESOURCE = endpoints.ResourceContainer(
+      hostname=messages.StringField(1, required=True),
+      test_harness_image=messages.StringField(2),
+  )
+
+  @endpoints.method(
+      METADATA_PATCH_RESOURCE,
+      api_messages.HostMetadata,
+      path="{hostname}/metadata",
+      http_method="PATCH",
+      name="patchMetadata")
+  @api_common.with_ndb_context
+  def PatchMetadata(self, request):
+    """Patch a host metadata.
+
+    Args:
+      request: an API request.
+
+    Returns:
+      an api_messages.HostMetadata object.
+    """
+    metadata = datastore_entities.HostMetadata.get_by_id(request.hostname)
+    if not metadata:
+      metadata = datastore_entities.HostMetadata(
+          id=request.hostname,
+          hostname=request.hostname)
+    if request.test_harness_image:
+      metadata.populate(test_harness_image=request.test_harness_image)
+    metadata.put()
+    metadata_msg = datastore_entities.ToMessage(metadata)
+
+    return metadata_msg

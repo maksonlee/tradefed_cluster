@@ -24,6 +24,7 @@ from six.moves import zip
 
 from tradefed_cluster import api_messages
 from tradefed_cluster import api_test
+from tradefed_cluster import datastore_entities
 from tradefed_cluster import datastore_test_util
 
 
@@ -88,7 +89,7 @@ class LabManagementApiTest(api_test.ApiTest):
     self.assertIsNotNone(lab_collection.next_cursor)
 
   def testGetLab(self):
-    """Tests ListLabs returns labs with count."""
+    """Tests GetLab."""
     api_request = {'lab_name': 'lab3'}
     api_response = self.testapp.post_json(
         '/_ah/api/LabManagementApi.GetLab', api_request)
@@ -98,6 +99,24 @@ class LabManagementApiTest(api_test.ApiTest):
     self.assertEqual('lab3', lab_info.lab_name)
     self.assertEqual(['owner3', 'owner4'], lab_info.owners)
 
+  def testGetLab_displayHostUpdateStateSummary(self):
+    """Test GetLab returns host update state summary."""
+    datastore_test_util.CreateLabInfo(
+        'lab4',
+        host_update_state_summary=datastore_entities.HostUpdateStateSummary(
+            total=3,
+            syncing=1,
+            succeeded=2))
+    api_request = {'lab_name': 'lab4'}
+    api_response = self.testapp.post_json(
+        '/_ah/api/LabManagementApi.GetLab', api_request)
+    lab_info = protojson.decode_message(
+        api_messages.LabInfo, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual('lab4', lab_info.lab_name)
+    self.assertEqual(3, lab_info.host_update_state_summary.total)
+    self.assertEqual(1, lab_info.host_update_state_summary.syncing)
+    self.assertEqual(2, lab_info.host_update_state_summary.succeeded)
 
 if __name__ == '__main__':
   unittest.main()

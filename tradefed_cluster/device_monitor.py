@@ -81,6 +81,8 @@ def _UpdateClusters():
 
   for cluster, hosts in six.iteritems(cluster_to_hosts):
     cluster_entity = datastore_entities.ClusterInfo(id=cluster)
+    if hosts:
+      cluster_entity.lab_name = hosts[0].lab_name
     cluster_entity.cluster = cluster
     cluster_entity.total_devices = 0
     cluster_entity.offline_devices = 0
@@ -140,27 +142,39 @@ def _CreateHostUpdateStateSummary(host_update_states):
 def _UpdateLabs():
   """Update lab NDB entities based on hosts.
 
-  Add lab if the lab doesn't exist yet.
+  1. Add lab if the lab doesn't exist yet.
+  2. Refresh the host update state summary in all labs based on the underlying
+     host groups.
   """
   logging.debug('Updating labs')
-  labs = datastore_entities.LabInfo.query()
-  lab_names = {lab.lab_name for lab in labs}
-  query = datastore_entities.HostInfo.query().filter(
-      datastore_entities.HostInfo.hidden == False)    labs_to_insert = []
-  projection = [datastore_entities.HostInfo.lab_name]
-  for host in datastore_util.BatchQuery(
-      query, batch_size=BATCH, projection=projection):
-    if not host.lab_name:
-      continue
-    if host.lab_name in lab_names:
-      continue
-    labs_to_insert.append(
-        datastore_entities.LabInfo(
-            id=host.lab_name,
-            lab_name=host.lab_name,
-            update_timestamp=_Now()))
-    lab_names.add(host.lab_name)
-  ndb.put_multi(labs_to_insert)
+  labs_query = datastore_entities.LabInfo.query()
+  labs_by_lab_names = {lab.lab_name: lab for lab in labs_query}
+  clusters_by_lab_names = collections.defaultdict(list)
+  clusters_query = datastore_entities.ClusterInfo.query()
+
+  for cluster_info in datastore_util.BatchQuery(
+      clusters_query, batch_size=BATCH):
+    clusters_by_lab_names[cluster_info.lab_name].append(cluster_info)
+
+  labs = []
+  for lab_name, cluster_infos in clusters_by_lab_names.items():
+    lab_host_update_state_summary = datastore_entities.HostUpdateStateSummary()
+    for cluster_info in cluster_infos:
+      if cluster_info and cluster_info.host_update_state_summary:
+        lab_host_update_state_summary += cluster_info.host_update_state_summary
+
+    if lab_name in labs_by_lab_names:
+      lab = labs_by_lab_names[lab_name]
+    else:
+      lab = datastore_entities.LabInfo(
+          id=lab_name,
+          lab_name=lab_name)
+    lab.populate(
+        host_update_state_summary=lab_host_update_state_summary,
+        update_timestamp=_Now())
+    labs.append(lab)
+
+  ndb.put_multi(labs)
   logging.debug('Updated labs.')
 
 

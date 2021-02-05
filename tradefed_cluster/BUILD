@@ -272,6 +272,7 @@ py2and3_test(
     ],
     deps = [
         ":api_test_lib",
+        ":datastore_entities_lib",
         ":datastore_test_util_lib",
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],

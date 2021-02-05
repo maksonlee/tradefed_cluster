@@ -23,6 +23,7 @@ OWNERS = (six.ensure_str('owner1'), six.ensure_str('owner2'))
 
 
 def CreateCluster(cluster,
+                  lab_name='alab',
                   total_devices=1,
                   offline_devices=0,
                   available_devices=1,
@@ -33,6 +34,7 @@ def CreateCluster(cluster,
   cluster = datastore_entities.ClusterInfo(
       id=cluster,
       cluster=cluster,
+      lab_name=lab_name,
       total_devices=total_devices,
       offline_devices=offline_devices,
       available_devices=available_devices,
@@ -206,12 +208,15 @@ def CreateNote(hostname='host1',
   return note
 
 
-def CreateLabInfo(lab_name, update_timestamp=None):
+def CreateLabInfo(
+    lab_name, update_timestamp=None, host_update_state_summary=None, **kwargs):
   """Create a lab info entity."""
   lab_info = datastore_entities.LabInfo(
       id=lab_name,
       lab_name=lab_name,
-      update_timestamp=update_timestamp)
+      host_update_state_summary=host_update_state_summary,
+      update_timestamp=update_timestamp,
+      **kwargs)
   lab_info.put()
   return lab_info
 

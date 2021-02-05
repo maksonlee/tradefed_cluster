@@ -827,6 +827,18 @@ class HostUpdateStateSummary(ndb.Model):
   succeeded = ndb.IntegerProperty(default=0)
   summary_update_timestamp = ndb.DateTimeProperty(auto_now=True)
 
+  def __add__(self, other):
+    return HostUpdateStateSummary(
+        total=self.total+other.total,
+        unknown=self.unknown+other.unknown,
+        pending=self.pending+other.pending,
+        syncing=self.syncing+other.syncing,
+        shutting_down=self.shutting_down+other.shutting_down,
+        restarting=self.restarting+other.restarting,
+        timed_out=self.timed_out+other.timed_out,
+        errored=self.errored+other.errored,
+        succeeded=self.succeeded+other.succeeded)
+
 
 @MessageConverter(HostUpdateStateSummary)
 def HostUpdateStateSummaryToMessage(host_update_state_summary_entity):
@@ -853,6 +865,7 @@ class ClusterInfo(ndb.Expando):
 
   Attributes:
     cluster: clsuter name
+    lab_name: the lab name
     total_devices: total devices count
     offline_devices: offline device count
     available_devices: available devices count
@@ -861,6 +874,7 @@ class ClusterInfo(ndb.Expando):
     host_update_state_summary: host update states summary under the cluster
   """
   cluster = ndb.StringProperty()
+  lab_name = ndb.StringProperty()
   total_devices = ndb.IntegerProperty(default=0)
   offline_devices = ndb.IntegerProperty(default=0)
   available_devices = ndb.IntegerProperty(default=0)
@@ -1270,6 +1284,7 @@ class LabInfo(ndb.Expando):
   """
   lab_name = ndb.StringProperty()
   update_timestamp = ndb.DateTimeProperty(auto_now_add=True)
+  host_update_state_summary = ndb.StructuredProperty(HostUpdateStateSummary)
 
 
 @MessageConverter(LabInfo)
@@ -1278,7 +1293,9 @@ def LabInfoToMessage(lab_info_entity, lab_config_entity=None):
   return api_messages.LabInfo(
       lab_name=lab_info_entity.lab_name,
       update_timestamp=lab_info_entity.update_timestamp,
-      owners=owners)
+      owners=owners,
+      host_update_state_summary=ToMessage(
+          lab_info_entity.host_update_state_summary))
 
 
 class SnapshotJobResult(ndb.Model):

@@ -92,16 +92,19 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
     # Test counting devices for a cluster
     device_monitor._UpdateClusters()
     cluster = datastore_entities.ClusterInfo.get_by_id('free')
+    self.assertEqual('alab', cluster.lab_name)
     self.assertEqual(5, cluster.total_devices)
     self.assertEqual(2, cluster.available_devices)
     self.assertEqual(2, cluster.allocated_devices)
     self.assertEqual(1, cluster.offline_devices)
     cluster = datastore_entities.ClusterInfo.get_by_id('presubmit')
+    self.assertEqual('alab', cluster.lab_name)
     self.assertEqual(3, cluster.total_devices)
     self.assertEqual(0, cluster.available_devices)
     self.assertEqual(1, cluster.allocated_devices)
     self.assertEqual(2, cluster.offline_devices)
     cluster = datastore_entities.ClusterInfo.get_by_id('dockerized-tf-gke')
+    self.assertEqual('cloud-tf', cluster.lab_name)
     self.assertEqual(1, cluster.total_devices)
     self.assertEqual(1, cluster.available_devices)
     self.assertEqual(0, cluster.allocated_devices)
@@ -173,10 +176,81 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(1, cluster.host_update_state_summary.unknown)
 
   def testUpdateLabs(self):
+    device_monitor._UpdateClusters()
     device_monitor._UpdateLabs()
     labs = datastore_entities.LabInfo.query()
     lab_names = {lab.lab_name for lab in labs}
-    self.assertEqual({'alab', 'cloud-tf'}, lab_names)
+    self.assertCountEqual({'alab', 'cloud-tf'}, lab_names)
+
+  def testUpdateLabs_calculateHostUpdateStateSummaryFromClusterInfos(self):
+    datastore_test_util.CreateLabInfo('alab', owners=['user1'])
+    datastore_test_util.CreateCluster(
+        'cluster1',
+        lab_name='alab',
+        host_update_state_summary=datastore_entities.HostUpdateStateSummary(
+            total=13,
+            pending=1,
+            syncing=2,
+            shutting_down=3,
+            restarting=4,
+            errored=3))
+    datastore_test_util.CreateCluster(
+        'cluster2',
+        lab_name='alab',
+        host_update_state_summary=datastore_entities.HostUpdateStateSummary(
+            total=14,
+            shutting_down=3,
+            restarting=4,
+            errored=2,
+            timed_out=2,
+            succeeded=1,
+            unknown=2))
+    device_monitor._UpdateLabs()
+    lab_info = datastore_entities.LabInfo.get_by_id('alab')
+    self.assertCountEqual(['user1'], lab_info.owners)
+    self.assertEqual(27, lab_info.host_update_state_summary.total)
+    self.assertEqual(1, lab_info.host_update_state_summary.pending)
+    self.assertEqual(2, lab_info.host_update_state_summary.syncing)
+    self.assertEqual(6, lab_info.host_update_state_summary.shutting_down)
+    self.assertEqual(8, lab_info.host_update_state_summary.restarting)
+    self.assertEqual(5, lab_info.host_update_state_summary.errored)
+    self.assertEqual(2, lab_info.host_update_state_summary.timed_out)
+    self.assertEqual(1, lab_info.host_update_state_summary.succeeded)
+    self.assertEqual(2, lab_info.host_update_state_summary.unknown)
+
+  def testUpdateLabs_calculateHostUpdateStateSummaryWithExistingLab(self):
+    datastore_test_util.CreateCluster(
+        'cluster1',
+        lab_name='alab',
+        host_update_state_summary=datastore_entities.HostUpdateStateSummary(
+            total=13,
+            pending=1,
+            syncing=2,
+            shutting_down=3,
+            restarting=4,
+            errored=3))
+    datastore_test_util.CreateCluster(
+        'cluster2',
+        lab_name='alab',
+        host_update_state_summary=datastore_entities.HostUpdateStateSummary(
+            total=14,
+            shutting_down=3,
+            restarting=4,
+            errored=2,
+            timed_out=2,
+            succeeded=1,
+            unknown=2))
+    device_monitor._UpdateLabs()
+    lab_info = datastore_entities.LabInfo.get_by_id('alab')
+    self.assertEqual(27, lab_info.host_update_state_summary.total)
+    self.assertEqual(1, lab_info.host_update_state_summary.pending)
+    self.assertEqual(2, lab_info.host_update_state_summary.syncing)
+    self.assertEqual(6, lab_info.host_update_state_summary.shutting_down)
+    self.assertEqual(8, lab_info.host_update_state_summary.restarting)
+    self.assertEqual(5, lab_info.host_update_state_summary.errored)
+    self.assertEqual(2, lab_info.host_update_state_summary.timed_out)
+    self.assertEqual(1, lab_info.host_update_state_summary.succeeded)
+    self.assertEqual(2, lab_info.host_update_state_summary.unknown)
 
   @mock.patch.object(device_manager, 'StartHostSync')
   def testScanHosts(self, mock_start_sync):

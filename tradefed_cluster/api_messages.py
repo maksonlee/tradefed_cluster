@@ -701,6 +701,7 @@ class LabInfo(messages.Message):
   lab_name = messages.StringField(1)
   update_timestamp = message_types.DateTimeField(2)
   owners = messages.StringField(3, repeated=True)
+  host_update_state_summary = messages.MessageField(HostUpdateStateSummary, 4)
 
 
 class LabInfoCollection(messages.Message):

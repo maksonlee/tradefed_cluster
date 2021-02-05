@@ -173,6 +173,17 @@ indexes:
     - name: lab_name
     - name: timestamp
 
+- kind: HostInfo
+  properties:
+  - name: hidden
+  - name: allocated_devices
+  - name: available_devices
+  - name: hostname
+  - name: lab_name
+  - name: offline_devices
+  - name: physical_cluster
+  - name: total_devices
+
 - kind: HostInfoHistory
   ancestor: yes
   properties:

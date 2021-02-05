@@ -61,14 +61,18 @@ def _Now():
   return datetime.datetime.utcnow()
 
 
-def _UpdateClusters():
-  """Update cluster NDB entities based on hosts."""
-  logging.debug('Updating clusters')
-  logging.debug('Fetching all non-hidden hosts.')
-  query = datastore_entities.HostInfo.query().filter(
-      datastore_entities.HostInfo.hidden == False)    logging.debug('Fetched all non-hidden hosts.')
+def _UpdateClusters(hosts):
+  """Update cluster NDB entities based on hosts.
+
+  Args:
+    hosts: list of HostInfo entity with required field, from the entire system.
+
+  Returns:
+    list of ClusterInfo, clusters to upsert.
+  """
+  logging.info('Updating clusters')
   cluster_to_hosts = collections.defaultdict(list)
-  for host in datastore_util.BatchQuery(query, batch_size=BATCH):
+  for host in hosts:
     cluster_to_hosts[host.physical_cluster].append(host)
   clusters_to_delete = []
   clusters_to_upsert = []
@@ -78,6 +82,10 @@ def _UpdateClusters():
       clusters_to_delete.append(cluster.key)
   ndb.delete_multi(clusters_to_delete)
   logging.debug('Deleted clusters due to no hosts: %s', clusters_to_delete)
+
+  query = datastore_entities.HostUpdateState.query()
+  update_states_by_hostname = {
+      update_state.hostname: update_state for update_state in query.fetch()}
 
   for cluster, hosts in six.iteritems(cluster_to_hosts):
     cluster_entity = datastore_entities.ClusterInfo(id=cluster)
@@ -89,20 +97,21 @@ def _UpdateClusters():
     cluster_entity.available_devices = 0
     cluster_entity.allocated_devices = 0
     cluster_entity.device_count_timestamp = _Now()
-    host_update_state_keys = []
+    host_update_states = []
     for host in hosts:
-      host_update_state_keys.append(
-          ndb.Key(datastore_entities.HostUpdateState, host.hostname))
       cluster_entity.total_devices += host.total_devices or 0
       cluster_entity.offline_devices += host.offline_devices or 0
       cluster_entity.available_devices += host.available_devices or 0
       cluster_entity.allocated_devices += host.allocated_devices or 0
-    host_update_states = ndb.get_multi(host_update_state_keys)
+      host_update_state = update_states_by_hostname.get(host.hostname)
+      if host_update_state:
+        host_update_states.append(host_update_state)
     cluster_entity.host_update_state_summary = _CreateHostUpdateStateSummary(
         host_update_states)
     clusters_to_upsert.append(cluster_entity)
   ndb.put_multi(clusters_to_upsert)
   logging.debug('Updated clusters.')
+  return clusters_to_upsert
 
 
 def _CreateHostUpdateStateSummary(host_update_states):
@@ -139,21 +148,22 @@ def _CreateHostUpdateStateSummary(host_update_states):
   return summary
 
 
-def _UpdateLabs():
+def _UpdateLabs(clusters):
   """Update lab NDB entities based on hosts.
+
+  Args:
+    clusters: a list of ClusterInfo.
 
   1. Add lab if the lab doesn't exist yet.
   2. Refresh the host update state summary in all labs based on the underlying
      host groups.
   """
-  logging.debug('Updating labs')
+  logging.info('Updating labs')
   labs_query = datastore_entities.LabInfo.query()
   labs_by_lab_names = {lab.lab_name: lab for lab in labs_query}
   clusters_by_lab_names = collections.defaultdict(list)
-  clusters_query = datastore_entities.ClusterInfo.query()
 
-  for cluster_info in datastore_util.BatchQuery(
-      clusters_query, batch_size=BATCH):
+  for cluster_info in clusters:
     clusters_by_lab_names[cluster_info.lab_name].append(cluster_info)
 
   labs = []
@@ -175,18 +185,34 @@ def _UpdateLabs():
     labs.append(lab)
 
   ndb.put_multi(labs)
-  logging.debug('Updated labs.')
+  logging.info('Updated labs.')
 
 
 def _ScanHosts():
-  """Scan hosts and add host to host sync queue."""
-  logging.debug('Scan hosts.')
+  """Scan hosts and add host to host sync queue.
+
+  Returns:
+    list of HostInfo.
+  """
+  logging.info('Scan hosts.')
+  hosts = []
   query = (
       datastore_entities.HostInfo.query()
-      .filter(datastore_entities.HostInfo.hidden == False))    for host_key in datastore_util.BatchQuery(
-      query, batch_size=BATCH, keys_only=True):
-    device_manager.StartHostSync(host_key.id())
-  logging.debug('Scanned hosts.')
+      .filter(datastore_entities.HostInfo.hidden == False))    projection = [
+      datastore_entities.HostInfo.lab_name,
+      datastore_entities.HostInfo.physical_cluster,
+      datastore_entities.HostInfo.hostname,
+      datastore_entities.HostInfo.total_devices,
+      datastore_entities.HostInfo.offline_devices,
+      datastore_entities.HostInfo.available_devices,
+      datastore_entities.HostInfo.allocated_devices,
+  ]
+  for host in datastore_util.BatchQuery(
+      query, batch_size=BATCH, projection=projection):
+    device_manager.StartHostSync(host.hostname)
+    hosts.append(host)
+  logging.info('Scanned hosts.')
+  return hosts
 
 
 @APP.route(r'/cron/monitor/devices/ndb')
@@ -194,9 +220,9 @@ def _ScanHosts():
 def MonitorDevice():
   """Reports all devices with their states."""
   logging.info('Starting NDBDeviceMonitor.')
-  _ScanHosts()
-  _UpdateClusters()
-  _UpdateLabs()
+  hosts = _ScanHosts()
+  clusters = _UpdateClusters(hosts)
+  _UpdateLabs(clusters)
   logging.info('Finished NDBDeviceMonitor.')
   return common.HTTP_OK
 

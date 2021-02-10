@@ -48,6 +48,15 @@ queue:
     task_age_limit: 1h
   target: tfc
 
+# A queue for syncing requests
+- name: request-sync-queue
+  rate: 100/s
+  max_concurrent_requests: 100
+  bucket_size: 400
+  retry_parameters:
+    task_age_limit: 1h
+  target: tfc
+
 # A queue for syncing hosts
 - name: host-sync-queue
   rate: 100/s

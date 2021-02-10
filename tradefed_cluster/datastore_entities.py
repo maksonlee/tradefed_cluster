@@ -1543,3 +1543,22 @@ def TestHarnessImageMetadataToMessage(entity):
       test_harness_version=entity.test_harness_version,
       create_time=entity.create_time,
       tags=entity.current_tags)
+
+
+class RequestSyncStatus(ndb.Model):
+  """Tracks request syncs."""
+  request_id = ndb.StringProperty(required=True)
+  has_new_command_events = ndb.BooleanProperty(default=False)
+  last_sync_time = ndb.DateTimeProperty()
+  create_time = ndb.DateTimeProperty(auto_now_add=True)
+  update_time = ndb.DateTimeProperty(auto_now=True)
+
+
+class RawCommandEvent(ndb.Model):
+  """Command event data as received from the test harness."""
+  request_id = ndb.StringProperty(required=True)
+  command_id = ndb.StringProperty(required=True)
+  attempt_id = ndb.StringProperty(required=True)
+  payload = ndb.TextProperty()
+  event_timestamp = ndb.DateTimeProperty()
+  create_time = ndb.DateTimeProperty(auto_now_add=True)

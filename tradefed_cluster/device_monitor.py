@@ -42,6 +42,7 @@ from tradefed_cluster.util import pubsub_client
 ONE_HOUR = datetime.timedelta(hours=1)
 FALLBACK_INACTIVE_TIME = datetime.timedelta(minutes=30)
 CLOUD_TF_LAB_NAME = 'cloud-tf'
+UNKNOWN_LAB_NAME = 'UNKNOWN'
 
 # TODO: Make the TTL configurable.
 ONE_MONTH = datetime.timedelta(days=30)
@@ -164,7 +165,8 @@ def _UpdateLabs(clusters):
   clusters_by_lab_names = collections.defaultdict(list)
 
   for cluster_info in clusters:
-    clusters_by_lab_names[cluster_info.lab_name].append(cluster_info)
+    lab_name = cluster_info.lab_name or UNKNOWN_LAB_NAME
+    clusters_by_lab_names[lab_name].append(cluster_info)
 
   labs = []
   for lab_name, cluster_infos in clusters_by_lab_names.items():

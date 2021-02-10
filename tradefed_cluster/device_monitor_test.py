@@ -185,6 +185,15 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
     lab_names = {lab.lab_name for lab in labs}
     self.assertCountEqual({'alab', 'cloud-tf'}, lab_names)
 
+  def testUpdateLabs_withUnknownLabFromClusterInfo(self):
+    cluster1 = datastore_test_util.CreateCluster(
+        'cluster_nolabname',
+        lab_name=None)
+    device_monitor._UpdateLabs([cluster1])
+    labs = datastore_entities.LabInfo.query()
+    lab_names = {lab.lab_name for lab in labs}
+    self.assertCountEqual(['UNKNOWN'], lab_names)
+
   def testUpdateLabs_calculateHostUpdateStateSummaryFromClusterInfos(self):
     datastore_test_util.CreateLabInfo('alab', owners=['user1'])
     cluster1 = datastore_test_util.CreateCluster(

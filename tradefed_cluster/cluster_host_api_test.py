@@ -2137,6 +2137,127 @@ class ClusterHostApiTest(api_test.ApiTest):
     metadata_entity = datastore_entities.HostMetadata.get_by_id('host1')
     self.assertEqual('image_b', metadata_entity.test_harness_image)
 
+  def testBatchUpdateHostMetadata_succeedsWithNoExistingMetadata(self):
+    """Test batch set test_harness_image for hosts."""
+    hostname1 = 'host1'
+    hostname2 = 'host2'
+    lab_name = 'alab'
+    owner = 'user1'
+    image_name = 'image_url'
+    datastore_test_util.CreateHostConfig(
+        hostname1, lab_name, owners=[owner], enable_ui_update=True)
+    datastore_test_util.CreateHostConfig(
+        hostname2, lab_name, owners=[owner], enable_ui_update=True)
+    api_request = {
+        'hostnames': [hostname1, hostname2],
+        'test_harness_image': image_name,
+        'user': owner,
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.BatchUpdateHostMetadata',
+        api_request)
+    self.assertEqual('200 OK', api_response.status)
+
+    host_metadata = datastore_entities.HostMetadata.get_by_id(hostname1)
+    self.assertEqual(hostname1, host_metadata.hostname)
+    self.assertEqual(image_name, host_metadata.test_harness_image)
+    host_metadata = datastore_entities.HostMetadata.get_by_id(hostname2)
+    self.assertEqual(hostname2, host_metadata.hostname)
+    self.assertEqual(image_name, host_metadata.test_harness_image)
+
+  def testBatchUpdateHostMetadata_succeedsWithExistingMetadata(self):
+    """Test batch set test_harness_image for hosts."""
+    hostname1 = 'host1'
+    hostname2 = 'host2'
+    lab_name = 'alab'
+    owner = 'user1'
+    image_name_old = 'image_url_old'
+    image_name_new = 'image_url_new'
+    datastore_test_util.CreateHostConfig(
+        hostname1, lab_name, owners=[owner], enable_ui_update=True)
+    datastore_test_util.CreateHostConfig(
+        hostname2, lab_name, owners=[owner], enable_ui_update=True)
+    datastore_test_util.CreateHostMetadata(
+        hostname=hostname1, test_harness_image=image_name_old)
+    datastore_test_util.CreateHostMetadata(
+        hostname=hostname2, test_harness_image=image_name_old)
+    api_request = {
+        'hostnames': [hostname1, hostname2],
+        'test_harness_image': image_name_new,
+        'user': owner,
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.BatchUpdateHostMetadata',
+        api_request)
+    self.assertEqual('200 OK', api_response.status)
+
+    host_metadata = datastore_entities.HostMetadata.get_by_id(hostname1)
+    self.assertEqual(hostname1, host_metadata.hostname)
+    self.assertEqual(image_name_new, host_metadata.test_harness_image)
+    host_metadata = datastore_entities.HostMetadata.get_by_id(hostname2)
+    self.assertEqual(hostname2, host_metadata.hostname)
+    self.assertEqual(image_name_new, host_metadata.test_harness_image)
+
+  def testBatchUpdateHostMetadata_failUserNotPermitted(self):
+    """Test batch set test_harness_image for hosts."""
+    hostname1 = 'host1'
+    hostname2 = 'host2'
+    lab_name = 'alab'
+    owner = 'user1'
+    image_name_old = 'image_url_old'
+    image_name_new = 'image_url_new'
+    datastore_test_util.CreateHostConfig(
+        hostname1, lab_name, owners=[owner], enable_ui_update=True)
+    datastore_test_util.CreateHostConfig(
+        hostname2, lab_name, owners=[owner], enable_ui_update=True)
+    datastore_test_util.CreateHostMetadata(
+        hostname=hostname1, test_harness_image=image_name_old)
+    datastore_test_util.CreateHostMetadata(
+        hostname=hostname2, test_harness_image=image_name_old)
+    api_request = {
+        'hostnames': [hostname1, hostname2],
+        'test_harness_image': image_name_new,
+        'user': 'wrongperson',
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.BatchUpdateHostMetadata',
+        api_request, expect_errors=True)
+    self.assertEqual('400 Bad Request', api_response.status)
+    expected_error_msg = (
+        b'Request user wrongperson is not in the owner list'
+        b' of hosts [host1, host2]. ')
+    self.assertIn(expected_error_msg, api_response.body)
+
+  def testBatchUpdateHostMetadata_failHostNotEnabled(self):
+    """Test batch set test_harness_image for hosts."""
+    hostname1 = 'host1'
+    hostname2 = 'host2'
+    lab_name = 'alab'
+    owner = 'user1'
+    image_name_old = 'image_url_old'
+    image_name_new = 'image_url_new'
+    datastore_test_util.CreateHostConfig(
+        hostname1, lab_name, owners=[owner], enable_ui_update=False)
+    datastore_test_util.CreateHostConfig(
+        hostname2, lab_name, owners=[owner], enable_ui_update=False)
+    datastore_test_util.CreateHostMetadata(
+        hostname=hostname1, test_harness_image=image_name_old)
+    datastore_test_util.CreateHostMetadata(
+        hostname=hostname2, test_harness_image=image_name_old)
+    api_request = {
+        'hostnames': [hostname1, hostname2],
+        'test_harness_image': image_name_new,
+        'user': owner,
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.BatchUpdateHostMetadata',
+        api_request, expect_errors=True)
+    self.assertEqual('400 Bad Request', api_response.status)
+    expected_error_msg = (
+        b'Hosts [host1, host2] are not enabled to be updated '
+        b'from UI. ')
+    self.assertIn(expected_error_msg, api_response.body)
+
 
 if __name__ == '__main__':
   unittest.main()

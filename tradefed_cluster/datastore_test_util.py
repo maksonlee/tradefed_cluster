@@ -275,6 +275,7 @@ def CreateHostConfig(
     hostname, lab_name, **kwargs):
   """Create a HostConfig."""
   host_config = datastore_entities.HostConfig(
+      id=hostname,
       hostname=hostname, lab_name=lab_name, **kwargs)
   host_config.put()
   return host_config

@@ -850,3 +850,71 @@ class ClusterHostApi(remote.Service):
     metadata_msg = datastore_entities.ToMessage(metadata)
 
     return metadata_msg
+
+  BATCH_SET_TEST_HARNESS_IMAGES_RESOURCE = endpoints.ResourceContainer(
+      hostnames=messages.StringField(1, repeated=True),
+      test_harness_image=messages.StringField(2),
+      user=messages.StringField(3),
+  )
+
+  @endpoints.method(
+      BATCH_SET_TEST_HARNESS_IMAGES_RESOURCE,
+      message_types.VoidMessage,
+      path="hostMetadata:batchUpdate",
+      http_method="POST",
+      name="batchUpdateHostMetadata")
+  @api_common.with_ndb_context
+  def BatchUpdateHostMetadata(self, request):
+    """Update HostMetadata on multiple hosts.
+
+    Args:
+      request: an API request.
+    Request Params:
+      hostname: list of strings, the name of hosts.
+      test_harness_image: string, the url to test harness image.
+      user: string, the user sending the request.
+
+    Returns:
+      a message_types.VoidMessage object.
+
+    Raises:
+      endpoints.BadRequestException, when request does not match existing hosts.
+    """
+    host_configs = ndb.get_multi(
+        ndb.Key(datastore_entities.HostConfig, hostname)
+        for hostname in request.hostnames)
+    host_metadatas = ndb.get_multi(
+        ndb.Key(datastore_entities.HostMetadata, hostname)
+        for hostname in request.hostnames)
+    hosts_no_permission = []
+    hosts_not_enabled = []
+    metadatas_to_update = []
+    for hostname, config, metadata in zip(
+        request.hostnames, host_configs, host_metadatas):
+      if not config or not config.enable_ui_update:
+        hosts_not_enabled.append(hostname)
+        continue
+      if request.user not in config.owners:
+        hosts_no_permission.append(hostname)
+        continue
+      if not metadata:
+        metadata = datastore_entities.HostMetadata(
+            id=hostname, hostname=hostname)
+      metadata.populate(test_harness_image=request.test_harness_image)
+      # TODO: mark pending update states.
+      metadatas_to_update.append(metadata)
+    ndb.put_multi(metadatas_to_update)
+
+    if not hosts_no_permission and not hosts_not_enabled:
+      return message_types.VoidMessage()
+
+    error_message = ""
+    if hosts_no_permission:
+      error_message += (
+          "Request user %s is not in the owner list of hosts [%s]. "
+          % (request.user, ", ".join(hosts_no_permission)))
+    if hosts_not_enabled:
+      error_message += ("Hosts [%s] are not enabled to be updated from UI. "
+                        % ", ".join(hosts_not_enabled))
+    raise endpoints.BadRequestException(error_message)
+

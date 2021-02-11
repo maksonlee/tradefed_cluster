@@ -884,8 +884,7 @@ class ClusterInfo(ndb.Expando):
   allocated_devices = ndb.IntegerProperty(default=0)
   # Time when the device counts were calculated and persisted
   device_count_timestamp = ndb.DateTimeProperty()
-  host_update_state_summary = ndb.LocalStructuredProperty(
-      HostUpdateStateSummary)
+  host_update_state_summary = ndb.StructuredProperty(HostUpdateStateSummary)
 
 
 class DeviceCountSummary(ndb.Model):
@@ -1288,8 +1287,7 @@ class LabInfo(ndb.Expando):
   """
   lab_name = ndb.StringProperty()
   update_timestamp = ndb.DateTimeProperty(auto_now_add=True)
-  host_update_state_summary = ndb.LocalStructuredProperty(
-      HostUpdateStateSummary)
+  host_update_state_summary = ndb.StructuredProperty(HostUpdateStateSummary)
 
 
 @MessageConverter(LabInfo)

@@ -258,6 +258,7 @@ class TestEnvironment(ndb.Model):
   output_file_upload_url = ndb.StringProperty()
   output_file_patterns = ndb.StringProperty(repeated=True)
   use_subprocess_reporting = ndb.BooleanProperty()
+  invocation_timeout_millis = ndb.IntegerProperty()
   output_idle_timeout_millis = ndb.IntegerProperty()
   jvm_options = ndb.StringProperty(repeated=True)
   java_properties = ndb.JsonProperty()
@@ -276,6 +277,7 @@ class TestEnvironment(ndb.Model):
         output_file_upload_url=msg.output_file_upload_url,
         output_file_patterns=msg.output_file_patterns,
         use_subprocess_reporting=msg.use_subprocess_reporting,
+        invocation_timeout_millis=msg.invocation_timeout_millis,
         output_idle_timeout_millis=msg.output_idle_timeout_millis,
         jvm_options=msg.jvm_options,
         java_properties={p.key: p.value for p in msg.java_properties},
@@ -307,6 +309,7 @@ def TestEnvironmentToMessage(entity):
       output_file_upload_url=entity.output_file_upload_url,
       output_file_patterns=entity.output_file_patterns,
       use_subprocess_reporting=entity.use_subprocess_reporting,
+      invocation_timeout_millis=entity.invocation_timeout_millis,
       output_idle_timeout_millis=entity.output_idle_timeout_millis,
       jvm_options=entity.jvm_options,
       java_properties=java_properties,

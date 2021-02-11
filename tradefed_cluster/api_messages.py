@@ -129,6 +129,7 @@ class TestEnvironment(messages.Message):
     output_file_upload_url: an URL to which output files will be uploaded. This
         can be either a GCS or a HTTP url.
     use_subprocess_reporting: a flag on whether to use TF subprocess reporting.
+    invocation_timeout_millis: millis to wait for a subprocess to finish.
     output_idle_timeout_millis: millis to wait for an idle subprocess
     jvm_options: a list of JVM options to be passed to TF.
     java_properties: a dict of Java properties to be passed to TF.
@@ -144,15 +145,16 @@ class TestEnvironment(messages.Message):
   output_file_patterns = messages.StringField(3, repeated=True)
   output_file_upload_url = messages.StringField(4)
   use_subprocess_reporting = messages.BooleanField(5)
-  output_idle_timeout_millis = messages.IntegerField(6)
-  jvm_options = messages.StringField(7, repeated=True)
-  java_properties = messages.MessageField(KeyValuePair, 8, repeated=True)
-  context_file_pattern = messages.StringField(9)
-  extra_context_files = messages.StringField(10, repeated=True)
-  retry_command_line = messages.StringField(11)
-  log_level = messages.EnumField(common.LogLevel, 12)
+  invocation_timeout_millis = messages.IntegerField(6)
+  output_idle_timeout_millis = messages.IntegerField(7)
+  jvm_options = messages.StringField(8, repeated=True)
+  java_properties = messages.MessageField(KeyValuePair, 9, repeated=True)
+  context_file_pattern = messages.StringField(10)
+  extra_context_files = messages.StringField(11, repeated=True)
+  retry_command_line = messages.StringField(12)
+  log_level = messages.EnumField(common.LogLevel, 13)
   tradefed_config_objects = messages.MessageField(
-      TradefedConfigObject, 13, repeated=True)
+      TradefedConfigObject, 14, repeated=True)
 
 
 class TestResource(messages.Message):

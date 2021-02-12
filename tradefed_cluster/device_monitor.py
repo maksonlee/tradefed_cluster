@@ -90,8 +90,12 @@ def _UpdateClusters(hosts):
 
   for cluster, hosts in six.iteritems(cluster_to_hosts):
     cluster_entity = datastore_entities.ClusterInfo(id=cluster)
-    if hosts:
-      cluster_entity.lab_name = hosts[0].lab_name
+    for host in hosts:
+      if host.lab_name:
+        cluster_entity.lab_name = host.lab_name
+        break
+    else:
+      cluster_entity.lab_name = UNKNOWN_LAB_NAME
     cluster_entity.cluster = cluster
     cluster_entity.total_devices = 0
     cluster_entity.offline_devices = 0

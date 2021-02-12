@@ -178,6 +178,36 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(1, cluster.host_update_state_summary.succeeded)
     self.assertEqual(1, cluster.host_update_state_summary.unknown)
 
+  def testUpdateClusters_skipEmptyLabName(self):
+    cluster_name = 'cluster1'
+    hosts = [
+        datastore_test_util.CreateHost(
+            cluster_name, 'atl-07.mtv', lab_name=None),
+        datastore_test_util.CreateHost(
+            cluster_name, 'atl-08.mtv', lab_name='lab1'),
+        datastore_test_util.CreateHost(
+            cluster_name, 'atl-09.mtv', lab_name=None),
+        datastore_test_util.CreateHost(
+            cluster_name, 'atl-10.mtv', lab_name=None),
+    ]
+    device_monitor._UpdateClusters(hosts)
+    cluster = datastore_entities.ClusterInfo.get_by_id(cluster_name)
+    self.assertEqual('lab1', cluster.lab_name)
+
+  def testUpdateClusters_noLabNameFound(self):
+    cluster_name = 'cluster1'
+    hosts = [
+        datastore_test_util.CreateHost(
+            cluster_name, 'atl-08.mtv', lab_name=None),
+        datastore_test_util.CreateHost(
+            cluster_name, 'atl-09.mtv', lab_name=None),
+        datastore_test_util.CreateHost(
+            cluster_name, 'atl-10.mtv', lab_name=None),
+    ]
+    device_monitor._UpdateClusters(hosts)
+    cluster = datastore_entities.ClusterInfo.get_by_id(cluster_name)
+    self.assertEqual('UNKNOWN', cluster.lab_name)
+
   def testUpdateLabs(self):
     clusters = device_monitor._UpdateClusters([self.host1, self.cloud_host])
     device_monitor._UpdateLabs(clusters)

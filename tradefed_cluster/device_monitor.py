@@ -43,6 +43,11 @@ ONE_HOUR = datetime.timedelta(hours=1)
 FALLBACK_INACTIVE_TIME = datetime.timedelta(minutes=30)
 CLOUD_TF_LAB_NAME = 'cloud-tf'
 UNKNOWN_LAB_NAME = 'UNKNOWN'
+# TODO: the hosts lose lab name during update. Once the bug is
+# fixed, we should use lab name only to decide the host type.
+CLOUD_TF_HOST_NAME_PREFIX = 'cloud-tf'
+DOCKERIZED_TF_GKE_NAME_PREFIX = 'dockerized-tf-gke'
+
 
 # TODO: Make the TTL configurable.
 ONE_MONTH = datetime.timedelta(days=30)
@@ -246,7 +251,9 @@ def _ShouldHideHost(host):
   """
   if not host.timestamp:
     return False
-  if (host.lab_name == CLOUD_TF_LAB_NAME and
+  if ((host.lab_name == CLOUD_TF_LAB_NAME or
+       host.hostname.startswith(CLOUD_TF_HOST_NAME_PREFIX) or
+       host.hostname.startswith(DOCKERIZED_TF_GKE_NAME_PREFIX)) and
       host.timestamp <= _Now() - ONE_HOUR):
     logging.info(
         'Hiding cloud tf host [%s], because it last checked in longer than '

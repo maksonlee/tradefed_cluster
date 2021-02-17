@@ -357,6 +357,28 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
     self.assertFalse(mock_gone.called)
 
   @mock.patch.object(device_monitor, '_Now')
+  def testSyncHost_hideCloudTfHostWithoutLabName(self, mock_now):
+    """Test _SyncHost will hide cloud tf host without lab name."""
+    now = datetime.datetime(2019, 11, 14, 10, 10)
+    before = now - datetime.timedelta(minutes=65)
+    mock_now.return_value = now
+    cloud_host = datastore_test_util.CreateHost(
+        'dockerized-tf-gke', 'cloud-tf-2345', lab_name=None)
+    cloud_host.timestamp = before
+    cloud_host.put()
+    gke_host = datastore_test_util.CreateHost(
+        'dockerized-tf-gke', 'dockerized-tf-gke-2345', lab_name=None)
+    gke_host.timestamp = before
+    gke_host.put()
+
+    should_sync = device_monitor._SyncHost(cloud_host.hostname)
+    self.assertFalse(should_sync)
+    should_sync = device_monitor._SyncHost(gke_host.hostname)
+    self.assertFalse(should_sync)
+    self.assertTrue(cloud_host.key.get().hidden)
+    self.assertTrue(gke_host.key.get().hidden)
+
+  @mock.patch.object(device_monitor, '_Now')
   @mock.patch.object(device_manager, 'HideHost')
   def testSyncHost_hostGone(self, mock_hide, mock_now):
     """Test _SyncHost will set host and its devices to GONE."""

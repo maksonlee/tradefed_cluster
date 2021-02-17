@@ -125,9 +125,12 @@ class CommandTaskMatcher(object):
     # TODO: To start with we only allow limit device attributes
     # for scheduling tests, we will make it more flexible later.
     attributes = {}
-    attributes['sim_state'] = device.sim_state
+    attributes['build_id'] = device.build_id
     attributes['device_serial'] = device.device_serial
     attributes['hostname'] = device.hostname
+    attributes['product'] = device.product
+    attributes['product_variant'] = device.product_variant
+    attributes['sim_state'] = device.sim_state
     return attributes
 
   def _BuildRunTargetIndex(self, groups):

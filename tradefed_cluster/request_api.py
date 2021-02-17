@@ -481,7 +481,7 @@ def _BuildRunTarget(run_target, test_bench_attributes):
     name, value = attribute.split("=", 1)
     json_attributes.append({
         common.TestBenchKey.ATTRIBUTE_NAME: name,
-        common.TestBenchKey.ATTRIBUET_VALUE: value
+        common.TestBenchKey.ATTRIBUTE_VALUE: value
     })
   run_target_json = {
       common.TestBenchKey.HOST: {

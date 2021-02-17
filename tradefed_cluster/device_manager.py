@@ -314,7 +314,7 @@ def _DoCountDeviceForHost(host, devices):
       return
     # If there is no devices but the total_devices is not 0, we need to clear
     # the count.
-  now = _Now()
+  now = common.Now()
   host.total_devices = 0
   host.offline_devices = 0
   host.available_devices = 0
@@ -702,8 +702,8 @@ def StartHostSync(hostname, current_host_sync_id=None):
     the new host_sync_id or None if not added
   """
   host_sync = datastore_entities.HostSync.get_by_id(hostname)
-  now = _Now()
-  stale_time = _Now() - HOST_SYNC_STALE_TIMEOUT
+  now = common.Now()
+  stale_time = common.Now() - HOST_SYNC_STALE_TIMEOUT
   if (host_sync and host_sync.host_sync_id and
       host_sync.host_sync_id != current_host_sync_id and
       host_sync.update_timestamp and
@@ -727,7 +727,7 @@ def StartHostSync(hostname, current_host_sync_id=None):
   task = task_scheduler.AddTask(
       queue_name=HOST_SYNC_QUEUE,
       payload=payload,
-      eta=_Now() + HOST_SYNC_INTERVAL)
+      eta=common.Now() + HOST_SYNC_INTERVAL)
   # the taskname is for debugging purpose.
   host_sync.taskname = task.name
   host_sync.update_timestamp = now
@@ -740,7 +740,7 @@ def StartHostSync(hostname, current_host_sync_id=None):
 def StopHostSync(hostname, current_host_sync_id):
   """Stop sync the host."""
   host_sync = datastore_entities.HostSync.get_by_id(hostname)
-  stale_time = _Now() - HOST_SYNC_STALE_TIMEOUT
+  stale_time = common.Now() - HOST_SYNC_STALE_TIMEOUT
   if not host_sync:
     logging.info("No host sync for %s.", hostname)
     return
@@ -770,7 +770,7 @@ def UpdateGoneHost(hostname):
     logging.info("Host %s is already GONE.", hostname)
     return
   entities_to_update = []
-  now = _Now()
+  now = common.Now()
   host_state_history, host_history = _UpdateHostState(
       host, api_messages.HostState.GONE, now)
   entities_to_update.append(host)
@@ -804,7 +804,7 @@ def HideHost(hostname):
   if host.hidden:
     logging.info("Host %s is already hidden.", hostname)
     return host
-  now = _Now()
+  now = common.Now()
   entities_to_update = []
   host.hidden = True
   host.timestamp = now
@@ -831,7 +831,7 @@ def RestoreHost(hostname):
   if not host.hidden:
     logging.info("Host %s is not hidden.", hostname)
     return host
-  now = _Now()
+  now = common.Now()
   entities_to_update = []
   host.hidden = False
   host.timestamp = now
@@ -881,7 +881,7 @@ def _DoHideDevice(device_serial, hostname):
     logging.info("Device %s %s is already hidden.", device_serial, hostname)
     return device
   device.hidden = True
-  device.timestamp = _Now()
+  device.timestamp = common.Now()
   device.put()
   return device
 
@@ -925,7 +925,7 @@ def _DoRestoreDevice(device_serial, hostname):
     logging.info("Device %s %s is not hidden.", device_serial, hostname)
     return device
   device.hidden = False
-  device.timestamp = _Now()
+  device.timestamp = common.Now()
   device.put()
   return device
 
@@ -957,7 +957,7 @@ def _AssignHost(hostname, assignee):
     return
   host.assignee = assignee
   if not assignee:
-    host.last_recovery_time = _Now()
+    host.last_recovery_time = common.Now()
   host.put()
 
 
@@ -989,8 +989,8 @@ def _SetHostRecoveryState(hostname, recovery_state, assignee=None):
   if recovery_state == common.RecoveryState.VERIFIED:
     host.recovery_state = common.RecoveryState.VERIFIED
     host.assignee = host.assignee
-    host.last_recovery_time = _Now()
-    host.timestamp = _Now()
+    host.last_recovery_time = common.Now()
+    host.timestamp = common.Now()
     entities_to_update.append(_CreateHostInfoHistory(host))
     devices = GetDevicesOnHost(hostname)
     for device in devices:
@@ -1003,8 +1003,8 @@ def _SetHostRecoveryState(hostname, recovery_state, assignee=None):
     host.assignee = None
   else:
     host.recovery_state = recovery_state
-  host.last_recovery_time = _Now()
-  host.timestamp = _Now()
+  host.last_recovery_time = common.Now()
+  host.timestamp = common.Now()
   entities_to_update.append(_CreateHostInfoHistory(host))
   entities_to_update.append(host)
   ndb.put_multi(entities_to_update)
@@ -1053,14 +1053,14 @@ def _BuildDeviceRecoveryState(device, recovery_state):
   entities_to_update = []
   if recovery_state == common.RecoveryState.VERIFIED:
     device.recovery_state = common.RecoveryState.VERIFIED
-    device.last_recovery_time = _Now()
-    device.timestamp = _Now()
+    device.last_recovery_time = common.Now()
+    device.timestamp = common.Now()
     entities_to_update.append(_CreateDeviceInfoHistory(device))
     device.recovery_state = common.RecoveryState.UNKNOWN
   else:
     device.recovery_state = recovery_state
-  device.last_recovery_time = _Now()
-  device.timestamp = _Now()
+  device.last_recovery_time = common.Now()
+  device.timestamp = common.Now()
   entities_to_update.append(_CreateDeviceInfoHistory(device))
   entities_to_update.append(device)
   return entities_to_update
@@ -1184,11 +1184,6 @@ def GetRunTargetsFromNDB(cluster=None):
   return (h.run_target for h in query if h.run_target)
 
 
-def _Now():
-  """Returns the current time in UTC. Added to allow mocking in our tests."""
-  return datetime.datetime.utcnow()
-
-
 def CalculateDeviceUtilization(device_serial, days=7):
   """Calculates the device utilization rate over a number of days.
 
@@ -1205,7 +1200,7 @@ def CalculateDeviceUtilization(device_serial, days=7):
   """
   if days <= 0:
     raise ValueError("Number of days [%d] should be > 0" % (days))
-  now = _Now()
+  now = common.Now()
   requested_time = datetime.timedelta(days=days)
   start_date = now - requested_time
 
@@ -1252,7 +1247,7 @@ def CreateAndSaveDeviceInfoHistoryFromDeviceNote(device_serial, note_id):
     An instance of ndb.Key, the key of DeviceInfoHistory entity.
   """
   device = GetDevice(device_serial=device_serial)
-  device.timestamp = _Now()
+  device.timestamp = common.Now()
   device_info_history = _CreateDeviceInfoHistory(device)
   if device_info_history.extra_info is None:
     device_info_history.extra_info = {}
@@ -1275,7 +1270,7 @@ def CreateAndSaveHostInfoHistoryFromHostNote(hostname, note_id):
     An instance of ndb.Key, the key of HostInfoHistory entity.
   """
   host = GetHost(hostname=hostname)
-  host.timestamp = _Now()
+  host.timestamp = common.Now()
   host_info_history = _CreateHostInfoHistory(host)
   if host_info_history.extra_info is None:
     host_info_history.extra_info = {}

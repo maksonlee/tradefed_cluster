@@ -33,11 +33,6 @@ MAX_COMMAND_INACTIVE_TIME_MIN = 2 * 60  # 2 hours
 APP = flask.Flask(__name__)
 
 
-def Now():
-  """Get current datetime in UTC."""
-  return datetime.datetime.utcnow()
-
-
 def Monitor(commands):
   """Monitor the given commands."""
   num_monitored = 0
@@ -55,7 +50,7 @@ def AddToSyncQueue(command):
       command_manager.COMMAND_ID_KEY: command_id,
       command_manager.REQUEST_ID_KEY: request_id,
   })
-  now = Now()
+  now = common.Now()
   update_time = command.update_time or now
   timeout_seconds = GetCommandQueueTimeoutSeconds(command)
   if command.state != common.CommandState.QUEUED:
@@ -139,7 +134,7 @@ def SyncCommand(request_id, command_id, add_to_sync_queue=True):
     return
 
   last_active_time = command_manager.GetLastCommandActiveTime(command)
-  inactive_time = Now() - last_active_time
+  inactive_time = common.Now() - last_active_time
   if datetime.timedelta(minutes=MAX_COMMAND_EVENT_DELAY_MIN) < inactive_time:
     # Ensure command is leasable. If a worker leases a command task but does
     # not report back within MAX_COMMAND_EVENT_DELAY, we need to make it

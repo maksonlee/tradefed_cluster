@@ -552,7 +552,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual(self.ndb_device_1.hidden, device.hidden)
     self.assertEqual(0, len(device.notes))
 
-  @mock.patch.object(device_manager, '_Now')
+  @mock.patch.object(common, 'Now')
   def testGetDevice_includeUtilization(self, mock_now):
     """Tests GetDevice including utilization."""
     mock_now.return_value = datetime.datetime(2015, 11, 20)

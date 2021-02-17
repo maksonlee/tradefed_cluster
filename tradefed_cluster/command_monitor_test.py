@@ -209,7 +209,7 @@ class CommandMonitorTest(testbed_dependent_test.TestbedDependentTest):
                      self.request_2.key.get().state)
     sync.assert_called_once_with(command_1)
 
-  @mock.patch.object(command_monitor, 'Now')
+  @mock.patch.object(common, 'Now')
   @mock.patch.object(task_scheduler, 'AddTask')
   def testAddToSyncQueue(self, mock_add, mock_now):
     # Create a command that was created 5 minutes ago.
@@ -307,7 +307,7 @@ class CommandMonitorTest(testbed_dependent_test.TestbedDependentTest):
         payload=payload,
         eta=now + datetime.timedelta(minutes=1))
 
-  @mock.patch.object(command_monitor, 'Now')
+  @mock.patch.object(common, 'Now')
   @mock.patch.object(task_scheduler, 'AddTask')
   def testAddToSyncQueue_RunningCommand(self, mock_add, mock_now):
     # Create a command that has been running for 3 hours.

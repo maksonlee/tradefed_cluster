@@ -129,6 +129,8 @@ def ProcessCommandEvent(event):
   logging.debug("Processing command event: %s", str(event))
   command = command_manager.GetCommand(event.request_id, event.command_id)
   LogCommandEventMetrics(command=command, event=event)
+  # TODO: Check if there is a request sync and just store the raw event
+  # event instead of processing it
   command_manager.ProcessCommandEvent(event)
 
 
@@ -152,7 +154,7 @@ def HandleCommandEvent():
       logging.info(_Truncate(obj))
       event = command_event.CommandEvent(**obj)
       if (event.time + datetime.timedelta(days=COMMAND_EVENT_TIMEOUT_DAYS) <
-          _Now()):
+          common.Now()):
         logging.warn("Ignore event retried for %d days:\n%s",
                      COMMAND_EVENT_TIMEOUT_DAYS, event)
         continue
@@ -171,8 +173,3 @@ def HandleCommandEvent():
     if len(failed_objs) == len(objs) and exception:
       raise exception      EnqueueCommandEvents(failed_objs)
   return common.HTTP_OK
-
-
-def _Now():
-  """Get utc now."""
-  return datetime.datetime.utcnow()

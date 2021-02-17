@@ -67,7 +67,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
             "ants_work_unit_id": "w123"
         },
         cluster="foobar")[0]
-    self.now_patcher = mock.patch.object(command_event_handler, "_Now")
+    self.now_patcher = mock.patch.object(common, "Now")
     self.mock_now = self.now_patcher.start()
     self.mock_now.return_value = TIMESTAMP
 

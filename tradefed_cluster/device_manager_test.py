@@ -936,7 +936,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     utilization = device_manager.CalculateDeviceUtilization("serial")
     self.assertEqual(0, utilization)
 
-  @mock.patch.object(device_manager, "_Now")
+  @mock.patch.object(common, "Now")
   def testCalculateDeviceUtilization_singleAllocatedRecord(self, mock_now):
     """Tests calculating utilization with a single record on allocated."""
     mock_now.return_value = datetime.datetime(2015, 11, 18)
@@ -965,7 +965,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     utilization = device_manager.CalculateDeviceUtilization(serial)
     self.assertEqual(0.5/7, utilization)
 
-  @mock.patch.object(device_manager, "_Now")
+  @mock.patch.object(common, "Now")
   def testCalculateDeviceUtilization_multipleAllocatedRecord(self, mock_now):
     """Tests calculating utilization with multiple records on allocated."""
     mock_now.return_value = datetime.datetime(2015, 11, 20)
@@ -1378,7 +1378,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertIsNone(
         device_manager.StartHostSync("host1", "another_sync_id"))
 
-  @mock.patch.object(device_manager, "_Now")
+  @mock.patch.object(common, "Now")
   def testStartHostSync_staleTask(self, mock_now):
     now = datetime.datetime(2019, 11, 14, 10, 10)
     before = now - datetime.timedelta(minutes=40)
@@ -1406,7 +1406,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     device_manager.StopHostSync("host1", host_sync_id)
     self.assertIsNone(datastore_entities.HostSync.get_by_id("host1"))
 
-  @mock.patch.object(device_manager, "_Now")
+  @mock.patch.object(common, "Now")
   def testStopHostSync_staleTask(self, mock_now):
     now = datetime.datetime(2019, 11, 14, 10, 10)
     before = now - datetime.timedelta(minutes=40)
@@ -1423,7 +1423,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     device_manager.StopHostSync("host1", "another_sync_id")
     self.assertIsNotNone(datastore_entities.HostSync.get_by_id("host1"))
 
-  @mock.patch.object(device_manager, "_Now")
+  @mock.patch.object(common, "Now")
   def testUpdateGoneHost(self, mock_now):
     now = datetime.datetime(2019, 11, 14, 10, 10)
     mock_now.return_value = now
@@ -1459,7 +1459,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual("r1", host.device_count_summaries[0].run_target)
     self.assertEqual(2, host.device_count_summaries[0].offline)
 
-  @mock.patch.object(device_manager, "_Now")
+  @mock.patch.object(common, "Now")
   def testUpdateGoneHost_alreadyGone(self, mock_now):
     now = datetime.datetime(2019, 11, 14, 10, 10)
     mock_now.return_value = now
@@ -1474,7 +1474,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     host_histories = device_manager.GetHostStateHistory("host1")
     self.assertEqual(0, len(host_histories))
 
-  @mock.patch.object(device_manager, "_Now")
+  @mock.patch.object(common, "Now")
   def testHideHost(self, mock_now):
     now = datetime.datetime(2019, 11, 14, 10, 10)
     mock_now.return_value = now
@@ -1495,7 +1495,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertTrue(d2.hidden)
     self.assertEqual(now, d2.timestamp)
 
-  @mock.patch.object(device_manager, "_Now")
+  @mock.patch.object(common, "Now")
   def testHideHost_alreadyHidden(self, mock_now):
     now = datetime.datetime(2019, 11, 14, 10, 10)
     before = now - datetime.timedelta(hours=10)
@@ -1509,7 +1509,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     host = host.key.get()
     self.assertEqual(before, host.timestamp)
 
-  @mock.patch.object(device_manager, "_Now")
+  @mock.patch.object(common, "Now")
   def testRestoreHost(self, mock_now):
     now = datetime.datetime(2019, 11, 14, 10, 10)
     mock_now.return_value = now
@@ -1522,7 +1522,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(now, host.timestamp)
     self.assertFalse(host.hidden)
 
-  @mock.patch.object(device_manager, "_Now")
+  @mock.patch.object(common, "Now")
   def testHideDevice(self, mock_now):
     now = datetime.datetime(2019, 11, 14, 10, 10)
     mock_now.return_value = now
@@ -1543,7 +1543,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(1, len(host.device_count_summaries))
     self.assertEqual(1, host.device_count_summaries[0].total)
 
-  @mock.patch.object(device_manager, "_Now")
+  @mock.patch.object(common, "Now")
   def testRestoreDevice(self, mock_now):
     now = datetime.datetime(2019, 11, 14, 10, 10)
     mock_now.return_value = now
@@ -1666,7 +1666,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     host_history = device_manager._CreateHostInfoHistory(host)
     self.assertEqual(host.to_dict(), host_history.to_dict())
 
-  @mock.patch.object(device_manager, "_Now")
+  @mock.patch.object(common, "Now")
   def testCreateAndSaveHostInfoHistoryFromHostNote(self, mock_now):
     now = datetime.datetime(2019, 11, 14, 10, 10)
     mock_now.return_value = now
@@ -1678,7 +1678,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual("anoteid", host_history.extra_info["host_note_id"])
     self.assertEqual(now, host_history.timestamp)
 
-  @mock.patch.object(device_manager, "_Now")
+  @mock.patch.object(common, "Now")
   def testCreateAndSaveDeviceInfoHistoryFromDeviceNote(self, mock_now):
     now = datetime.datetime(2019, 11, 14, 10, 10)
     mock_now.return_value = now

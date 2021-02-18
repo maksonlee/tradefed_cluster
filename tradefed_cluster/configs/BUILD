@@ -6,7 +6,7 @@
 #
 # Description:
 #   Tools for configs.
-load("//tradefed_cluster:adapter.bzl", "proto_library", "py2and3_test", "py_library", "py_proto_library", "third_party")
+load("//tradefed_cluster:adapter.bzl", "proto_library", "py_library", "py_proto_library", "third_party")
 
 package(default_visibility = ["//tradefed_cluster:tradefed_cluster_clients"])
 
@@ -43,13 +43,14 @@ py_proto_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "lab_config_test",
     srcs = ["lab_config_test.py"],
     data = [
         ":testdata",
     ],
-    python_version = "PY2",
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":lab_config_lib",
         third_party("six"),

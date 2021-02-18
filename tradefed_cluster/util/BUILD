@@ -1,4 +1,4 @@
-load("//tradefed_cluster:adapter.bzl", "py2and3_test", "py_library", "pytype_strict_library", "third_party")
+load("//tradefed_cluster:adapter.bzl", "py_library", "pytype_strict_library", "third_party")
 
 package(default_visibility = ["//tradefed_cluster:tradefed_cluster_clients"])
 
@@ -28,11 +28,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "command_util_test",
     srcs = [
         "command_util_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":command_util",
         third_party("mock"),
@@ -51,7 +53,7 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "email_sender_test",
     srcs = [
         "email_sender_test.py",
@@ -59,6 +61,8 @@ py2and3_test(
     data = [
         ":testdata",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":email_sender_lib",
         third_party("mock"),
@@ -97,11 +101,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "pubsub_client_test",
     srcs = [
         "pubsub_client_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":pubsub_client_lib",
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
@@ -158,11 +164,13 @@ py_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "datastore_emulator_test",
     srcs = [
         "datastore_emulator_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":datastore_emulator_lib",
         third_party("mock"),

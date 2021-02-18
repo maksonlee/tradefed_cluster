@@ -1,4 +1,4 @@
-load("//tradefed_cluster:adapter.bzl", "py2and3_test", "py_library", "pytype_strict_library", "third_party")
+load("//tradefed_cluster:adapter.bzl", "py_library", "pytype_strict_library", "third_party")
 
 package(default_visibility = ["//tradefed_cluster:tradefed_cluster_clients"])
 
@@ -26,11 +26,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "base_test",
     srcs = [
         "base_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":base_lib",
     ],
@@ -49,11 +51,13 @@ py_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "google_cloud_test",
     srcs = [
         "google_cloud_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":google_cloud_lib",
         third_party("mock"),
@@ -92,11 +96,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "registry_test",
     srcs = [
         "registry_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":registry_lib",
         third_party("mock"),

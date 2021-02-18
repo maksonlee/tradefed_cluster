@@ -1,4 +1,4 @@
-load("//tradefed_cluster:adapter.bzl", "py2and3_test", "pytype_strict_library", "third_party")
+load("//tradefed_cluster:adapter.bzl", "pytype_strict_library", "third_party")
 
 package(default_visibility = ["//tradefed_cluster:tradefed_cluster_clients"])
 
@@ -16,11 +16,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "app_manager_test",
     srcs = [
         "app_manager_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":app_manager_lib",
         third_party("absl/testing:absltest"),
@@ -42,11 +44,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "file_storage_test",
     srcs = [
         "file_storage_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":file_storage_lib",
         third_party("absl/testing:absltest"),
@@ -67,11 +71,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "mailer_test",
     srcs = [
         "mailer_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":mailer_lib",
         third_party("absl/testing:absltest"),
@@ -95,11 +101,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "task_scheduler_test",
     srcs = [
         "task_scheduler_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":task_scheduler_lib",
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default

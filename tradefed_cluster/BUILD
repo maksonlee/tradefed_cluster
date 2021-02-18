@@ -1362,6 +1362,7 @@ pytype_strict_library(
         ":common_lib",
         ":datastore_entities_lib",
         ":request_manager_lib",
+        ":request_sync_monitor_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
         third_party("endpoints:endpoints_library"),
         third_party("protorpc:protorpc_all"),
@@ -1412,6 +1413,36 @@ py2and3_test(
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
         third_party("hamcrest"),
+        third_party("mock"),
+    ],
+)
+
+pytype_strict_library(
+    name = "request_sync_monitor_lib",
+    srcs = [
+        "request_sync_monitor.py",
+    ],
+    deps = [
+        ":common_lib",
+        ":datastore_entities_lib",
+        ":request_manager_lib",
+        "//tradefed_cluster/services:task_scheduler_lib",
+        "//tradefed_cluster/util:command_util",
+        "//tradefed_cluster/util:ndb_shim_lib",
+        third_party("flask"),
+    ],
+)
+
+py_test(
+    name = "request_sync_monitor_test",
+    srcs = [
+        "request_sync_monitor_test.py",
+    ],
+    python_version = "PY3",
+    deps = [
+        ":request_manager_lib",
+        ":request_sync_monitor_lib",
+        ":testbed_dependent_test_lib",
         third_party("mock"),
     ],
 )

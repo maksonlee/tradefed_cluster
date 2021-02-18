@@ -30,6 +30,7 @@ from tradefed_cluster import command_monitor
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import request_manager
+from tradefed_cluster import request_sync_monitor
 
 
 @api_common.tradefed_cluster_api.api_class(
@@ -118,6 +119,7 @@ class RequestApi(remote.Service):
     request_manager.AddToQueue(new_request)
     logging.info("Request API new request after adding request to queue %s %s",
                  new_request.key.id(), request.user)
+    request_sync_monitor.Monitor(request_id=new_request.key.id())
     return api_messages.RequestMessage(
         id=new_request.key.id(),
         api_module_version=common.NAMESPACE)

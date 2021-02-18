@@ -38,6 +38,7 @@ from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import request_api
 from tradefed_cluster import request_manager
+from tradefed_cluster import request_sync_monitor
 from tradefed_cluster.util import ndb_shim as ndb
 
 START_TIME = datetime.datetime(2015, 1, 1)
@@ -129,13 +130,22 @@ class RequestApiTest(api_test.ApiTest):
     self.assertEqual('w123', request_entity.plugin_data.get(
         'ants_work_unit_id'))
 
-    tasks = self.mock_task_scheduler.GetTasks()
+    tasks = self.mock_task_scheduler.GetTasks(
+        queue_names=(request_manager.REQUEST_QUEUE,))
     self.assertEqual(len(tasks), 1)
 
     request_task = json.loads(zlib.decompress(tasks[0].payload))
     self.assertEqual(request_task['id'], return_request.id)
     self.assertEqual(request_task['command_line'], command_line)
     self.assertEqual(request_task['user'], 'user1')
+
+    monitor_tasks = self.mock_task_scheduler.GetTasks(
+        queue_names=(request_sync_monitor.REQUEST_SYNC_QUEUE,))
+    self.assertLen(monitor_tasks, 1)
+
+    monitor_task = json.loads(monitor_tasks[0].payload)
+    self.assertEqual(monitor_task[request_sync_monitor.REQUEST_ID_KEY],
+                     return_request.id)
 
   def testNewRequests_withEscape(self):
     command_line = (
@@ -177,13 +187,18 @@ class RequestApiTest(api_test.ApiTest):
     self.assertEqual('w123', request_entity.plugin_data.get(
         'ants_work_unit_id'))
 
-    tasks = self.mock_task_scheduler.GetTasks()
+    tasks = self.mock_task_scheduler.GetTasks(
+        queue_names=(request_manager.REQUEST_QUEUE,))
     self.assertEqual(len(tasks), 1)
 
     request_task = json.loads(zlib.decompress(tasks[0].payload))
     self.assertEqual(request_task['id'], return_request.id)
     self.assertEqual(request_task['command_line'], command_line)
     self.assertEqual(request_task['user'], 'user1')
+
+    monitor_tasks = self.mock_task_scheduler.GetTasks(
+        queue_names=(request_sync_monitor.REQUEST_SYNC_QUEUE,))
+    self.assertLen(monitor_tasks, 1)
 
   def testNewRequests_missingFields(self):
     command_line = (
@@ -216,16 +231,19 @@ class RequestApiTest(api_test.ApiTest):
     self.assertEqual('run_target', request_entity.run_target)
     self.assertEqual('user1', request_entity.user)
     self.assertEqual(command_line, request_entity.command_line)
-    tasks = self.mock_task_scheduler.GetTasks()
+    tasks = self.mock_task_scheduler.GetTasks(
+        queue_names=(request_manager.REQUEST_QUEUE,))
     self.assertEqual(len(tasks), 1)
     request_task = json.loads(zlib.decompress(tasks[0].payload))
     self.assertEqual(request_task['id'], return_request.id)
     self.assertEqual(request_task['command_line'], command_line)
     self.assertEqual(request_task['user'], 'user1')
-    self.assertEqual(None, request_entity.plugin_data.get(
-        'ants_invocation_id'))
-    self.assertEqual(None, request_entity.plugin_data.get(
-        'ants_work_unit_id'))
+    self.assertIsNone(request_entity.plugin_data.get('ants_invocation_id'))
+    self.assertIsNone(request_entity.plugin_data.get('ants_work_unit_id'))
+
+    monitor_tasks = self.mock_task_scheduler.GetTasks(
+        queue_names=(request_sync_monitor.REQUEST_SYNC_QUEUE,))
+    self.assertLen(monitor_tasks, 1)
 
   def testNewRequests_emptyField(self):
     api_request = {
@@ -292,12 +310,17 @@ class RequestApiTest(api_test.ApiTest):
       self.assertEqual(
           api_request['test_resources'][i]['name'], test_resources[i].name)
 
-    tasks = self.mock_task_scheduler.GetTasks()
+    tasks = self.mock_task_scheduler.GetTasks(
+        queue_names=(request_manager.REQUEST_QUEUE,))
     self.assertEqual(len(tasks), 1)
     request_task = json.loads(zlib.decompress(tasks[0].payload))
     self.assertEqual(request_msg.id, request_task['id'])
     self.assertEqual(command_line, request_task['command_line'])
     self.assertEqual('user', request_task['user'])
+
+    monitor_tasks = self.mock_task_scheduler.GetTasks(
+        queue_names=(request_sync_monitor.REQUEST_SYNC_QUEUE,))
+    self.assertLen(monitor_tasks, 1)
 
   def testNewRequests_withTestBenchAttributes(self):
     api_request = {

@@ -24,7 +24,7 @@ from tradefed_cluster import testbed_dependent_test
 from tradefed_cluster.util import ndb_shim as ndb
 
 TEST_DATA_PATH = 'test_yaml'
-TEST_CLUSTER_YAML_FILE = 'dockerized-tf.yaml'
+LAB_CONFIG_FILE = 'dockerized-tf.yaml'
 
 
 def _GetTestFilePath(filename):
@@ -36,10 +36,10 @@ class ConfigSyncerGCSToNdbTest(testbed_dependent_test.TestbedDependentTest):
 
   def setUp(self):
     testbed_dependent_test.TestbedDependentTest.setUp(self)
-    file_path = _GetTestFilePath(TEST_CLUSTER_YAML_FILE)
+    file_path = _GetTestFilePath(LAB_CONFIG_FILE)
     with self.mock_file_storage.OpenFile(
         (config_syncer_gcs_to_ndb.LAB_CONFIG_DIR_PATH +
-         TEST_CLUSTER_YAML_FILE), 'w') as storage_file:
+         LAB_CONFIG_FILE), 'w') as storage_file:
       with open(file_path, 'r') as f:
         for line in f:
           storage_file.write(six.ensure_binary(line))
@@ -72,7 +72,7 @@ class ConfigSyncerGCSToNdbTest(testbed_dependent_test.TestbedDependentTest):
   def testUpdateLabConfig(self):
     """Tests that check lab config is updated."""
     lab_config_pb = config_syncer_gcs_to_ndb.GetLabConfigFromGCS(
-        config_syncer_gcs_to_ndb.LAB_CONFIG_DIR_PATH + TEST_CLUSTER_YAML_FILE)
+        config_syncer_gcs_to_ndb.LAB_CONFIG_DIR_PATH + LAB_CONFIG_FILE)
     config_syncer_gcs_to_ndb._UpdateLabConfig(lab_config_pb)
 
     ndb.get_context().clear_cache()
@@ -87,7 +87,7 @@ class ConfigSyncerGCSToNdbTest(testbed_dependent_test.TestbedDependentTest):
     self._CreateClusterConfigEntity(
         'cluster1', tf_global_config_path='old_tf_global_path.xml')
     lab_config_pb = config_syncer_gcs_to_ndb.GetLabConfigFromGCS(
-        config_syncer_gcs_to_ndb.LAB_CONFIG_DIR_PATH + TEST_CLUSTER_YAML_FILE)
+        config_syncer_gcs_to_ndb.LAB_CONFIG_DIR_PATH + LAB_CONFIG_FILE)
     config_syncer_gcs_to_ndb._UpdateClusterConfigs(
         lab_config_pb.cluster_configs)
 
@@ -104,12 +104,36 @@ class ConfigSyncerGCSToNdbTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(['owner1'], res.owners)
     self.assertEqual('configs/cluster2/config.xml', res.tf_global_config_path)
 
+  def testUpdateClusterConfigs_withDuplicateClusterConfig(self):
+    """Tests that check lab configs with duplicated clusters are updated."""
+    config_file = 'lab-config-with-duplicated-cluster.yaml'
+    file_path = _GetTestFilePath(config_file)
+    with self.mock_file_storage.OpenFile(
+        (config_syncer_gcs_to_ndb.LAB_CONFIG_DIR_PATH +
+         config_file), 'w') as storage_file:
+      with open(file_path, 'r') as f:
+        for line in f:
+          storage_file.write(six.ensure_binary(line))
+    self._CreateClusterConfigEntity(
+        'cluster1', tf_global_config_path='old_tf_global_path.xml')
+    lab_config_pb = config_syncer_gcs_to_ndb.GetLabConfigFromGCS(
+        config_syncer_gcs_to_ndb.LAB_CONFIG_DIR_PATH + config_file)
+    config_syncer_gcs_to_ndb._UpdateClusterConfigs(
+        lab_config_pb.cluster_configs)
+
+    ndb.get_context().clear_cache()
+    # Cluster1 is overried.
+    res = datastore_entities.ClusterConfig.get_by_id('cluster1')
+    self.assertEqual('cluster1', res.cluster_name)
+    self.assertEqual('configs/cluster1_duplicated/config.xml',
+                     res.tf_global_config_path)
+
   def testUpdateHostConfigs(self):
     """Tests that check host configs are updated."""
     self._CreateHostConfigEntity(
         'homer-atc1', tf_global_config_path='old_path.xml')
     lab_config_pb = config_syncer_gcs_to_ndb.GetLabConfigFromGCS(
-        config_syncer_gcs_to_ndb.LAB_CONFIG_DIR_PATH + TEST_CLUSTER_YAML_FILE)
+        config_syncer_gcs_to_ndb.LAB_CONFIG_DIR_PATH + LAB_CONFIG_FILE)
     config_syncer_gcs_to_ndb._UpdateHostConfigs(
         lab_config_pb.cluster_configs[0].host_configs,
         lab_config_pb.cluster_configs[0],

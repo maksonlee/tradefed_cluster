@@ -99,20 +99,28 @@ def _UpdateClusterConfigs(cluster_configs):
     cluster_configs: a list of cluster configs proto.
   """
   logging.debug('Updating cluster configs.')
-  cluster_config_keys = []
+  cluster_config_keys = set()
   for cluster_config in cluster_configs:
-    cluster_config_keys.append(
+    cluster_config_keys.add(
         ndb.Key(datastore_entities.ClusterConfig, cluster_config.cluster_name))
-
   entities = ndb.get_multi(cluster_config_keys)
-  entities_to_update = []
-  for entity, cluster_config in zip(entities, cluster_configs):
+  name_to_cluster = {}
+  for entity in entities:
+    if entity:
+      name_to_cluster[entity.cluster_name] = entity
+
+  name_to_entity = {}
+  for cluster_config in cluster_configs:
     new_config_entity = datastore_entities.ClusterConfig.FromMessage(
         cluster_config)
-    if not _CheckConfigEntitiesEqual(entity, new_config_entity):
+    if not _CheckConfigEntitiesEqual(
+        name_to_cluster.get(cluster_config.cluster_name), new_config_entity):
       logging.debug('Updating cluster config entity: %s.', new_config_entity)
-      entities_to_update.append(new_config_entity)
-  ndb.put_multi(entities_to_update)
+      if cluster_config.cluster_name in name_to_entity:
+        logging.warning(
+            '%s has duplicated configs.', cluster_config.cluster_name)
+      name_to_entity[cluster_config.cluster_name] = new_config_entity
+  ndb.put_multi(name_to_entity.values())
   logging.debug('Cluster configs updated.')
 
 

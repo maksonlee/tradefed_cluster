@@ -727,6 +727,7 @@ py2and3_test(
     ],
     data = [
         "test_yaml/dockerized-tf.yaml",
+        "test_yaml/lab-config-with-duplicated-cluster.yaml",
     ],
     deps = [
         ":config_syncer_gcs_to_ndb_lib",

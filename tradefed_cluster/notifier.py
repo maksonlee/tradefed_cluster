@@ -85,7 +85,7 @@ def HandleObjectStateChangeEvent():
   try:
     encoded_message = zlib.decompress(encoded_message)
   except zlib.error:
-    logging.warn(
+    logging.warning(
         'payload may not be compressed: %s', encoded_message, exc_info=True)
   data = json.loads(encoded_message)
   message_type = data.get('type')
@@ -98,7 +98,7 @@ def HandleObjectStateChangeEvent():
     logging.info('Notifying Request %s state changed to %s.',
                  data.get('request_id'), data.get('new_state'))
   else:
-    logging.warn('Unknown message type (%s), ignore.', message_type)
+    logging.warning('Unknown message type (%s), ignore.', message_type)
     return common.HTTP_OK
   _SendEventMessage(encoded_message, pubsub_topic)
   return common.HTTP_OK

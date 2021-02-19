@@ -155,21 +155,24 @@ def HandleCommandEvent():
       event = command_event.CommandEvent(**obj)
       if (event.time + datetime.timedelta(days=COMMAND_EVENT_TIMEOUT_DAYS) <
           common.Now()):
-        logging.warn("Ignore event retried for %d days:\n%s",
-                     COMMAND_EVENT_TIMEOUT_DAYS, event)
+        logging.warning("Ignore event retried for %d days:\n%s",
+                        COMMAND_EVENT_TIMEOUT_DAYS, event)
         continue
       if event.attempt_state == common.CommandState.UNKNOWN:
-        logging.warn("Ignore unknown state event:\n%s.", event)
+        logging.warning("Ignore unknown state event:\n%s.", event)
         continue
       ProcessCommandEvent(event)
     except Exception as e:        exception = e
-      logging.warn("Failed to process (%s, %s), will retry.",
-                   event.task_id, event.type, exc_info=True)
+      logging.warning(
+          "Failed to process (%s, %s), will retry.",
+          event.task_id,
+          event.type,
+          exc_info=True)
       # failed events will be retried later.
       failed_objs.append(obj)
   if failed_objs:
-    logging.warn("%d/%d command events failed to process.",
-                 len(failed_objs), len(objs))
+    logging.warning("%d/%d command events failed to process.", len(failed_objs),
+                    len(objs))
     if len(failed_objs) == len(objs) and exception:
       raise exception      EnqueueCommandEvents(failed_objs)
   return common.HTTP_OK

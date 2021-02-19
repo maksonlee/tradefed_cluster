@@ -378,4 +378,4 @@ class TestBenchKey(object):
   RUN_TARGET_NAME = "name"
   DEVICE_ATTRIBUTES = "device_attributes"
   ATTRIBUTE_NAME = "name"
-  ATTRIBUTE_VALUE = "value"
+  ATTRIBUET_VALUE = "value"

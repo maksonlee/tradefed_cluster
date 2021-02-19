@@ -206,6 +206,50 @@ class CommandTaskMatcherTest(unittest.TestCase):
     matched_devices = matcher.Match(task)
     self.assertIsNone(matched_devices)
 
+  def _CreateRunTargetRequirement(self, name, attributes=()):
+    run_target_requirement = datastore_entities.RunTarget(
+        name=name, device_attributes=[])
+    for attribute in attributes or []:
+      run_target_requirement.device_attributes.append(
+          datastore_entities.Attribute(
+              name=attribute[0], value=attribute[1]))
+    return run_target_requirement
+
+  def testMatchType2Test_withDeviceAttribute(self):
+    host = self._CreateHostInfo(
+        [self._CreateDeviceInfo('d1', 'rt1', 'g1', sim_state='READY'),
+         self._CreateDeviceInfo('d2', 'rt1', 'g1', sim_state='NONE'),
+         self._CreateDeviceInfo('d3', 'rt1', 'g2', sim_state='READY'),
+         self._CreateDeviceInfo('d4', 'rt1', 'g2', sim_state='READY'),
+        ])
+    matcher = command_task_matcher.CommandTaskMatcher(host)
+    task = self._CreateCommandTask(
+        '1',
+        [[self._CreateRunTargetRequirement('rt1', [('sim_state', 'READY')]),
+          self._CreateRunTargetRequirement('rt1', [('sim_state', 'READY')])]])
+    matched_devices = matcher.Match(task)
+    self.assertEqual(2, len(matched_devices))
+    d1 = matched_devices[0]
+    d2 = matched_devices[1]
+    self.assertEqual(
+        set(['d3', 'd4']),
+        set([d1.device_serial, d2.device_serial]))
+
+  def testMatchType2Test_withDeviceAttribute_noMatch(self):
+    host = self._CreateHostInfo(
+        [self._CreateDeviceInfo('d1', 'rt1', 'g1', sim_state='READY'),
+         self._CreateDeviceInfo('d2', 'rt1', 'g1', sim_state='NONE'),
+         self._CreateDeviceInfo('d3', 'rt1', 'g2', sim_state='READY'),
+         self._CreateDeviceInfo('d4', 'rt1', 'g2', sim_state='NONE'),
+        ])
+    matcher = command_task_matcher.CommandTaskMatcher(host)
+    task = self._CreateCommandTask(
+        '1',
+        [[self._CreateRunTargetRequirement('rt1', [('sim_state', 'READY')]),
+          self._CreateRunTargetRequirement('rt1', [('sim_state', 'READY')])]])
+    matched_devices = matcher.Match(task)
+    self.assertIsNone(matched_devices)
+
   def testMatchType3Test(self):
     host = self._CreateHostInfo(
         [self._CreateDeviceInfo('d1', 'run_target1', 'g1'),
@@ -262,6 +306,39 @@ class CommandTaskMatcherTest(unittest.TestCase):
         [[datastore_entities.RunTarget(name='run_target1')],
          [datastore_entities.RunTarget(name='run_target2')]])
 
+    matched_devices = matcher.Match(task)
+    self.assertIsNone(matched_devices)
+
+  def testMatchType3Test_withDeviceAttribute(self):
+    host = self._CreateHostInfo(
+        [self._CreateDeviceInfo('d1', 'rt1', 'g1', sim_state='NONE'),
+         self._CreateDeviceInfo('d2', 'rt1', 'g1', sim_state='READY'),
+         self._CreateDeviceInfo('d3', 'rt1', 'g2', sim_state='NONE'),
+         self._CreateDeviceInfo('d4', 'rt1', 'g2', sim_state='READY')])
+    matcher = command_task_matcher.CommandTaskMatcher(host)
+    task = self._CreateCommandTask(
+        '1',
+        [[self._CreateRunTargetRequirement('rt1', [('sim_state', 'READY')])],
+         [self._CreateRunTargetRequirement('rt1', [('sim_state', 'READY')])]])
+    matched_devices = matcher.Match(task)
+    self.assertEqual(2, len(matched_devices))
+    d1 = matched_devices[0]
+    d2 = matched_devices[1]
+    self.assertEqual(
+        set(['d2', 'd4']),
+        set([d1.device_serial, d2.device_serial]))
+
+  def testMatchType3Test_withDeviceAttribute_noMatch(self):
+    host = self._CreateHostInfo(
+        [self._CreateDeviceInfo('d1', 'rt1', 'g1', sim_state='NONE'),
+         self._CreateDeviceInfo('d2', 'rt1', 'g1', sim_state='NONE'),
+         self._CreateDeviceInfo('d3', 'rt1', 'g2', sim_state='NONE'),
+         self._CreateDeviceInfo('d4', 'rt1', 'g2', sim_state='READY')])
+    matcher = command_task_matcher.CommandTaskMatcher(host)
+    task = self._CreateCommandTask(
+        '1',
+        [[self._CreateRunTargetRequirement('rt1', [('sim_state', 'READY')])],
+         [self._CreateRunTargetRequirement('rt1', [('sim_state', 'READY')])]])
     matched_devices = matcher.Match(task)
     self.assertIsNone(matched_devices)
 

@@ -19,8 +19,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from collections import defaultdict, namedtuple  import itertools
-import logging
+from collections import defaultdict, namedtuple  import logging
 
 import six
 from tradefed_cluster import common
@@ -248,24 +247,30 @@ class CommandTaskMatcher(object):
     logging.debug('Try to match %s against %s',
                   group_requirements, device_group.name)
     matched_devices = []
-    expect_run_target_count = defaultdict(int)
-    # Count the number of devices required for each run target.
-    for r in group_requirements.run_targets:
-      expect_run_target_count[r.name] += 1
-    # Check if every run target can be fullfilled.
-    for r, count in six.iteritems(expect_run_target_count):
-      run_target = device_group.run_targets.get(r, None)
-      if not run_target or len(run_target.devices) < count:
-        # There is no or not enough needed run target devices in current group.
-        logging.debug('Need %d %s, but not enough in %s.',
-                      count, r, device_group.name)
+    matched_device_serials = set()
+    for run_target_requirement in group_requirements.run_targets:
+      matched = False
+      run_target_candidate = device_group.run_targets.get(
+          run_target_requirement.name)
+      if not run_target_candidate:
+        logging.debug('No run target %s.', run_target_requirement.name)
         return None
-      # Get the first count devices in the run_target.
-      matched_devices.extend(
-          itertools.islice(six.itervalues(run_target.devices), count))
+      for device_candidate in run_target_candidate.devices.values():
+        if device_candidate.device_serial in matched_device_serials:
+          continue
+        if self._MatchDeviceAttributes(
+            run_target_requirement.device_attributes,
+            device_candidate.attributes):
+          matched_devices.append(device_candidate)
+          matched_device_serials.add(device_candidate.device_serial)
+          matched = True
+          break
+      if not matched:
+        logging.debug('There is no match for %s.', run_target_requirement)
+        return None
     logging.debug('%s matches requirement %s with %s.',
                   device_group.name,
-                  [r.name for r in group_requirements.run_targets],
+                  group_requirements,
                   [d.device_serial for d in matched_devices])
     return matched_devices
 

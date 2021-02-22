@@ -1493,6 +1493,7 @@ pytype_strict_library(
         ":harness_image_metadata_syncer_lib",
         ":notification_handler_lib",
         ":notifier_lib",
+        ":request_sync_monitor_lib",
         "//tradefed_cluster/services:task_scheduler_lib",
     ],
 )

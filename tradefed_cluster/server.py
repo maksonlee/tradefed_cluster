@@ -27,6 +27,7 @@ from tradefed_cluster import device_monitor
 from tradefed_cluster import harness_image_metadata_syncer
 from tradefed_cluster import notification_handler
 from tradefed_cluster import notifier
+from tradefed_cluster import request_sync_monitor
 from tradefed_cluster.services import task_scheduler
 
 
@@ -65,6 +66,7 @@ TFC = RegexDispatcher([
     (r'/_ah/queue/command-sync-queue', command_monitor.APP),
     (r'/_ah/queue/host-sync-queue', device_monitor.APP),
     (r'/_ah/queue/request-state-notification-queue', notifier.APP),
+    (r'/_ah/queue/request-sync-queue', request_sync_monitor.APP),
     (r'/_ah/queue/test-request-queue', commander.APP),
     # Cron handlers
     (r'/cron/monitor/devices/ndb', device_monitor.APP),

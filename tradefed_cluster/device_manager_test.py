@@ -66,7 +66,11 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
               "battery_level": "50",
               "mac_address": "58:a2:b5:7d:49:24",
               "sim_state": "READY",
-              "sim_operator": "operator"
+              "sim_operator": "operator",
+              "extra_info": [
+                  {"key": "dkey1", "value": "dvalue1"},
+                  {"key": "dkey2", "value": "dvalue2"},
+              ]
           },
           {
               "product": "flounder",
@@ -76,7 +80,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
               "product_variant": "flounder",
               "build_id": "LRX22C",
               "run_target": "flounder",
-              "battery_level": "50"
+              "battery_level": "50",
           }],
       "data": {
           "prodcertstatus": "some LOAS status",
@@ -399,6 +403,8 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     # TODO: deprecate clusters, use pools.
     self.assertEqual(["test", "cluster1", "cluster2"], device_1.clusters)
     self.assertEqual(["cluster1", "cluster2"], device_1.pools)
+    self.assertEqual("dvalue1", device_1.extra_info["dkey1"])
+    self.assertEqual("dvalue2", device_1.extra_info["dkey2"])
 
     host = device_manager.GetHost(self.HOST_EVENT["hostname"])
     self.assertIsNotNone(host)

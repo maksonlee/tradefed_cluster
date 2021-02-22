@@ -474,6 +474,8 @@ def _UpdateDeviceInNDB(device, device_key, device_data, host_event):
     return []
 
   device.extra_info = device.extra_info or {}
+  for extra_info in device_data.get("extra_info", []):
+    device.extra_info[extra_info.get("key")] = extra_info.get("value")
   device_state = device_data.get(STATE_KEY, device_data.get("device_state"))
   if common.DeviceState.AVAILABLE == device_state:
     if _IsFastbootDevice(

@@ -42,7 +42,6 @@ from tradefed_cluster.util import pubsub_client
 ONE_HOUR = datetime.timedelta(hours=1)
 FALLBACK_INACTIVE_TIME = datetime.timedelta(minutes=30)
 CLOUD_TF_LAB_NAME = 'cloud-tf'
-UNKNOWN_LAB_NAME = 'UNKNOWN'
 # TODO: the hosts lose lab name during update. Once the bug is
 # fixed, we should use lab name only to decide the host type.
 CLOUD_TF_HOST_NAME_PREFIX = 'cloud-tf'
@@ -100,7 +99,7 @@ def _UpdateClusters(hosts):
         cluster_entity.lab_name = host.lab_name
         break
     else:
-      cluster_entity.lab_name = UNKNOWN_LAB_NAME
+      cluster_entity.lab_name = common.UNKNOWN_LAB_NAME
     cluster_entity.cluster = cluster
     cluster_entity.total_devices = 0
     cluster_entity.offline_devices = 0
@@ -174,7 +173,7 @@ def _UpdateLabs(clusters):
   clusters_by_lab_names = collections.defaultdict(list)
 
   for cluster_info in clusters:
-    lab_name = cluster_info.lab_name or UNKNOWN_LAB_NAME
+    lab_name = cluster_info.lab_name or common.UNKNOWN_LAB_NAME
     clusters_by_lab_names[lab_name].append(cluster_info)
 
   labs = []

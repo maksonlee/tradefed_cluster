@@ -149,12 +149,16 @@ def _UpdateHostWithHostChangedEvent(event):
   host = GetHost(event.hostname)
   if not host:
     host = datastore_entities.HostInfo(id=event.hostname)
+
+  # For HostStateChangedEvent other than hostname, state and timestamp,
+  # everything else are optional.
   host.hostname = event.hostname
-  host.lab_name = event.lab_name
+  host.lab_name = event.lab_name or host.lab_name or common.UNKNOWN_LAB_NAME
   host.timestamp = event.timestamp
-  host.test_harness = event.test_harness
-  host.test_harness_version = event.test_harness_version
-  host.extra_info = event.data
+  host.test_harness = event.test_harness or host.test_harness
+  host.test_harness_version = (
+      event.test_harness_version or host.test_harness_version)
+  host.extra_info = event.data or host.extra_info
   host.hidden = False
   host_state_history, host_history = _UpdateHostState(
       host, event.host_state, event.timestamp)

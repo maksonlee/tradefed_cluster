@@ -94,7 +94,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
       "cluster": "test",
       "event_type": "HOST_STATE_CHANGED",
       "hostname": "test.mtv.corp.example.com",
-      "state": "RUNNING",
+      "state": "KILLING",
   }
 
   HOST_EVENT_UPDATE_AVAILABLE = {
@@ -426,7 +426,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self._AssertHostSyncTask(self.HOST_EVENT["hostname"])
 
   @mock.patch.object(metric, "SetHostTestRunnerVersion")
-  def testHandleDeviceSnapshotWithHostState(self, metric_set_version):
+  def testHandleDeviceSnapshot_withHostState(self, metric_set_version):
     """Tests that HandleDeviceSnapshot() stores Host State info properly."""
     some_host_event = host_event.HostEvent(**self.HOST_EVENT_STATE_INFO)
     device_manager.HandleDeviceSnapshotWithNDB(some_host_event)
@@ -437,6 +437,25 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
         host.timestamp)
     self.assertEqual(api_messages.HostState(
         self.HOST_EVENT_STATE_INFO["state"]), host.host_state)
+    self.assertEqual(common.UNKNOWN_LAB_NAME, host.lab_name)
+    metric_set_version.assert_not_called()
+
+  @mock.patch.object(metric, "SetHostTestRunnerVersion")
+  def testHandleDeviceSnapshot_updateHostStateOnExistingHost(
+      self, metric_set_version):
+    """Tests that HandleDeviceSnapshot() stores Host State info properly."""
+    some_host_event = host_event.HostEvent(**self.HOST_EVENT_STATE_INFO)
+    host = datastore_test_util.CreateHost(
+        "acluster", self.HOST_EVENT_STATE_INFO["hostname"],
+        lab_name="alab", timestamp=datetime.datetime.utcfromtimestamp(1))
+    device_manager.HandleDeviceSnapshotWithNDB(some_host_event)
+    host = host.key.get()
+    self.assertEqual(
+        datetime.datetime.utcfromtimestamp(self.HOST_EVENT_STATE_INFO["time"]),
+        host.timestamp)
+    self.assertEqual(api_messages.HostState(
+        self.HOST_EVENT_STATE_INFO["state"]), host.host_state)
+    self.assertEqual("alab", host.lab_name)
     metric_set_version.assert_not_called()
 
   def testHandleDeviceSnapshot_availableDevice(self):

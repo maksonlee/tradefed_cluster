@@ -1,7 +1,7 @@
 load("//tools/build_defs/testing:bzl_library.bzl", "bzl_library")
 
 # A test infra software for Android testing labs.
-load("//tradefed_cluster:adapter.bzl", "py2and3_test", "py_appengine_binary", "py_library", "pytype_strict_library", "third_party")
+load("//tradefed_cluster:adapter.bzl", "py_appengine_binary", "py_library", "pytype_strict_library", "third_party")
 
 package(default_visibility = [":tradefed_cluster_clients"])
 
@@ -85,11 +85,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "api_messages_test",
     srcs = [
         "api_messages_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":api_messages_lib",
         ":api_test_lib",
@@ -169,11 +171,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "cluster_api_test",
     srcs = [
         "cluster_api_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
@@ -201,11 +205,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "cluster_device_api_test",
     srcs = [
         "cluster_device_api_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
@@ -235,11 +241,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "cluster_host_api_test",
     srcs = [
         "cluster_host_api_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
@@ -265,11 +273,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "lab_management_api_test",
     srcs = [
         "lab_management_api_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":api_test_lib",
         ":datastore_entities_lib",
@@ -294,11 +304,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "command_attempt_api_test",
     srcs = [
         "command_attempt_api_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":api_test_lib",
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
@@ -306,11 +318,13 @@ py2and3_test(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "command_attempt_monitor_test",
     srcs = [
         "command_attempt_monitor_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":command_event_test_util",
         ":command_lib",
@@ -334,11 +348,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "command_error_type_config_test",
     srcs = [
         "command_error_type_config_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":command_error_type_config_lib",
         ":testbed_dependent_test_lib",
@@ -362,11 +378,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "command_event_api_test",
     srcs = [
         "command_event_api_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":api_test_lib",
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
@@ -390,12 +408,14 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "command_event_handler_test",
     timeout = "long",
     srcs = [
         "command_event_handler_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":command_event_handler_lib",
         ":command_event_test_util",
@@ -420,11 +440,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "command_event_test",
     srcs = [
         "command_event_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":command_event_lib",
         ":command_event_test_util",
@@ -473,11 +495,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "command_manager_test",
     srcs = [
         "command_manager_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":api_messages_lib",
         ":command_event_test_util",
@@ -496,11 +520,13 @@ py2and3_test(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "command_monitor_test",
     srcs = [
         "command_monitor_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":command_lib",
         ":testbed_dependent_test_lib",
@@ -537,11 +563,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "command_task_api_test",
     srcs = [
         "command_task_api_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":api_test_lib",
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
@@ -561,11 +589,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "command_task_matcher_test",
     srcs = [
         "command_task_matcher_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":api_messages_lib",
         ":command_task_matcher_lib",
@@ -590,11 +620,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "test_harness_image_api_test",
     srcs = [
         "test_harness_image_api_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
@@ -615,11 +647,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "command_task_store_test",
     srcs = [
         "command_task_store_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":command_task_store_lib",
         ":testbed_dependent_test_lib",
@@ -643,11 +677,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "commander_test",
     srcs = [
         "commander_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":commander_lib",
         ":testbed_dependent_test_lib",
@@ -674,11 +710,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "common_test",
     srcs = [
         "common_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":common_lib",
         third_party("six"),
@@ -720,7 +758,7 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "config_syncer_gcs_to_ndb_test",
     srcs = [
         "config_syncer_gcs_to_ndb_test.py",
@@ -729,6 +767,8 @@ py2and3_test(
         "test_yaml/dockerized-tf.yaml",
         "test_yaml/lab-config-with-duplicated-cluster.yaml",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":config_syncer_gcs_to_ndb_lib",
         ":datastore_test_util_lib",
@@ -755,11 +795,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "coordinator_api_test",
     srcs = [
         "coordinator_api_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
@@ -781,11 +823,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "datastore_entities_test",
     srcs = [
         "datastore_entities_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":common_lib",
         ":datastore_entities_lib",
@@ -808,11 +852,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "datastore_util_test",
     srcs = [
         "datastore_util_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":api_messages_lib",
         ":datastore_entities_lib",
@@ -853,11 +899,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "device_history_cleaner_test",
     srcs = [
         "device_history_cleaner_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":device_history_cleaner_lib",
         ":testbed_dependent_test_lib",
@@ -887,11 +935,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "device_info_reporter_test",
     srcs = [
         "device_info_reporter_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":datastore_test_util_lib",
         ":device_info_reporter_lib",
@@ -921,11 +971,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "device_manager_test",
     srcs = [
         "device_manager_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":datastore_test_util_lib",
         ":device_manager_lib",
@@ -959,11 +1011,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "device_monitor_test",
     srcs = [
         "device_monitor_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":datastore_test_util_lib",
         ":device_monitor_lib",
@@ -992,11 +1046,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "device_snapshot_api_test",
     srcs = [
         "device_snapshot_api_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":api_test_lib",
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
@@ -1020,11 +1076,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "filter_hint_api_test",
     srcs = [
         "filter_hint_api_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
@@ -1048,11 +1106,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "device_blocklist_api_test",
     srcs = [
         "device_blocklist_api_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
@@ -1072,11 +1132,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "device_blocker_test",
     srcs = [
         "device_blocker_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":datastore_test_util_lib",
         ":device_blocker_lib",
@@ -1125,11 +1187,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "harness_image_metadata_syncer_test",
     srcs = [
         "harness_image_metadata_syncer_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":datastore_entities_lib",
         ":harness_image_metadata_syncer_lib",
@@ -1139,11 +1203,13 @@ py2and3_test(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "host_event_api_test",
     srcs = [
         "host_event_api_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":api_test_lib",
         ":common_lib",
@@ -1159,11 +1225,13 @@ py_library(
     srcs_version = "PY2AND3",
 )
 
-py2and3_test(
+py_test(
     name = "host_event_test",
     srcs = [
         "host_event_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":api_messages_lib",
         ":host_event_lib",
@@ -1184,12 +1252,14 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "metric_test",
     size = "large",
     srcs = [
         "metric_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":metric_lib",
         third_party("mock"),
@@ -1215,11 +1285,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "note_manager_test",
     srcs = [
         "note_manager_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":datastore_test_util_lib",
         ":note_manager_lib",
@@ -1244,11 +1316,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "notification_handler_test",
     srcs = [
         "notification_handler_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":notification_handler_lib",
         ":testbed_dependent_test_lib",
@@ -1274,11 +1348,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "notifier_test",
     srcs = [
         "notifier_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":env_config_lib",
         ":notifier_lib",
@@ -1310,11 +1386,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "predefined_message_api_test",
     srcs = [
         "predefined_message_api_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":api_test_lib",
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
@@ -1339,11 +1417,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "report_api_test",
     srcs = [
         "report_api_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":api_test_lib",
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
@@ -1371,11 +1451,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "request_api_test",
     srcs = [
         "request_api_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":api_test_lib",
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
@@ -1402,11 +1484,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "request_manager_test",
     srcs = [
         "request_manager_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":env_config_lib",
         ":request_manager_lib",
@@ -1464,11 +1548,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "run_target_api_test",
     srcs = [
         "run_target_api_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
@@ -1498,11 +1584,13 @@ pytype_strict_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "server_test",
     srcs = [
         "server_test.py",
     ],
+    python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":server_lib",
         third_party("absl/testing:absltest"),

@@ -491,8 +491,6 @@ class ClusterHostApiTest(api_test.ApiTest):
     host_collection = protojson.decode_message(api_messages.HostInfoCollection,
                                                api_response.body)
     self.assertEqual('200 OK', api_response.status)
-    for host in host_collection.host_infos:
-      print(host)
     self.assertEqual(2, len(host_collection.host_infos))
     self.assertEqual('ASSIGNED', host_collection.host_infos[0].recovery_state)
     self.assertEqual('FIXED', host_collection.host_infos[1].recovery_state)

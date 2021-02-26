@@ -285,6 +285,59 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(['111111'], msg.tags)
     self.assertEqual(TIMESTAMP_OLD, msg.create_time)
 
+  def testDeviceFlatExtraInfo(self):
+    device = datastore_test_util.CreateDevice(
+        'acluster', 'ahost', 'adevice',
+        extra_info={
+            'key1': 'value1',
+            'key2': 'value2',
+            'product': 'blueline',
+            'sim_state': 'READY',
+        })
+    device = device.key.get()
+    self.assertEqual(
+        ['product:blueline', 'sim_state:READY'],
+        device.flated_extra_info)
+
+  def testDeviceFlatExtraInfo_longValue(self):
+    device = datastore_test_util.CreateDevice(
+        'acluster', 'ahost', 'adevice',
+        extra_info={
+            'product': 'v' * 1000,
+            'sim_state': 'READY',
+        })
+    device = device.key.get()
+    self.assertEqual(
+        ['product:' + 'v'*80, 'sim_state:READY'],
+        device.flated_extra_info)
+
+  def testDeviceFlatExtraInfo_noneValue(self):
+    device = datastore_test_util.CreateDevice(
+        'acluster', 'ahost', 'adevice',
+        extra_info={
+            'product': 'v' * 1000,
+            'sim_state': None,
+        })
+    device = device.key.get()
+    self.assertEqual(
+        ['product:' + 'v'*80, 'sim_state:'],
+        device.flated_extra_info)
+
+  def testHostFlatExtraInfo(self):
+    host = datastore_test_util.CreateHost(
+        'acluster', 'ahost',
+        extra_info={
+            'key1': 'value1',
+            'key2': 'value2',
+            'host_ip': '1.2.3.4',
+            'label': 'v' * 1000,
+        })
+    host = host.key.get()
+    self.assertEqual(
+        ['host_ip:1.2.3.4',
+         'label:' + 'v' * 80],
+        host.flated_extra_info)
+
 
 if __name__ == '__main__':
   unittest.main()

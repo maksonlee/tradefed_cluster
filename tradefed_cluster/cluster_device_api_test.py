@@ -395,7 +395,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
   def testListDevices_filterExtraInfo(self):
     """Tests ListDevices returns devices filtered by extra info."""
     extra_info_0 = {}
-    extra_info_0['key1'] = 'value1'
+    extra_info_0['sim_state'] = 'ready'
     extra_info_0['key2'] = 'value2'
     datastore_test_util.CreateDevice(
         'cluster_01',
@@ -406,7 +406,7 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     datastore_test_util.CreateDevice(
         'cluster_01', 'host_01', 'device_02', state=common.DeviceState.UNKNOWN)
     api_request = {
-        'flated_extra_info': 'key1:value1'
+        'flated_extra_info': 'sim_state:ready'
     }
     api_response = self.testapp.post_json(
         '/_ah/api/ClusterDeviceApi.ListDevices', api_request)

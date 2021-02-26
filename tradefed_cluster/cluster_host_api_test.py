@@ -430,13 +430,13 @@ class ClusterHostApiTest(api_test.ApiTest):
     """Tests ListHosts returns hosts the under extra info."""
     extra_info_0 = {}
     extra_info_0['url'] = 'abc.com'
-    extra_info_0['say'] = 'hello'
+    extra_info_0['host_ip'] = '1.2.3.4'
     host_01 = datastore_test_util.CreateHost(
         cluster='free',
         hostname='host_01',
         host_state=api_messages.HostState.RUNNING,
         extra_info=extra_info_0)
-    api_request = {'flated_extra_info': 'url:abc.com'}
+    api_request = {'flated_extra_info': 'host_ip:1.2.3.4'}
     api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
                                           api_request)
     host_collection = protojson.decode_message(api_messages.HostInfoCollection,

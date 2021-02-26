@@ -33,6 +33,12 @@ ZERO_TIME = datetime.time()
 # A dispatch dictionary mapping entity classes to message converter functions.
 _CONVERTER_DISPATCH_DICT = {}
 
+# Index all the extra info will trigger b/181262288:
+# "The value of property "flated_extra_info" is longer than 1500 bytes." error.
+_HOST_EXTRA_INFO_INDEX_ALLOWLIST = ('host_ip', 'label')
+_DEVICE_EXTRA_INFO_INDEX_ALLOWLIST = ('product', 'sim_state', 'mac_address')
+_EXTRA_INFO_INDEXED_VALUE_SIZE = 80
+
 
 def MessageConverter(entity_cls):
   """A decorator for labelling converter functions of entity classes.
@@ -918,19 +924,24 @@ def DeviceCountSummaryToMessage(device_count):
       timestamp=device_count.timestamp)
 
 
-def _FlatExtraInfo(entity):
+def _FlatExtraInfo(entity, allowlist):
   """Transform extra_info to a list.
 
   Args:
     entity: Device or host entity.
+    allowlist: extra info keys allowed to be indexed.
   Returns:
     A list of string. string format is 'key:value'
   """
   flated_extra_info = []
-  if entity.extra_info is not None:
-    extra_info_dict = dict(entity.extra_info)
-    for key, value in extra_info_dict.items():
-      flated_extra_info.append('%s:%s' % (key, value))
+  if not entity.extra_info:
+    return []
+  extra_info_dict = dict(entity.extra_info)
+  for key, value in extra_info_dict.items():
+    if key not in allowlist:
+      continue
+    value = value[:_EXTRA_INFO_INDEXED_VALUE_SIZE] if value else ''
+    flated_extra_info.append('%s:%s' % (key, value))
   return flated_extra_info
 
 
@@ -1008,7 +1019,9 @@ class HostInfo(ndb.Expando):
   # Time when the device counts were calculated and persisted
   device_count_timestamp = ndb.DateTimeProperty()
   last_recovery_time = ndb.DateTimeProperty()
-  flated_extra_info = ndb.ComputedProperty(_FlatExtraInfo, repeated=True)
+  flated_extra_info = ndb.ComputedProperty(
+      lambda entity: _FlatExtraInfo(entity, _HOST_EXTRA_INFO_INDEX_ALLOWLIST),
+      repeated=True)
   recovery_state = ndb.StringProperty()
   test_harness = ndb.StringProperty()
   test_harness_version = ndb.StringProperty()
@@ -1198,7 +1211,9 @@ class DeviceInfo(ndb.Expando):
   last_known_build_id = ndb.StringProperty()
   last_known_product = ndb.StringProperty()
   last_known_product_variant = ndb.StringProperty()
-  flated_extra_info = ndb.ComputedProperty(_FlatExtraInfo, repeated=True)
+  flated_extra_info = ndb.ComputedProperty(
+      lambda entity: _FlatExtraInfo(entity, _DEVICE_EXTRA_INFO_INDEX_ALLOWLIST),
+      repeated=True)
   recovery_state = ndb.StringProperty()
   last_recovery_time = ndb.DateTimeProperty()
 

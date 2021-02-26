@@ -166,10 +166,14 @@ class TestResource(messages.Message):
         directory.
     path: an option relative path to where a test resource should be downloaded
         to.
+    decompress: whether the host should decompress the downloaded file.
+    decompress_dir: the directory where the host decompresses the file.
   """
   url = messages.StringField(1, required=True)
   name = messages.StringField(2)
   path = messages.StringField(3)
+  decompress = messages.BooleanField(4)
+  decompress_dir = messages.StringField(5)
 
 
 class TestResourceCollection(messages.Message):

@@ -113,7 +113,8 @@ class RequestApi(remote.Service):
                  new_request.key.id(), request.user)
     for res in request.test_resources or []:
       request_manager.AddTestResource(
-          request_id=new_request.key.id(), name=res.name, url=res.url)
+          request_id=new_request.key.id(), name=res.name, url=res.url,
+          decompress=res.decompress, decompress_dir=res.decompress_dir)
     logging.info("Request API new request after adding test resources %s %s",
                  new_request.key.id(), request.user)
     request_manager.AddToQueue(new_request)
@@ -328,7 +329,8 @@ class RequestApi(remote.Service):
     test_resources = []
     for entity in request_entities:
       test_resources.append(api_messages.TestResource(
-          url=entity.url, name=entity.name))
+          url=entity.url, name=entity.name, decompress=entity.decompress,
+          decompress_dir=entity.decompress_dir))
     return api_messages.TestResourceCollection(test_resources=test_resources)
 
   @endpoints.method(
@@ -424,8 +426,9 @@ class RequestApi(remote.Service):
         command_line=request.command_line,
         env_vars={p.key: p.value for p in request.env_vars},
         test_resources=[
-            datastore_entities.TestResource(name=r.name, url=r.url, path=r.path)
-            for r in request.test_resources
+            datastore_entities.TestResource(
+                name=r.name, url=r.url, path=r.path, decompress=r.decompress,
+                decompress_dir=r.decompress_dir) for r in request.test_resources
         ])
     command_manager.UpdateTestContext(
         request_id=request.request_id,

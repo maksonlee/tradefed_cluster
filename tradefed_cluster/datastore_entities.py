@@ -74,14 +74,19 @@ class TestResource(ndb.Model):
     url: a test resource download url.
     name: an expected filename in a test working directory.
     path: an expected path in a test working directory.
+    decompress: whether the host should decompress the downloaded file.
+    decompress_dir: the directory where the host decompresses the file.
   """
   url = ndb.StringProperty()
   name = ndb.StringProperty()
   path = ndb.StringProperty()
+  decompress = ndb.BooleanProperty()
+  decompress_dir = ndb.StringProperty()
 
   @classmethod
   def FromMessage(cls, msg):
-    return cls(url=msg.url, name=msg.name, path=msg.path)
+    return cls(url=msg.url, name=msg.name, path=msg.path,
+               decompress=msg.decompress, decompress_dir=msg.decompress_dir)
 
 
 class TestContext(ndb.Model):
@@ -124,8 +129,9 @@ def TestContextToMessage(entity):
   test_resources = []
   if entity.test_resources:
     test_resources = [
-        api_messages.TestResource(name=r.name, url=r.url, path=r.path)
-        for r in entity.test_resources
+        api_messages.TestResource(
+            name=r.name, url=r.url, path=r.path, decompress=r.decompress,
+            decompress_dir=r.decompress_dir) for r in entity.test_resources
     ]
   return api_messages.TestContext(
       command_line=entity.command_line,

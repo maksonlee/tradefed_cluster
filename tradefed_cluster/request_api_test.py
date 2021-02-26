@@ -275,10 +275,13 @@ class RequestApiTest(api_test.ApiTest):
             'output_file_patterns': ['file1', 'file2'],
             'setup_scripts': ['script1', 'script2']
         },
-        'test_resources': [
-            {'url': 'url1', 'name': 'name1'},
-            {'url': 'url2', 'name': 'name2'}
-        ]
+        'test_resources': [{
+            'url': 'url1', 'name': 'name1', 'decompress': True,
+            'decompress_dir': 'dir1'
+        }, {
+            'url': 'url2', 'name': 'name2', 'decompress': False,
+            'decompress_dir': ''
+        }]
     }
 
     api_response = self.testapp.post_json(
@@ -309,6 +312,12 @@ class RequestApiTest(api_test.ApiTest):
           api_request['test_resources'][i]['url'], test_resources[i].url)
       self.assertEqual(
           api_request['test_resources'][i]['name'], test_resources[i].name)
+      self.assertEqual(
+          api_request['test_resources'][i]['decompress'],
+          test_resources[i].decompress)
+      self.assertEqual(
+          api_request['test_resources'][i]['decompress_dir'],
+          test_resources[i].decompress_dir)
 
     tasks = self.mock_task_scheduler.GetTasks(
         queue_names=(request_manager.REQUEST_QUEUE,))
@@ -594,7 +603,9 @@ class RequestApiTest(api_test.ApiTest):
         command_line='command_line',
         env_vars={'foo': 'bar', 'TFC_ATTEMPT_NUMBER': '0'},
         test_resources=[
-            datastore_entities.TestResource(name='name', url='url', path='path')
+            datastore_entities.TestResource(
+                name='name', url='url', path='path', decompress=True,
+                decompress_dir='dir')
         ])
     test_context.put()
 
@@ -616,6 +627,8 @@ class RequestApiTest(api_test.ApiTest):
       self.assertEqual(a.name, b.name)
       self.assertEqual(a.url, b.url)
       self.assertEqual(a.path, b.path)
+      self.assertEqual(a.decompress, b.decompress)
+      self.assertEqual(a.decompress_dir, b.decompress_dir)
 
   def testUpdateTestContext(self):
     request_id = 1

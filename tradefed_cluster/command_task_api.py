@@ -96,7 +96,7 @@ class CommandTaskApi(remote.Service):
     Returns:
       a TaskList object.
     """
-    logging.debug("Get request:\n%s", request)
+    logging.info("Get request:\n%s", request)
     matcher = command_task_matcher.CommandTaskMatcher(request)
     run_targets = matcher.GetRunTargets()
     if not run_targets:

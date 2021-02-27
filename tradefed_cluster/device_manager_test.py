@@ -83,7 +83,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
               "battery_level": "50",
           }],
       "data": {
-          "prodcertstatus": "some LOAS status",
+          "gcertstatus": "some LOAS status",
           "krbstatus": "some Kerberos status"
       },
       "next_cluster_ids": ["cluster1", "cluster2"]
@@ -1120,7 +1120,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     # Test _UpdateHostWithHostChangedEvent for changing extra_info (b/35346971)
     hostname = "test-1.mtv.corp.example.com"
     data_1 = {
-        "prodcertstatus": "LOAS1",
+        "gcertstatus": "LOAS1",
         "krbstatus": "KRB1"
     }
     host_event_1 = {
@@ -1133,7 +1133,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
         "data": data_1
     }
     data_2 = {
-        "prodcertstatus": "LOAS2",
+        "gcertstatus": "LOAS2",
         "krbstatus": "KRB2"
     }
     host_event_2 = {

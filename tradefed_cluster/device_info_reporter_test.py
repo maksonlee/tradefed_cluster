@@ -47,16 +47,16 @@ class DeviceInfoReporterTest(testbed_dependent_test.TestbedDependentTest):
     self.ndb_host_1 = datastore_test_util.CreateHost(
         'free', 'atl-1001.mtv', timestamp=TIMESTAMP,
         extra_info={
-            'prodcertstatus':
-                ('LOAS cert expires in about 2 days\nLOAS2 cert expires in '
-                 'about 2 days\n')
+            'gcertstatus':
+                ('LOAS2 expires in 10h 14m\n'
+                 'corp/normal expires in 10h 47m\n')
         })
     self.ndb_host_2 = datastore_test_util.CreateHost(
         'free', 'atl-1002.mtv', timestamp=TIMESTAMP,
         extra_info={
-            'prodcertstatus':
-                ('LOAS cert expires in about 85 days\nLOAS2 cert expires in '
-                 'about 85 days\n')
+            'gcertstatus':
+                ('LOAS2 expires in 1485h 14m\n'
+                 'corp/normal expires in 18h 47m\n')
         })
     self.ndb_device = datastore_test_util.CreateDevice(
         'free', 'atl-1001.mtv', 'a100', product='shamu', run_target='shamu',
@@ -75,17 +75,12 @@ class DeviceInfoReporterTest(testbed_dependent_test.TestbedDependentTest):
     mock_date.assert_called_once_with()
     mock_devices.assert_called_once_with()
 
-  def testGetLoasSeconds_days(self):
-    loas_status = ('LOAS cert expires in about 85 days LOAS2 cert expires in '
-                   'about 85 days')
-    actual = device_info_reporter._GetLoasSeconds(loas_status)
-    expected_seconds = 85 * 24 * 60 * 60
-    self.assertEqual(expected_seconds, actual)
-
   def testGetLoasSeconds_hoursAndMinutes(self):
-    loas_status = ('LOAS cert expires in 19h 42m LOAS2 cert expires in 19h 42m')
+    loas_status = (
+        'LOAS2 expires in 1485h 14m\n'
+        'corp/normal expires in 18h 47m\n')
     actual = device_info_reporter._GetLoasSeconds(loas_status)
-    expected_seconds = 19 * 60 * 60 + 42 * 60
+    expected_seconds = 1485 * 60 * 60 + 14 * 60
     self.assertEqual(expected_seconds, actual)
 
   def testHostReport_offlineHosts(self):
@@ -124,7 +119,7 @@ class DeviceInfoReporterTest(testbed_dependent_test.TestbedDependentTest):
     report = device_info_reporter.HostReport(hosts=[ndb_host])
     self.assertEqual(1, len(report.hosts))
     self.assertEqual(0, len(report.hosts_checkin))
-    self.assertEqual(1, len(report.hosts_loas))
+    self.assertEqual(0, len(report.hosts_loas))
 
   def testGetDevicesToReport(self):
     # Test GetDevicesToReport()

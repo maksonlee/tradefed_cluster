@@ -48,9 +48,9 @@ DEFAULT_REPLY_TO = 'android-test-infra@example.com'
 REPORT_SUBJECT = '[TFC] Automated Device Report (%s) - %s'
 
 # Regex for LOAS status
-LOAS_REGEX = (r'LOAS2? cert expires in \d+h \d+m',
-              r'LOAS2? cert expires in \d+m \d+s',
-              r'LOAS2? cert expires in about \d+ days')
+LOAS_REGEX = (r'LOAS2? expires in \d+h \d+m',
+              r'LOAS2? expires in \d+m \d+s',
+              r'LOAS2? expires in about \d+ days')
 COMBINED_LOAS_REGEX = '(' + ')|('.join(LOAS_REGEX) + ')'
 # Regex for time values
 DAYS_REGEX = r'(\d+) days|(\d+)d'
@@ -130,10 +130,10 @@ class HostReport(object):
     one_hour_ago = _Now() - datetime.timedelta(hours=1)
     for host in self.hosts:
       host.extra_info = host.extra_info or {}
-      loas_info = host.extra_info.get('prodcertstatus', '')
+      loas_info = host.extra_info.get('gcertstatus', '')
       if host.timestamp is None or host.timestamp < one_hour_ago:
         self.hosts_checkin.append(host)
-      elif _GetLoasSeconds(loas_info) <= WEEK_TO_SECONDS:
+      elif loas_info and _GetLoasSeconds(loas_info) <= WEEK_TO_SECONDS:
         self.hosts_loas.append(host)
     logging.info('Offline hosts %d', len(self.hosts_checkin))
     logging.info('Hosts needing LOAS renewal %d', len(self.hosts_checkin))

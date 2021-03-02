@@ -77,7 +77,12 @@ def GetConfig(error):
     (reason, type_code) tuple
   """
   if error:
-    error = error.split(':')[0]
+    separator_index = min([len(error)] + [
+        error.find(separator)
+        for separator in ('[', ':')
+        if error.find(separator) != -1
+    ])
+    error = error[:separator_index]
 
   query = datastore_entities.CommandErrorConfigMapping.query(
       datastore_entities.CommandErrorConfigMapping.error_message == error)

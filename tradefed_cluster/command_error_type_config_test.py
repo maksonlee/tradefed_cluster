@@ -16,6 +16,8 @@
 
 import unittest
 
+from absl.testing import parameterized
+
 from tradefed_cluster import command_error_type_config
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
@@ -23,7 +25,7 @@ from tradefed_cluster import testbed_dependent_test
 
 
 class CommandCommandErrorTypeConfigTest(
-    testbed_dependent_test.TestbedDependentTest):
+    parameterized.TestCase, testbed_dependent_test.TestbedDependentTest):
 
   def testGetConfig_fromDatastore(self):
     """Tests get error reason and type from datastore correctly."""
@@ -42,9 +44,26 @@ class CommandCommandErrorTypeConfigTest(
     self.assertErrorConfigInDatastore(
         'error1', 'reason1', common.CommandErrorType.INFRA)
 
-  def testGetConfig_default(self):
+  @parameterized.named_parameters(
+      {
+          'testcase_name':
+              'newFormat',
+          'error_message':
+              ('com.android.tradefed.build.BuildRetrievalError'
+               '[BUILD_RETRIEVAL_ERROR|12345|INFRA_FAILURE]: Error')
+      }, {
+          'testcase_name':
+              'legacyFormat',
+          'error_message':
+              'com.android.tradefed.build.BuildRetrievalError: Error'
+      }, {
+          'testcase_name':
+              'plainErrorFormat',
+          'error_message':
+              'com.android.tradefed.build.BuildRetrievalError'
+      })
+  def testGetConfig_default(self, error_message):
     """Tests get reason and type from default configs correctly."""
-    error_message = 'com.android.tradefed.build.BuildRetrievalError: Failed'
     self.assertEqual(
         (command_error_type_config.ErrorReason.BUILD_RETRIEVAL_ERROR,
          common.CommandErrorType.INFRA),

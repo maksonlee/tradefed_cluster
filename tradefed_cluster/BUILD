@@ -359,6 +359,7 @@ py_test(
         ":command_error_type_config_lib",
         ":testbed_dependent_test_lib",
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
+        "//third_party/py/absl/testing:parameterized",
     ],
 )
 

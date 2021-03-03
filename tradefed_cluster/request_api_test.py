@@ -273,7 +273,8 @@ class RequestApiTest(api_test.ApiTest):
                 {'key': 'foo2', 'value': 'bar2'},
             ],
             'output_file_patterns': ['file1', 'file2'],
-            'setup_scripts': ['script1', 'script2']
+            'setup_scripts': ['script1', 'script2'],
+            'use_parallel_setup': False,
         },
         'test_resources': [{
             'url': 'url1', 'name': 'name1', 'decompress': True,
@@ -305,6 +306,9 @@ class RequestApiTest(api_test.ApiTest):
     self.assertEqual(
         api_request['test_environment']['setup_scripts'],
         test_env.setup_scripts)
+    self.assertEqual(
+        api_request['test_environment']['use_parallel_setup'],
+        test_env.use_parallel_setup)
     test_resources = request_manager.GetTestResources(request_msg.id)
     self.assertEqual(len(api_request['test_resources']), len(test_resources))
     for i in range(len(api_request['test_resources'])):

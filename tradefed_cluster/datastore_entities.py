@@ -280,6 +280,7 @@ class TestEnvironment(ndb.Model):
   log_level = ndb.EnumProperty(common.LogLevel)
   tradefed_config_objects = ndb.LocalStructuredProperty(
       TradefedConfigObject, repeated=True)
+  use_parallel_setup = ndb.BooleanProperty()
 
   @classmethod
   def FromMessage(cls, msg):
@@ -300,7 +301,8 @@ class TestEnvironment(ndb.Model):
         tradefed_config_objects=[
             TradefedConfigObject.FromMessage(o)
             for o in msg.tradefed_config_objects
-        ])
+        ],
+        use_parallel_setup=msg.use_parallel_setup)
 
 
 @MessageConverter(TestEnvironment)
@@ -331,7 +333,8 @@ def TestEnvironmentToMessage(entity):
       log_level=entity.log_level,
       tradefed_config_objects=[
           ToMessage(t) for t in entity.tradefed_config_objects
-      ])
+      ],
+      use_parallel_setup=entity.use_parallel_setup)
 
 
 class Command(ndb.Model):

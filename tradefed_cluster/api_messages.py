@@ -139,6 +139,7 @@ class TestEnvironment(messages.Message):
     log_level: a log level for a test launcher invocation.
     tradefed_config_objects:
         a list of TradefedConfigObject to add to a launcher config.
+    use_parallel_setup: whether to setup devices in parallel.
   """
   env_vars = messages.MessageField(KeyValuePair, 1, repeated=True)
   setup_scripts = messages.StringField(2, repeated=True)
@@ -155,6 +156,7 @@ class TestEnvironment(messages.Message):
   log_level = messages.EnumField(common.LogLevel, 13)
   tradefed_config_objects = messages.MessageField(
       TradefedConfigObject, 14, repeated=True)
+  use_parallel_setup = messages.BooleanField(15)
 
 
 class TestResource(messages.Message):

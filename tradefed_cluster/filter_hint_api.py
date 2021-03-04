@@ -90,7 +90,8 @@ class FilterHintApi(remote.Service):
     """Fetches a list of labs."""
     entities = datastore_entities.LabInfo.query().fetch(keys_only=True)
     infos = [
-        api_messages.FilterHintMessage(value=item.id()) for item in entities
+        api_messages.FilterHintMessage(value=str(item.id()))
+        for item in entities
     ]
     return api_messages.FilterHintCollection(filter_hints=infos)
 
@@ -104,7 +105,8 @@ class FilterHintApi(remote.Service):
     """Fetches a list of hostnames."""
     entities = datastore_entities.HostInfo.query().filter(
         datastore_entities.HostInfo.hidden == False).fetch(keys_only=True)      infos = [
-        api_messages.FilterHintMessage(value=item.id()) for item in entities
+        api_messages.FilterHintMessage(value=str(item.id()))
+        for item in entities
     ]
     return api_messages.FilterHintCollection(filter_hints=infos)
 

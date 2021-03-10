@@ -41,7 +41,7 @@ from tradefed_cluster.util import ndb_shim as ndb
 class CommandAttemptMonitorTest(testbed_dependent_test.TestbedDependentTest):
 
   def setUp(self):
-    testbed_dependent_test.TestbedDependentTest.setUp(self)
+    super(CommandAttemptMonitorTest, self).setUp()
     self.testapp = webtest.TestApp(command_attempt_monitor.APP)
     self.plugin_patcher = mock.patch(
         '__main__.env_config.CONFIG.plugin')
@@ -70,6 +70,7 @@ class CommandAttemptMonitorTest(testbed_dependent_test.TestbedDependentTest):
 
   def tearDown(self):
     self.plugin_patcher.stop()
+    super(CommandAttemptMonitorTest, self).tearDown()
 
   @mock.patch.object(
       command_manager, 'ProcessCommandEvent', autospec=True)

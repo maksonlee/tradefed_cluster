@@ -6,12 +6,16 @@ import unittest
 
 import mock
 
+from tradefed_cluster import command_event_test_util
+from tradefed_cluster import command_manager
 from tradefed_cluster import common
+from tradefed_cluster import datastore_entities
 from tradefed_cluster import request_manager
 from tradefed_cluster import request_sync_monitor
 from tradefed_cluster import testbed_dependent_test
 
-REQUEST_ID = 'req-id'
+REQUEST_ID = 'req_id'
+TIMESTAP_INT = 1000
 
 
 class RequestMonitorTest(testbed_dependent_test.TestbedDependentTest):
@@ -25,7 +29,7 @@ class RequestMonitorTest(testbed_dependent_test.TestbedDependentTest):
     task = json.loads(tasks[0].payload)
     self.assertEqual(REQUEST_ID, task[request_sync_monitor.REQUEST_ID_KEY])
 
-    sync_key = request_sync_monitor._GetRequestSyncStatusKey(REQUEST_ID)
+    sync_key = request_sync_monitor.GetRequestSyncStatusKey(REQUEST_ID)
     sync_status = sync_key.get()
     self.assertEqual(REQUEST_ID, sync_status.request_id)
 
@@ -35,7 +39,7 @@ class RequestMonitorTest(testbed_dependent_test.TestbedDependentTest):
     mock_now.return_value = now
 
     request_sync_monitor.Monitor(REQUEST_ID)
-    sync_key = request_sync_monitor._GetRequestSyncStatusKey(REQUEST_ID)
+    sync_key = request_sync_monitor.GetRequestSyncStatusKey(REQUEST_ID)
     sync_status = sync_key.get()
     sync_status.has_new_command_events = True
     sync_status.put()
@@ -51,7 +55,7 @@ class RequestMonitorTest(testbed_dependent_test.TestbedDependentTest):
     mock_now.return_value = now
 
     request_sync_monitor.Monitor(REQUEST_ID)
-    sync_key = request_sync_monitor._GetRequestSyncStatusKey(REQUEST_ID)
+    sync_key = request_sync_monitor.GetRequestSyncStatusKey(REQUEST_ID)
     sync_status = sync_key.get()
     sync_status.has_new_command_events = False
     sync_status.put()
@@ -68,7 +72,7 @@ class RequestMonitorTest(testbed_dependent_test.TestbedDependentTest):
     mock_now.return_value = now
 
     request_sync_monitor.Monitor(REQUEST_ID)
-    sync_key = request_sync_monitor._GetRequestSyncStatusKey(REQUEST_ID)
+    sync_key = request_sync_monitor.GetRequestSyncStatusKey(REQUEST_ID)
     sync_status = sync_key.get()
     sync_status.has_new_command_events = False
     sync_status.last_sync_time = last_sync
@@ -84,7 +88,7 @@ class RequestMonitorTest(testbed_dependent_test.TestbedDependentTest):
     mock_now.return_value = now
 
     request_sync_monitor.Monitor(REQUEST_ID)
-    sync_key = request_sync_monitor._GetRequestSyncStatusKey(REQUEST_ID)
+    sync_key = request_sync_monitor.GetRequestSyncStatusKey(REQUEST_ID)
     sync_status = sync_key.get()
     sync_status.last_sync_time = now - datetime.timedelta(minutes=2)
     sync_status.put()
@@ -97,21 +101,24 @@ class RequestMonitorTest(testbed_dependent_test.TestbedDependentTest):
     with self.assertRaises(request_sync_monitor.RequestSyncStatusNotFoundError):
       request_sync_monitor._UpdateSyncStatus(REQUEST_ID)
 
+  @mock.patch.object(request_sync_monitor, '_ProcessCommandEvents')
   @mock.patch.object(request_sync_monitor, '_AddRequestToQueue')
   @mock.patch.object(request_sync_monitor, '_UpdateSyncStatus')
-  def testSyncRequest(self, mock_update, mock_queue):
+  def testSyncRequest(self, mock_update, mock_queue, mock_process):
     mock_update.return_value = True
-    request = request_manager.CreateRequest(
+    request_manager.CreateRequest(
         request_id=REQUEST_ID, user='user2', command_line='command_line2')
-    request.state = common.RequestState.RUNNING
 
     request_sync_monitor.SyncRequest(REQUEST_ID)
+
+    mock_process.assert_called_once_with(REQUEST_ID)
     mock_queue.assert_called_once_with(
         REQUEST_ID,
         countdown_secs=request_sync_monitor.SHORT_SYNC_COUNTDOWN_SECS)
 
+  @mock.patch.object(request_sync_monitor, '_ProcessCommandEvents')
   @mock.patch.object(request_sync_monitor, '_UpdateSyncStatus')
-  def testSyncRequest_shouldNotSyncYet(self, mock_update):
+  def testSyncRequest_shouldNotSyncYet(self, mock_update, mock_process):
     mock_update.return_value = False
 
     request_sync_monitor.SyncRequest(REQUEST_ID)
@@ -122,21 +129,25 @@ class RequestMonitorTest(testbed_dependent_test.TestbedDependentTest):
     task = json.loads(tasks[0].payload)
     self.assertEqual(REQUEST_ID, task[request_sync_monitor.REQUEST_ID_KEY])
     mock_update.assert_called_once_with(REQUEST_ID)
+    mock_process.assert_not_called()
 
+  @mock.patch.object(request_sync_monitor, '_ProcessCommandEvents')
   @mock.patch.object(request_sync_monitor, '_AddRequestToQueue')
   @mock.patch.object(request_sync_monitor, '_UpdateSyncStatus')
-  def testSyncRequest_noRequest(self, mock_update, mock_queue):
+  def testSyncRequest_noRequest(self, mock_update, mock_queue, mock_process):
     mock_update.return_value = True
 
     request_sync_monitor.SyncRequest(REQUEST_ID)
 
-    sync_key = request_sync_monitor._GetRequestSyncStatusKey(REQUEST_ID)
+    sync_key = request_sync_monitor.GetRequestSyncStatusKey(REQUEST_ID)
     self.assertIsNone(sync_key.get())
     mock_queue.assert_not_called()
+    mock_process.assert_not_called()
 
+  @mock.patch.object(request_sync_monitor, '_ProcessCommandEvents')
   @mock.patch.object(request_sync_monitor, '_AddRequestToQueue')
   @mock.patch.object(request_sync_monitor, '_UpdateSyncStatus')
-  def testSyncRequest_finalRequest(self, mock_update, mock_queue):
+  def testSyncRequest_finalRequest(self, mock_update, mock_queue, mock_process):
     mock_update.return_value = True
     request = request_manager.CreateRequest(
         request_id=REQUEST_ID, user='user2', command_line='command_line2')
@@ -145,9 +156,95 @@ class RequestMonitorTest(testbed_dependent_test.TestbedDependentTest):
 
     request_sync_monitor.SyncRequest(REQUEST_ID)
 
-    sync_key = request_sync_monitor._GetRequestSyncStatusKey(REQUEST_ID)
+    sync_key = request_sync_monitor.GetRequestSyncStatusKey(REQUEST_ID)
     self.assertIsNone(sync_key.get())
     mock_queue.assert_not_called()
+    mock_process.assert_not_called()
+
+  @mock.patch.object(request_sync_monitor, '_ProcessCommandEvents')
+  @mock.patch.object(request_sync_monitor, '_AddRequestToQueue')
+  def testSyncRequest_processError(self, mock_queue, mock_process):
+    request_sync_monitor.Monitor(REQUEST_ID)
+    sync_key = request_sync_monitor.GetRequestSyncStatusKey(REQUEST_ID)
+    sync_status = sync_key.get()
+    sync_status.has_new_command_events = True
+    sync_status.put()
+
+    mock_process.side_effect = RuntimeError
+    request_manager.CreateRequest(
+        request_id=REQUEST_ID, user='user2', command_line='command_line2')
+
+    with self.assertRaises(RuntimeError):
+      request_sync_monitor.SyncRequest(REQUEST_ID)
+
+    mock_process.assert_called_once_with(REQUEST_ID)
+    mock_queue.assert_called_once_with(REQUEST_ID)  # Call from Monitor()
+
+    sync_status = sync_key.get()
+    self.assertTrue(sync_status.has_new_command_events)
+
+  def testStoreCommandEvent(self):
+    request_sync_monitor.Monitor(REQUEST_ID)
+    event = _AddCommandEvent()
+
+    raw_events = datastore_entities.RawCommandEvent.query(
+        datastore_entities.RawCommandEvent.request_id == REQUEST_ID,
+        namespace=common.NAMESPACE).fetch()
+    self.assertLen(raw_events, 1)
+    self.assertEqual(event.event_dict, raw_events[0].payload)
+
+    sync_key = request_sync_monitor.GetRequestSyncStatusKey(REQUEST_ID)
+    self.assertTrue(sync_key.get().has_new_command_events)
+
+  @mock.patch.object(command_manager, 'ProcessCommandEvent')
+  def testProcessCommandEvents_singleEvent(self, mock_process):
+    request_sync_monitor.Monitor(REQUEST_ID)
+    event = _AddCommandEvent()
+    _AddCommandEvent(request_id='another_request')
+
+    request_sync_monitor._ProcessCommandEvents(REQUEST_ID)
+
+    raw_events = datastore_entities.RawCommandEvent.query(
+        namespace=common.NAMESPACE).fetch()
+    self.assertLen(raw_events, 1)  # only another_request event should remain
+    mock_process.assert_called_once_with(event)
+
+  @mock.patch.object(command_manager, 'ProcessCommandEvent')
+  def testProcessCommandEvents_multipleEvents(self, mock_process):
+    event_1 = _AddCommandEvent(time=1)
+    event_3 = _AddCommandEvent(time=3)
+    event_2 = _AddCommandEvent(time=2)
+
+    request_sync_monitor._ProcessCommandEvents(REQUEST_ID)
+
+    raw_events = datastore_entities.RawCommandEvent.query(
+        namespace=common.NAMESPACE).fetch()
+    self.assertEmpty(raw_events)
+
+    mock_process.assert_has_calls(
+        [mock.call(event_1),
+         mock.call(event_2),
+         mock.call(event_3)],
+        any_order=False)
+
+  @mock.patch.object(command_manager, 'ProcessCommandEvent')
+  def testProcessCommandEvents_noEvents(self, mock_process):
+    request_sync_monitor._ProcessCommandEvents(REQUEST_ID)
+    mock_process.assert_not_called()
+
+
+def _AddCommandEvent(request_id=REQUEST_ID, time=TIMESTAP_INT):
+  """Helper to add a command event."""
+  event = command_event_test_util.CreateTestCommandEvent(
+      request_id,
+      123,
+      'attempt0',
+      common.InvocationEventType.INVOCATION_COMPLETED,
+      time=time)
+
+  request_sync_monitor.StoreCommandEvent(event)
+
+  return event
 
 
 if __name__ == '__main__':

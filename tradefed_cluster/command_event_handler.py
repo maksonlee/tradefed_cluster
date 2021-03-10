@@ -27,6 +27,7 @@ from tradefed_cluster import command_event
 from tradefed_cluster import command_manager
 from tradefed_cluster import common
 from tradefed_cluster import metric
+from tradefed_cluster import request_sync_monitor
 from tradefed_cluster.services import task_scheduler
 
 COMMAND_EVENT_QUEUE = "command-event-queue"
@@ -129,9 +130,18 @@ def ProcessCommandEvent(event):
   logging.debug("Processing command event: %s", str(event))
   command = command_manager.GetCommand(event.request_id, event.command_id)
   LogCommandEventMetrics(command=command, event=event)
-  # TODO: Check if there is a request sync and just store the raw event
-  # event instead of processing it
-  command_manager.ProcessCommandEvent(event)
+
+  request_sync_key = request_sync_monitor.GetRequestSyncStatusKey(
+      event.request_id)
+  if request_sync_key.get():
+    request_sync_monitor.StoreCommandEvent(event)
+  else:
+    logging.debug("No request sync found for %s. Using legacy processing.",
+                  event.request_id)
+    # This can also happen if TFC received late events on final requests.
+    metric.command_event_legacy_processing_count.Increment({})
+    # TODO: Remove this when the metric above is consistently at 0.
+    command_manager.ProcessCommandEvent(event)
 
 
 # The below handler is served in frontend module.

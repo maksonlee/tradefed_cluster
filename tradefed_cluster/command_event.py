@@ -39,6 +39,7 @@ class CommandEvent(object):
   """A immutable class representing a single command event."""
 
   def __init__(self, **kwargs):
+    self.event_dict = kwargs
     self.task_id = kwargs.get("command_task_id", kwargs.get("task_id"))
     self.request_id, self.command_id = _ParseTaskId(self.task_id)
     self.attempt_id = kwargs.get("attempt_id")
@@ -137,6 +138,12 @@ class CommandEvent(object):
             (self.task_id, self.attempt_id, self.type, self.time,
              self.hostname, self.device_serial, self.attempt_state,
              self.data))
+
+  def __eq__(self, obj):
+    return isinstance(obj, CommandEvent) and obj.event_dict == self.event_dict
+
+  def __ne__(self, obj):
+    return not self == obj
 
 
 def _GetEventData(data, key, value_type=None):

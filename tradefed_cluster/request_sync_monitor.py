@@ -6,6 +6,8 @@ import logging
 
 import flask
 
+from tradefed_cluster import command_event
+from tradefed_cluster import command_manager
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import request_manager
@@ -40,11 +42,12 @@ def _AddRequestToQueue(request_id, countdown_secs=LONG_SYNC_COUNTDOWN_SECS):
 
   next_sync = common.Now() + datetime.timedelta(seconds=countdown_secs)
   logging.info('Queueing request %s to be synced at %s', request_id, next_sync)
-  task_scheduler.AddTask(
+  task = task_scheduler.AddTask(
       queue_name=REQUEST_SYNC_QUEUE, payload=payload, eta=next_sync)
+  logging.info('Queued task: %s', task)
 
 
-def _GetRequestSyncStatusKey(request_id):
+def GetRequestSyncStatusKey(request_id):
   """Generate the key for a RequestSyncStatusEntity."""
   return ndb.Key(
       datastore_entities.RequestSyncStatus,
@@ -58,7 +61,10 @@ def Monitor(request_id):
 
   _AddRequestToQueue(request_id)
 
-  key = _GetRequestSyncStatusKey(request_id)
+  key = GetRequestSyncStatusKey(request_id)
+  if key.get():
+    logging.warning('Sync status already exists for %s', request_id)
+    return
 
   sync_status = datastore_entities.RequestSyncStatus(
       key=key, request_id=request_id)
@@ -79,15 +85,15 @@ def _UpdateSyncStatus(request_id):
     RequestSyncStatusNotFoundError: the a RequestSyncStatus is not found for the
       given request.
   """
-  sync_status_key = _GetRequestSyncStatusKey(request_id)
+  sync_status_key = GetRequestSyncStatusKey(request_id)
   sync_status = sync_status_key.get()
 
   if not sync_status:
     # This should not happen. If it does, that would mean that put() operation
     # in Monitor() failed after adding the request which would have caused
     # CreateRequest to also fail.
-    logging.error('No RequestSyncStatus found for: %s', request_id)
-    raise RequestSyncStatusNotFoundError()
+    raise RequestSyncStatusNotFoundError('No RequestSyncStatus found for: %s' %
+                                         request_id)
 
   should_sync = False
   if sync_status.has_new_command_events:
@@ -108,6 +114,62 @@ def _UpdateSyncStatus(request_id):
 
   sync_status.put()
   return should_sync
+
+
+def StoreCommandEvent(event):
+  """Stores the command event to be processed later.
+
+  Args:
+    event: a CommandEvent
+  """
+  _SetNewCommandEvents(event.request_id)
+  raw_event = datastore_entities.RawCommandEvent(
+      request_id=event.request_id,
+      command_id=event.command_id,
+      attempt_id=event.attempt_id,
+      event_timestamp=event.time,
+      payload=event.event_dict,
+      namespace=common.NAMESPACE)
+  raw_event.put()
+
+
+def _ProcessCommandEvents(request_id):
+  """Process all raw command events for the given request.
+
+  Args:
+    request_id: ID of the request to process all its events for.
+  """
+  raw_events = datastore_entities.RawCommandEvent.query(
+      datastore_entities.RawCommandEvent.request_id == request_id,
+      namespace=common.NAMESPACE).order(
+          datastore_entities.RawCommandEvent.event_timestamp)
+
+  raw_events_keys_to_delete = []
+  for raw_event in raw_events:
+    event = command_event.CommandEvent(**raw_event.payload)
+    command_manager.ProcessCommandEvent(event)
+    raw_events_keys_to_delete.append(raw_event.key)
+
+  logging.info('Processed %d events for request %s',
+               len(raw_events_keys_to_delete), request_id)
+  if raw_events_keys_to_delete:
+    ndb.delete_multi(raw_events_keys_to_delete)
+
+
+def _SetNewCommandEvents(request_id):
+  """Set the has_new_command_events=True for the given request."""
+  sync_status_key = GetRequestSyncStatusKey(request_id)
+  sync_status = sync_status_key.get()
+
+  if not sync_status:
+    logging.error(
+        'Unable find sync status for %s. This can happen when events '
+        'arrived after the request is final.', request_id)
+    return
+
+  if not sync_status.has_new_command_events:
+    sync_status.has_new_command_events = True
+    sync_status.put()
 
 
 def SyncRequest(request_id):
@@ -132,20 +194,24 @@ def SyncRequest(request_id):
   if not request:
     # This should not happen. Requires further debugging.
     logging.error('No request found with ID: %s', request_id)
-    key = _GetRequestSyncStatusKey(request_id)
+    key = GetRequestSyncStatusKey(request_id)
     key.delete()
     return
 
   if common.IsFinalRequestState(request.state):
     # TODO: Process or delete leftover RawCommandEvents
     logging.info('Request %s is final and will no longer be synced', request_id)
-    key = _GetRequestSyncStatusKey(request_id)
+    key = GetRequestSyncStatusKey(request_id)
     key.delete()
     return
 
-  # TODO: Query RawCommandEvents to process them here by calling
-  # command_manager.ProcessCommandEvent(event)
   logging.info('Syncing request %s', request_id)
+  try:
+    _ProcessCommandEvents(request_id)
+  except:
+    logging.exception('Failed to process events for %s', request_id)
+    _SetNewCommandEvents(request_id)
+    raise
 
   _AddRequestToQueue(request_id, countdown_secs=SHORT_SYNC_COUNTDOWN_SECS)
 

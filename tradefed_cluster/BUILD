@@ -400,9 +400,9 @@ pytype_strict_library(
     deps = [
         ":command_event_lib",
         ":command_lib",
-        ":commander_lib",
         ":common_lib",
         ":metric_lib",
+        ":request_sync_monitor_lib",
         "//tradefed_cluster/services:task_scheduler_lib",
         third_party("flask"),
         third_party("six"),
@@ -1509,11 +1509,13 @@ pytype_strict_library(
         "request_sync_monitor.py",
     ],
     deps = [
+        ":command_event_lib",
+        ":command_lib",
         ":common_lib",
         ":datastore_entities_lib",
         ":request_manager_lib",
+        "//third_party/py/six",
         "//tradefed_cluster/services:task_scheduler_lib",
-        "//tradefed_cluster/util:command_util",
         "//tradefed_cluster/util:ndb_shim_lib",
         third_party("flask"),
     ],
@@ -1526,6 +1528,7 @@ py_test(
     ],
     python_version = "PY3",
     deps = [
+        ":command_event_test_util",
         ":request_manager_lib",
         ":request_sync_monitor_lib",
         ":testbed_dependent_test_lib",

@@ -1586,6 +1586,6 @@ class RawCommandEvent(ndb.Model):
   request_id = ndb.StringProperty(required=True)
   command_id = ndb.StringProperty(required=True)
   attempt_id = ndb.StringProperty(required=True)
-  payload = ndb.TextProperty()
+  payload = ndb.JsonProperty(compressed=True)
   event_timestamp = ndb.DateTimeProperty()
   create_time = ndb.DateTimeProperty(auto_now_add=True)

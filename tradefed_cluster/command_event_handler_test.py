@@ -33,8 +33,10 @@ from tradefed_cluster import command_event_test_util
 from tradefed_cluster import command_manager
 from tradefed_cluster import command_task_store
 from tradefed_cluster import common
+from tradefed_cluster import datastore_entities
 from tradefed_cluster import env_config  from tradefed_cluster import metric
 from tradefed_cluster import request_manager
+from tradefed_cluster import request_sync_monitor
 from tradefed_cluster import testbed_dependent_test
 from tradefed_cluster.util import ndb_shim as ndb
 
@@ -401,14 +403,32 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         hostname="hostname",
         latency_secs=10.5)
 
-  @mock.patch.object(metric, "command_event_type_count")
-  def testProcessCommandEvent_allocationFailed(
-      self, mock_command_event_type_count):
-    """Should reschedule tasks that send AllocationFailed events.
+  @mock.patch.object(metric, "command_event_legacy_processing_count")
+  @mock.patch.object(request_sync_monitor, "StoreCommandEvent")
+  def testProcessCommandEvent_withRequestSync(self, mock_store_event,
+                                              mock_event_legacy_count):
+    _, request_id, _, command_id = self.command.key.flat()
+    sync_key = ndb.Key(
+        datastore_entities.RequestSyncStatus,
+        request_id,
+        namespace=common.NAMESPACE)
+    sync_status = datastore_entities.RequestSyncStatus(
+        key=sync_key, request_id=request_id)
+    sync_status.put()
 
-    Args:
-      mock_command_event_type_count: mock command event type count metric
-    """
+    event = command_event_test_util.CreateTestCommandEvent(
+        request_id, command_id, "0000000", "InvocationCompleted")
+    command_event_handler.ProcessCommandEvent(event)
+
+    mock_store_event.assert_called_once_with(event)
+    mock_event_legacy_count.assert_not_called()
+
+  @mock.patch.object(metric, "command_event_legacy_processing_count")
+  @mock.patch.object(metric, "command_event_type_count")
+  def testProcessCommandEvent_allocationFailed(self,
+                                               mock_command_event_type_count,
+                                               mock_event_legacy_count):
+    """Should reschedule tasks that send AllocationFailed events."""
     _, request_id, _, command_id = self.command.key.flat()
     command_manager.ScheduleTasks([self.command])
 
@@ -444,6 +464,8 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     }
     mock_command_event_type_count.Increment.assert_has_calls(
         [mock.call(expected_metric_fields)] * num_attempts)
+    mock_event_legacy_count.Increment.assert_has_calls([mock.call({})] *
+                                                       num_attempts)
 
   @mock.patch.object(metric, "command_event_type_count")
   @mock.patch.object(request_manager, "NotifyRequestState")

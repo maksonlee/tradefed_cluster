@@ -92,6 +92,13 @@ command_event_type_count = _Metric(
         desc='Number of command events of this type',
         fields=COMMAND_EVENT_METRIC_FIELDS))
 
+# A metric object to count number of command events using legacy pipeline
+command_event_legacy_processing_count = _Metric(
+    'command_event/legacy_processing_count',
+    metric_util.MetricDescriptor(
+        type_=metric_util.MetricType.COUNTER,
+        desc='Command event legacy processing counts'))
+
 COMMAND_ATTEMPT_METRIC_FIELDS = [
     (METRIC_FIELD_CLUSTER, str),
     (METRIC_FIELD_RUN_TARGET, str),

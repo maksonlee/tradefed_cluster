@@ -129,6 +129,34 @@ class ConfigTest(unittest.TestCase):
       with open(config_path, 'r') as f:
         lab_config.Parse(f)
 
+  def testParse_emptyHostConfigs(self):
+    """Test config file with cluster but empty host_configs."""
+    # Has host_configs field but the field is empty is invalid.
+    # This can not be pased by java's yaml lib.
+    config_path = GetTestFilePath('invalid/config_empty_host_configs.yaml')
+    with self.assertRaisesRegex(lab_config.ConfigError,
+                                r'host_configs should be a list.'):
+      with open(config_path, 'r') as f:
+        lab_config.Parse(f)
+
+  def testParse_noHostConfigs(self):
+    """Test config file with cluster but no host_configs."""
+    # No host_configs is fine.
+    config_path = GetTestFilePath('valid/config_without_host_configs.yaml')
+    with open(config_path, 'r') as f:
+      lab_config_pb = lab_config.Parse(f)
+    self.assertEqual(0, len(lab_config_pb.cluster_configs[0].host_configs))
+
+  def testParse_multipleClusterConfigs(self):
+    """Test config file with multiple cluster_configs section."""
+    # Config with multiple cluster_configs will only keep the last one.
+    config_path = GetTestFilePath(
+        'invalid/config_multiple_cluster_configs.yaml')
+    with self.assertRaisesRegex(lab_config.ConfigError,
+                                r'Multiple "cluster_configs" are configured.'):
+      with open(config_path, 'r') as f:
+        lab_config.Parse(f)
+
   def testCreateHostConfig(self):
     host_config = lab_config.CreateHostConfig(
         lab_name='alab',

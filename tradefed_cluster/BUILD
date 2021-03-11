@@ -790,6 +790,7 @@ pytype_strict_library(
         ":command_lib",
         ":common_lib",
         ":datastore_entities_lib",
+        ":request_sync_monitor_lib",
         third_party("endpoints:endpoints_library"),
         third_party("protorpc:protorpc_all"),
         third_party("pytz"),
@@ -806,6 +807,7 @@ py_test(
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
+        ":request_sync_monitor_lib",
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
     ],

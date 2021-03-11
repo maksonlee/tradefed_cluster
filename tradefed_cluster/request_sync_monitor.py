@@ -218,8 +218,14 @@ def SyncRequest(request_id):
 
 @APP.route('/_ah/queue/%s' % REQUEST_SYNC_QUEUE, methods=['POST'])
 def HandleRequestTask():
+  """Request sync queue handler."""
   payload = flask.request.get_data()
   request_info = json.loads(payload)
   logging.debug('RequestTaskHandler syncing %s', request_info)
-  SyncRequest(request_info[REQUEST_ID_KEY])
+  try:
+    SyncRequest(request_info[REQUEST_ID_KEY])
+  except RequestSyncStatusNotFoundError:
+    # Do not retry missing RequestSyncStatus
+    logging.warning('Missing request sync status for %s', request_info)
+
   return common.HTTP_OK

@@ -31,13 +31,14 @@ from tradefed_cluster import command_monitor
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import env_config  from tradefed_cluster import request_manager
+from tradefed_cluster import request_sync_monitor
 from tradefed_cluster.util import ndb_shim as ndb
 
 
 class CoordinatorApiTest(api_test.ApiTest):
 
   def setUp(self):
-    api_test.ApiTest.setUp(self)
+    super(CoordinatorApiTest, self).setUp()
     self.plugin_patcher = mock.patch(
         '__main__.env_config.CONFIG.plugin')
     self.plugin_patcher.start()
@@ -51,6 +52,7 @@ class CoordinatorApiTest(api_test.ApiTest):
 
   def tearDown(self):
     self.plugin_patcher.stop()
+    super(CoordinatorApiTest, self).tearDown()
 
   def _CreateAttempt(self, attempt_id, task_id, state):
     # Helper to create an attempt
@@ -146,6 +148,30 @@ class CoordinatorApiTest(api_test.ApiTest):
     self.assertEqual('200 OK', response.status)
 
     mock_add.assert_not_called()
+
+  @mock.patch.object(request_sync_monitor, 'Monitor')
+  def testBackfillRequestSyncs(self, mock_monitor):
+    queued_request = request_manager.CreateRequest(
+        request_id='queued_id', user='user2', command_line='command_line2')
+    queued_request.state = common.RequestState.QUEUED
+    queued_request.put()
+
+    response = self.testapp.post_json(
+        '/_ah/api/CoordinatorApi.BackfillRequestSyncs', {})
+    self.assertEqual('200 OK', response.status)
+    mock_monitor.assert_has_calls(
+        [mock.call(self.request.key.id()),
+         mock.call(queued_request.key.id())])
+
+  @mock.patch.object(request_sync_monitor, 'Monitor')
+  def testBackfillRequestSyncs_onlyFinal(self, mock_monitor):
+    self.request.state = common.RequestState.COMPLETED
+    self.request.put()
+
+    response = self.testapp.post_json(
+        '/_ah/api/CoordinatorApi.BackfillRequestSyncs', {})
+    self.assertEqual('200 OK', response.status)
+    mock_monitor.assert_not_called()
 
 
 if __name__ == '__main__':

@@ -134,8 +134,9 @@ class ConfigTest(unittest.TestCase):
     # Has host_configs field but the field is empty is invalid.
     # This can not be pased by java's yaml lib.
     config_path = GetTestFilePath('invalid/config_empty_host_configs.yaml')
-    with self.assertRaisesRegex(lab_config.ConfigError,
-                                r'host_configs should be a list.'):
+    with self.assertRaisesRegex(
+        lab_config.ConfigError,
+        r'when expecting a sequence\nfound a blank string'):
       with open(config_path, 'r') as f:
         lab_config.Parse(f)
 
@@ -153,7 +154,7 @@ class ConfigTest(unittest.TestCase):
     config_path = GetTestFilePath(
         'invalid/config_multiple_cluster_configs.yaml')
     with self.assertRaisesRegex(lab_config.ConfigError,
-                                r'Multiple "cluster_configs" are configured.'):
+                                r".*Duplicate key 'cluster_configs' found.*"):
       with open(config_path, 'r') as f:
         lab_config.Parse(f)
 

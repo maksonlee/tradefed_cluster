@@ -38,6 +38,7 @@ PACKAGE_MAP = {
     "portpicker": "portpicker",
     "requests": "requests",
     "retry": "retry",
+    "strictyaml": "strictyaml",
     "webtest": "WebTest",
     "yaml": "PyYAML",
 }

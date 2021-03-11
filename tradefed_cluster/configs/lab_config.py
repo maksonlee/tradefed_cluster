@@ -17,7 +17,9 @@ import collections
 import logging
 import os
 
-import yaml
+import six
+
+import strictyaml as syaml
 
 try:
   from google.protobuf import json_format
@@ -36,6 +38,37 @@ class ConfigError(Exception):
   pass
 
 
+def _ProtoDescriptorToSchema(pb_descriptor):
+  """Convert a proto Descriptor to a strictyaml schema."""
+  d = {}
+  for field in pb_descriptor.fields:
+    if field.LABEL_REPEATED == field.label:
+      value_schema = syaml.Seq(_ProtoFieldToSchema(field))
+    else:
+      value_schema = _ProtoFieldToSchema(field)
+    d[syaml.Optional(field.name)] = value_schema
+  return syaml.Map(d)
+
+
+def _ProtoFieldToSchema(field):
+  """Convert a Proto Field to strictyaml schema."""
+  if field.type == field.TYPE_STRING:
+    return syaml.Str()
+  if field.type == field.TYPE_BOOL:
+    return syaml.Bool()
+  if field.type in (field.TYPE_INT32, field.TYPE_UINT32,
+                    field.TYPE_INT64, field.TYPE_UINT64):
+    return syaml.Int()
+  if field.type in (field.TYPE_DOUBLE, field.TYPE_FLOAT):
+    return syaml.Decimal()
+  if field.type == field.TYPE_MESSAGE:
+    return _ProtoDescriptorToSchema(field.message_type)
+  raise ConfigError('Unknown field type in lab_config_pb2: %r.' % field.type)
+
+
+_YAML_SCHEMA = _ProtoDescriptorToSchema(lab_config_pb2.LabConfig.DESCRIPTOR)
+
+
 def Parse(yaml_file_obj):
   """Parse yaml config.
 
@@ -46,64 +79,16 @@ def Parse(yaml_file_obj):
   Raises:
     ConfigError: if the config is incorrect.
   """
-  content = yaml_file_obj.read()
-  config_dict = _Parser(content).Parse()
+  content = six.ensure_str(yaml_file_obj.read())
+  try:
+    config_dict = syaml.dirty_load(
+        content, schema=_YAML_SCHEMA, allow_flow_style=True).data
+  except (syaml.YAMLError, TypeError) as e:
+    raise ConfigError(e)
   try:
     return json_format.ParseDict(config_dict, lab_config_pb2.LabConfig())
   except json_format.ParseError as e:
     raise ConfigError(e)
-
-
-class _Parser(object):
-  """A lab config parser.
-
-  Instead of using yaml.safe_load directly, we create a customized
-  parser since yaml.safe_load is too tolerant. It parses duplicated
-  entities and override the early ones by the late ones, it parses
-  empty lists, etc. We want to catch these problems.
-
-  """
-
-  def __init__(self, content):
-    self._content = content
-    self._seen_cluster_configs = False
-
-  def Parse(self):
-    """Parse the yaml config file."""
-    try:
-      node = yaml.compose(self._content)
-      config_dict = self._YamlNodeToJsonDict(node)
-      return config_dict
-    except yaml.YAMLError as e:
-      raise ConfigError(e)
-
-  def _YamlNodeToJsonDict(self, node):
-    """Convert yaml node to json dict."""
-    if isinstance(node, yaml.MappingNode):
-      d = {}
-      for key_node, value_node in node.value:
-        key = self._YamlNodeToJsonDict(key_node)
-        value = self._YamlNodeToJsonDict(value_node)
-        if (key == 'host_configs' and
-            not isinstance(value_node, yaml.SequenceNode)):
-          raise ConfigError(
-              'host_configs should be a list of host configs.'
-              '"%r" is not allowed. Add hosts or remove "host_configs:"'
-              % value)
-        elif key == 'cluster_configs':
-          if self._seen_cluster_configs:
-            raise ConfigError(
-                'Multiple "cluster_configs" are configured.'
-                'Remove "cluster_configs:" other than the first one.')
-          else:
-            self._seen_cluster_configs = True
-        d[key] = value
-      return d
-    elif isinstance(node, yaml.SequenceNode):
-      return list(map(self._YamlNodeToJsonDict, node.value))
-    elif isinstance(node, yaml.ScalarNode):
-      return yaml.constructor.SafeConstructor().construct_object(node)
-    raise ConfigError('Unknown yaml node type %s.' % type(node))
 
 
 class HostConfig(object):
@@ -294,7 +279,7 @@ class HostConfig(object):
       lab_config_dict = json_format.MessageToDict(
           lab_config_pb,
           preserving_proto_field_name=True)
-      f.write(yaml.safe_dump(lab_config_dict))
+      f.write(syaml.as_document(lab_config_dict, schema=_YAML_SCHEMA).as_yaml())
 
   def __eq__(self, other):
     if not isinstance(other, HostConfig):

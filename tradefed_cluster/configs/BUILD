@@ -21,7 +21,7 @@ py_library(
     visibility = ["//visibility:public"],
     deps = [
         ":lab_config_py_pb2",
-        third_party("yaml"),
+        third_party("strictyaml"),
     ],
 )
 

@@ -70,9 +70,9 @@ class CoordinatorApi(remote.Service):
   @endpoints.method(
       message_types.VoidMessage,
       message_types.VoidMessage,
-      path="backfill-requests",
+      path="backfill-request-syncs",
       http_method="POST",
-      name="backfillRequests")
+      name="backfillRequestSyncs")
   @api_common.with_ndb_context
   def BackfillRequestSyncs(self, request):
     logging.info("Backfilling non final requests to sync queue.")

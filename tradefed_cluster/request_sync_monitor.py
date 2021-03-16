@@ -111,8 +111,8 @@ def _UpdateSyncStatus(request_id):
 
   if should_sync:
     sync_status.last_sync_time = common.Now()
+    sync_status.put()
 
-  sync_status.put()
   return should_sync
 
 

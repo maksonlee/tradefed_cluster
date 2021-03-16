@@ -50,8 +50,8 @@ queue:
 
 # A queue for syncing requests
 - name: request-sync-queue
-  rate: 100/s
-  max_concurrent_requests: 100
+  rate: 200/s
+  max_concurrent_requests: 200
   bucket_size: 400
   retry_parameters:
     task_age_limit: 1h

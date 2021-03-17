@@ -233,6 +233,7 @@ pytype_strict_library(
         ":datastore_entities_lib",
         ":datastore_util_lib",
         ":device_manager_lib",
+        ":host_event_lib",
         ":note_manager_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
         third_party("endpoints:endpoints_library"),

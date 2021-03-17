@@ -28,6 +28,7 @@ from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import datastore_util
 from tradefed_cluster import device_manager
+from tradefed_cluster import host_event
 from tradefed_cluster import note_manager
 
 
@@ -35,6 +36,9 @@ _DEFAULT_LIST_NOTES_COUNT = 10
 _DEFAULT_LIST_HOST_COUNT = 100
 _DEFAULT_LIST_HISTORIES_COUNT = 100
 _DEFAULT_LIST_CONFIGS_COUNT = 100
+
+_HOST_UPDATE_STATE_CHANGED_EVENT_NAME = "HOST_UPDATE_STATE_CHANGED"
+_HOST_UPDATE_STATE_PENDING = "PENDING"
 
 
 def _CheckTimestamp(t1, operator, t2):
@@ -900,8 +904,14 @@ class ClusterHostApi(remote.Service):
       if not metadata:
         metadata = datastore_entities.HostMetadata(
             id=hostname, hostname=hostname)
+      if metadata.test_harness_image != request.test_harness_image:
+        event = host_event.HostEvent(
+            time=datetime.datetime.utcnow(),
+            type=_HOST_UPDATE_STATE_CHANGED_EVENT_NAME,
+            hostname=hostname,
+            host_update_state=_HOST_UPDATE_STATE_PENDING)
+        device_manager.HandleDeviceSnapshotWithNDB(event)
       metadata.populate(test_harness_image=request.test_harness_image)
-      # TODO: mark pending update states.
       metadatas_to_update.append(metadata)
     ndb.put_multi(metadatas_to_update)
 

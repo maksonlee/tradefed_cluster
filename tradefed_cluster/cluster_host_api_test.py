@@ -2159,9 +2159,17 @@ class ClusterHostApiTest(api_test.ApiTest):
     host_metadata = datastore_entities.HostMetadata.get_by_id(hostname1)
     self.assertEqual(hostname1, host_metadata.hostname)
     self.assertEqual(image_name, host_metadata.test_harness_image)
+    host_update_state = datastore_entities.HostUpdateState.get_by_id(hostname1)
+    self.assertEqual(hostname1, host_update_state.hostname)
+    self.assertEqual(api_messages.HostUpdateState.PENDING,
+                     host_update_state.state)
     host_metadata = datastore_entities.HostMetadata.get_by_id(hostname2)
     self.assertEqual(hostname2, host_metadata.hostname)
     self.assertEqual(image_name, host_metadata.test_harness_image)
+    host_update_state = datastore_entities.HostUpdateState.get_by_id(hostname2)
+    self.assertEqual(hostname2, host_update_state.hostname)
+    self.assertEqual(api_messages.HostUpdateState.PENDING,
+                     host_update_state.state)
 
   def testBatchUpdateHostMetadata_succeedsWithExistingMetadata(self):
     """Test batch set test_harness_image for hosts."""
@@ -2192,9 +2200,43 @@ class ClusterHostApiTest(api_test.ApiTest):
     host_metadata = datastore_entities.HostMetadata.get_by_id(hostname1)
     self.assertEqual(hostname1, host_metadata.hostname)
     self.assertEqual(image_name_new, host_metadata.test_harness_image)
+    host_update_state = datastore_entities.HostUpdateState.get_by_id(hostname1)
+    self.assertEqual(hostname1, host_update_state.hostname)
+    self.assertEqual(api_messages.HostUpdateState.PENDING,
+                     host_update_state.state)
     host_metadata = datastore_entities.HostMetadata.get_by_id(hostname2)
     self.assertEqual(hostname2, host_metadata.hostname)
     self.assertEqual(image_name_new, host_metadata.test_harness_image)
+    host_update_state = datastore_entities.HostUpdateState.get_by_id(hostname2)
+    self.assertEqual(hostname2, host_update_state.hostname)
+    self.assertEqual(api_messages.HostUpdateState.PENDING,
+                     host_update_state.state)
+
+  def testBatchUpdateHostMetadata_succeedsWithUnchangedMetadata(self):
+    """Test batch set test_harness_image for hosts."""
+    hostname = 'host1'
+    lab_name = 'alab'
+    owner = 'user1'
+    image_name = 'image_url'
+    datastore_test_util.CreateHostConfig(
+        hostname, lab_name, owners=[owner], enable_ui_update=True)
+    datastore_test_util.CreateHostMetadata(
+        hostname=hostname, test_harness_image=image_name)
+    api_request = {
+        'hostnames': [hostname],
+        'test_harness_image': image_name,
+        'user': owner,
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.BatchUpdateHostMetadata',
+        api_request)
+    self.assertEqual('200 OK', api_response.status)
+
+    host_metadata = datastore_entities.HostMetadata.get_by_id(hostname)
+    self.assertEqual(hostname, host_metadata.hostname)
+    self.assertEqual(image_name, host_metadata.test_harness_image)
+    # No update should start in this case, because the image is not changed.
+    self.assertIsNone(datastore_entities.HostUpdateState.get_by_id(hostname))
 
   def testBatchUpdateHostMetadata_failUserNotPermitted(self):
     """Test batch set test_harness_image for hosts."""
@@ -2225,6 +2267,8 @@ class ClusterHostApiTest(api_test.ApiTest):
         b'Request user wrongperson is not in the owner list'
         b' of hosts [host1, host2]. ')
     self.assertIn(expected_error_msg, api_response.body)
+    self.assertIsNone(datastore_entities.HostUpdateState.get_by_id(hostname1))
+    self.assertIsNone(datastore_entities.HostUpdateState.get_by_id(hostname2))
 
   def testBatchUpdateHostMetadata_failHostNotEnabled(self):
     """Test batch set test_harness_image for hosts."""
@@ -2255,6 +2299,8 @@ class ClusterHostApiTest(api_test.ApiTest):
         b'Hosts [host1, host2] are not enabled to be updated '
         b'from UI. ')
     self.assertIn(expected_error_msg, api_response.body)
+    self.assertIsNone(datastore_entities.HostUpdateState.get_by_id(hostname1))
+    self.assertIsNone(datastore_entities.HostUpdateState.get_by_id(hostname2))
 
 
 if __name__ == '__main__':

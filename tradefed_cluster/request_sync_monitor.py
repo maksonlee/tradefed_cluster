@@ -145,15 +145,27 @@ def _ProcessCommandEvents(request_id):
           datastore_entities.RawCommandEvent.event_timestamp)
 
   raw_events_keys_to_delete = []
+  error = None
+
   for raw_event in raw_events:
     event = command_event.CommandEvent(**raw_event.payload)
-    command_manager.ProcessCommandEvent(event)
-    raw_events_keys_to_delete.append(raw_event.key)
+
+    try:
+      command_manager.ProcessCommandEvent(event)
+      raw_events_keys_to_delete.append(raw_event.key)
+    except Exception as e:        logging.warning('Error while processing event: %s', event, exc_info=True)
+      error = e
+      break
 
   logging.info('Processed %d events for request %s',
                len(raw_events_keys_to_delete), request_id)
   if raw_events_keys_to_delete:
     ndb.delete_multi(raw_events_keys_to_delete)
+
+  if error:
+    # Re-raise any error
+    logging.warning('Events were partially processed for %s', request_id)
+    raise error
 
 
 def _SetNewCommandEvents(request_id):

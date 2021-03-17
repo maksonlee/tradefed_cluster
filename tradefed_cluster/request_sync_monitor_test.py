@@ -232,6 +232,25 @@ class RequestMonitorTest(testbed_dependent_test.TestbedDependentTest):
     request_sync_monitor._ProcessCommandEvents(REQUEST_ID)
     mock_process.assert_not_called()
 
+  @mock.patch.object(command_manager, 'ProcessCommandEvent')
+  def testProcessCommandEvents_withErrors(self, mock_process):
+    mock_process.side_effect = [None, RuntimeError, None]
+
+    event_1 = _AddCommandEvent(time=1)
+    event_3 = _AddCommandEvent(time=3)
+    event_2 = _AddCommandEvent(time=2)
+
+    with self.assertRaises(RuntimeError):
+      request_sync_monitor._ProcessCommandEvents(REQUEST_ID)
+
+    mock_process.assert_has_calls(
+        [mock.call(event_1), mock.call(event_2)], any_order=False)
+
+    raw_events = datastore_entities.RawCommandEvent.query(
+        namespace=common.NAMESPACE).fetch()
+    payloads = [raw_event.payload for raw_event in raw_events]
+    self.assertCountEqual([event_2.event_dict, event_3.event_dict], payloads)
+
 
 def _AddCommandEvent(request_id=REQUEST_ID, time=TIMESTAP_INT):
   """Helper to add a command event."""

@@ -307,8 +307,8 @@ def GetCommandSummary(request_id, command_id, run_count):
     return None
   summary = CommandSummary(run_count)
   for attempt in command_attempts:
-    # Get the latest version to using a cached version.
-    attempt = attempt.key.get()
+    # Bypass caching to always get the latest version of the attempt.
+    attempt = attempt.key.get(use_cache=False, use_memcache=False)
     summary.AddCommandAttempt(attempt)
   return summary
 

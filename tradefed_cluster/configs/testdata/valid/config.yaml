@@ -35,6 +35,7 @@ cluster_configs:
   host_login_name: user1
   owners:
   - user1
+  - user2
   tf_global_config_path: path/to/config.xml
   master_url: tfc_master_url
   docker_image: gcr.io/dockerized-tradefed/tradefed:golden

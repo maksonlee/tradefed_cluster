@@ -146,7 +146,8 @@ class ConfigSyncerGCSToNdbTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(res.tf_global_config_path, 'configs/homer-atc1/config.xml')
     self.assertEqual(res.lab_name, 'lab1')
     self.assertEqual(res.cluster_name, 'cluster1')
-    self.assertCountEqual(res.owners, ['owner1', 'owner2'])
+    self.assertCountEqual(
+        res.owners, ['lab_user1', 'user1', 'owner1', 'owner2'])
     self.assertTrue(res.graceful_shutdown)
     self.assertTrue(res.enable_ui_update)
     self.assertEqual(res.shutdown_timeout_sec, 1000)
@@ -154,7 +155,8 @@ class ConfigSyncerGCSToNdbTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(res.hostname, 'homer-atc2')
     self.assertEqual(res.tf_global_config_path, 'configs/homer-atc2/config.xml')
     self.assertEqual(res.lab_name, 'lab1')
-    self.assertCountEqual(res.owners, ['owner1', 'owner2'])
+    self.assertCountEqual(
+        res.owners, ['lab_user1', 'user1', 'owner1', 'owner2'])
     self.assertTrue(res.graceful_shutdown)
     self.assertFalse(res.enable_ui_update)
     self.assertEqual(res.shutdown_timeout_sec, 1000)

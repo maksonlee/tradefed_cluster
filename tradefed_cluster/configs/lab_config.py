@@ -14,6 +14,7 @@
 
 """Tools for tradefed satellite lab configs."""
 import collections
+import itertools
 import logging
 import os
 
@@ -257,8 +258,8 @@ class HostConfig(object):
   @property
   def owners(self):
     """Inherit the owners field from parent cluster or lab."""
-    return (self.cluster_config_pb.owners or
-            self.lab_config_pb.owners)
+    return list(set(owner for owner in itertools.chain(
+        self.cluster_config_pb.owners, self.lab_config_pb.owners)))
 
   @property
   def engprod_api_key(self):

@@ -60,7 +60,7 @@ class ConfigTest(unittest.TestCase):
     cluster = lab_config_pb.cluster_configs[0]
     self.assertEqual('cluster1', cluster.cluster_name)
     self.assertEqual('user1', cluster.host_login_name)
-    self.assertEqual(['user1'], cluster.owners)
+    self.assertEqual(['user1', 'user2'], cluster.owners)
     self.assertEqual('path/to/config.xml', cluster.tf_global_config_path)
     self.assertEqual('tfc_master_url', cluster.master_url)
     self.assertEqual('', cluster.control_server_url)
@@ -296,6 +296,7 @@ class LabConfigPoolTest(unittest.TestCase):
     self.assertEqual('cluster1', hosts[0].cluster_name)
     self.assertEqual('path/to/config.xml', hosts[0].tf_global_config_path)
     self.assertEqual('tfc_master_url', hosts[0].control_server_url)
+    self.assertCountEqual(['lab_user1', 'user1', 'user2'], hosts[0].owners)
     self.assertTrue(hosts[0].graceful_shutdown)
     self.assertTrue(hosts[0].enable_stackdriver)
     self.assertTrue(hosts[0].enable_autoupdate)
@@ -310,6 +311,7 @@ class LabConfigPoolTest(unittest.TestCase):
     self.assertEqual('cluster1', hosts[1].cluster_name)
     self.assertEqual('path/to/config.xml', hosts[1].tf_global_config_path)
     self.assertEqual('tfc_master_url', hosts[1].control_server_url)
+    self.assertCountEqual(['lab_user1', 'user1', 'user2'], hosts[1].owners)
     self.assertEqual('gcr.io/dockerized-tradefed/tradefed:golden',
                      hosts[1].docker_image)
     self.assertEqual('docker_server_2', hosts[1].docker_server)
@@ -318,6 +320,7 @@ class LabConfigPoolTest(unittest.TestCase):
     self.assertEqual('user1', hosts[2].host_login_name)
     self.assertEqual('cluster1', hosts[2].cluster_name)
     self.assertEqual('path/to/new/config.xml', hosts[2].tf_global_config_path)
+    self.assertCountEqual(['lab_user1', 'user1', 'user2'], hosts[2].owners)
     self.assertEqual('tfc_master_url', hosts[2].control_server_url)
     self.assertEqual('gcr.io/dockerized-tradefed/tradefed:canary',
                      hosts[2].docker_image)

@@ -140,7 +140,9 @@ def ProcessCommandEvent(event):
                   event.request_id)
     # This can also happen if TFC received late events on final requests.
     metric.command_event_legacy_processing_count.Increment({})
-    # TODO: Remove this when the metric above is consistently at 0.
+    # We keep the legacy processing as some use cases depend on having command
+    # attempt data updated even after the request is final:
+    # Eg: measuring fuzzing time
     command_manager.ProcessCommandEvent(event)
 
 

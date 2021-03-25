@@ -17,7 +17,6 @@ import collections
 import itertools
 import logging
 import os
-from typing import Any, BinaryIO, Mapping
 
 import six
 
@@ -543,7 +542,7 @@ class LabConfigPool(object):
     return HostConfig(host_config_pb, cluster_config_pb, lab_config_pb)
 
 
-def ParseGroupVar(group_var_file: BinaryIO) -> Mapping[str, Any]:
+def ParseGroupVar(group_var_file):
   """Parses yml file and returns the parsed mapping."""
   try:
     content = six.ensure_str(group_var_file.read())

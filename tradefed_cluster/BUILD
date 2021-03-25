@@ -768,6 +768,7 @@ py_test(
         "config_syncer_gcs_to_ndb_test.py",
     ],
     data = [
+        "test_yaml/dhcp.yml",
         "test_yaml/dockerized-tf.yaml",
         "test_yaml/hosts",
         "test_yaml/lab-config-with-duplicated-cluster.yaml",

@@ -20,12 +20,13 @@ from __future__ import division
 from __future__ import print_function
 
 import datetime
+
 import six
-
-
 from tradefed_cluster import api_messages
 from tradefed_cluster import common
 from tradefed_cluster.util import ndb_shim as ndb
+
+
 
 # Constant to hold a time of 0 (0 hours, 0 minutes, 0 seconds)
 ZERO_TIME = datetime.time()
@@ -824,17 +825,21 @@ class LabConfig(ndb.Model):
         owners=list(msg.owners))
 
 
-class GroupConfig(ndb.Model):
+class HostGroupConfig(ndb.Model):
   """Lab inventory group config entity.
 
   Attributes:
     name: the group name.
     lab: the lab key.
     parent_groups: the parent goup key list.
+    account_principles: the account to account principles map.
+    update_time: the time the config is update.
   """
   name = ndb.StringProperty()
-  lab = ndb.KeyProperty(kind=LabConfig)
-  parent_groups = ndb.KeyProperty(kind='GroupConfig', repeated=True)
+  lab = ndb.StringProperty()
+  parent_groups = ndb.StringProperty(repeated=True)
+  account_principles = ndb.JsonProperty()
+  update_time = ndb.DateTimeProperty(auto_now=True)
 
   @classmethod
   def CreateId(cls, lab_name, name):

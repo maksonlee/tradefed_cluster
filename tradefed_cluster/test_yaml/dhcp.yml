@@ -1,0 +1,18 @@
+# The mocked ansible group_var yml.
+# The file set group_var for the inventory group "dhcp".
+
+mock_dchp_var: mock_value
+mock_dhcp_var2: mock_value2
+accounts:
+  android-test-admin:
+    enable_sudo: true
+    principles:
+      - group/group-one
+      - group/group-two
+      - user1
+      - user2
+  android-test:
+    principles:
+      - group/group-three
+      - user3
+      - user4

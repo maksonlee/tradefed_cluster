@@ -17,6 +17,7 @@ import collections
 import itertools
 import logging
 import os
+from typing import Any, BinaryIO, Mapping
 
 import six
 
@@ -540,3 +541,12 @@ class LabConfigPool(object):
     lab_config_pb = lab_config_pb2.LabConfig(
         lab_name=lab_name or '')
     return HostConfig(host_config_pb, cluster_config_pb, lab_config_pb)
+
+
+def ParseGroupVar(group_var_file: BinaryIO) -> Mapping[str, Any]:
+  """Parses yml file and returns the parsed mapping."""
+  try:
+    content = six.ensure_str(group_var_file.read())
+    return syaml.load(content).data
+  except syaml.YAMLError as e:
+    raise ConfigError(e)

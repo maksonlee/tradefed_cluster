@@ -17,7 +17,7 @@ from __future__ import google_type_annotations
 
 import logging
 import re
-from typing import Generator, Tuple
+from typing import Generator, Tuple, BinaryIO
 
 from ansible.inventory import data as inventory_data
 from ansible.inventory import group as inventory_group
@@ -43,8 +43,15 @@ _INVENTORY_GROUPS = 'inventory_groups'
 _FileInfo = plugins_base.FileInfo
 _APP = flask.Flask(__name__)
 _LAB_NAME_PATTERN = re.compile(r'.*\/lab_inventory\/(?P<lab_name>.*)')
-_LAB_GROUP_NAME = 'lab_name'
+_LAB_GROUP_KEY = 'lab_name'
 _INVENTORY_FILE_FORMAT = '{}/hosts'
+_INVENTORY_GROUP_VAR_DIR_FORMAT = '{}{}/group_vars/'
+_INVENTORY_GROUP_VAR_PATTERN = re.compile(
+    r'.*\/lab_inventory\/(?P<lab_name>.*)\/group_vars\/(?P<inventory_group>.*)\.(yml|yaml)'
+)
+_INVENTORY_GROUP_KEY = 'inventory_group'
+_PRINCIPLES = 'principles'
+_GROUP_VAR_ACCOUNTS = 'accounts'
 
 APP = flask.Flask(__name__)
 
@@ -79,9 +86,9 @@ def _CheckConfigEntitiesEqual(entity, new_entity):
   if not entity:
     return False
   entity_dict = entity.to_dict()
-  entity_dict.pop('update_time')
+  entity_dict.pop('update_time', None)
   new_entity_dict = new_entity.to_dict()
-  new_entity_dict.pop('update_time')
+  new_entity_dict.pop('update_time', None)
   entity_dict.pop(_INVENTORY_GROUPS, None)
   new_entity_dict.pop(_INVENTORY_GROUPS, None)
   return entity_dict == new_entity_dict
@@ -212,47 +219,48 @@ def _CreateHostConfigEntityFromHostInventory(
       inventory_groups=sorted(set([g.name for g in host.groups])))
 
 
-def _CreateGroupConfigEntityFromGroupInventory(
+def _CreateHostGroupConfigEntityFromGroupInventory(
     lab_name: str, group: inventory_group.Group
-    ) -> datastore_entities.GroupConfig:
-  """Creates GroupConfig from Group model."""
-  entity = datastore_entities.GroupConfig(
-      id=datastore_entities.GroupConfig.CreateId(lab_name, group.name),
+    ) -> datastore_entities.HostGroupConfig:
+  """Creates HostGroupConfig from Group model."""
+  return datastore_entities.HostGroupConfig(
+      id=datastore_entities.HostGroupConfig.CreateId(lab_name, group.name),
       name=group.name,
-      lab=ndb.Key(datastore_entities.LabConfig, lab_name))
-  entity.parent_groups = [
-      ndb.Key(datastore_entities.GroupConfig,
-              datastore_entities.GroupConfig.CreateId(lab_name, g.name)
-              ) for g in group.parent_groups]
-  return entity
+      lab=lab_name,
+      parent_groups=[g.name for g in group.parent_groups])
 
 
 def _SyncInventoryHostGroup(lab_name: str, file_name: str) -> None:
-  """Loads inventory file to updates HostConfig and GroupConfig."""
+  """Loads inventory file to updates HostConfig and HostGroupConfig."""
   data = _LoadInventoryData(file_name)
-  _UpdateGroupConfigByInventoryData(lab_name, data)
+  _UpdateHostGroupConfigByInventoryData(lab_name, data)
   _UpdateHostConfigByInventoryData(lab_name, data)
 
 
-def _UpdateGroupConfigByInventoryData(
+def _UpdateHostGroupConfigByInventoryData(
     lab_name: str, data: inventory_data.InventoryData) -> None:
-  """Updates GroupConfig."""
+  """Updates HostGroupConfig.
+
+  The methods load new HostGroupConfig from inventory file, creates new
+  HostGroupConfig, updates exist HostGroupConfig and remove obsolete
+  HostGroupConfig.
+
+  Args:
+    lab_name: the lab name.
+    data: inventory data which was parsed by the ansible inventory module.
+  """
   entity_from_file = {
       group.key: group for group in [
-          _CreateGroupConfigEntityFromGroupInventory(lab_name, group)
+          _CreateHostGroupConfigEntityFromGroupInventory(lab_name, group)
           for group in data.groups.values()
       ]
   }
   entity_from_ndb = {
-      g.key: g for g in datastore_entities.GroupConfig.query(
-          datastore_entities.GroupConfig.lab == ndb.Key(
-              datastore_entities.LabConfig, lab_name)).fetch()}
+      g.key: g for g in datastore_entities.HostGroupConfig.query(
+          datastore_entities.HostGroupConfig.lab == lab_name).fetch()}
   need_update = []
   for key, group in entity_from_file.items():
-    if key not in entity_from_ndb:
-      need_update.append(group)
-      continue
-    if group.to_dict() != entity_from_ndb[key]:
+    if not _CheckConfigEntitiesEqual(entity_from_ndb.get(key), group):
       need_update.append(group)
   ndb.put_multi(need_update)
   ndb.delete_multi(
@@ -294,9 +302,9 @@ def _GetLabInventoryFiles() -> Generator[Tuple[str, str], None, None]:
     if not lab_dir.is_dir:
       continue
     lab_dir_match = _LAB_NAME_PATTERN.match(lab_dir.filename)
-    if not lab_dir_match or not lab_dir_match.group(_LAB_GROUP_NAME):
+    if not lab_dir_match or not lab_dir_match.group(_LAB_GROUP_KEY):
       continue
-    yield (lab_dir_match.group(_LAB_GROUP_NAME),
+    yield (lab_dir_match.group(_LAB_GROUP_KEY),
            _INVENTORY_FILE_FORMAT.format(lab_dir.filename))
 
 
@@ -306,6 +314,40 @@ def SyncInventoryGroupsToNDB():
     _SyncInventoryHostGroup(lab_name, inventory_file_name)
 
 
+def _GetLabInventoryGroupVarFiles(
+    lab_name: str) -> Generator[Tuple[str, str, BinaryIO], None, None]:
+  """Loads all group_var files for given lab."""
+  for group_var in file_storage.ListFiles(
+      _INVENTORY_GROUP_VAR_DIR_FORMAT.format(
+          _LAB_INVENTORY_DIR_PATH, lab_name)):
+    m = _INVENTORY_GROUP_VAR_PATTERN.match(group_var.filename)
+    if not m or not m.group(_LAB_GROUP_KEY) or not m.group(
+        _INVENTORY_GROUP_KEY):
+      continue
+    try:
+      with file_storage.OpenFile(group_var.filename) as f:
+        logging.info('Reading group var file %s', group_var.filename)
+        yield (m.group(_LAB_GROUP_KEY), m.group(_INVENTORY_GROUP_KEY), f)
+    except plugins_base.ObjectNotFoundError:
+      logging.error('group_var file not found in %s', group_var.filename)
+      continue
+
+
+def SyncInventoryGroupVarAccountsToNDB():
+  """Task to sync lab inventory group_vars to NDB."""
+  labs = datastore_entities.LabConfig.query().fetch()
+  for lab in labs:
+    for lab_name, group_name, group_var_file in _GetLabInventoryGroupVarFiles(
+        lab.lab_name):
+      group_var_dict = lab_config_util.ParseGroupVar(group_var_file)
+      group = datastore_entities.HostGroupConfig.get_by_id(
+          datastore_entities.HostGroupConfig.CreateId(lab_name, group_name))
+      if not group:
+        continue
+      group.account_principles = group_var_dict.get(_GROUP_VAR_ACCOUNTS)
+      group.put()
+
+
 @APP.route('/cron/syncer/sync_gcs_ndb')
 def SyncGCSToNDB():
   """Task to sync cluster and host config from gcs to ndb."""
@@ -313,4 +355,5 @@ def SyncGCSToNDB():
     logging.debug('"should_sync_lab_config" is enabled.')
     SyncToNDB()
     SyncInventoryGroupsToNDB()
+    SyncInventoryGroupVarAccountsToNDB()
   return common.HTTP_OK

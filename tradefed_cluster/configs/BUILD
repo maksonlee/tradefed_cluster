@@ -22,6 +22,7 @@ py_library(
     deps = [
         ":lab_config_py_pb2",
         third_party("strictyaml"),
+        "//net/proto2/python/public",
     ],
 )
 

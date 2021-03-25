@@ -736,9 +736,11 @@ pytype_strict_library(
         ":datastore_entities_lib",
         ":env_config_lib",
         "//tradefed_cluster/configs:lab_config_lib",
+        "//tradefed_cluster/plugins:base_lib",
         "//tradefed_cluster/services:file_storage_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
         third_party("flask"),
+        third_party("ansible"),
     ],
 )
 
@@ -767,17 +769,20 @@ py_test(
     ],
     data = [
         "test_yaml/dockerized-tf.yaml",
+        "test_yaml/hosts",
         "test_yaml/lab-config-with-duplicated-cluster.yaml",
     ],
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
         ":config_syncer_gcs_to_ndb_lib",
+        ":datastore_entities_lib",
         ":datastore_test_util_lib",
         ":testbed_dependent_test_lib",
         third_party("cloudstorage"),
         third_party("six"),
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 

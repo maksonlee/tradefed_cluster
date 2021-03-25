@@ -25,6 +25,7 @@ from tradefed_cluster.util import ndb_shim as ndb
 
 TEST_DATA_PATH = 'test_yaml'
 LAB_CONFIG_FILE = 'dockerized-tf.yaml'
+LAB_INV_FILE = 'hosts'
 
 
 def _GetTestFilePath(filename):
@@ -40,6 +41,13 @@ class ConfigSyncerGCSToNdbTest(testbed_dependent_test.TestbedDependentTest):
     with self.mock_file_storage.OpenFile(
         (config_syncer_gcs_to_ndb.LAB_CONFIG_DIR_PATH +
          LAB_CONFIG_FILE), 'w') as storage_file:
+      with open(file_path, 'r') as f:
+        for line in f:
+          storage_file.write(six.ensure_binary(line))
+    file_path = _GetTestFilePath(LAB_INV_FILE)
+    with self.mock_file_storage.OpenFile(
+        (config_syncer_gcs_to_ndb._LAB_INVENTORY_DIR_PATH + 'foo/' +
+         LAB_INV_FILE), 'w') as storage_file:
       with open(file_path, 'r') as f:
         for line in f:
           storage_file.write(six.ensure_binary(line))
@@ -180,6 +188,88 @@ class ConfigSyncerGCSToNdbTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual('homer-atc3', res.hostname)
     res = datastore_entities.HostConfig.get_by_id('homer-atc4')
     self.assertEqual('homer-atc4', res.hostname)
+
+  def testLoadInventoryData(self):
+    data = config_syncer_gcs_to_ndb._LoadInventoryData(
+        config_syncer_gcs_to_ndb._LAB_INVENTORY_DIR_PATH + 'foo/' +
+        LAB_INV_FILE)
+    self.assertSameElements(
+        ['jump', 'dhcp', 'pxe', 'server'],
+        [g.name for g in data.get_host('dhcp1.ntc-tpkd.google.com').groups])
+    self.assertSameElements(
+        ['jump', 'dhcp', 'pxe', 'server'],
+        [g.name for g in data.get_host('dhcp2.ntc-tpkd.google.com').groups])
+    self.assertSameElements(
+        ['pixellab'],
+        [g.name for g in data.get_host('tim-test.ntc-tpkd.google.com').groups])
+    self.assertSameElements(
+        ['dtf', 'tf'],
+        [g.name for g in data.get_host('tfpu00101.ntc-tpkd.google.com').groups])
+    self.assertSameElements(
+        ['tf', 'storage_tf'],
+        [g.name for g in data.get_host('tfpu00201.ntc-tpkd.google.com').groups])
+
+  def testSyncInventoryGroupsToNdbHostConfig(self):
+    config_syncer_gcs_to_ndb.SyncInventoryGroupsToNDB()
+    ndb.get_context().clear_cache()
+    res = datastore_entities.HostConfig.get_by_id('dhcp1.ntc-tpkd.google.com')
+    self.assertEqual(res.lab_name, 'foo')
+    self.assertEqual(res.hostname, 'dhcp1.ntc-tpkd.google.com')
+    self.assertSetEqual(
+        set(res.inventory_groups), set(('jump', 'dhcp', 'pxe', 'server')))
+    res = datastore_entities.HostConfig.get_by_id('dhcp2.ntc-tpkd.google.com')
+    self.assertSetEqual(
+        set(res.inventory_groups), set(('jump', 'dhcp', 'pxe', 'server')))
+    res = datastore_entities.HostConfig.get_by_id(
+        'tim-test.ntc-tpkd.google.com')
+    self.assertSetEqual(set(res.inventory_groups), set(('pixellab',)))
+    res = datastore_entities.HostConfig.get_by_id(
+        'tfpu00101.ntc-tpkd.google.com')
+    self.assertSetEqual(set(res.inventory_groups), set(('dtf', 'tf')))
+    res = datastore_entities.HostConfig.get_by_id(
+        'tfpu00201.ntc-tpkd.google.com')
+    self.assertSetEqual(set(res.inventory_groups), set(('storage_tf', 'tf')))
+
+  def testSyncInventoryGroupsToNdbGroupConfig(self):
+    ndb.put_multi([
+        datastore_entities.GroupConfig(
+            id='foo_jump',
+            lab=ndb.Key(datastore_entities.LabConfig, 'foo'),
+            parent_groups=[
+                ndb.Key(datastore_entities.GroupConfig, 'foo_all'),
+                ndb.Key(datastore_entities.GroupConfig, 'foo_bar'),
+            ]),
+        datastore_entities.GroupConfig(
+            id='foo_bar',
+            lab=ndb.Key(datastore_entities.LabConfig, 'foo'),
+            parent_groups=[
+                ndb.Key(datastore_entities.GroupConfig, 'foo_all'),
+            ])
+    ])
+    config_syncer_gcs_to_ndb.SyncInventoryGroupsToNDB()
+    ndb.get_context().clear_cache()
+    res = datastore_entities.GroupConfig.query(
+        datastore_entities.GroupConfig.lab == ndb.Key(
+            datastore_entities.LabConfig, 'foo')).fetch()
+    group_map = {g.name: g for g in res}
+    self.assertLen(group_map, 10)
+    self.assertSameElements(group_map['all'].parent_groups, [])
+    self.assertSameElements(
+        group_map['jump'].parent_groups,
+        [ndb.Key(datastore_entities.GroupConfig, 'foo_server')])
+    self.assertSameElements(
+        group_map['dhcp'].parent_groups,
+        [ndb.Key(datastore_entities.GroupConfig, 'foo_server')])
+    self.assertSameElements(
+        group_map['pxe'].parent_groups,
+        [ndb.Key(datastore_entities.GroupConfig, 'foo_server')])
+    self.assertSameElements(group_map['server'].parent_groups, [])
+    self.assertSameElements(
+        group_map['dtf'].parent_groups,
+        [ndb.Key(datastore_entities.GroupConfig, 'foo_tf')])
+    self.assertSameElements(
+        group_map['storage_tf'].parent_groups,
+        [ndb.Key(datastore_entities.GroupConfig, 'foo_tf')])
 
 
 if __name__ == '__main__':

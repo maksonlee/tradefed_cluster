@@ -592,6 +592,7 @@ class HostConfig(messages.Message):
   shutdown_timeout_sec = messages.IntegerField(7)
   enable_ui_update = messages.BooleanField(8)
   owners = messages.StringField(9, repeated=True)
+  inventory_groups = messages.StringField(10, repeated=True)
 
 
 class HostConfigCollection(messages.Message):

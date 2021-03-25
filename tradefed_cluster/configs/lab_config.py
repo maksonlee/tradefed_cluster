@@ -266,6 +266,10 @@ class HostConfig(object):
     """API Key for Android Engprod API discovery."""
     return self.lab_config_pb.engprod_api_key
 
+  @property
+  def inventory_groups(self):
+    return self.host_config_pb.inventory_groups
+
   def Save(self, output_file_path):
     """Save the config to a file."""
     lab_config_pb = lab_config_pb2.LabConfig()
@@ -320,7 +324,8 @@ def CreateHostConfig(
     service_account_key_secret_id=None,
     service_account=None,
     enable_ui_update=None,
-    engprod_api_key=None):
+    engprod_api_key=None,
+):
   """Create a host config from raw data.
 
   Args:

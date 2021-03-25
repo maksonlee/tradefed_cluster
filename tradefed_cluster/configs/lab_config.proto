@@ -112,8 +112,9 @@ message HostConfig {
   optional bool enable_ui_update = 8;
   // Extra docker args
   repeated string extra_docker_args = 9;
+  // The inventory groups the host belong to.
+  repeated string inventory_groups = 10;
 }
-
 
 // Tmpfs to mount in the dockerized tradefed container.
 message TmpfsConfig {

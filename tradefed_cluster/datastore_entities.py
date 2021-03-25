@@ -709,6 +709,7 @@ class HostConfig(ndb.Model):
     enable_ui_update: bool, whether the host can be updated from UI.
     owners: list of string, the lab owners.
     update_time: the time the config is update.
+    inventory_groups: the inventory group the host belong to.
   """
   hostname = ndb.StringProperty()
   tf_global_config_path = ndb.StringProperty()
@@ -720,9 +721,11 @@ class HostConfig(ndb.Model):
   enable_ui_update = ndb.BooleanProperty()
   owners = ndb.StringProperty(repeated=True)
   update_time = ndb.DateTimeProperty(auto_now=True)
+  inventory_groups = ndb.StringProperty(repeated=True)
 
   @classmethod
   def FromMessage(cls, msg):
+
     return cls(
         id=msg.hostname,
         hostname=msg.hostname,
@@ -733,7 +736,8 @@ class HostConfig(ndb.Model):
         graceful_shutdown=msg.graceful_shutdown,
         shutdown_timeout_sec=msg.shutdown_timeout_sec,
         enable_ui_update=msg.enable_ui_update,
-        owners=list(msg.owners))
+        owners=list(msg.owners),
+        inventory_groups=list(msg.inventory_groups))
 
 
 @MessageConverter(HostConfig)
@@ -749,7 +753,8 @@ def HostConfigToMessage(host_config_entity):
         graceful_shutdown=host_config_entity.graceful_shutdown,
         shutdown_timeout_sec=host_config_entity.shutdown_timeout_sec,
         enable_ui_update=host_config_entity.enable_ui_update,
-        owners=list(host_config_entity.owners))
+        owners=list(host_config_entity.owners),
+        inventory_groups=list(host_config_entity.inventory_groups))
 
 
 class HostMetadata(ndb.Model):
@@ -817,6 +822,24 @@ class LabConfig(ndb.Model):
         id=msg.lab_name,
         lab_name=msg.lab_name,
         owners=list(msg.owners))
+
+
+class GroupConfig(ndb.Model):
+  """Lab inventory group config entity.
+
+  Attributes:
+    name: the group name.
+    lab: the lab key.
+    parent_groups: the parent goup key list.
+  """
+  name = ndb.StringProperty()
+  lab = ndb.KeyProperty(kind=LabConfig)
+  parent_groups = ndb.KeyProperty(kind='GroupConfig', repeated=True)
+
+  @classmethod
+  def CreateId(cls, lab_name, name):
+    """Creates GroupConfig id."""
+    return '{}_{}'.format(lab_name, name)
 
 
 class HostUpdateStateSummary(ndb.Model):

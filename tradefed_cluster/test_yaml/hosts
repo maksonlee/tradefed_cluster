@@ -1,0 +1,30 @@
+[jump]
+dhcp1.ntc-tpkd.google.com
+dhcp2.ntc-tpkd.google.com
+
+[dhcp]
+dhcp1.ntc-tpkd.google.com ip=100.85.217.148 mac=f4:93:9f:eb:61:fa
+dhcp2.ntc-tpkd.google.com ip=100.85.217.149 mac=1c:a0:b8:77:e2:35
+
+[pxe]
+dhcp1.ntc-tpkd.google.com
+dhcp2.ntc-tpkd.google.com
+
+[server:children]
+jump
+dhcp
+pxe
+
+[pixellab]
+tim-test.ntc-tpkd.google.com ip=100.85.217.1 mac=84:a9:3e:85:b0:62
+
+[tf:children]
+dtf
+storage_tf
+
+[dtf]
+# rack01(ip:1-8)
+tfpu00101.ntc-tpkd.google.com ip=100.85.223.1 mac=f4:93:9f:ec:4e:64
+
+[storage_tf]
+tfpu00201.ntc-tpkd.google.com ip=100.85.223.9 mac=f4:93:9f:ee:48:fb

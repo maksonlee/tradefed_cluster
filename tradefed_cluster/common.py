@@ -382,3 +382,4 @@ class TestBenchKey(object):
 
 
 UNKNOWN_LAB_NAME = "UNKNOWN"
+UNKNOWN_CLUSTER_NAME = "UNKNOWN"

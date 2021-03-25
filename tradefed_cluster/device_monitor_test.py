@@ -83,6 +83,7 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
         'dockerized-tf-gke', 'cloud-tf-1234', 'null-device-0',
         run_target='NullDevice')
     device_manager._CountDeviceForHost('cloud-tf-1234')
+    datastore_test_util.CreateHost('', 'mh.host', lab_name='mh')
 
     self.testapp = webtest.TestApp(device_monitor.APP)
     # Clear Datastore cache
@@ -109,6 +110,13 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual('cloud-tf', cluster.lab_name)
     self.assertEqual(1, cluster.total_devices)
     self.assertEqual(1, cluster.available_devices)
+    self.assertEqual(0, cluster.allocated_devices)
+    self.assertEqual(0, cluster.offline_devices)
+    cluster = datastore_entities.ClusterInfo.get_by_id(
+        common.UNKNOWN_CLUSTER_NAME)
+    self.assertEqual('mh', cluster.lab_name)
+    self.assertEqual(0, cluster.total_devices)
+    self.assertEqual(0, cluster.available_devices)
     self.assertEqual(0, cluster.allocated_devices)
     self.assertEqual(0, cluster.offline_devices)
 

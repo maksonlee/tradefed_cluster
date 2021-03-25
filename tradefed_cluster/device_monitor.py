@@ -93,14 +93,15 @@ def _UpdateClusters(hosts):
       update_state.hostname: update_state for update_state in query.fetch()}
 
   for cluster, hosts in six.iteritems(cluster_to_hosts):
-    cluster_entity = datastore_entities.ClusterInfo(id=cluster)
+    cluster_id = cluster or common.UNKNOWN_CLUSTER_NAME
+    cluster_entity = datastore_entities.ClusterInfo(id=cluster_id)
     for host in hosts:
       if host.lab_name:
         cluster_entity.lab_name = host.lab_name
         break
     else:
       cluster_entity.lab_name = common.UNKNOWN_LAB_NAME
-    cluster_entity.cluster = cluster
+    cluster_entity.cluster = cluster_id
     cluster_entity.total_devices = 0
     cluster_entity.offline_devices = 0
     cluster_entity.available_devices = 0

@@ -21,7 +21,7 @@ import zlib
 import mock
 
 from google.cloud import tasks_v2
-from google.protobuf import timestamp_pb2
+from google3.google.protobuf import timestamp_pb2
 
 from tradefed_cluster.plugins import google_cloud
 

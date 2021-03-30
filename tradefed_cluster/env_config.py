@@ -51,6 +51,7 @@ class EnvConfig(env_util.EnvConfig):
     self.plugin = registry.GetNoOpPlugin()
 
     # Service providers
+    self.acl_plugin = None
     self.app_manager = None
     self.file_storage = None
     self.mailer = None

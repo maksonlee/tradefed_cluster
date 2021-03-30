@@ -56,6 +56,33 @@ py_test(
         third_party("absl/testing:absltest"),
         third_party("mock"),
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
+        "//tradefed_cluster:env_config_lib",
+        "//tradefed_cluster/plugins:base_lib",
+    ],
+)
+
+pytype_strict_library(
+    name = "acl_service_lib",
+    srcs = [
+        "acl_service.py",
+    ],
+    srcs_version = "PY2AND3",
+    deps = [
+        "//tradefed_cluster:env_config_lib",
+    ],
+)
+
+py_test(
+    name = "acl_service_test",
+    srcs = [
+        "acl_service_test.py",
+    ],
+    python_version = "PY3",
+    srcs_version = "PY2AND3",
+    deps = [
+        ":acl_service_lib",
+        third_party("absl/testing:absltest"),
+        "//tradefed_cluster:env_config_lib",
     ],
 )
 

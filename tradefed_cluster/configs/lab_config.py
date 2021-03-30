@@ -543,7 +543,13 @@ class LabConfigPool(object):
 
 
 def ParseGroupVar(group_var_file):
-  """Parses yml file and returns the parsed mapping."""
+  """Parses yml file and returns the parsed mapping.
+
+  Args:
+    group_var_file: the group_var file object.
+  Returns:
+    the parsed yml mapping.
+  """
   try:
     content = six.ensure_str(group_var_file.read())
     return syaml.load(content).data

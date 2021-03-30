@@ -13,15 +13,11 @@
 # limitations under the License.
 
 """Sync Cluster or Host configs from google cloud storage to TFC NDB."""
-from __future__ import google_type_annotations
 
 import logging
 import re
-from typing import Generator, Tuple, BinaryIO
 
 from ansible.inventory import data as inventory_data
-from ansible.inventory import group as inventory_group
-from ansible.inventory import host as inventory_host
 from ansible.parsing import dataloader
 from ansible.plugins.inventory import ini
 import flask
@@ -196,22 +192,41 @@ def SyncToNDB():
 class _GcsDataLoader(dataloader.DataLoader):
   """The data loader use gcs file_storeage to read the files."""
 
-  def _get_file_contents(self, file_name: str) -> Tuple[bytes, bool]:
-    """Gets file contents and the show_content flag from given file name."""
+  def _get_file_contents(self, file_name):
+    """Gets file contents and the show_content flag from given file name.
+
+    Args:
+      file_name: the file name.
+    Returns:
+      A tuple contains file content and a boolean value indicates if the file
+      is encrypt or not.
+    """
     with file_storage.OpenFile(file_name) as f:
       return f.read(), False
 
 
-def _LoadInventoryData(path: str) -> inventory_data.InventoryData:
-  """Loads inventory data from given path."""
+def _LoadInventoryData(path):
+  """Loads inventory data from given path.
+
+  Args:
+    path: the inentory file path.
+  Returns:
+    the ansible InventoryData object.
+  """
   data = inventory_data.InventoryData()
   ini.InventoryModule().parse(data, _GcsDataLoader(), path)
   return data
 
 
-def _CreateHostConfigEntityFromHostInventory(
-    lab_name: str, host: inventory_host.Host) -> datastore_entities.HostConfig:
-  """Creates HostConfig from HostInventory."""
+def _CreateHostConfigEntityFromHostInventory(lab_name, host):
+  """Creates HostConfig from HostInventory.
+
+  Args:
+    lab_name: the lab name.
+    host: the ansible inventory Host object.
+  Returns:
+    the HostConfig entity.
+  """
   return datastore_entities.HostConfig(
       id=host.name,
       lab_name=lab_name,
@@ -219,10 +234,15 @@ def _CreateHostConfigEntityFromHostInventory(
       inventory_groups=sorted(set([g.name for g in host.groups])))
 
 
-def _CreateHostGroupConfigEntityFromGroupInventory(
-    lab_name: str, group: inventory_group.Group
-    ) -> datastore_entities.HostGroupConfig:
-  """Creates HostGroupConfig from Group model."""
+def _CreateHostGroupConfigEntityFromGroupInventory(lab_name, group):
+  """Creates HostGroupConfig from Group model.
+
+  Args:
+    lab_name: the lab name.
+    group: the ansible inventory Group object.
+  Returns:
+    the HostGroupConfig entity.
+  """
   return datastore_entities.HostGroupConfig(
       id=datastore_entities.HostGroupConfig.CreateId(lab_name, group.name),
       name=group.name,
@@ -230,15 +250,19 @@ def _CreateHostGroupConfigEntityFromGroupInventory(
       parent_groups=[g.name for g in group.parent_groups])
 
 
-def _SyncInventoryHostGroup(lab_name: str, file_name: str) -> None:
-  """Loads inventory file to updates HostConfig and HostGroupConfig."""
+def _SyncInventoryHostGroup(lab_name, file_name):
+  """Loads inventory file to updates HostConfig and HostGroupConfig.
+
+  Args:
+    lab_name: the lab name.
+    file_name: the inventory file name.
+  """
   data = _LoadInventoryData(file_name)
   _UpdateHostGroupConfigByInventoryData(lab_name, data)
   _UpdateHostConfigByInventoryData(lab_name, data)
 
 
-def _UpdateHostGroupConfigByInventoryData(
-    lab_name: str, data: inventory_data.InventoryData) -> None:
+def _UpdateHostGroupConfigByInventoryData(lab_name, data):
   """Updates HostGroupConfig.
 
   The methods load new HostGroupConfig from inventory file, creates new
@@ -267,9 +291,13 @@ def _UpdateHostGroupConfigByInventoryData(
       set(entity_from_ndb.keys()).difference(entity_from_file.keys()))
 
 
-def _UpdateHostConfigByInventoryData(
-    lab_name: str, data: inventory_data.InventoryData) -> None:
-  """Updates HostConfig inventory_groups."""
+def _UpdateHostConfigByInventoryData(lab_name, data):
+  """Updates HostConfig inventory_groups.
+
+  Args:
+    lab_name: the lab name.
+    data: the InventoryData object.
+  """
   keys = []
   entities_from_file = {
       host.name: _CreateHostConfigEntityFromHostInventory(lab_name, host)
@@ -295,8 +323,12 @@ def _UpdateHostConfigByInventoryData(
   ndb.put_multi(need_update.values())
 
 
-def _GetLabInventoryFiles() -> Generator[Tuple[str, str], None, None]:
-  """Gets inventory files."""
+def _GetLabInventoryFiles():
+  """Gets inventory files.
+
+  Yields:
+    A tuple contains lab name and the inventory file name.
+  """
   for lab_dir in file_storage.ListFiles(_LAB_INVENTORY_DIR_PATH):
     logging.info('Gets inventory from lab dir: %s', lab_dir)
     if not lab_dir.is_dir:
@@ -314,9 +346,14 @@ def SyncInventoryGroupsToNDB():
     _SyncInventoryHostGroup(lab_name, inventory_file_name)
 
 
-def _GetLabInventoryGroupVarFiles(
-    lab_name: str) -> Generator[Tuple[str, str, BinaryIO], None, None]:
-  """Loads all group_var files for given lab."""
+def _GetLabInventoryGroupVarFiles(lab_name):
+  """Loads all group_var files for given lab.
+
+  Args:
+    lab_name: the lab name.
+  Yields:
+    A tuple contains lab name, group name and the group_var file object.
+  """
   for group_var in file_storage.ListFiles(
       _INVENTORY_GROUP_VAR_DIR_FORMAT.format(
           _LAB_INVENTORY_DIR_PATH, lab_name)):

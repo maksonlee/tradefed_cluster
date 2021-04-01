@@ -243,6 +243,8 @@ def CreateRequestEventMessage(request):
     for attempt in reversed(attempts):
       if attempt.key.parent() != command.key:
         continue
+
+      attempt = attempt.key.get(use_cache=False, use_memcache=False)
       if attempt.start_time and attempt.end_time:
         run_time = (attempt.end_time - attempt.start_time).total_seconds()
         if run_time > 0:

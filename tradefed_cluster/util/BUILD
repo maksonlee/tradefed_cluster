@@ -131,7 +131,7 @@ pytype_strict_library(
     srcs_version = "PY2AND3",
     deps = [
         ":google_import_fixer",
-        third_party("google/cloud/ndb:google3_ndb"),
+        third_party("google/cloud/ndb"),
         third_party("six"),
     ],
 )

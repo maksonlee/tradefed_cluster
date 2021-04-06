@@ -270,6 +270,11 @@ class HostConfig(object):
   def inventory_groups(self):
     return self.host_config_pb.inventory_groups
 
+  @property
+  def ssh_arg(self):
+    """Get host's ssh arg."""
+    return self.lab_config_pb.ssh_arg
+
   def Save(self, output_file_path):
     """Save the config to a file."""
     lab_config_pb = lab_config_pb2.LabConfig()
@@ -325,6 +330,7 @@ def CreateHostConfig(
     service_account=None,
     enable_ui_update=None,
     engprod_api_key=None,
+    ssh_arg=None,
 ):
   """Create a host config from raw data.
 
@@ -350,6 +356,7 @@ def CreateHostConfig(
     service_account: Service account for the lab.
     enable_ui_update: bool, whether host update from UI is enabled.
     engprod_api_key: string, API Key for Android Engprod API discovery.
+    ssh_arg: string, ssh args to the host.
   Returns:
     a HostConfig have all those data.
   """
@@ -379,7 +386,8 @@ def CreateHostConfig(
       secret_project_id=secret_project_id,
       service_account_key_secret_id=service_account_key_secret_id,
       service_account=service_account,
-      engprod_api_key=engprod_api_key)
+      engprod_api_key=engprod_api_key,
+      ssh_arg=ssh_arg)
   return HostConfig(host_config_pb, cluster_config_pb, lab_config_pb)
 
 

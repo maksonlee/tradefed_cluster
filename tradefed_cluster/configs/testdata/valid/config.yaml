@@ -29,6 +29,7 @@ secret_project_id: secret_project_id
 service_account_key_secret_id: lab_sv_key
 service_account: sa@project.google.com
 engprod_api_key: AStringToRepresentApiKey
+ssh_arg: "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -F /path/to/ssh/config -C"
 
 cluster_configs:
 - cluster_name: cluster1

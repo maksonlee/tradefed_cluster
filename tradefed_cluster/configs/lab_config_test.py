@@ -56,6 +56,10 @@ class ConfigTest(unittest.TestCase):
                      lab_config_pb.secret_project_id)
     self.assertEqual('sa@project.google.com',
                      lab_config_pb.service_account)
+    self.assertEqual(
+        '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null '
+        '-F /path/to/ssh/config -C',
+        lab_config_pb.ssh_arg)
     self.assertEqual(2, len(lab_config_pb.cluster_configs))
     cluster = lab_config_pb.cluster_configs[0]
     self.assertEqual('cluster1', cluster.cluster_name)
@@ -362,6 +366,10 @@ class LabConfigPoolTest(unittest.TestCase):
     self.assertEqual('secret_project_id', host.secret_project_id)
     self.assertEqual('lab_sv_key', host.service_account_key_secret_id)
     self.assertEqual('sa@project.google.com', host.service_account)
+    self.assertEqual(
+        '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null '
+        '-F /path/to/ssh/config -C',
+        host.ssh_arg)
 
   def testGetHostConfig_notExist(self):
     """Test get host config for not exist host from LabConfigPool works."""

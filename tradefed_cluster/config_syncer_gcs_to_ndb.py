@@ -39,6 +39,8 @@ _INVENTORY_GROUPS = 'inventory_groups'
 _FileInfo = plugins_base.FileInfo
 _APP = flask.Flask(__name__)
 _LAB_NAME_PATTERN = re.compile(r'.*\/lab_inventory\/(?P<lab_name>.*)')
+_INVENTORY_FILE_PATTERN = re.compile(
+    r'.*\/lab_inventory\/(?P<lab_name>.*)\/hosts')
 _LAB_GROUP_KEY = 'lab_name'
 _INVENTORY_FILE_FORMAT = '{}/hosts'
 _INVENTORY_GROUP_VAR_DIR_FORMAT = '{}{}/group_vars/'
@@ -279,6 +281,8 @@ def _UpdateHostGroupConfigByInventoryData(lab_name, data):
           for group in data.groups.values()
       ]
   }
+  logging.debug('Loaded %d HostGroupConfigs of lab %s',
+                len(entity_from_file), lab_name)
   entity_from_ndb = {
       g.key: g for g in datastore_entities.HostGroupConfig.query(
           datastore_entities.HostGroupConfig.lab == lab_name).fetch()}
@@ -287,8 +291,10 @@ def _UpdateHostGroupConfigByInventoryData(lab_name, data):
     if not _CheckConfigEntitiesEqual(entity_from_ndb.get(key), group):
       need_update.append(group)
   ndb.put_multi(need_update)
-  ndb.delete_multi(
-      set(entity_from_ndb.keys()).difference(entity_from_file.keys()))
+  logging.debug('Updated %d HostGroupConfigs.', len(need_update))
+  need_delete = set(entity_from_ndb.keys()).difference(entity_from_file.keys())
+  ndb.delete_multi(need_delete)
+  logging.debug('Removed %d HostGroupConfigs', len(need_delete))
 
 
 def _UpdateHostConfigByInventoryData(lab_name, data):
@@ -314,11 +320,11 @@ def _UpdateHostConfigByInventoryData(lab_name, data):
     old = entities_from_ndb.get(hostname)
     new = entities_from_file[hostname]
     if not old:
-      logging.info('Creating host config %s', new)
+      logging.debug('Creating host config %s', new)
       need_update[hostname] = new
     elif old.inventory_groups != new.inventory_groups:
       old.inventory_groups = new.inventory_groups
-      logging.info('Updating host config %s', old)
+      logging.debug('Updating host config %s', old)
       need_update[hostname] = old
   ndb.put_multi(need_update.values())
 
@@ -329,15 +335,18 @@ def _GetLabInventoryFiles():
   Yields:
     A tuple contains lab name and the inventory file name.
   """
-  for lab_dir in file_storage.ListFiles(_LAB_INVENTORY_DIR_PATH):
-    logging.info('Gets inventory from lab dir: %s', lab_dir)
-    if not lab_dir.is_dir:
-      continue
-    lab_dir_match = _LAB_NAME_PATTERN.match(lab_dir.filename)
-    if not lab_dir_match or not lab_dir_match.group(_LAB_GROUP_KEY):
-      continue
-    yield (lab_dir_match.group(_LAB_GROUP_KEY),
-           _INVENTORY_FILE_FORMAT.format(lab_dir.filename))
+  logging.debug('list lab dir in %s', _LAB_INVENTORY_DIR_PATH)
+  for file in file_storage.ListFiles(_LAB_INVENTORY_DIR_PATH):
+    if file.is_dir:
+      lab_dir_match = _LAB_NAME_PATTERN.match(file.filename)
+      if lab_dir_match and lab_dir_match.group(_LAB_GROUP_KEY):
+        yield (lab_dir_match.group(_LAB_GROUP_KEY),
+               _INVENTORY_FILE_FORMAT.format(file.filename))
+    else:
+      inventory_file_match = _INVENTORY_FILE_PATTERN.match(file.filename)
+      if inventory_file_match and inventory_file_match.group(_LAB_GROUP_KEY):
+        logging.debug('Gets inventory from lab dir: %s', file.filename)
+        yield (inventory_file_match.group(_LAB_GROUP_KEY), file.filename)
 
 
 def SyncInventoryGroupsToNDB():
@@ -354,6 +363,9 @@ def _GetLabInventoryGroupVarFiles(lab_name):
   Yields:
     A tuple contains lab name, group name and the group_var file object.
   """
+  logging.debug('list group vars in %s',
+                _INVENTORY_GROUP_VAR_DIR_FORMAT.format(
+                    _LAB_INVENTORY_DIR_PATH, lab_name))
   for group_var in file_storage.ListFiles(
       _INVENTORY_GROUP_VAR_DIR_FORMAT.format(
           _LAB_INVENTORY_DIR_PATH, lab_name)):
@@ -363,7 +375,7 @@ def _GetLabInventoryGroupVarFiles(lab_name):
       continue
     try:
       with file_storage.OpenFile(group_var.filename) as f:
-        logging.info('Reading group var file %s', group_var.filename)
+        logging.debug('Reading group var file %s', group_var.filename)
         yield (m.group(_LAB_GROUP_KEY), m.group(_INVENTORY_GROUP_KEY), f)
     except plugins_base.ObjectNotFoundError:
       logging.error('group_var file not found in %s', group_var.filename)

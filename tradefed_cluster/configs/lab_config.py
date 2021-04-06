@@ -475,6 +475,14 @@ class LabConfigPool(object):
         self.cluster_to_host_configs[cluster_config_pb.cluster_name].append(
             host_config)
 
+  def GetLabConfigs(self):
+    """Get lab configs.
+
+    Returns:
+      a list of lab_config_pb2.LabConfig.
+    """
+    return self.lab_to_lab_config_pb.values()
+
   def GetHostConfigs(self, cluster_name=None):
     """Get hosts for under a certain cluster.
 

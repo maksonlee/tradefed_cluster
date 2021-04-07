@@ -200,7 +200,7 @@ def RescheduleTask(task_id, run_index, attempt_index):
   if task:
     if task.leasable:
       # Ignore leasable tasks
-      logging.info('%s isn\'t leasable, don\'t reschedule', str(task_id))
+      logging.info('%s is leasable, don\'t reschedule', str(task_id))
       return
     task.leasable = True
     task.run_index = run_index

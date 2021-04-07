@@ -152,7 +152,7 @@ class CommandSummary(object):
       run_summary.attempt_count += 1
       if command_attempt.state == common.CommandState.QUEUED:
         run_summary.queued_count += 1
-      if command_attempt.state == common.CommandState.RUNNING:
+      elif command_attempt.state == common.CommandState.RUNNING:
         run_summary.running_count += 1
       elif command_attempt.state == common.CommandState.CANCELED:
         run_summary.canceled_count += 1
@@ -535,7 +535,7 @@ def _RescheduleOrDeleteTask(task_id,
     RescheduleTask(task_id, command, run_index, attempt_index)
   else:
     logging.debug(
-        "active_task_count %r + completed_count %r <= run_count %r, "
+        "active_task_count %r + completed_count %r > run_count %r, "
         "delete %r", len(active_tasks), completed_count, command.run_count,
         task_id)
     DeleteTask(task_id)

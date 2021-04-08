@@ -438,12 +438,12 @@ class LabConfigPool(object):
 
   def __init__(self, file_enumerator=None):
     self.file_enumerator = file_enumerator
-    self.lab_to_lab_config_pb = {}
-    self.cluster_to_cluster_config_pb = {}
-    self.cluster_to_lab_config_pb = {}
-    self.host_to_host_config = {}
-    self.cluster_to_host_configs = collections.defaultdict(list)
-    self.lab_to_host_configs = collections.defaultdict(list)
+    self._lab_to_lab_config_pb = {}
+    self._cluster_to_cluster_config_pb = {}
+    self._cluster_to_lab_config_pb = {}
+    self._host_to_host_config = {}
+    self._cluster_to_host_configs = collections.defaultdict(list)
+    self._all_host_configs = []
 
   def LoadConfigs(self):
     """Load configs in the given path."""
@@ -458,30 +458,35 @@ class LabConfigPool(object):
       raise ConfigError(
           'Lab config path is set, '
           'but there is no lab config files under the path.')
+    if len(self._lab_to_lab_config_pb.keys()) > 1:
+      raise ConfigError(
+          'There are multiple labs configured: %s.' %
+          self._lab_to_lab_config_pb.keys())
 
   def _LoadConfig(self, file_obj):
     """Load one config file."""
     lab_config_pb = Parse(file_obj)
-    self.lab_to_lab_config_pb[lab_config_pb.lab_name] = lab_config_pb
+    self._lab_to_lab_config_pb[lab_config_pb.lab_name] = lab_config_pb
     for cluster_config_pb in lab_config_pb.cluster_configs:
-      self.cluster_to_cluster_config_pb[cluster_config_pb.cluster_name] = (
+      self._cluster_to_cluster_config_pb[cluster_config_pb.cluster_name] = (
           cluster_config_pb)
-      self.cluster_to_lab_config_pb[cluster_config_pb.cluster_name] = (
+      self._cluster_to_lab_config_pb[cluster_config_pb.cluster_name] = (
           lab_config_pb)
       for host_config_pb in cluster_config_pb.host_configs:
         host_config = HostConfig(
             host_config_pb, cluster_config_pb, lab_config_pb)
-        self.host_to_host_config[host_config_pb.hostname] = host_config
-        self.cluster_to_host_configs[cluster_config_pb.cluster_name].append(
+        self._host_to_host_config[host_config_pb.hostname] = host_config
+        self._cluster_to_host_configs[cluster_config_pb.cluster_name].append(
             host_config)
+        self._all_host_configs.append(host_config)
 
-  def GetLabConfigs(self):
-    """Get lab configs.
+  def GetLabConfig(self):
+    """Get the lab config.
 
     Returns:
-      a list of lab_config_pb2.LabConfig.
+      a lab_config_pb2.LabConfig.
     """
-    return self.lab_to_lab_config_pb.values()
+    return list(self._lab_to_lab_config_pb.values())[0]
 
   def GetHostConfigs(self, cluster_name=None):
     """Get hosts for under a certain cluster.
@@ -492,11 +497,8 @@ class LabConfigPool(object):
       a list of host configs.
     """
     if cluster_name:
-      return self.cluster_to_host_configs.get(cluster_name, [])
-    host_configs = []
-    for cluster_host_configs in self.cluster_to_host_configs.values():
-      host_configs.extend(cluster_host_configs)
-    return host_configs
+      return self._cluster_to_host_configs.get(cluster_name, [])
+    return self._all_host_configs
 
   def GetHostConfig(self, hostname):
     """Get host config.
@@ -506,7 +508,7 @@ class LabConfigPool(object):
     Returns:
       a HostConfig
     """
-    return self.host_to_host_config.get(hostname)
+    return self._host_to_host_config.get(hostname)
 
   def BuildHostConfig(
       self,
@@ -529,18 +531,18 @@ class LabConfigPool(object):
     Returns:
       a HostConfig
     """
-    host_config = self.host_to_host_config.get(hostname)
+    host_config = self._host_to_host_config.get(hostname)
     if host_config:
       return host_config
     logger.debug('No host config for %s.', hostname)
     host_config_pb = lab_config_pb2.HostConfig(hostname=hostname)
     cluster_config_pb = None
     if cluster_name:
-      cluster_config_pb = self.cluster_to_cluster_config_pb.get(cluster_name)
+      cluster_config_pb = self._cluster_to_cluster_config_pb.get(cluster_name)
       if cluster_config_pb:
         return HostConfig(
             host_config_pb, cluster_config_pb,
-            self.cluster_to_lab_config_pb[cluster_name])
+            self._cluster_to_lab_config_pb[cluster_name])
       else:
         logger.debug('No cluster config for %s.', cluster_name)
     cluster_config_pb = lab_config_pb2.ClusterConfig(
@@ -548,7 +550,7 @@ class LabConfigPool(object):
         host_configs=[host_config_pb],
         host_login_name=host_login_name or '')
     if lab_name:
-      lab_config_pb = self.lab_to_lab_config_pb.get(lab_name)
+      lab_config_pb = self._lab_to_lab_config_pb.get(lab_name)
       if lab_config_pb:
         return HostConfig(host_config_pb, cluster_config_pb, lab_config_pb)
       else:

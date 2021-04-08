@@ -41,7 +41,7 @@ class ConfigTest(unittest.TestCase):
     self.assertEqual('lab1', lab_config_pb.lab_name)
     self.assertEqual('lab_user1', lab_config_pb.host_login_name)
     self.assertEqual(['lab_user1', 'user1'], lab_config_pb.owners)
-    self.assertEqual('tfc_master_url', lab_config_pb.master_url)
+    self.assertEqual('tfc_url', lab_config_pb.control_server_url)
     self.assertEqual('lab_docker_image', lab_config_pb.docker_image)
     self.assertEqual('docker_server_1', lab_config_pb.docker_server)
     self.assertEqual('AStringToRepresentApiKey', lab_config_pb.engprod_api_key)
@@ -66,8 +66,7 @@ class ConfigTest(unittest.TestCase):
     self.assertEqual('user1', cluster.host_login_name)
     self.assertEqual(['user1', 'user2'], cluster.owners)
     self.assertEqual('path/to/config.xml', cluster.tf_global_config_path)
-    self.assertEqual('tfc_master_url', cluster.master_url)
-    self.assertEqual('', cluster.control_server_url)
+    self.assertEqual('tfc_url', cluster.control_server_url)
     self.assertTrue(cluster.graceful_shutdown)
     self.assertEqual(600, cluster.shutdown_timeout_sec)
     self.assertTrue(cluster.enable_stackdriver)
@@ -245,27 +244,19 @@ class LabConfigPoolTest(unittest.TestCase):
     pool = lab_config.LabConfigPool(
         lab_config.LocalFileEnumerator(config_path, lab_config.IsYaml))
     pool.LoadConfigs()
-    self.assertIsNotNone(pool.lab_to_lab_config_pb.get('lab1'))
-    self.assertIsNotNone(pool.cluster_to_cluster_config_pb.get('cluster1'))
-    self.assertIsNotNone(pool.cluster_to_cluster_config_pb.get('cluster2'))
+    self.assertIsNotNone(pool._lab_to_lab_config_pb.get('lab1'))
+    self.assertIsNotNone(pool._cluster_to_cluster_config_pb.get('cluster1'))
+    self.assertIsNotNone(pool._cluster_to_cluster_config_pb.get('cluster2'))
 
-  def testLoadConfigs_folder(self):
+  def testLoadConfigs_loadMultipleLab(self):
     """Test LabConfigPool LoadConfigs can load configs in a folder."""
     config_path = GetTestFilePath('valid/config.yaml')
     pool = lab_config.LabConfigPool(
         lab_config.LocalFileEnumerator(
             os.path.dirname(config_path), lab_config.IsYaml))
-    pool.LoadConfigs()
-    self.assertIsNotNone(pool.lab_to_lab_config_pb.get('lab1'))
-    self.assertIsNotNone(pool.cluster_to_cluster_config_pb.get('cluster1'))
-    self.assertEqual(
-        'lab1',
-        pool.cluster_to_lab_config_pb.get('cluster1').lab_name)
-    self.assertIsNotNone(pool.cluster_to_cluster_config_pb.get('cluster2'))
-    self.assertIsNotNone(
-        pool.cluster_to_cluster_config_pb.get('another_cluster1'))
-    self.assertIsNotNone(
-        pool.cluster_to_cluster_config_pb.get('another_cluster2'))
+    with self.assertRaisesRegex(
+        lab_config.ConfigError, r'There are multiple labs configured.*'):
+      pool.LoadConfigs()
 
   def testLoadConfigs_notExist(self):
     """Test LabConfigPool LoadConfigs fail when config doesn't exist."""
@@ -286,6 +277,33 @@ class LabConfigPoolTest(unittest.TestCase):
           lab_config.LocalFileEnumerator(config_path, lab_config.IsYaml))
       pool.LoadConfigs()
 
+  def testGetLabConfig(self):
+    """Test ConfigPool LoadConfigs can load one config file."""
+    config_path = GetTestFilePath('valid/config.yaml')
+    pool = lab_config.LabConfigPool(
+        lab_config.LocalFileEnumerator(config_path, lab_config.IsYaml))
+    pool.LoadConfigs()
+    self.assertIsNotNone(pool._lab_to_lab_config_pb.get('lab1'))
+    config = pool.GetLabConfig()
+    self.assertEqual('lab1', config.lab_name)
+    self.assertEqual('lab_user1', config.host_login_name)
+    self.assertEqual(['lab_user1', 'user1'], config.owners)
+    self.assertEqual('tfc_url', config.control_server_url)
+    self.assertEqual('lab_docker_image', config.docker_image)
+    self.assertEqual('docker_server_1', config.docker_server)
+    self.assertTrue(config.enable_stackdriver)
+    self.assertTrue(config.enable_autoupdate)
+    self.assertTrue(config.enable_ui_update)
+    self.assertEqual('path/to/key.json', config.service_account_json_key_path)
+    self.assertEqual('secret_project_id', config.secret_project_id)
+    self.assertEqual('lab_sv_key', config.service_account_key_secret_id)
+    self.assertEqual('sa@project.google.com', config.service_account)
+    self.assertEqual('AStringToRepresentApiKey', config.engprod_api_key)
+    self.assertEqual(
+        '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null '
+        '-F /path/to/ssh/config -C',
+        config.ssh_arg)
+
   def testGetHostConfigs(self):
     """Test get hosts from LabConfigPool works."""
     config_path = GetTestFilePath('valid/config.yaml')
@@ -299,7 +317,7 @@ class LabConfigPoolTest(unittest.TestCase):
     self.assertEqual('user1', hosts[0].host_login_name)
     self.assertEqual('cluster1', hosts[0].cluster_name)
     self.assertEqual('path/to/config.xml', hosts[0].tf_global_config_path)
-    self.assertEqual('tfc_master_url', hosts[0].control_server_url)
+    self.assertEqual('tfc_url', hosts[0].control_server_url)
     self.assertCountEqual(['lab_user1', 'user1', 'user2'], hosts[0].owners)
     self.assertTrue(hosts[0].graceful_shutdown)
     self.assertTrue(hosts[0].enable_stackdriver)
@@ -314,7 +332,7 @@ class LabConfigPoolTest(unittest.TestCase):
     self.assertEqual('user1', hosts[1].host_login_name)
     self.assertEqual('cluster1', hosts[1].cluster_name)
     self.assertEqual('path/to/config.xml', hosts[1].tf_global_config_path)
-    self.assertEqual('tfc_master_url', hosts[1].control_server_url)
+    self.assertEqual('tfc_url', hosts[1].control_server_url)
     self.assertCountEqual(['lab_user1', 'user1', 'user2'], hosts[1].owners)
     self.assertEqual('gcr.io/dockerized-tradefed/tradefed:golden',
                      hosts[1].docker_image)
@@ -325,7 +343,7 @@ class LabConfigPoolTest(unittest.TestCase):
     self.assertEqual('cluster1', hosts[2].cluster_name)
     self.assertEqual('path/to/new/config.xml', hosts[2].tf_global_config_path)
     self.assertCountEqual(['lab_user1', 'user1', 'user2'], hosts[2].owners)
-    self.assertEqual('tfc_master_url', hosts[2].control_server_url)
+    self.assertEqual('tfc_url', hosts[2].control_server_url)
     self.assertEqual('gcr.io/dockerized-tradefed/tradefed:canary',
                      hosts[2].docker_image)
     self.assertEqual('docker_server_3', hosts[2].docker_server)

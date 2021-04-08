@@ -18,7 +18,7 @@ host_login_name: lab_user1
 owners:
   - lab_user1
   - user1
-master_url: tfc_master_url
+control_server_url: tfc_url
 docker_image: lab_docker_image
 docker_server: docker_server_1
 enable_stackdriver: True
@@ -38,7 +38,7 @@ cluster_configs:
   - user1
   - user2
   tf_global_config_path: path/to/config.xml
-  master_url: tfc_master_url
+  control_server_url: tfc_url
   docker_image: gcr.io/dockerized-tradefed/tradefed:golden
   docker_server: docker_server_2
   graceful_shutdown: True

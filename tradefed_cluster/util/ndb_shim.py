@@ -50,6 +50,7 @@ put_multi_async = ndb.put_multi_async
 
 QueryOptions = ndb.QueryOptions
 toplevel = ndb.toplevel
+transaction = ndb.transaction
 transactional = ndb.transactional
 in_transaction = ndb.in_transaction
 

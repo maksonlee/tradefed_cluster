@@ -14,7 +14,7 @@ class AclServiceTest(absltest.TestCase):
     self._acl_plugin = mock.MagicMock()
     env_config.CONFIG.acl_plugin = self._acl_plugin
 
-  def testValidatePrinciples(self):
+  def testValidatePrincipals(self):
     self._acl_plugin.CheckMembership.return_value = True
     res = acl_service.CheckMembership('foo', 'mdb/foo-group')
     self.assertTrue(res)

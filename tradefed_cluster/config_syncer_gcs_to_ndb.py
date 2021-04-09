@@ -48,7 +48,7 @@ _INVENTORY_GROUP_VAR_PATTERN = re.compile(
     r'.*\/lab_inventory\/(?P<lab_name>.*)\/group_vars\/(?P<inventory_group>.*)\.(yml|yaml)'
 )
 _INVENTORY_GROUP_KEY = 'inventory_group'
-_PRINCIPLES = 'principles'
+_PRINCIPALS = 'principals'
 _GROUP_VAR_ACCOUNTS = 'accounts'
 
 APP = flask.Flask(__name__)
@@ -393,7 +393,7 @@ def SyncInventoryGroupVarAccountsToNDB():
           datastore_entities.HostGroupConfig.CreateId(lab_name, group_name))
       if not group:
         continue
-      group.account_principles = group_var_dict.get(_GROUP_VAR_ACCOUNTS)
+      group.account_principals = group_var_dict.get(_GROUP_VAR_ACCOUNTS)
       group.put()
 
 

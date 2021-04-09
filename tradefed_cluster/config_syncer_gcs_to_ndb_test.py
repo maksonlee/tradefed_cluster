@@ -276,20 +276,20 @@ class ConfigSyncerGCSToNdbTest(testbed_dependent_test.TestbedDependentTest):
         id='foo_dhcp',
         name='dhcp',
         lab='foo',
-        account_principles={'foo': {'principles': ['user1', 'user2']}}).put()
+        account_principals={'foo': {'principals': ['user1', 'user2']}}).put()
     config_syncer_gcs_to_ndb.SyncInventoryGroupVarAccountsToNDB()
     ndb.get_context().clear_cache()
     group = datastore_entities.HostGroupConfig.get_by_id('foo_dhcp')
     self.assertEqual(
-        group.account_principles, {
+        group.account_principals, {
             'android-test-admin': {
                 'enable_sudo':
                     'true',
-                'principles':
+                'principals':
                     ['group/group-one', 'group/group-two', 'user1', 'user2']
             },
             'android-test': {
-                'principles': ['group/group-three', 'user3', 'user4']
+                'principals': ['group/group-three', 'user3', 'user4']
             }
         })
 

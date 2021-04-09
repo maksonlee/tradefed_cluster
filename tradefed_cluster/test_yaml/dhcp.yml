@@ -6,13 +6,13 @@ mock_dhcp_var2: mock_value2
 accounts:
   android-test-admin:
     enable_sudo: true
-    principles:
+    principals:
       - group/group-one
       - group/group-two
       - user1
       - user2
   android-test:
-    principles:
+    principals:
       - group/group-three
       - user3
       - user4

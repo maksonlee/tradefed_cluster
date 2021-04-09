@@ -832,13 +832,13 @@ class HostGroupConfig(ndb.Model):
     name: the group name.
     lab: the lab key.
     parent_groups: the parent goup key list.
-    account_principles: the account to account principles map.
+    account_principals: the account to account principals map.
     update_time: the time the config is update.
   """
   name = ndb.StringProperty()
   lab = ndb.StringProperty()
   parent_groups = ndb.StringProperty(repeated=True)
-  account_principles = ndb.JsonProperty()
+  account_principals = ndb.JsonProperty()
   update_time = ndb.DateTimeProperty(auto_now=True)
 
   @classmethod

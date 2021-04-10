@@ -16,6 +16,10 @@
 from tradefed_cluster import env_config
 
 
+class UserNotFoundError(Exception):
+  """The error indicating the user doesn't exist."""
+
+
 def _GetPlugin():
   if not env_config.CONFIG.acl_plugin:
     raise ValueError('No acl_plugin is configured')

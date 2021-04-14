@@ -108,6 +108,7 @@ def _UpdateClusters(hosts):
     cluster_entity.allocated_devices = 0
     cluster_entity.device_count_timestamp = _Now()
     host_update_states = []
+    host_count_by_harness_version = collections.Counter()
     for host in hosts:
       cluster_entity.total_devices += host.total_devices or 0
       cluster_entity.offline_devices += host.offline_devices or 0
@@ -116,6 +117,11 @@ def _UpdateClusters(hosts):
       host_update_state = update_states_by_hostname.get(host.hostname)
       if host_update_state:
         host_update_states.append(host_update_state)
+      if host.test_harness_version:
+        host_count_by_harness_version[host.test_harness_version] += 1
+      else:
+        host_count_by_harness_version[common.UNKNOWN_TEST_HARNESS_VERSION] += 1
+    cluster_entity.host_count_by_harness_version = host_count_by_harness_version
     cluster_entity.host_update_state_summary = _CreateHostUpdateStateSummary(
         host_update_states)
     clusters_to_upsert.append(cluster_entity)
@@ -180,9 +186,13 @@ def _UpdateLabs(clusters):
   labs = []
   for lab_name, cluster_infos in clusters_by_lab_names.items():
     lab_host_update_state_summary = datastore_entities.HostUpdateStateSummary()
+    host_count_by_harness_version = collections.Counter()
     for cluster_info in cluster_infos:
       if cluster_info and cluster_info.host_update_state_summary:
         lab_host_update_state_summary += cluster_info.host_update_state_summary
+      if cluster_info and cluster_info.host_count_by_harness_version:
+        host_count_by_harness_version += collections.Counter(
+            cluster_info.host_count_by_harness_version)
 
     if lab_name in labs_by_lab_names:
       lab = labs_by_lab_names[lab_name]
@@ -192,6 +202,7 @@ def _UpdateLabs(clusters):
           lab_name=lab_name)
     lab.populate(
         host_update_state_summary=lab_host_update_state_summary,
+        host_count_by_harness_version=host_count_by_harness_version,
         update_timestamp=_Now())
     labs.append(lab)
 
@@ -217,6 +228,7 @@ def _ScanHosts():
       datastore_entities.HostInfo.offline_devices,
       datastore_entities.HostInfo.available_devices,
       datastore_entities.HostInfo.allocated_devices,
+      datastore_entities.HostInfo.test_harness_version,
   ]
   for host in datastore_util.BatchQuery(
       query, batch_size=BATCH, projection=projection):

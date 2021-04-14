@@ -186,6 +186,40 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(1, cluster.host_update_state_summary.succeeded)
     self.assertEqual(1, cluster.host_update_state_summary.unknown)
 
+  def testUpdateClusters_calculateHostCountByHarnessVersion(self):
+    cluster_name = 'cluster1'
+    host1 = datastore_test_util.CreateHost(
+        cluster_name, 'host1.mtv', lab_name='alab', test_harness_version='v1')
+    host2 = datastore_test_util.CreateHost(
+        cluster_name, 'host2.mtv', lab_name='alab', test_harness_version='v1')
+    host3 = datastore_test_util.CreateHost(
+        cluster_name, 'host3.mtv', lab_name='alab', test_harness_version='v1')
+    host4 = datastore_test_util.CreateHost(
+        cluster_name, 'host4.mtv', lab_name='alab', test_harness_version='v2')
+    host5 = datastore_test_util.CreateHost(
+        cluster_name, 'host5.mtv', lab_name='alab', test_harness_version='v3a')
+    host6 = datastore_test_util.CreateHost(
+        cluster_name, 'host6.mtv', lab_name='alab', test_harness_version='v3a')
+    host7 = datastore_test_util.CreateHost(
+        cluster_name, 'host7.mtv', lab_name='alab', test_harness_version='v3a')
+    host8 = datastore_test_util.CreateHost(
+        cluster_name, 'host8.mtv', lab_name='alab', test_harness_version='v3a')
+    host9 = datastore_test_util.CreateHost(
+        cluster_name, 'host9.mtv', lab_name='alab', test_harness_version=None)
+
+    device_monitor._UpdateClusters(
+        [host1, host2, host3, host4, host5, host6, host7, host8, host9])
+    cluster = datastore_entities.ClusterInfo.get_by_id(cluster_name)
+
+    expected_harness_version_counts = {
+        'v1': 3,
+        'v2': 1,
+        'v3a': 4,
+        'UNKNOWN': 1,
+    }
+    self.assertDictEqual(
+        expected_harness_version_counts, cluster.host_count_by_harness_version)
+
   def testUpdateClusters_skipEmptyLabName(self):
     cluster_name = 'cluster1'
     hosts = [
@@ -301,6 +335,36 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(2, lab_info.host_update_state_summary.timed_out)
     self.assertEqual(1, lab_info.host_update_state_summary.succeeded)
     self.assertEqual(2, lab_info.host_update_state_summary.unknown)
+
+  def testUpdateLabs_calculateHostCountByHarnessVersion(self):
+    host_count_by_harness_version_1 = {
+        'v1': 5,
+        'v2': 3,
+    }
+    cluster1 = datastore_test_util.CreateCluster(
+        'cluster1',
+        lab_name='alab',
+        host_count_by_harness_version=host_count_by_harness_version_1)
+    host_count_by_harness_version_2 = {
+        'v1': 5,
+        'v3': 7,
+    }
+    cluster2 = datastore_test_util.CreateCluster(
+        'cluster2',
+        lab_name='alab',
+        host_count_by_harness_version=host_count_by_harness_version_2)
+
+    device_monitor._UpdateLabs([cluster1, cluster2])
+    lab_info = datastore_entities.LabInfo.get_by_id('alab')
+
+    expected_host_count_by_harness_version = {
+        'v1': 10,
+        'v2': 3,
+        'v3': 7,
+    }
+    self.assertDictEqual(
+        expected_host_count_by_harness_version,
+        lab_info.host_count_by_harness_version)
 
   @mock.patch.object(device_manager, 'StartHostSync')
   def testScanHosts(self, mock_start_sync):

@@ -36,6 +36,10 @@ class ClusterApiTest(api_test.ApiTest):
         datastore_entities.HostUpdateStateSummary(
             total=2,
             succeeded=2))
+    host_count_by_harness_version = {
+        'version1': 72,
+        'version2': 20,
+    }
     self.cluster_0 = datastore_test_util.CreateCluster(
         cluster='free',
         total_devices=10,
@@ -43,7 +47,8 @@ class ClusterApiTest(api_test.ApiTest):
         available_devices=2,
         allocated_devices=7,
         device_count_timestamp=self.TIMESTAMP,
-        host_update_state_summary=self.host_update_state_summary_0)
+        host_update_state_summary=self.host_update_state_summary_0,
+        host_count_by_harness_version=host_count_by_harness_version)
     self.cluster_1 = datastore_test_util.CreateCluster(
         cluster='paid',
         total_devices=2,
@@ -256,6 +261,20 @@ class ClusterApiTest(api_test.ApiTest):
     self.assertEqual(0, host_update_state_summary.errored)
     self.assertEqual(0, host_update_state_summary.unknown)
     self.assertIsNotNone(host_update_state_summary.update_timestamp)
+
+  def testGetCluster_withHostCountByHarnessVersion(self):
+    """Tests GetCluster where the cluster has host count by harness version."""
+    api_request = {'cluster_id': 'free'}
+    api_response = self.testapp.post_json('/_ah/api/ClusterApi.GetCluster',
+                                          api_request)
+    cluster_info = protojson.decode_message(api_messages.ClusterInfo,
+                                            api_response.body)
+    expected_host_counts = [
+        api_messages.KeyValuePair(key='version1', value='72'),
+        api_messages.KeyValuePair(key='version2', value='20'),
+    ]
+    self.assertCountEqual(
+        expected_host_counts, cluster_info.host_count_by_harness_version)
 
   def testNewNote_withNoneExisting(self):
     """Tests adding a note to a cluster when none exist already."""

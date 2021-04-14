@@ -703,6 +703,8 @@ class ClusterInfo(messages.Message):
   notes = messages.MessageField(Note, 8, repeated=True)
   run_targets = messages.MessageField(RunTarget, 9, repeated=True)
   host_update_state_summary = messages.MessageField(HostUpdateStateSummary, 10)
+  host_count_by_harness_version = messages.MessageField(
+      KeyValuePair, 11, repeated=True)
 
 
 class LabInfo(messages.Message):
@@ -711,6 +713,8 @@ class LabInfo(messages.Message):
   update_timestamp = message_types.DateTimeField(2)
   owners = messages.StringField(3, repeated=True)
   host_update_state_summary = messages.MessageField(HostUpdateStateSummary, 4)
+  host_count_by_harness_version = messages.MessageField(
+      KeyValuePair, 5, repeated=True)
 
 
 class LabInfoCollection(messages.Message):

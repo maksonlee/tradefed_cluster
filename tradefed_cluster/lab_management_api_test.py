@@ -118,5 +118,30 @@ class LabManagementApiTest(api_test.ApiTest):
     self.assertEqual(1, lab_info.host_update_state_summary.syncing)
     self.assertEqual(2, lab_info.host_update_state_summary.succeeded)
 
+  def testGetLab_displayHostCountByHarnessVersion(self):
+    """Test GetLab returns host count by harness version."""
+    host_count_by_harness_version = {
+        'version1': 12,
+        'version2': 1,
+        'version3': 668,
+    }
+    datastore_test_util.CreateLabInfo(
+        'lab4',
+        host_count_by_harness_version=host_count_by_harness_version)
+    api_request = {'lab_name': 'lab4'}
+    api_response = self.testapp.post_json(
+        '/_ah/api/LabManagementApi.GetLab', api_request)
+    lab_info = protojson.decode_message(
+        api_messages.LabInfo, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual('lab4', lab_info.lab_name)
+    expected_host_counts = [
+        api_messages.KeyValuePair(key='version1', value='12'),
+        api_messages.KeyValuePair(key='version2', value='1'),
+        api_messages.KeyValuePair(key='version3', value='668'),
+    ]
+    self.assertCountEqual(
+        expected_host_counts, lab_info.host_count_by_harness_version)
+
 if __name__ == '__main__':
   unittest.main()

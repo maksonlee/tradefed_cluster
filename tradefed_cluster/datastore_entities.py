@@ -918,6 +918,7 @@ class ClusterInfo(ndb.Expando):
     allocated_devices: allocated devices count
     device_count_timestamp: time when the device counts were calculated
     host_update_state_summary: host update states summary under the cluster
+    host_count_by_harness_version: count hosts by test harness version
   """
   cluster = ndb.StringProperty()
   lab_name = ndb.StringProperty()
@@ -928,6 +929,7 @@ class ClusterInfo(ndb.Expando):
   # Time when the device counts were calculated and persisted
   device_count_timestamp = ndb.DateTimeProperty()
   host_update_state_summary = ndb.StructuredProperty(HostUpdateStateSummary)
+  host_count_by_harness_version = ndb.JsonProperty()
 
 
 class DeviceCountSummary(ndb.Model):
@@ -1336,10 +1338,13 @@ class LabInfo(ndb.Expando):
   Attributes:
     lab_name: the name of the lab.
     timestamp: the timestamp the entity gets updated.
+    host_update_state_summary: host update states summary under the cluster
+    host_count_by_harness_version: count hosts by test harness version
   """
   lab_name = ndb.StringProperty()
   update_timestamp = ndb.DateTimeProperty(auto_now_add=True)
   host_update_state_summary = ndb.StructuredProperty(HostUpdateStateSummary)
+  host_count_by_harness_version = ndb.JsonProperty()
 
 
 @MessageConverter(LabInfo)
@@ -1350,7 +1355,10 @@ def LabInfoToMessage(lab_info_entity, lab_config_entity=None):
       update_timestamp=lab_info_entity.update_timestamp,
       owners=owners,
       host_update_state_summary=ToMessage(
-          lab_info_entity.host_update_state_summary))
+          lab_info_entity.host_update_state_summary),
+      host_count_by_harness_version=api_messages.MapToKeyValuePairMessages(
+          lab_info_entity.host_count_by_harness_version)
+      )
 
 
 class SnapshotJobResult(ndb.Model):

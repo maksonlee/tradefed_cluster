@@ -29,7 +29,8 @@ def CreateCluster(cluster,
                   available_devices=1,
                   allocated_devices=0,
                   device_count_timestamp=None,
-                  host_update_state_summary=None):
+                  host_update_state_summary=None,
+                  host_count_by_harness_version=None):
   """Create a cluster."""
   cluster = datastore_entities.ClusterInfo(
       id=cluster,
@@ -41,7 +42,8 @@ def CreateCluster(cluster,
       allocated_devices=allocated_devices,
       device_count_timestamp=device_count_timestamp,
       host_update_state_summary=(host_update_state_summary or
-                                 datastore_entities.HostUpdateStateSummary()))
+                                 datastore_entities.HostUpdateStateSummary()),
+      host_count_by_harness_version=(host_count_by_harness_version or {}))
   cluster.put()
   return cluster
 
@@ -209,12 +211,14 @@ def CreateNote(hostname='host1',
 
 
 def CreateLabInfo(
-    lab_name, update_timestamp=None, host_update_state_summary=None, **kwargs):
+    lab_name, update_timestamp=None, host_update_state_summary=None,
+    host_count_by_harness_version=None, **kwargs):
   """Create a lab info entity."""
   lab_info = datastore_entities.LabInfo(
       id=lab_name,
       lab_name=lab_name,
       host_update_state_summary=host_update_state_summary,
+      host_count_by_harness_version=host_count_by_harness_version,
       update_timestamp=update_timestamp,
       **kwargs)
   lab_info.put()

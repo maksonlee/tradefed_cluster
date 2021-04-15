@@ -220,7 +220,8 @@ def _ScanHosts():
   hosts = []
   query = (
       datastore_entities.HostInfo.query()
-      .filter(datastore_entities.HostInfo.hidden == False))    projection = [
+      .filter(datastore_entities.HostInfo.hidden == False))    # LINT.IfChange(scan_host_projection)
+  projection = [
       datastore_entities.HostInfo.lab_name,
       datastore_entities.HostInfo.physical_cluster,
       datastore_entities.HostInfo.hostname,
@@ -230,6 +231,7 @@ def _ScanHosts():
       datastore_entities.HostInfo.allocated_devices,
       datastore_entities.HostInfo.test_harness_version,
   ]
+
   for host in datastore_util.BatchQuery(
       query, batch_size=BATCH, projection=projection):
     device_manager.StartHostSync(host.hostname)

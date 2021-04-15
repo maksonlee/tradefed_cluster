@@ -173,6 +173,7 @@ indexes:
     - name: lab_name
     - name: timestamp
 
+# LINT.IfChange(scan_host_projection_index)
 - kind: HostInfo
   properties:
   - name: hidden
@@ -183,6 +184,8 @@ indexes:
   - name: offline_devices
   - name: physical_cluster
   - name: total_devices
+  - name: test_harness_version
+
 
 - kind: HostInfoHistory
   ancestor: yes

@@ -20,7 +20,6 @@ from __future__ import division
 from __future__ import print_function
 
 import datetime
-import logging
 import unittest
 
 import hamcrest
@@ -151,11 +150,10 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     command_event_handler.EnqueueCommandEvents([event, event2, event3, event4])
 
     tasks = self.mock_task_scheduler.GetTasks()
-    self.assertEqual(len(tasks), 2)
-    self.testapp.post(
-        command_event_handler.COMMAND_EVENT_HANDLER_PATH, tasks[0].payload)
-    self.testapp.post(
-        command_event_handler.COMMAND_EVENT_HANDLER_PATH, tasks[1].payload)
+    self.assertEqual(len(tasks), 4)
+    for task in tasks:
+      self.testapp.post(
+          command_event_handler.COMMAND_EVENT_HANDLER_PATH, task.payload)
 
     command_attempts = command_manager.GetCommandAttempts(
         request_id, command_1_id)
@@ -181,9 +179,12 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
 
     command_event_handler.EnqueueCommandEvents([event, malformed_event])
     tasks = self.mock_task_scheduler.GetTasks()
-    self.assertEqual(len(tasks), 1)
-    self.testapp.post(command_event_handler.COMMAND_EVENT_HANDLER_PATH,
-                      tasks[0].payload)
+    self.assertEqual(len(tasks), 2)
+    self.testapp.post(
+        command_event_handler.COMMAND_EVENT_HANDLER_PATH, tasks[0].payload)
+    with self.assertRaises(webtest.app.AppError):
+      self.testapp.post(
+          command_event_handler.COMMAND_EVENT_HANDLER_PATH, tasks[1].payload)
 
     command_attempts = command_manager.GetCommandAttempts(
         request_id, command_id)
@@ -191,7 +192,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.CommandState.RUNNING, command_attempts[0].state)
 
   @mock.patch.object(command_event_handler, "ProcessCommandEvent")
-  def testEnqueueCommandEvents_partTransactionError(self, mock_process):
+  def testEnqueueCommandEvents_transactionError(self, mock_process):
     event = command_event_test_util.CreateTestCommandEventJson(
         "rid", "cid", "aid", "InvocationStarted")
     event2 = command_event_test_util.CreateTestCommandEventJson(
@@ -203,19 +204,15 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
 
     command_event_handler.EnqueueCommandEvents([event, event2])
     tasks = self.mock_task_scheduler.GetTasks()
-
-    self.assertEqual(len(tasks), 1)
-    self.mock_task_scheduler.DeleteTask(
-        command_event_handler.COMMAND_EVENT_QUEUE, tasks[0].name)
-    response = self.testapp.post(
+    self.assertEqual(len(tasks), 2)
+    self.testapp.post(
         command_event_handler.COMMAND_EVENT_HANDLER_PATH, tasks[0].payload)
-    self.assertEqual("200 OK", response.status)
-
-    tasks = self.mock_task_scheduler.GetTasks()
-    self.assertEqual(len(tasks), 1)
-    response = self.testapp.post(
-        command_event_handler.COMMAND_EVENT_HANDLER_PATH, tasks[0].payload)
-    self.assertEqual("200 OK", response.status)
+    with self.assertRaises(webtest.app.AppError):
+      self.testapp.post(
+          command_event_handler.COMMAND_EVENT_HANDLER_PATH, tasks[1].payload)
+    # Simulate a task retry.
+    self.testapp.post(
+        command_event_handler.COMMAND_EVENT_HANDLER_PATH, tasks[1].payload)
 
     mock_process.assert_has_calls([
         mock.call(
@@ -229,41 +226,6 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
                     hamcrest.has_property("task_id", event2["task_id"]),
                     hamcrest.has_property("type", event2["type"])))),
         # this is the retry.
-        mock.call(
-            hamcrest.match_equality(
-                hamcrest.all_of(
-                    hamcrest.has_property("task_id", event2["task_id"]),
-                    hamcrest.has_property("type", event2["type"]))))
-    ])
-
-  @mock.patch.object(command_event_handler, "ProcessCommandEvent")
-  def testEnqueueCommandEvents_allTransactionError(self, mock_process):
-    event = command_event_test_util.CreateTestCommandEventJson(
-        "rid", "cid", "aid", "InvocationStarted")
-    event2 = command_event_test_util.CreateTestCommandEventJson(
-        "rid", "cid", "aid", "InvocationCompleted")
-
-    # for the first time, the second event failed due to TransactionFailedError
-    # the second event will be reschedule to the queue.
-    mock_process.side_effect = [ndb.exceptions.ContextError(),
-                                ndb.exceptions.ContextError()]
-
-    command_event_handler.EnqueueCommandEvents([event, event2])
-    tasks = self.mock_task_scheduler.GetTasks()
-
-    self.assertEqual(len(tasks), 1)
-    response = self.testapp.post(
-        command_event_handler.COMMAND_EVENT_HANDLER_PATH,
-        tasks[0].payload,
-        expect_errors=True)
-    self.assertEqual("500 INTERNAL SERVER ERROR", response.status)
-
-    mock_process.assert_has_calls([
-        mock.call(
-            hamcrest.match_equality(
-                hamcrest.all_of(
-                    hamcrest.has_property("task_id", event["task_id"]),
-                    hamcrest.has_property("type", event["type"])))),
         mock.call(
             hamcrest.match_equality(
                 hamcrest.all_of(
@@ -1118,5 +1080,4 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
 
 
 if __name__ == "__main__":
-  logging.getLogger().setLevel(logging.DEBUG)
   unittest.main()

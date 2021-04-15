@@ -14,7 +14,6 @@
 
 """A module to handle command events."""
 
-import collections
 import datetime
 import json
 import logging
@@ -69,16 +68,8 @@ def EnqueueCommandEvents(events):
     events: a list of command event dicts.
   """
   logging.info("Received %d command event(s).", len(events))
-  event_map = collections.defaultdict(list)
-  # Group events by task_ids.
-  for e in events:
-    if "task_id" not in e:
-      logging.warning("Skipping malformed command_event:\n%s", e)
-      continue
-    event_map[e["task_id"]].append(e)
-  # Sort by task_ids to make it easy to test.
-  for key in sorted(event_map.keys()):
-    payload = zlib.compress(six.ensure_binary(json.dumps(event_map[key])))
+  for event in events:
+    payload = zlib.compress(six.ensure_binary(json.dumps(event)))
     task_scheduler.AddTask(queue_name=COMMAND_EVENT_QUEUE, payload=payload)
 
 
@@ -176,9 +167,7 @@ def HandleCommandEvent():
       ProcessCommandEvent(event)
     except Exception as e:        exception = e
       logging.warning(
-          "Failed to process (%s, %s), will retry.",
-          event.task_id,
-          event.type,
+          "Failed to process event, will retry: obj=%s", _Truncate(obj),
           exc_info=True)
       # failed events will be retried later.
       failed_objs.append(obj)

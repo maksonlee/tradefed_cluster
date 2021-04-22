@@ -710,7 +710,8 @@ class HostConfig(ndb.Model):
     enable_ui_update: bool, whether the host can be updated from UI.
     owners: list of string, the lab owners.
     update_time: the time the config is update.
-    inventory_groups: the inventory group the host belong to.
+    inventory_groups: the inventory groups and the parent groups the host belong
+      to.
   """
   hostname = ndb.StringProperty()
   tf_global_config_path = ndb.StringProperty()
@@ -830,13 +831,13 @@ class HostGroupConfig(ndb.Model):
 
   Attributes:
     name: the group name.
-    lab: the lab key.
-    parent_groups: the parent goup key list.
+    lab_name: the lab name.
+    parent_groups: the parent goup name list.
     account_principals: the account to account principals map.
     update_time: the time the config is update.
   """
   name = ndb.StringProperty()
-  lab = ndb.StringProperty()
+  lab_name = ndb.StringProperty()
   parent_groups = ndb.StringProperty(repeated=True)
   account_principals = ndb.JsonProperty()
   update_time = ndb.DateTimeProperty(auto_now=True)

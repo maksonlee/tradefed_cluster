@@ -35,6 +35,7 @@ from tradefed_cluster import report_api
 from tradefed_cluster import request_api
 from tradefed_cluster import run_target_api
 from tradefed_cluster import testbed_dependent_test
+from tradefed_cluster import acl_check_api
 
 
 class ApiTest(testbed_dependent_test.TestbedDependentTest):
@@ -43,18 +44,24 @@ class ApiTest(testbed_dependent_test.TestbedDependentTest):
     super(ApiTest, self).setUp()
     app = endpoints.apiserving._ApiServer(
         [
-            cluster_api.ClusterApi, cluster_device_api.ClusterDeviceApi,
+            cluster_api.ClusterApi,
+            cluster_device_api.ClusterDeviceApi,
             cluster_host_api.ClusterHostApi,
             command_attempt_api.CommandAttemptApi,
-            command_event_api.CommandEventApi, command_task_api.CommandTaskApi,
+            command_event_api.CommandEventApi,
+            command_task_api.CommandTaskApi,
             coordinator_api.CoordinatorApi,
             device_blocklist_api.DeviceBlocklistApi,
             device_snapshot_api.DeviceSnapshotApi,
             filter_hint_api.FilterHintApi,
             test_harness_image_api.TestHarnessImageApi,
-            host_event_api.HostEventApi, lab_management_api.LabManagementApi,
-            predefined_message_api.PredefinedMessageApi, report_api.ReportApi,
-            request_api.RequestApi, run_target_api.RunTargetApi
+            host_event_api.HostEventApi,
+            lab_management_api.LabManagementApi,
+            predefined_message_api.PredefinedMessageApi,
+            report_api.ReportApi,
+            request_api.RequestApi,
+            run_target_api.RunTargetApi,
+            acl_check_api.AclApi,
         ] + (extra_apis or []),
         restricted=False)
     self.testapp = webtest.TestApp(app)

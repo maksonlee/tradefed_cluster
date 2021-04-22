@@ -34,6 +34,7 @@ from tradefed_cluster import predefined_message_api
 from tradefed_cluster import report_api
 from tradefed_cluster import request_api
 from tradefed_cluster import run_target_api
+from tradefed_cluster import acl_check_api
 
 API_HANDLERS = [
     cluster_api.ClusterApi,
@@ -53,6 +54,7 @@ API_HANDLERS = [
     report_api.ReportApi,
     request_api.RequestApi,
     run_target_api.RunTargetApi,
+    acl_check_api.AclApi,
 ] + env_config.CONFIG.extra_apis
 
 APP = endpoints.api_server(API_HANDLERS)

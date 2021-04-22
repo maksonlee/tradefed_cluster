@@ -26,7 +26,7 @@ from tradefed_cluster.util import ndb_shim as ndb
 TEST_DATA_PATH = 'test_yaml'
 LAB_CONFIG_FILE = 'dockerized-tf.yaml'
 LAB_INV_FILE = 'hosts'
-LAB_GROUP_VAR_FILE = 'dhcp.yml'
+LAB_GROUP_VAR_FILE = 'dhcp.yaml'
 
 
 def _GetTestFilePath(filename):
@@ -242,18 +242,17 @@ class ConfigSyncerGCSToNdbTest(testbed_dependent_test.TestbedDependentTest):
   def testSyncInventoryGroupsToNdbHostGroupConfig(self):
     ndb.put_multi([
         datastore_entities.HostGroupConfig(
-            id='foo_jump',
-            lab='foo',
-            parent_groups=['foo_all', 'foo_bar']),
+            id='foo_jump', lab_name='foo', parent_groups=['foo_all',
+                                                          'foo_bar']),
         datastore_entities.HostGroupConfig(
-            id='foo_bar',
-            lab='foo',
-            parent_groups=['foo_all',])
+            id='foo_bar', lab_name='foo', parent_groups=[
+                'foo_all',
+            ])
     ])
     config_syncer_gcs_to_ndb.SyncInventoryGroupsToNDB()
     ndb.get_context().clear_cache()
     res = datastore_entities.HostGroupConfig.query(
-        datastore_entities.HostGroupConfig.lab == 'foo').fetch()
+        datastore_entities.HostGroupConfig.lab_name == 'foo').fetch()
     for g in res:
       if g.name is None:
         self.assertIsNone(g)
@@ -275,8 +274,12 @@ class ConfigSyncerGCSToNdbTest(testbed_dependent_test.TestbedDependentTest):
     datastore_entities.HostGroupConfig(
         id='foo_dhcp',
         name='dhcp',
-        lab='foo',
-        account_principals={'foo': {'principals': ['user1', 'user2']}}).put()
+        lab_name='foo',
+        account_principals={
+            'foo': {
+                'principals': ['user1', 'user2']
+            }
+        }).put()
     config_syncer_gcs_to_ndb.SyncInventoryGroupVarAccountsToNDB()
     ndb.get_context().clear_cache()
     group = datastore_entities.HostGroupConfig.get_by_id('foo_dhcp')

@@ -48,7 +48,6 @@ _INVENTORY_GROUP_VAR_PATTERN = re.compile(
     r'.*\/lab_inventory\/(?P<lab_name>.*)\/group_vars\/(?P<inventory_group>.*)\.(yml|yaml)'
 )
 _INVENTORY_GROUP_KEY = 'inventory_group'
-_PRINCIPALS = 'principals'
 _GROUP_VAR_ACCOUNTS = 'accounts'
 
 APP = flask.Flask(__name__)
@@ -248,7 +247,7 @@ def _CreateHostGroupConfigEntityFromGroupInventory(lab_name, group):
   return datastore_entities.HostGroupConfig(
       id=datastore_entities.HostGroupConfig.CreateId(lab_name, group.name),
       name=group.name,
-      lab=lab_name,
+      lab_name=lab_name,
       parent_groups=[g.name for g in group.parent_groups])
 
 
@@ -285,7 +284,8 @@ def _UpdateHostGroupConfigByInventoryData(lab_name, data):
                 len(entity_from_file), lab_name)
   entity_from_ndb = {
       g.key: g for g in datastore_entities.HostGroupConfig.query(
-          datastore_entities.HostGroupConfig.lab == lab_name).fetch()}
+          datastore_entities.HostGroupConfig.lab_name == lab_name).fetch()
+  }
   need_update = []
   for key, group in entity_from_file.items():
     if not _CheckConfigEntitiesEqual(entity_from_ndb.get(key), group):

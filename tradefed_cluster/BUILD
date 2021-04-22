@@ -27,6 +27,39 @@ package_group(
 )
 
 pytype_strict_library(
+    name = "acl_check_api_lib",
+    srcs = [
+        "acl_check_api.py",
+    ],
+    deps = [
+        ":api_common_lib",
+        ":api_messages_lib",
+        ":datastore_entities_lib",
+        "//tradefed_cluster/services:acl_service_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
+        third_party("endpoints:endpoints_library"),
+        third_party("protorpc:protorpc_all"),
+    ],
+)
+
+py_test(
+    name = "acl_check_api_test",
+    srcs = [
+        "acl_check_api_test.py",
+    ],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":api_messages_lib",
+        ":api_test_lib",
+        ":datastore_test_util_lib",
+        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
+        "//tradefed_cluster/services:acl_service_lib",
+        third_party("protorpc:protorpc_all"),
+    ],
+)
+
+pytype_strict_library(
     name = "api_common_lib",
     srcs = [
         "api_common.py",
@@ -47,6 +80,7 @@ pytype_strict_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        ":acl_check_api_lib",
         ":cluster_api_lib",
         ":cluster_device_api_lib",
         ":cluster_host_api_lib",
@@ -108,6 +142,7 @@ pytype_strict_library(
         "api_test.py",
     ],
     deps = [
+        ":acl_check_api_lib",
         ":api_lib",
         ":cluster_api_lib",
         ":cluster_device_api_lib",
@@ -768,7 +803,7 @@ py_test(
         "config_syncer_gcs_to_ndb_test.py",
     ],
     data = [
-        "test_yaml/dhcp.yml",
+        "test_yaml/dhcp.yaml",
         "test_yaml/dockerized-tf.yaml",
         "test_yaml/hosts",
         "test_yaml/lab-config-with-duplicated-cluster.yaml",

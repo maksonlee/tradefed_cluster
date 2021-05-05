@@ -496,10 +496,12 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual('FIXED', host_collection.host_infos[1].recovery_state)
 
   def testListHosts_includeHostUpdateState(self):
+    display_message_0 = 'some display message.'
     host_update_state_0 = datastore_entities.HostUpdateState(
         id=self.ndb_host_0.hostname,
         hostname=self.ndb_host_0.hostname,
-        state=api_messages.HostUpdateState.SYNCING)
+        state=api_messages.HostUpdateState.SYNCING,
+        display_message=display_message_0)
     host_update_state_2 = datastore_entities.HostUpdateState(
         id=self.ndb_host_2.hostname,
         hostname=self.ndb_host_2.hostname,
@@ -519,9 +521,11 @@ class ClusterHostApiTest(api_test.ApiTest):
       if host.hostname == 'host_0':
         self.AssertEqualHostInfo(self.ndb_host_0, host)
         self.assertEqual('SYNCING', host.update_state)
+        self.assertEqual(display_message_0, host.update_state_display_message)
       elif host.hostname == 'host_2':
         self.AssertEqualHostInfo(self.ndb_host_2, host)
         self.assertEqual('RESTARTING', host.update_state)
+        self.assertIsNone(host.update_state_display_message)
       elif host.hostname == 'host_3':
         self.AssertEqualHostInfo(self.ndb_host_3, host)
         self.assertIsNone(host.update_state)
@@ -1267,8 +1271,10 @@ class ClusterHostApiTest(api_test.ApiTest):
 
   def testGetHost_includeUpdateState(self):
     """Test GetHost includeing update state."""
+    display_message = 'Some host update display message for syncing.'
     datastore_test_util.CreateHostUpdateState(
-        self.ndb_host_0.hostname, state=api_messages.HostUpdateState.SYNCING)
+        self.ndb_host_0.hostname, state=api_messages.HostUpdateState.SYNCING,
+        display_message=display_message)
 
     api_request = {
         'hostname': self.ndb_host_0.hostname,
@@ -1280,6 +1286,7 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual('200 OK', api_response.status)
     self.assertEqual(self.ndb_host_0.hostname, host.hostname)
     self.assertEqual('SYNCING', host.update_state)
+    self.assertEqual(display_message, host.update_state_display_message)
 
   def testNewNote_withNoneExisting(self):
     """Tests adding a note to a host when none exist already."""

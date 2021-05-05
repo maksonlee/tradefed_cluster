@@ -1084,8 +1084,10 @@ def HostInfoToMessage(
     host_state = 'UNKNOWN'
   if host_update_state_entity:
     update_state = host_update_state_entity.state.name
+    update_state_display_message = host_update_state_entity.display_message
   else:
     update_state = None
+    update_state_display_message = None
   test_harness = host_info_entity.test_harness
   test_harness_version = host_info_entity.test_harness_version
   return api_messages.HostInfo(
@@ -1119,7 +1121,8 @@ def HostInfoToMessage(
       last_recovery_time=host_info_entity.last_recovery_time,
       flated_extra_info=host_info_entity.flated_extra_info,
       recovery_state=host_info_entity.recovery_state,
-      update_state=update_state)
+      update_state=update_state,
+      update_state_display_message=update_state_display_message)
 
 
 class HostInfoHistory(HostInfo):
@@ -1161,6 +1164,8 @@ class HostUpdateState(ndb.Model):
     update_timestamp: timestamp the update state is changed.
     update_task_id: the host update task ID.
     state: host update state, see HostUpdateState in api message.
+    display_message: the optional display message to further clarify the current
+      host update state.
   """
   hostname = ndb.StringProperty()
   state = ndb.EnumProperty(
@@ -1168,6 +1173,7 @@ class HostUpdateState(ndb.Model):
       default=api_messages.HostUpdateState.UNKNOWN)
   update_timestamp = ndb.DateTimeProperty()
   update_task_id = ndb.StringProperty()
+  display_message = ndb.TextProperty()
 
 
 class HostUpdateStateHistory(HostUpdateState):

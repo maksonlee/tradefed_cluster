@@ -654,6 +654,7 @@ class HostInfo(messages.Message):
   last_recovery_time = message_types.DateTimeField(27)
   recovery_state = messages.StringField(28)
   update_state = messages.StringField(29)
+  update_state_display_message = messages.StringField(30)
 
 
 class HostInfoCollection(messages.Message):

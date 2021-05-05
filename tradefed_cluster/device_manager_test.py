@@ -1919,6 +1919,24 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.RecoveryState.UNKNOWN, histories[0].recovery_state)
     self.assertEqual(common.RecoveryState.VERIFIED, histories[1].recovery_state)
 
+  def testHandleHostUpdateStateChangedEvent_withDisplayMessage(self):
+    """Test update host with a new pending state."""
+    display_message = "some message"
+    hostname = "test-1.mtv.corp.example.com"
+    host_event_msg = {
+        "time": 1,
+        "event_type": "HOST_UPDATE_STATE_CHANGED",
+        "hostname": hostname,
+        "host_update_state": "ERRORED",
+        "host_update_state_display_message": display_message,
+    }
+
+    event = host_event.HostEvent(**host_event_msg)
+    device_manager._UpdateHostUpdateStateWithEvent(event)
+    state = datastore_entities.HostUpdateState.get_by_id(hostname)
+    self.assertEqual(api_messages.HostUpdateState.ERRORED, state.state)
+    self.assertEqual(display_message, state.display_message)
+
   def testHandleHostUpdateStateChangedEvent_newStatePENDING(self):
     """Test update host with a new pending state."""
     hostname = "test-1.mtv.corp.example.com"

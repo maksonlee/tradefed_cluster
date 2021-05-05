@@ -59,3 +59,5 @@ class HostEvent(object):
     self.host_state = kwargs.get("host_state", kwargs.get("state"))
     self.host_update_state = kwargs.get("host_update_state", UNKNOWN)
     self.host_update_task_id = kwargs.get("host_update_task_id")
+    self.host_update_state_display_message = kwargs.get(
+        "host_update_state_display_message")

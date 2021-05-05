@@ -196,7 +196,8 @@ def _UpdateHostUpdateStateWithEvent(event):
     host_update_state.populate(
         state=host_update_state_enum,
         update_timestamp=event.timestamp,
-        update_task_id=event.host_update_task_id)
+        update_task_id=event.host_update_task_id,
+        display_message=event.host_update_state_display_message)
     entities_to_update.append(host_update_state)
 
   host_update_state_history = datastore_entities.HostUpdateStateHistory(
@@ -204,7 +205,8 @@ def _UpdateHostUpdateStateWithEvent(event):
       hostname=event.hostname,
       state=host_update_state_enum,
       update_timestamp=event.timestamp,
-      update_task_id=event.host_update_task_id)
+      update_task_id=event.host_update_task_id,
+      display_message=event.host_update_state_display_message)
   entities_to_update.append(host_update_state_history)
 
   ndb.put_multi(entities_to_update)

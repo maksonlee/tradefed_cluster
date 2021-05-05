@@ -525,6 +525,47 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEmpty(new_state_histories)
 
   @mock.patch.object(device_monitor, '_Now')
+  def testMarkHostUpdateStateIfTimedOut_CustomizedTimedOutMarked(
+      self, mock_now):
+    customized_timeout_sec = 60
+    now = datetime.datetime(2021, 1, 15, 10, 10)
+    mock_now.return_value = now
+    state_updated_time = (
+        now - 5 * datetime.timedelta(seconds=customized_timeout_sec))
+    datastore_test_util.CreateHostUpdateState(
+        self.host1.hostname, state=api_messages.HostUpdateState.PENDING,
+        update_timestamp=state_updated_time)
+    datastore_test_util.CreateHostConfig(
+        self.host1.hostname, self.host1.lab_name,
+        shutdown_timeout_sec=customized_timeout_sec)
+
+    host_update_state = device_monitor._MarkHostUpdateStateIfTimedOut(
+        self.host1.hostname)
+
+    default_timeout_limit = (
+        now - device_monitor._DEFAULT_HOST_UPDATE_STATE_TIMEOUT)
+    # Assert that the last updated time did not reach default timeout limit yet.
+    self.assertLess(default_timeout_limit, state_updated_time)
+
+    self.assertEqual(self.host1.hostname, host_update_state.hostname)
+    self.assertEqual(api_messages.HostUpdateState.TIMED_OUT,
+                     host_update_state.state)
+    self.assertEqual(now, host_update_state.update_timestamp)
+    expected_display_message = (
+        'Host <atl-01.mtv> has HostUpdateState<PENDING> changed on '
+        '2021-01-15 10:05:00, which is 300 sec ago, '
+        'exceeding timeouts 90 sec. ')
+    self.assertEqual(expected_display_message,
+                     host_update_state.display_message)
+
+    new_state_histories = device_manager.GetHostUpdateStateHistories(
+        self.host1.hostname)
+    self.assertLen(new_state_histories, 1)
+    self.assertEqual(api_messages.HostUpdateState.TIMED_OUT,
+                     new_state_histories[0].state)
+    self.assertEqual(now, new_state_histories[0].update_timestamp)
+
+  @mock.patch.object(device_monitor, '_Now')
   def testMarkHostUpdateStateIfTimedOut_NonFinalStateUpdateIsTimedOut(
       self, mock_now):
     now = datetime.datetime(2021, 1, 15, 10, 10)
@@ -543,6 +584,12 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(api_messages.HostUpdateState.TIMED_OUT,
                      host_update_state.state)
     self.assertEqual(now, host_update_state.update_timestamp)
+    expected_display_message = (
+        'Host <atl-01.mtv> has HostUpdateState<PENDING> changed on '
+        '2021-01-15 08:05:00, which is 7500 sec ago, '
+        'exceeding timeouts 7200 sec. ')
+    self.assertEqual(expected_display_message,
+                     host_update_state.display_message)
 
     new_state_histories = device_manager.GetHostUpdateStateHistories(
         self.host1.hostname)

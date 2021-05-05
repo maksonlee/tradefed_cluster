@@ -50,8 +50,13 @@ DOCKERIZED_TF_GKE_NAME_PREFIX = 'dockerized-tf-gke'
 
 # TODO: Make the TTL configurable.
 ONE_MONTH = datetime.timedelta(days=30)
-# TODO: Make use of timeouts defined in lab config.
 _DEFAULT_HOST_UPDATE_STATE_TIMEOUT = datetime.timedelta(hours=2)
+_CUSTOMIZED_TIMEOUT_MULTIPLIER = 1.5
+_TIMEDOUT_DISPLAY_MESSAGE_TMPL = (
+    'Host <%s> has HostUpdateState<%s> '
+    'changed on %s, '
+    'which is %d sec ago, '
+    'exceeding timeouts %d sec. ')
 
 BATCH = 1000
 
@@ -357,6 +362,26 @@ def _PublishHostMessage(hostname):
       }])
 
 
+def _GetCustomizedOrDefaultHostUpdateTimeout(hostname):
+  """Get host update timeouts.
+
+  If the timeouts are not defined in lab config, then get the default value.
+
+  Args:
+    hostname: text, the host to check the update timeouts.
+
+  Returns:
+    An instance of datetime.timedelta.
+  """
+  timeout_timedelta = _DEFAULT_HOST_UPDATE_STATE_TIMEOUT
+  host_config = datastore_entities.HostConfig.get_by_id(hostname)
+  if host_config and host_config.shutdown_timeout_sec:
+    timeout_sec = (
+        _CUSTOMIZED_TIMEOUT_MULTIPLIER * host_config.shutdown_timeout_sec)
+    timeout_timedelta = datetime.timedelta(seconds=timeout_sec)
+  return timeout_timedelta
+
+
 @ndb.transactional()
 def _MarkHostUpdateStateIfTimedOut(hostname):
   """Mark HostUpdateState as TIMED_OUT if it times out.
@@ -372,6 +397,8 @@ def _MarkHostUpdateStateIfTimedOut(hostname):
     logging.info('No update state is found for host: %s.', hostname)
     return
 
+  timeout_timedelta = _GetCustomizedOrDefaultHostUpdateTimeout(hostname)
+
   now = _Now()
 
   entities_to_update = []
@@ -380,22 +407,28 @@ def _MarkHostUpdateStateIfTimedOut(hostname):
       host_update_state.state in common.NON_FINAL_HOST_UPDATE_STATES):
     if host_update_state.update_timestamp:
       update_state_age = now - host_update_state.update_timestamp
-      if _DEFAULT_HOST_UPDATE_STATE_TIMEOUT < update_state_age:
-        logging.info('Host<%s> has HostUpdateState<%s> changed on %s, '
-                     'which is %s seconds ago. '
-                     'Marking update state as TIMED_OUT.',
-                     hostname, host_update_state.state,
-                     host_update_state.update_timestamp,
-                     update_state_age.total_seconds())
+      if timeout_timedelta < update_state_age:
+        display_message = (
+            _TIMEDOUT_DISPLAY_MESSAGE_TMPL % (
+                hostname, host_update_state.state,
+                host_update_state.update_timestamp,
+                update_state_age.total_seconds(),
+                timeout_timedelta.total_seconds()))
+        logging.info('Marking update state as TIMED_OUT: %s', display_message)
         host_update_state.state = api_messages.HostUpdateState.TIMED_OUT
         host_update_state.update_timestamp = now
+        host_update_state.populate(
+            state=api_messages.HostUpdateState.TIMED_OUT,
+            update_timestamp=now,
+            display_message=display_message)
         entities_to_update.append(host_update_state)
         host_update_state_history = datastore_entities.HostUpdateStateHistory(
             parent=ndb.Key(datastore_entities.HostInfo, hostname),
             hostname=host_update_state.hostname,
             state=host_update_state.state,
             update_timestamp=now,
-            update_task_id=host_update_state.update_task_id)
+            update_task_id=host_update_state.update_task_id,
+            display_message=display_message)
         entities_to_update.append(host_update_state_history)
       else:
         logging.debug('Host<%s> is in HostUpdateState<%s> since %s.',

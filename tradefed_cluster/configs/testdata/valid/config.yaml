@@ -24,6 +24,7 @@ docker_server: docker_server_1
 enable_stackdriver: True
 enable_autoupdate: True
 enable_ui_update: True
+operation_mode: ON_PREMISE
 service_account_json_key_path: path/to/key.json
 secret_project_id: secret_project_id
 service_account_key_secret_id: lab_sv_key

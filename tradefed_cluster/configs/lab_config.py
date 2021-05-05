@@ -64,6 +64,8 @@ def _ProtoFieldToSchema(field):
     return syaml.Decimal()
   if field.type == field.TYPE_MESSAGE:
     return _ProtoDescriptorToSchema(field.message_type)
+  if field.type == field.TYPE_ENUM:
+    return syaml.Str()
   raise ConfigError('Unknown field type in lab_config_pb2: %r.' % field.type)
 
 
@@ -153,6 +155,11 @@ class HostConfig(object):
             self.cluster_config_pb.master_url or
             self.lab_config_pb.control_server_url or
             self.lab_config_pb.master_url)
+
+  @property
+  def operation_mode(self):
+    """Get the operation mode of the host."""
+    return self.lab_config_pb.operation_mode
 
   @property
   def docker_image(self):
@@ -331,6 +338,7 @@ def CreateHostConfig(
     enable_ui_update=None,
     engprod_api_key=None,
     ssh_arg=None,
+    operation_mode=None,
 ):
   """Create a host config from raw data.
 
@@ -357,6 +365,7 @@ def CreateHostConfig(
     enable_ui_update: bool, whether host update from UI is enabled.
     engprod_api_key: string, API Key for Android Engprod API discovery.
     ssh_arg: string, ssh args to the host.
+    operation_mode: string, host operation mode.
   Returns:
     a HostConfig have all those data.
   """
@@ -387,7 +396,8 @@ def CreateHostConfig(
       service_account_key_secret_id=service_account_key_secret_id,
       service_account=service_account,
       engprod_api_key=engprod_api_key,
-      ssh_arg=ssh_arg)
+      ssh_arg=ssh_arg,
+      operation_mode=operation_mode)
   return HostConfig(host_config_pb, cluster_config_pb, lab_config_pb)
 
 

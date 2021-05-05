@@ -20,6 +20,7 @@ import unittest
 import six
 
 from tradefed_cluster.configs import lab_config
+from tradefed_cluster.configs import lab_config_pb2
 
 TEST_DATA_PATH = 'testdata'
 
@@ -48,6 +49,7 @@ class ConfigTest(unittest.TestCase):
     self.assertTrue(lab_config_pb.enable_stackdriver)
     self.assertTrue(lab_config_pb.enable_autoupdate)
     self.assertTrue(lab_config_pb.enable_ui_update)
+    self.assertEqual(lab_config_pb2.ON_PREMISE, lab_config_pb.operation_mode)
     self.assertEqual('path/to/key.json',
                      lab_config_pb.service_account_json_key_path)
     self.assertEqual('lab_sv_key',
@@ -178,7 +180,8 @@ class ConfigTest(unittest.TestCase):
         control_server_url='tfc',
         secret_project_id='secret_project',
         service_account_key_secret_id='sa_key',
-        service_account='sa@project.google.com')
+        service_account='sa@project.google.com',
+        operation_mode='ON_PREMISE')
     self.assertEqual('alab', host_config.lab_name)
     self.assertEqual('acluster', host_config.cluster_name)
     self.assertEqual('ahost', host_config.hostname)
@@ -195,6 +198,8 @@ class ConfigTest(unittest.TestCase):
     self.assertEqual('secret_project', host_config.secret_project_id)
     self.assertEqual('sa_key', host_config.service_account_key_secret_id)
     self.assertEqual('sa@project.google.com', host_config.service_account)
+    self.assertEqual(lab_config_pb2.OperationMode.ON_PREMISE,
+                     host_config.operation_mode)
 
   def testCreateHostConfig_noLabName(self):
     host_config = lab_config.CreateHostConfig(

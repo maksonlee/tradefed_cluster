@@ -17,6 +17,12 @@ syntax = "proto2";
 
 package tradefed_cluster.configs;
 
+enum OperationMode {
+  UNKNOWN = 0;
+  CLOUD = 1;
+  ON_PREMISE = 2;
+  STANDALONE = 3;
+}
 
 // Config for a lab.
 message LabConfig {
@@ -55,6 +61,8 @@ message LabConfig {
   optional string engprod_api_key = 16;
   // SSH arg when use native ssh.
   optional string ssh_arg = 17;
+  // Operation mode for all hosts in lab.
+  optional OperationMode operation_mode = 18;
 }
 
 // Config for a cluster.

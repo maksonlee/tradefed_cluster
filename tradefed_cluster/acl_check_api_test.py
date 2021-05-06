@@ -50,10 +50,10 @@ class AclCheckApiTest(api_test.ApiTest):
     }
     api_response = self.testapp.post_json('/_ah/api/AclApi.CheckSshAccessible',
                                           api_request)
-    acc_principals = protojson.decode_message(api_messages.AclCheckResult,
-                                              api_response.body)
+    account_principals = protojson.decode_message(api_messages.AclCheckResult,
+                                                  api_response.body)
     self.assertEqual('200 OK', api_response.status)
-    self.assertTrue(acc_principals.hasAccess)
+    self.assertTrue(account_principals.has_access)
     acl_service.CheckMembership.assert_called_once_with('mock-user',
                                                         'principalA')
 
@@ -77,10 +77,10 @@ class AclCheckApiTest(api_test.ApiTest):
     }
     api_response = self.testapp.post_json('/_ah/api/AclApi.CheckSshAccessible',
                                           api_request)
-    acc_principals = protojson.decode_message(api_messages.AclCheckResult,
-                                              api_response.body)
+    account_principals = protojson.decode_message(api_messages.AclCheckResult,
+                                                  api_response.body)
     self.assertEqual('200 OK', api_response.status)
-    self.assertFalse(acc_principals.hasAccess)
+    self.assertFalse(account_principals.has_access)
     self.assertEqual(acl_service.CheckMembership.call_args_list, [
         mock.call('mock-user', 'principalA'),
         mock.call('mock-user', 'principalB')
@@ -105,10 +105,10 @@ class AclCheckApiTest(api_test.ApiTest):
     }
     api_response = self.testapp.post_json('/_ah/api/AclApi.CheckSshAccessible',
                                           api_request)
-    acc_principals = protojson.decode_message(api_messages.AclCheckResult,
-                                              api_response.body)
+    account_principals = protojson.decode_message(api_messages.AclCheckResult,
+                                                  api_response.body)
     self.assertEqual('200 OK', api_response.status)
-    self.assertTrue(acc_principals.hasAccess)
+    self.assertTrue(account_principals.has_access)
     acl_service.CheckMembership.assert_called_once_with('mock-user',
                                                         'principalA')
 
@@ -125,10 +125,10 @@ class AclCheckApiTest(api_test.ApiTest):
     }
     api_response = self.testapp.post_json('/_ah/api/AclApi.CheckSshAccessible',
                                           api_request)
-    acc_principals = protojson.decode_message(api_messages.AclCheckResult,
-                                              api_response.body)
+    account_principals = protojson.decode_message(api_messages.AclCheckResult,
+                                                  api_response.body)
     self.assertEqual('200 OK', api_response.status)
-    self.assertFalse(acc_principals.hasAccess)
+    self.assertFalse(account_principals.has_access)
     acl_service.CheckMembership.assert_not_called()
 
 

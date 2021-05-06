@@ -52,7 +52,7 @@ class AclApi(remote.Service):
     host_config = datastore_entities.HostConfig.get_by_id(request.hostname)
     if not host_config:
       logging.debug("no host config found for hostname: %s", request.hostname)
-      return api_messages.AclCheckResult(hasAccess=False)
+      return api_messages.AclCheckResult(has_access=False)
     try:
       if (request.host_account == _JUMP_HOST_ACCOUNT and
           _JUMP_GROUP_NAME in host_config.inventory_groups):
@@ -81,8 +81,8 @@ class AclApi(remote.Service):
         host_config.lab_name).fetch()
     for group in groups:
       if self._CheckAccessibilityForHostGroup(user_name, group):
-        return api_messages.AclCheckResult(hasAccess=True)
-    return api_messages.AclCheckResult(hasAccess=False)
+        return api_messages.AclCheckResult(has_access=True)
+    return api_messages.AclCheckResult(has_access=False)
 
   def _CheckAccessibilityForHost(self, user_name, host_config, host_account):
     """Checks if the user can access the given host account on the given host.
@@ -109,8 +109,8 @@ class AclApi(remote.Service):
         continue
       if self._CheckAccessibilityForHostAccountInHostGroup(
           user_name, host_account, group):
-        return api_messages.AclCheckResult(hasAccess=True)
-    return api_messages.AclCheckResult(hasAccess=False)
+        return api_messages.AclCheckResult(has_access=True)
+    return api_messages.AclCheckResult(has_access=False)
 
   def _CheckAccessibilityForHostAccountInHostGroup(self, user_name,
                                                    host_account, host_group):

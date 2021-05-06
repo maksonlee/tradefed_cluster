@@ -729,7 +729,7 @@ class LabInfoCollection(messages.Message):
 
 class AclCheckResult(messages.Message):
   """A message indicating if the client hass access or not."""
-  hasAccess = messages.BooleanField(1, default=False)
+  has_access = messages.BooleanField(1, default=False)
 
 
 class CheckAdminMessage(messages.Message):

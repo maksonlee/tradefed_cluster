@@ -28,7 +28,8 @@ _JSON_RUN_TARGET_WITH_ATTRIBUTES = """
       "run_targets": [{
         "name": "run_target6",
           "device_attributes": [
-            {"name": "sim_state", "value": "READY"}
+            {"name": "sim_state", "value": "READY", "operator": "="},
+            {"name": "battery_level", "value": "60", "operator": ">="}
           ]
         }]
       }]
@@ -42,18 +43,22 @@ _JSON_RUN_TARGETS_WITH_ATTRIBUTES = """
     "groups": [{
         "run_targets": [{
             "name": "run_target7",
-            "device_attributes": [{"name": "sim_state", "value": "READY"}]
+            "device_attributes": [
+              {"name": "sim_state", "value": "READY", "operator": "="}]
           }, {
             "name": "run_target8",
-            "device_attributes": [{"name": "sim_state", "value": "ABSENT"}]
+            "device_attributes": [
+              {"name": "sim_state", "value": "ABSENT", "operator": "="}]
           }]
       }, {
         "run_targets": [{
             "name": "run_target9",
-            "device_attributes": [{"name": "sim_state", "value": "READY"}]
+            "device_attributes": [
+              {"name": "sim_state", "value": "READY", "operator": "="}]
           }, {
             "name": "run_target10",
-            "device_attributes": [{"name": "sim_state", "value": "ABSENT"}]
+            "device_attributes": [
+              {"name": "sim_state", "value": "ABSENT", "operator": "="}]
           }]
       }]
   }
@@ -101,7 +106,12 @@ class TaskStoreTest(testbed_dependent_test.TestbedDependentTest):
                             device_attributes=[
                                 datastore_entities.Attribute(
                                     name='sim_state',
-                                    value='READY')
+                                    value='READY',
+                                    operator='='),
+                                datastore_entities.Attribute(
+                                    name='battery_level',
+                                    value='60',
+                                    operator='>=')
                             ])])]))
     self.test_bench4_with_attributes = datastore_entities.TestBench(
         cluster='cluster',
@@ -114,14 +124,16 @@ class TaskStoreTest(testbed_dependent_test.TestbedDependentTest):
                             device_attributes=[
                                 datastore_entities.Attribute(
                                     name='sim_state',
-                                    value='READY')
+                                    value='READY',
+                                    operator='=')
                             ]),
                         datastore_entities.RunTarget(
                             name='run_target8',
                             device_attributes=[
                                 datastore_entities.Attribute(
                                     name='sim_state',
-                                    value='ABSENT')
+                                    value='ABSENT',
+                                    operator='=')
                             ])]),
                 datastore_entities.Group(
                     run_targets=[
@@ -130,14 +142,16 @@ class TaskStoreTest(testbed_dependent_test.TestbedDependentTest):
                             device_attributes=[
                                 datastore_entities.Attribute(
                                     name='sim_state',
-                                    value='READY')
+                                    value='READY',
+                                    operator='=')
                             ]),
                         datastore_entities.RunTarget(
                             name='run_target10',
                             device_attributes=[
                                 datastore_entities.Attribute(
                                     name='sim_state',
-                                    value='ABSENT')
+                                    value='ABSENT',
+                                    operator='=')
                             ])])]))
     self.command_task_args1 = command_task_store.CommandTaskArgs(
         request_id='request_id1',

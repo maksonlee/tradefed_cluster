@@ -15,6 +15,7 @@
 """API module to serve request service calls."""
 import json
 import logging
+import re
 
 import endpoints
 from protorpc import message_types
@@ -31,6 +32,9 @@ from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import request_manager
 from tradefed_cluster import request_sync_monitor
+
+ATTRIBUTE_REQUIREMENT_PATTERN = re.compile(
+    r"(?P<name>[^><=]+)(?P<operator>=|>|>=|<|<=)(?P<value>[^><=]+)")
 
 
 @api_common.tradefed_cluster_api.api_class(
@@ -479,15 +483,7 @@ def _BuildRunTarget(run_target, test_bench_attributes):
   """
   json_attributes = []
   for attribute in test_bench_attributes:
-    if "=" not in attribute:
-      raise endpoints.BadRequestException(
-          "Only 'name=value' format attribute is supported. "
-          "%s is not supported." % attribute)
-    name, value = attribute.split("=", 1)
-    json_attributes.append({
-        common.TestBenchKey.ATTRIBUTE_NAME: name,
-        common.TestBenchKey.ATTRIBUTE_VALUE: value
-    })
+    json_attributes.append(_ParseAttributeRequirement(attribute))
   run_target_json = {
       common.TestBenchKey.HOST: {
           common.TestBenchKey.GROUPS: [{
@@ -499,3 +495,26 @@ def _BuildRunTarget(run_target, test_bench_attributes):
       }
   }
   return json.dumps(run_target_json)
+
+
+def _ParseAttributeRequirement(attribute):
+  """Parse the attribute requirement.
+
+  Args:
+    attribute: a string represents attribute requirement.
+  Returns:
+    a dict with name, value and operator.
+  """
+  m = ATTRIBUTE_REQUIREMENT_PATTERN.match(attribute)
+  if not m:
+    raise endpoints.BadRequestException(
+        "Only 'name[=|>|>=|<|<=]value' format attribute is supported. "
+        "%s is not supported." % attribute)
+  return {
+      common.TestBenchKey.ATTRIBUTE_NAME: m.group(
+          common.TestBenchKey.ATTRIBUTE_NAME),
+      common.TestBenchKey.ATTRIBUTE_VALUE: m.group(
+          common.TestBenchKey.ATTRIBUTE_VALUE),
+      common.TestBenchKey.ATTRIBUTE_OPERATOR: m.group(
+          common.TestBenchKey.ATTRIBUTE_OPERATOR),
+  }

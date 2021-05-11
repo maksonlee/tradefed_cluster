@@ -1395,9 +1395,11 @@ class Attribute(ndb.Model):
   Attributes:
     name: attribute's name.
     value: attribute's value.
+    operator: attribute's operator
   """
   name = ndb.StringProperty()
   value = ndb.StringProperty()
+  operator = ndb.StringProperty()
 
 
 class RunTarget(ndb.Model):

@@ -93,7 +93,10 @@ def _GetTestBench(cluster, run_target):
         attributes.append(
             datastore_entities.Attribute(
                 name=attribute_json[common.TestBenchKey.ATTRIBUTE_NAME],
-                value=attribute_json[common.TestBenchKey.ATTRIBUTE_VALUE]))
+                value=attribute_json[common.TestBenchKey.ATTRIBUTE_VALUE],
+                operator=attribute_json.get(
+                    common.TestBenchKey.ATTRIBUTE_OPERATOR)
+            ))
       run_targets.append(
           datastore_entities.RunTarget(
               name=run_target_name,

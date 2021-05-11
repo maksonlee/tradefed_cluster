@@ -24,7 +24,6 @@ from collections import defaultdict, namedtuple  import logging
 import six
 from tradefed_cluster import common
 
-
 Device = namedtuple('Device', ['device_serial', 'run_target', 'attributes'])
 
 
@@ -169,9 +168,6 @@ class CommandTaskMatcher(object):
     Returns:
       a list of matched devices
     """
-    # TODO: Attributes based test match only support
-    # type1 test, e.g. single device tests. Add support for multi-device
-    # test later.
     if len(command_task.test_bench.host.groups) == 1:
       if len(command_task.test_bench.host.groups[0].run_targets) == 1:
         # type1 test

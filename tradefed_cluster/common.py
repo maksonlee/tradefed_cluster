@@ -379,6 +379,7 @@ class TestBenchKey(object):
   DEVICE_ATTRIBUTES = "device_attributes"
   ATTRIBUTE_NAME = "name"
   ATTRIBUTE_VALUE = "value"
+  ATTRIBUTE_OPERATOR = "operator"
 
 
 UNKNOWN_LAB_NAME = "UNKNOWN"

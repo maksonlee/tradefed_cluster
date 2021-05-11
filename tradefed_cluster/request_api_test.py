@@ -692,18 +692,37 @@ class RequestApiTest(api_test.ApiTest):
 
   def testBuildRunTarget(self):
     run_target = request_api._BuildRunTarget(
-        'a_run_target', ['attr1=val1', 'attr2=val2'])
+        'a_run_target', ['attr1=val1', 'attr2>=val2'])
     run_target_json = json.loads(run_target)
     run_target_json = run_target_json['host']['groups'][0]['run_targets'][0]
     self.assertEqual('a_run_target', run_target_json['name'])
     self.assertEqual('attr1', run_target_json['device_attributes'][0]['name'])
     self.assertEqual('val1', run_target_json['device_attributes'][0]['value'])
+    self.assertEqual('=', run_target_json['device_attributes'][0]['operator'])
     self.assertEqual('attr2', run_target_json['device_attributes'][1]['name'])
     self.assertEqual('val2', run_target_json['device_attributes'][1]['value'])
+    self.assertEqual('>=', run_target_json['device_attributes'][1]['operator'])
 
-  def testBuildRunTarget_invalidFormat(self):
+  def testParseAttributeRequirement(self):
+    self.assertEqual(
+        {'name': 'attr1', 'value': 'val1', 'operator': '='},
+        request_api._ParseAttributeRequirement('attr1=val1'))
+    self.assertEqual(
+        {'name': 'attr1', 'value': 'val1', 'operator': '>'},
+        request_api._ParseAttributeRequirement('attr1>val1'))
+    self.assertEqual(
+        {'name': 'attr1', 'value': 'val1', 'operator': '>='},
+        request_api._ParseAttributeRequirement('attr1>=val1'))
+    self.assertEqual(
+        {'name': 'attr1', 'value': 'val1', 'operator': '<'},
+        request_api._ParseAttributeRequirement('attr1<val1'))
+    self.assertEqual(
+        {'name': 'attr1', 'value': 'val1', 'operator': '<='},
+        request_api._ParseAttributeRequirement('attr1<=val1'))
+
+  def testParseAttributeRequirement_invalidFormat(self):
     with self.assertRaises(endpoints.BadRequestException):
-      request_api._BuildRunTarget('a_run_target', ['attr1'])
+      request_api._ParseAttributeRequirement('attr1')
 
 
 if __name__ == '__main__':

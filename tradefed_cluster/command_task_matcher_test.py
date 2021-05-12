@@ -35,7 +35,7 @@ class CommandTaskMatcherTest(unittest.TestCase):
 
   def _CreateDeviceInfo(self, serial, run_target, group_name,
                         state=common.DeviceState.AVAILABLE,
-                        sim_state=None):
+                        sim_state=None, battery_level='unknown'):
     return api_messages.DeviceInfo(
         device_serial=serial,
         hostname=HOSTNAME,
@@ -43,7 +43,8 @@ class CommandTaskMatcherTest(unittest.TestCase):
         state=state,
         group_name=group_name,
         cluster=CLUSTER,
-        sim_state=sim_state)
+        sim_state=sim_state,
+        battery_level=battery_level)
 
   def _CreateHostInfo(self, device_infos):
     return api_messages.HostInfo(
@@ -154,6 +155,28 @@ class CommandTaskMatcherTest(unittest.TestCase):
     d = matched_devices[0]
     self.assertEqual('d3', d.device_serial)
     self.assertEqual('READY', d.attributes['sim_state'])
+
+  def testMatchType1Test_withBatteryLevel(self):
+    host = self._CreateHostInfo(
+        [self._CreateDeviceInfo('d1', 'run_target1', 'g1'),
+         self._CreateDeviceInfo('d2', 'run_target1', 'g2', battery_level='20'),
+         self._CreateDeviceInfo('d3', 'run_target1', 'g3', battery_level='80')])
+    matcher = command_task_matcher.CommandTaskMatcher(host)
+    task = self._CreateCommandTask(
+        '1',
+        [[
+            datastore_entities.RunTarget(
+                name='run_target1',
+                device_attributes=[
+                    datastore_entities.Attribute(
+                        name='battery_level', value='60', operator='>')]
+                )
+        ]])
+    matched_devices = matcher.Match(task)
+    self.assertEqual(1, len(matched_devices))
+    d = matched_devices[0]
+    self.assertEqual('d3', d.device_serial)
+    self.assertEqual('80', d.attributes['battery_level'])
 
   def testMatchType1Test_withDeviceSerial(self):
     host = self._CreateHostInfo(
@@ -416,6 +439,60 @@ class CommandTaskMatcherTest(unittest.TestCase):
     self.assertSetEqual(
         set(['run_target1', 'run_target2']),
         set(run_targets))
+
+  def testMatchDeviceAttribute(self):
+    device_attrs = {'sim_state': 'READY', 'battery_level': '75'}
+    required_attr = datastore_entities.Attribute(
+        name='sim_state', value='READY', operator='=')
+    self.assertTrue(
+        command_task_matcher._MatchDeviceAttribute(required_attr, device_attrs))
+    required_attr = datastore_entities.Attribute(
+        name='sim_state', value='MISSING', operator='=')
+    self.assertFalse(
+        command_task_matcher._MatchDeviceAttribute(required_attr, device_attrs))
+
+  def testMatchDeviceAttribute_number(self):
+    device_attrs = {'sim_state': 'READY', 'battery_level': '75'}
+    required_attr = datastore_entities.Attribute(
+        name='battery_level', value='60', operator='>')
+    self.assertTrue(
+        command_task_matcher._MatchDeviceAttribute(required_attr, device_attrs))
+    required_attr = datastore_entities.Attribute(
+        name='battery_level', value='80', operator='>')
+    self.assertFalse(
+        command_task_matcher._MatchDeviceAttribute(required_attr, device_attrs))
+
+  def testMatchDeviceAttribute_noOperator(self):
+    device_attrs = {'sim_state': 'READY', 'battery_level': '75'}
+    required_attr = datastore_entities.Attribute(
+        name='sim_state', value='READY')
+    self.assertTrue(
+        command_task_matcher._MatchDeviceAttribute(required_attr, device_attrs))
+
+  def testMatchDeviceAttribute_unknownNumberAttribute(self):
+    device_attrs = {'sim_state': 'READY', 'battery_level': 'unknown'}
+    required_attr = datastore_entities.Attribute(
+        name='battery_level', value='60', operator='>')
+    self.assertFalse(
+        command_task_matcher._MatchDeviceAttribute(required_attr, device_attrs))
+
+  def testMatchDeviceAttribute_noAttribute(self):
+    device_attrs = {'sim_state': 'READY'}
+    required_attr = datastore_entities.Attribute(
+        name='battery_level', value='60', operator='>')
+    self.assertFalse(
+        command_task_matcher._MatchDeviceAttribute(required_attr, device_attrs))
+
+  def testMatchDeviceAttribute_nonNumberCompare(self):
+    device_attrs = {'attr1': 'abcd', 'battery_level': '75'}
+    required_attr = datastore_entities.Attribute(
+        name='attr1', value='ab', operator='>')
+    self.assertTrue(
+        command_task_matcher._MatchDeviceAttribute(required_attr, device_attrs))
+    required_attr = datastore_entities.Attribute(
+        name='attr1', value='abcde', operator='>')
+    self.assertFalse(
+        command_task_matcher._MatchDeviceAttribute(required_attr, device_attrs))
 
 
 if __name__ == '__main__':

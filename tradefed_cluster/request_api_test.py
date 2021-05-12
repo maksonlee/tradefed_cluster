@@ -724,6 +724,10 @@ class RequestApiTest(api_test.ApiTest):
     with self.assertRaises(endpoints.BadRequestException):
       request_api._ParseAttributeRequirement('attr1')
 
+  def testParseAttributeRequirement_nonNumberForNumberAttribute(self):
+    with self.assertRaises(endpoints.BadRequestException):
+      request_api._ParseAttributeRequirement('battery_level>unknown')
+
 
 if __name__ == '__main__':
   unittest.main()

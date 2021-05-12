@@ -510,11 +510,15 @@ def _ParseAttributeRequirement(attribute):
     raise endpoints.BadRequestException(
         "Only 'name[=|>|>=|<|<=]value' format attribute is supported. "
         "%s is not supported." % attribute)
+  name = m.group(common.TestBenchKey.ATTRIBUTE_NAME)
+  value = m.group(common.TestBenchKey.ATTRIBUTE_VALUE)
+  if name in common.NUMBER_DEVICE_ATTRIBUTES:
+    if common.ParseFloat(value) is None:
+      raise endpoints.BadRequestException(
+          "%s can not compare to a non-number value '%s'" % (name, value))
   return {
-      common.TestBenchKey.ATTRIBUTE_NAME: m.group(
-          common.TestBenchKey.ATTRIBUTE_NAME),
-      common.TestBenchKey.ATTRIBUTE_VALUE: m.group(
-          common.TestBenchKey.ATTRIBUTE_VALUE),
+      common.TestBenchKey.ATTRIBUTE_NAME: name,
+      common.TestBenchKey.ATTRIBUTE_VALUE: value,
       common.TestBenchKey.ATTRIBUTE_OPERATOR: m.group(
           common.TestBenchKey.ATTRIBUTE_OPERATOR),
   }

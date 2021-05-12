@@ -24,6 +24,15 @@ from collections import defaultdict, namedtuple  import logging
 import six
 from tradefed_cluster import common
 
+_OPERATOR_TO_PREDICTOR = {
+    '=': lambda a, b: a == b,
+    '>': lambda a, b: a > b,
+    '>=': lambda a, b: a >= b,
+    '<': lambda a, b: a < b,
+    '<=': lambda a, b: a <= b,
+}
+
+
 Device = namedtuple('Device', ['device_serial', 'run_target', 'attributes'])
 
 
@@ -129,6 +138,7 @@ class CommandTaskMatcher(object):
     attributes['product'] = device.product
     attributes['product_variant'] = device.product_variant
     attributes['sim_state'] = device.sim_state
+    attributes['battery_level'] = device.battery_level
     return attributes
 
   def _BuildRunTargetIndex(self, groups):
@@ -211,8 +221,7 @@ class CommandTaskMatcher(object):
     if not required_attributes:
       return True
     for required_attribute in required_attributes:
-      if (device_attributes.get(required_attribute.name, None) !=
-          required_attribute.value):
+      if not _MatchDeviceAttribute(required_attribute, device_attributes):
         return False
     return True
 
@@ -351,3 +360,35 @@ class CommandTaskMatcher(object):
       true if the host has no usable devices, otherwise false
     """
     return not self._groups
+
+
+def _MatchDeviceAttribute(required_attr, device_attrs):
+  """Check if a device's attributes match the task's requirements."""
+  if required_attr.name not in device_attrs:
+    logging.debug(
+        'No %s in %s.',
+        required_attr.name, device_attrs.get('device_serial'))
+    return False
+  operator = required_attr.operator or '='
+  if operator not in _OPERATOR_TO_PREDICTOR:
+    # This should never happen, since we check the expression in
+    # request_api._ParseAttributeRequirement.
+    raise ValueError('Operator "%s" is not supported.' % operator)
+
+  device_attr_value = device_attrs[required_attr.name]
+  required_value = required_attr.value
+  if required_attr.name in common.NUMBER_DEVICE_ATTRIBUTES:
+    required_value = common.ParseFloat(required_value)
+    if required_value is None:
+      # This should never happen, since we check the expression in
+      # request_api._ParseAttributeRequirement.
+      raise ValueError(
+          "%s can not compare to a non-number value '%s'" %
+          (required_attr.name, required_attr.value))
+    device_attr_value = common.ParseFloat(device_attr_value)
+    if device_attr_value is None:
+      logging.debug(
+          'Device attr %s is a non-number "%s".',
+          required_attr.name, device_attrs[required_attr.name])
+      return False
+  return _OPERATOR_TO_PREDICTOR[operator](device_attr_value, required_value)

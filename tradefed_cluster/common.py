@@ -385,3 +385,14 @@ class TestBenchKey(object):
 UNKNOWN_LAB_NAME = "UNKNOWN"
 UNKNOWN_CLUSTER_NAME = "UNKNOWN"
 UNKNOWN_TEST_HARNESS_VERSION = "UNKNOWN"
+
+
+NUMBER_DEVICE_ATTRIBUTES = ("battery_level",)
+
+
+def ParseFloat(num_str):
+  """Parse number string to float."""
+  try:
+    return float(num_str)
+  except (ValueError, TypeError):
+    return None

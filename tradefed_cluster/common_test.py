@@ -55,5 +55,12 @@ class CommonTest(unittest.TestCase):
     self.assertEqual(six.ensure_str(bytes_message), decoded_bytes_message)
     self.assertEqual(string_message, decoded_string_message)
 
+  def testParseFloat(self):
+    self.assertEqual(60, common.ParseFloat("60"))
+    self.assertEqual(1.2, common.ParseFloat("1.2"))
+    self.assertIsNone(common.ParseFloat("P1234"))
+    self.assertIsNone(common.ParseFloat(None))
+
+
 if __name__ == "__main__":
   unittest.main()

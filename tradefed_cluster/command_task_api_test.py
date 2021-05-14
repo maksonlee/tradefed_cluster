@@ -30,6 +30,7 @@ from tradefed_cluster import command_task_api
 from tradefed_cluster import command_task_matcher  from tradefed_cluster import command_task_store
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
+from tradefed_cluster import datastore_test_util
 from tradefed_cluster import env_config  from tradefed_cluster import metric
 
 
@@ -61,6 +62,7 @@ class CommandTaskApiTest(api_test.ApiTest):
     self.plugin_patcher = mock.patch(
         '__main__.env_config.CONFIG.plugin')
     self.plugin_patcher.start()
+    self.host = datastore_test_util.CreateHost('cluster', 'hostname', 'alab')
 
   def tearDown(self):
     self.plugin_patcher.stop()
@@ -221,6 +223,7 @@ class CommandTaskApiTest(api_test.ApiTest):
             task_id='task_id0',
             request_id=request_id,
             command_id=command_id,
+            device_serials=['d1'],
             plugin_data=[
                 api_messages.KeyValuePair(key='key0', value='value0'),
                 api_messages.KeyValuePair(
@@ -230,26 +233,37 @@ class CommandTaskApiTest(api_test.ApiTest):
             task_id='task_id1',
             request_id=request_id,
             command_id=command_id,
+            device_serials=['d2', 'd3'],
             plugin_data=[
                 api_messages.KeyValuePair(key='key2', value='value2'),
                 api_messages.KeyValuePair(
                     key='key3', value='value3')
             ])
     ]
-    command_task_api.CommandTaskApi()._CreateCommandAttempt(leased_tasks)
+    command_task_api.CommandTaskApi()._CreateCommandAttempt(
+        leased_tasks, self.host)
     attempts = command_manager.GetCommandAttempts(request_id='request_id',
                                                   command_id='command_id')
 
     self.assertEqual(2, len(attempts))
     self.assertEqual('command_id', attempts[0].command_id)
     self.assertEqual('task_id0', attempts[0].task_id)
-    self.assertEqual({'key0': 'value0', 'key1': 'value1'},
-                     attempts[0].plugin_data)
+    self.assertEqual(self.host.hostname, attempts[0].hostname)
+    self.assertEqual(['d1'], attempts[0].device_serials)
+    self.assertEqual(
+        {'cluster': 'cluster', 'hostname': 'hostname', 'lab_name': 'alab',
+         'serial': 'd1', 'serials': 'd1', 'key0': 'value0', 'key1': 'value1'},
+        attempts[0].plugin_data)
     self.assertIsNotNone(attempts[0].last_event_time)
     self.assertEqual('command_id', attempts[1].command_id)
     self.assertEqual('task_id1', attempts[1].task_id)
-    self.assertEqual({'key2': 'value2', 'key3': 'value3'},
-                     attempts[1].plugin_data)
+    self.assertEqual(self.host.hostname, attempts[1].hostname)
+    self.assertEqual(['d2', 'd3'], attempts[1].device_serials)
+    self.assertEqual(
+        {'cluster': 'cluster', 'hostname': 'hostname', 'lab_name': 'alab',
+         'serial': 'd2', 'serials': 'd2,d3',
+         'key2': 'value2', 'key3': 'value3'},
+        attempts[1].plugin_data)
     self.assertIsNotNone(attempts[1].last_event_time)
 
   @mock.patch.object(metric, 'RecordCommandTimingMetric')
@@ -361,7 +375,7 @@ class CommandTaskApiTest(api_test.ApiTest):
                 api_messages.KeyValuePair(
                     key='ants_work_unit_id', value='')
             ])
-    ])])
+    ], self.host)])
     ensure_consistency.assert_has_calls([
         mock.call(REQUEST_ID, '2', '%s-2-0' % REQUEST_ID),
         mock.call(REQUEST_ID, '3', '%s-3-0' % REQUEST_ID)])

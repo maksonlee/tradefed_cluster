@@ -589,6 +589,7 @@ pytype_strict_library(
         ":commander_lib",
         ":common_lib",
         ":datastore_entities_lib",
+        ":device_manager_lib",
         ":env_config_lib",
         ":metric_lib",
         ":request_manager_lib",
@@ -609,6 +610,7 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":api_test_lib",
+        ":datastore_test_util_lib",
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
     ],

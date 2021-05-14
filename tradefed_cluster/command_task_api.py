@@ -32,6 +32,7 @@ from tradefed_cluster import command_task_matcher
 from tradefed_cluster import command_task_store
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
+from tradefed_cluster import device_manager
 from tradefed_cluster import env_config
 from tradefed_cluster import metric
 from tradefed_cluster import request_manager
@@ -97,6 +98,7 @@ class CommandTaskApi(remote.Service):
       a TaskList object.
     """
     logging.debug("leasehosttasks: request=%s", request)
+    host = device_manager.GetHost(request.hostname)
     matcher = command_task_matcher.CommandTaskMatcher(request)
     run_targets = matcher.GetRunTargets()
     if not run_targets:
@@ -122,15 +124,20 @@ class CommandTaskApi(remote.Service):
             cluster)
 
     env_config.CONFIG.plugin.OnCommandTasksLease(leased_tasks)
-    self._CreateCommandAttempt(leased_tasks)
+    self._CreateCommandAttempt(leased_tasks, host)
     return CommandTaskList(tasks=leased_tasks)
 
-  def _CreateCommandAttempt(self, leased_tasks):
+  def _CreateCommandAttempt(self, leased_tasks, host):
     for task in leased_tasks:
       attempt_id = str(uuid.uuid4())
       task.attempt_id = attempt_id
 
       plugin_data_ = api_messages.KeyValuePairMessagesToMap(task.plugin_data)
+      plugin_data_["hostname"] = host.hostname
+      plugin_data_["lab_name"] = host.lab_name
+      plugin_data_["cluster"] = host.host_group
+      plugin_data_["serial"] = task.device_serials[0]
+      plugin_data_["serials"] = ",".join(task.device_serials)
       attempt_key = ndb.Key(
           datastore_entities.Request, task.request_id,
           datastore_entities.Command, task.command_id,
@@ -145,6 +152,9 @@ class CommandTaskApi(remote.Service):
           task_id=task.task_id,
           run_index=task.run_index,
           attempt_index=task.attempt_index,
+          hostname=host.hostname,
+          device_serial=task.device_serials[0],
+          device_serials=task.device_serials,
           plugin_data=plugin_data_)
       command_manager.AddToSyncCommandAttemptQueue(attempt_entity)
       attempt_entity.put()

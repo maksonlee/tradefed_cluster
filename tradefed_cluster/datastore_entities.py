@@ -712,6 +712,7 @@ class HostConfig(ndb.Model):
     update_time: the time the config is update.
     inventory_groups: the inventory groups and the parent groups the host belong
       to.
+    docker_image: string, the docker image to run test harness.
   """
   hostname = ndb.StringProperty()
   tf_global_config_path = ndb.StringProperty()
@@ -724,6 +725,7 @@ class HostConfig(ndb.Model):
   owners = ndb.StringProperty(repeated=True)
   update_time = ndb.DateTimeProperty(auto_now=True)
   inventory_groups = ndb.StringProperty(repeated=True)
+  docker_image = ndb.StringProperty()
 
   @classmethod
   def FromMessage(cls, msg):
@@ -739,7 +741,8 @@ class HostConfig(ndb.Model):
         shutdown_timeout_sec=msg.shutdown_timeout_sec,
         enable_ui_update=msg.enable_ui_update,
         owners=list(msg.owners),
-        inventory_groups=list(msg.inventory_groups))
+        inventory_groups=list(msg.inventory_groups),
+        docker_image=msg.docker_image)
 
 
 @MessageConverter(HostConfig)
@@ -756,7 +759,8 @@ def HostConfigToMessage(host_config_entity):
         shutdown_timeout_sec=host_config_entity.shutdown_timeout_sec,
         enable_ui_update=host_config_entity.enable_ui_update,
         owners=list(host_config_entity.owners),
-        inventory_groups=list(host_config_entity.inventory_groups))
+        inventory_groups=list(host_config_entity.inventory_groups),
+        docker_image=host_config_entity.docker_image)
 
 
 class HostMetadata(ndb.Model):

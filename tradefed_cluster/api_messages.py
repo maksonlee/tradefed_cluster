@@ -593,6 +593,7 @@ class HostConfig(messages.Message):
   enable_ui_update = messages.BooleanField(8)
   owners = messages.StringField(9, repeated=True)
   inventory_groups = messages.StringField(10, repeated=True)
+  docker_image = messages.StringField(11)
 
 
 class HostConfigCollection(messages.Message):

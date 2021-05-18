@@ -524,6 +524,83 @@ class CommandTaskApiTest(api_test.ApiTest):
 
     self.assertEqual(1, len(task_list.tasks))
 
+  @mock.patch.object(metric, 'RecordCommandTimingMetric')
+  @mock.patch.object(command_manager, 'Touch')
+  @mock.patch.object(
+      command_task_api.CommandTaskApi, '_EnsureCommandConsistency')
+  @mock.patch.object(
+      command_task_api.CommandTaskApi, '_CreateCommandAttempt')
+  def testLeaseHostTasks_nonExistHost(
+      self, create_command_attempt,
+      ensure_consistency, mock_touch, record_timing):
+    mock_touch.side_effect = [mock.MagicMock(create_time=TIMESTAMP)]
+    ensure_consistency.return_value = True
+    self._AddCommand(
+        self.request.key.id(),
+        '2',
+        'command',
+        'non-exist-group1',
+        'run_target1',
+        ants_invocation_id='i123',
+        ants_work_unit_id='w123')
+
+    request = {
+        'hostname': 'non-exist-host',
+        'cluster': 'non-exist-group1',
+        'device_infos': [
+            {
+                'device_serial': 'd1',
+                'hostname': 'hostname',
+                'run_target': 'run_target1',
+                'state': common.DeviceState.AVAILABLE,
+                'group_name': 'non-exist-group1'
+            },
+        ],
+        'next_cluster_ids': ['cluster2', 'cluster3']
+    }
+    response = self.testapp.post_json(
+        '/_ah/api/CommandTaskApi.LeaseHostTasks', request)
+    self.assertEqual('200 OK', response.status)
+    task_list = protojson.decode_message(command_task_api.CommandTaskList,
+                                         response.body)
+
+    self.assertEqual(1, len(task_list.tasks))
+    task = task_list.tasks[0]
+    self.assertEqual('command', task.command_line)
+    self.assertEqual('2', task.command_id)
+    self.assertEqual('%s-2-0' % REQUEST_ID, task.task_id)
+    self.assertEqual(['d1'], task.device_serials)
+
+    create_command_attempt.assert_has_calls([
+        mock.call(
+            [command_task_api.CommandTask(
+                task_id='1001-2-0',
+                request_id='1001',
+                command_id='2',
+                command_line='command',
+                device_serials=['d1'],
+                run_index=0,
+                attempt_index=0,
+                plugin_data=[
+                    api_messages.KeyValuePair(key='ants_invocation_id',
+                                              value='i123'),
+                    api_messages.KeyValuePair(
+                        key='ants_work_unit_id', value='w123')
+                ])],
+            datastore_entities.HostInfo(hostname='non-exist-host',
+                                        host_group='non-exist-group1'))])
+    ensure_consistency.assert_has_calls([
+        mock.call(REQUEST_ID, '2', '%s-2-0' % REQUEST_ID)])
+    mock_touch.assert_has_calls([
+        mock.call(REQUEST_ID, '2')])
+    record_timing.assert_has_calls([
+        mock.call(
+            cluster_id='non-exist-group1',
+            run_target='run_target1',
+            create_timestamp=TIMESTAMP,
+            command_action=metric.CommandAction.LEASE,
+            count=True)])
+
 
 if __name__ == '__main__':
   unittest.main()

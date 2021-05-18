@@ -99,6 +99,10 @@ class CommandTaskApi(remote.Service):
     """
     logging.debug("leasehosttasks: request=%s", request)
     host = device_manager.GetHost(request.hostname)
+    if not host:
+      host = datastore_entities.HostInfo(
+          hostname=request.hostname,
+          host_group=request.cluster)
     matcher = command_task_matcher.CommandTaskMatcher(request)
     run_targets = matcher.GetRunTargets()
     if not run_targets:

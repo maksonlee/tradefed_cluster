@@ -121,3 +121,68 @@ def _AnalyseTradefedDockerImageTags(tags):
     if _HISTORICAL_GOLDEN_PATTERN.match(tag):
       result['is_historical_golden'] = True
   return result
+
+
+def _GetTestHarnessImageMetadata(repo_name, image_tag):
+  """Get a TestHarnessImageMetadata entity.
+
+  Args:
+    repo_name: string, repo name.
+    image_tag: string, image tag.
+
+  Returns:
+    A entity of TestHarnessImageMetadata, or None.
+  """
+  result = None
+  response = list(datastore_entities.TestHarnessImageMetadata.query().filter(
+      datastore_entities.TestHarnessImageMetadata.repo_name ==
+      repo_name).filter(datastore_entities.TestHarnessImageMetadata.current_tags
+                        == image_tag).fetch(1))
+  if response:
+    result = response[0]
+  return result
+
+
+def _SplitImageUrlIntoRepoAndTag(image_url):
+  """Split image url to tuple of repo_name and image_tag.
+
+  Args:
+    image_url: string, image url.
+
+  Returns:
+    string, repo name.
+    string, image tag name.
+  """
+  delimiter = ':'
+  default_tag = 'latest'
+  if delimiter in image_url:
+    repo_name, image_tag = image_url.split(delimiter, 1)
+  else:
+    repo_name = image_url
+    image_tag = default_tag
+  return repo_name, image_tag
+
+
+def AreHarnessImagesEqual(image_url_a, image_url_b):
+  """Helper function to check whether the images behind urls equal.
+
+  Args:
+    image_url_a: string, url to image A.
+    image_url_b: string, url to image B.
+
+  Returns:
+    bool, whether two images urls links to the same image digest.
+  """
+
+  if image_url_a == image_url_b:
+    return True
+  if not image_url_a or not image_url_b:
+    return False
+
+  repo_a, tag_a = _SplitImageUrlIntoRepoAndTag(image_url_a)
+  repo_b, tag_b = _SplitImageUrlIntoRepoAndTag(image_url_b)
+  image_a = _GetTestHarnessImageMetadata(repo_a, tag_a)
+  image_b = _GetTestHarnessImageMetadata(repo_b, tag_b)
+  if image_a and image_b and image_a.digest == image_b.digest:
+    return True
+  return False

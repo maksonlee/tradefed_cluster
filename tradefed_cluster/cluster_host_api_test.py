@@ -2148,52 +2148,16 @@ class ClusterHostApiTest(api_test.ApiTest):
     hostname2 = 'host2'
     lab_name = 'alab'
     owner = 'user1'
-    image_name = 'image_url'
+    repo_name = 'test_repo'
+    tag = 'new'
+    image_name_new = ':'.join([repo_name, tag])
     datastore_test_util.CreateHostConfig(
         hostname1, lab_name, owners=[owner], enable_ui_update=True)
     datastore_test_util.CreateHostConfig(
         hostname2, lab_name, owners=[owner], enable_ui_update=True)
-    api_request = {
-        'hostnames': [hostname1, hostname2],
-        'test_harness_image': image_name,
-        'user': owner,
-    }
-    api_response = self.testapp.post_json(
-        '/_ah/api/ClusterHostApi.BatchUpdateHostMetadata',
-        api_request)
-    self.assertEqual('200 OK', api_response.status)
+    datastore_test_util.CreateTestHarnessImageMetadata(
+        repo_name=repo_name, digest='d2', current_tags=[tag])
 
-    host_metadata = datastore_entities.HostMetadata.get_by_id(hostname1)
-    self.assertEqual(hostname1, host_metadata.hostname)
-    self.assertEqual(image_name, host_metadata.test_harness_image)
-    host_update_state = datastore_entities.HostUpdateState.get_by_id(hostname1)
-    self.assertEqual(hostname1, host_update_state.hostname)
-    self.assertEqual(api_messages.HostUpdateState.PENDING,
-                     host_update_state.state)
-    host_metadata = datastore_entities.HostMetadata.get_by_id(hostname2)
-    self.assertEqual(hostname2, host_metadata.hostname)
-    self.assertEqual(image_name, host_metadata.test_harness_image)
-    host_update_state = datastore_entities.HostUpdateState.get_by_id(hostname2)
-    self.assertEqual(hostname2, host_update_state.hostname)
-    self.assertEqual(api_messages.HostUpdateState.PENDING,
-                     host_update_state.state)
-
-  def testBatchUpdateHostMetadata_succeedsWithExistingMetadata(self):
-    """Test batch set test_harness_image for hosts."""
-    hostname1 = 'host1'
-    hostname2 = 'host2'
-    lab_name = 'alab'
-    owner = 'user1'
-    image_name_old = 'image_url_old'
-    image_name_new = 'image_url_new'
-    datastore_test_util.CreateHostConfig(
-        hostname1, lab_name, owners=[owner], enable_ui_update=True)
-    datastore_test_util.CreateHostConfig(
-        hostname2, lab_name, owners=[owner], enable_ui_update=True)
-    datastore_test_util.CreateHostMetadata(
-        hostname=hostname1, test_harness_image=image_name_old)
-    datastore_test_util.CreateHostMetadata(
-        hostname=hostname2, test_harness_image=image_name_old)
     api_request = {
         'hostnames': [hostname1, hostname2],
         'test_harness_image': image_name_new,
@@ -2219,19 +2183,75 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual(api_messages.HostUpdateState.PENDING,
                      host_update_state.state)
 
-  def testBatchUpdateHostMetadata_succeedsWithUnchangedMetadata(self):
+  def testBatchUpdateHostMetadata_succeedsWithExistingMetadata(self):
+    """Test batch set test_harness_image for hosts."""
+    hostname1 = 'host1'
+    hostname2 = 'host2'
+    lab_name = 'alab'
+    owner = 'user1'
+    repo_name = 'test_repo'
+    tag_old = 'old'
+    tag_new = 'new'
+    image_name_old = ':'.join([repo_name, tag_old])
+    image_name_new = ':'.join([repo_name, tag_new])
+    datastore_test_util.CreateHostConfig(
+        hostname1, lab_name, owners=[owner], enable_ui_update=True)
+    datastore_test_util.CreateHostConfig(
+        hostname2, lab_name, owners=[owner], enable_ui_update=True)
+    datastore_test_util.CreateHostMetadata(
+        hostname=hostname1, test_harness_image=image_name_old)
+    datastore_test_util.CreateHostMetadata(
+        hostname=hostname2, test_harness_image=image_name_old)
+    datastore_test_util.CreateTestHarnessImageMetadata(
+        repo_name=repo_name, digest='d1', current_tags=[tag_old])
+    datastore_test_util.CreateTestHarnessImageMetadata(
+        repo_name=repo_name, digest='d2', current_tags=[tag_new])
+
+    api_request = {
+        'hostnames': [hostname1, hostname2],
+        'test_harness_image': image_name_new,
+        'user': owner,
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.BatchUpdateHostMetadata',
+        api_request)
+    self.assertEqual('200 OK', api_response.status)
+
+    host_metadata = datastore_entities.HostMetadata.get_by_id(hostname1)
+    self.assertEqual(hostname1, host_metadata.hostname)
+    self.assertEqual(image_name_new, host_metadata.test_harness_image)
+    host_update_state = datastore_entities.HostUpdateState.get_by_id(hostname1)
+    self.assertEqual(hostname1, host_update_state.hostname)
+    self.assertEqual(api_messages.HostUpdateState.PENDING,
+                     host_update_state.state)
+    host_metadata = datastore_entities.HostMetadata.get_by_id(hostname2)
+    self.assertEqual(hostname2, host_metadata.hostname)
+    self.assertEqual(image_name_new, host_metadata.test_harness_image)
+    host_update_state = datastore_entities.HostUpdateState.get_by_id(hostname2)
+    self.assertEqual(hostname2, host_update_state.hostname)
+    self.assertEqual(api_messages.HostUpdateState.PENDING,
+                     host_update_state.state)
+
+  def testBatchUpdateHostMetadata_succeedsWithUnchangedImage(self):
     """Test batch set test_harness_image for hosts."""
     hostname = 'host1'
     lab_name = 'alab'
     owner = 'user1'
-    image_name = 'image_url'
+    repo_name = 'test_repo'
+    tag_old = 'old'
+    tag_new = 'new'
+    image_name_old = ':'.join([repo_name, tag_old])
+    image_name_new = ':'.join([repo_name, tag_new])
     datastore_test_util.CreateHostConfig(
         hostname, lab_name, owners=[owner], enable_ui_update=True)
     datastore_test_util.CreateHostMetadata(
-        hostname=hostname, test_harness_image=image_name)
+        hostname=hostname, test_harness_image=image_name_old)
+    datastore_test_util.CreateTestHarnessImageMetadata(
+        repo_name=repo_name, digest='d1', current_tags=[tag_old, tag_new])
+
     api_request = {
         'hostnames': [hostname],
-        'test_harness_image': image_name,
+        'test_harness_image': image_name_new,
         'user': owner,
     }
     api_response = self.testapp.post_json(
@@ -2241,7 +2261,7 @@ class ClusterHostApiTest(api_test.ApiTest):
 
     host_metadata = datastore_entities.HostMetadata.get_by_id(hostname)
     self.assertEqual(hostname, host_metadata.hostname)
-    self.assertEqual(image_name, host_metadata.test_harness_image)
+    self.assertEqual(image_name_new, host_metadata.test_harness_image)
     # No update should start in this case, because the image is not changed.
     self.assertIsNone(datastore_entities.HostUpdateState.get_by_id(hostname))
 
@@ -2251,8 +2271,11 @@ class ClusterHostApiTest(api_test.ApiTest):
     hostname2 = 'host2'
     lab_name = 'alab'
     owner = 'user1'
-    image_name_old = 'image_url_old'
-    image_name_new = 'image_url_new'
+    repo_name = 'test_repo'
+    tag_old = 'old'
+    tag_new = 'new'
+    image_name_old = ':'.join([repo_name, tag_old])
+    image_name_new = ':'.join([repo_name, tag_new])
     datastore_test_util.CreateHostConfig(
         hostname1, lab_name, owners=[owner], enable_ui_update=True)
     datastore_test_util.CreateHostConfig(
@@ -2261,6 +2284,11 @@ class ClusterHostApiTest(api_test.ApiTest):
         hostname=hostname1, test_harness_image=image_name_old)
     datastore_test_util.CreateHostMetadata(
         hostname=hostname2, test_harness_image=image_name_old)
+    datastore_test_util.CreateTestHarnessImageMetadata(
+        repo_name=repo_name, digest='d1', current_tags=[tag_old])
+    datastore_test_util.CreateTestHarnessImageMetadata(
+        repo_name=repo_name, digest='d2', current_tags=[tag_new])
+
     api_request = {
         'hostnames': [hostname1, hostname2],
         'test_harness_image': image_name_new,
@@ -2283,8 +2311,11 @@ class ClusterHostApiTest(api_test.ApiTest):
     hostname2 = 'host2'
     lab_name = 'alab'
     owner = 'user1'
-    image_name_old = 'image_url_old'
-    image_name_new = 'image_url_new'
+    repo_name = 'test_repo'
+    tag_old = 'old'
+    tag_new = 'new'
+    image_name_old = ':'.join([repo_name, tag_old])
+    image_name_new = ':'.join([repo_name, tag_new])
     datastore_test_util.CreateHostConfig(
         hostname1, lab_name, owners=[owner], enable_ui_update=False)
     datastore_test_util.CreateHostConfig(
@@ -2293,6 +2324,11 @@ class ClusterHostApiTest(api_test.ApiTest):
         hostname=hostname1, test_harness_image=image_name_old)
     datastore_test_util.CreateHostMetadata(
         hostname=hostname2, test_harness_image=image_name_old)
+    datastore_test_util.CreateTestHarnessImageMetadata(
+        repo_name=repo_name, digest='d1', current_tags=[tag_old])
+    datastore_test_util.CreateTestHarnessImageMetadata(
+        repo_name=repo_name, digest='d2', current_tags=[tag_new])
+
     api_request = {
         'hostnames': [hostname1, hostname2],
         'test_harness_image': image_name_new,

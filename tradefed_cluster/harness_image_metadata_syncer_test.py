@@ -14,15 +14,20 @@
 """Tests for harness_image_metadata_syncer."""
 import datetime
 import unittest
+
+from absl.testing import parameterized
+
 import mock
 
 from tradefed_cluster import datastore_entities
+from tradefed_cluster import datastore_test_util
 from tradefed_cluster import harness_image_metadata_syncer
 from tradefed_cluster import testbed_dependent_test
 from tradefed_cluster.util import ndb_shim as ndb
 
 
-class HarnessImageMetadataSyncerTest(testbed_dependent_test.TestbedDependentTest
+class HarnessImageMetadataSyncerTest(parameterized.TestCase,
+                                     testbed_dependent_test.TestbedDependentTest
                                     ):
   """Tests for HarnessImageMetadataSyncer."""
 
@@ -212,6 +217,28 @@ class HarnessImageMetadataSyncerTest(testbed_dependent_test.TestbedDependentTest
     self.assertEqual(time_now, entity_3.sync_time)
     self.assertCountEqual(['3333333', 'staging'], entity_3.current_tags)
     self.assertEmpty(entity_3.historical_tags)
+
+  @parameterized.named_parameters(
+      ('Same image digest.', 'test_repo:t1', 'test_repo:t2', True),
+      ('Different image digests.', 'test_repo:t1', 'test_repo:t3', False),
+      ('Only split on first delimiter.', 'test_repo:t1:xx', 'test_repo:t1',
+       False),
+      ('Same url', 'test_repo:t1', 'test_repo:t1', True),
+      ('Same url with default tag', 'test_repo:t3', 'test_repo', True),
+      ('One is empty', '', 'test_repo:t1', False),
+      ('Image not found', 'test_repo:notfound', 'test_repo:t1', False),
+  )
+  def testAreHarnessImagesEqual(self, image_url_a, image_url_b,
+                                expected_result):
+    datastore_test_util.CreateTestHarnessImageMetadata(
+        repo_name='test_repo', digest='d1', current_tags=['t1', 't2'])
+    datastore_test_util.CreateTestHarnessImageMetadata(
+        repo_name='test_repo', digest='d2', current_tags=['t3', 'latest'])
+
+    self.assertEqual(
+        expected_result,
+        harness_image_metadata_syncer.AreHarnessImagesEqual(
+            image_url_a, image_url_b))
 
 
 if __name__ == '__main__':

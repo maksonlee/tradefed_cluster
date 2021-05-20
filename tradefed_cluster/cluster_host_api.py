@@ -28,6 +28,7 @@ from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import datastore_util
 from tradefed_cluster import device_manager
+from tradefed_cluster import harness_image_metadata_syncer
 from tradefed_cluster import host_event
 from tradefed_cluster import note_manager
 
@@ -904,7 +905,8 @@ class ClusterHostApi(remote.Service):
       if not metadata:
         metadata = datastore_entities.HostMetadata(
             id=hostname, hostname=hostname)
-      if metadata.test_harness_image != request.test_harness_image:
+      if not harness_image_metadata_syncer.AreHarnessImagesEqual(
+          metadata.test_harness_image, request.test_harness_image):
         event = host_event.HostEvent(
             time=datetime.datetime.utcnow(),
             type=_HOST_UPDATE_STATE_CHANGED_EVENT_NAME,
@@ -927,4 +929,3 @@ class ClusterHostApi(remote.Service):
       error_message += ("Hosts [%s] are not enabled to be updated from UI. "
                         % ", ".join(hosts_not_enabled))
     raise endpoints.BadRequestException(error_message)
-

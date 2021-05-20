@@ -268,6 +268,7 @@ pytype_strict_library(
         ":datastore_entities_lib",
         ":datastore_util_lib",
         ":device_manager_lib",
+        ":harness_image_metadata_syncer_lib",
         ":host_event_lib",
         ":note_manager_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
@@ -1243,8 +1244,10 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":datastore_entities_lib",
+        ":datastore_test_util_lib",
         ":harness_image_metadata_syncer_lib",
         ":testbed_dependent_test_lib",
+        "//third_party/py/absl/testing:parameterized",
         "//tradefed_cluster/util:ndb_shim_lib",
         third_party("mock"),
     ],

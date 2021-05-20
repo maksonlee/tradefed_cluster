@@ -226,8 +226,10 @@ class CommandTaskApiTest(api_test.ApiTest):
             device_serials=['d1'],
             plugin_data=[
                 api_messages.KeyValuePair(key='key0', value='value0'),
-                api_messages.KeyValuePair(
-                    key='key1', value='value1')
+                api_messages.KeyValuePair(key='key1', value='value1'),
+                api_messages.KeyValuePair(key='hostname', value='ahost'),
+                api_messages.KeyValuePair(key='lab_name', value='alab'),
+                api_messages.KeyValuePair(key='host_group', value='cluster'),
             ]),
         command_task_api.CommandTask(
             task_id='task_id1',
@@ -236,32 +238,32 @@ class CommandTaskApiTest(api_test.ApiTest):
             device_serials=['d2', 'd3'],
             plugin_data=[
                 api_messages.KeyValuePair(key='key2', value='value2'),
-                api_messages.KeyValuePair(
-                    key='key3', value='value3')
+                api_messages.KeyValuePair(key='key3', value='value3'),
+                api_messages.KeyValuePair(key='hostname', value='ahost'),
+                api_messages.KeyValuePair(key='lab_name', value='alab'),
+                api_messages.KeyValuePair(key='host_group', value='agroup'),
             ])
     ]
-    command_task_api.CommandTaskApi()._CreateCommandAttempt(
-        leased_tasks, self.host)
+    command_task_api.CommandTaskApi()._CreateCommandAttempt(leased_tasks)
     attempts = command_manager.GetCommandAttempts(request_id='request_id',
                                                   command_id='command_id')
 
     self.assertEqual(2, len(attempts))
     self.assertEqual('command_id', attempts[0].command_id)
     self.assertEqual('task_id0', attempts[0].task_id)
-    self.assertEqual(self.host.hostname, attempts[0].hostname)
+    self.assertEqual('ahost', attempts[0].hostname)
     self.assertEqual(['d1'], attempts[0].device_serials)
     self.assertEqual(
-        {'cluster': 'cluster', 'hostname': 'hostname', 'lab_name': 'alab',
-         'serial': 'd1', 'serials': 'd1', 'key0': 'value0', 'key1': 'value1'},
+        {'host_group': 'cluster', 'hostname': 'ahost', 'lab_name': 'alab',
+         'key0': 'value0', 'key1': 'value1'},
         attempts[0].plugin_data)
     self.assertIsNotNone(attempts[0].last_event_time)
     self.assertEqual('command_id', attempts[1].command_id)
     self.assertEqual('task_id1', attempts[1].task_id)
-    self.assertEqual(self.host.hostname, attempts[1].hostname)
+    self.assertEqual('ahost', attempts[1].hostname)
     self.assertEqual(['d2', 'd3'], attempts[1].device_serials)
     self.assertEqual(
-        {'cluster': 'cluster', 'hostname': 'hostname', 'lab_name': 'alab',
-         'serial': 'd2', 'serials': 'd2,d3',
+        {'host_group': 'agroup', 'hostname': 'ahost', 'lab_name': 'alab',
          'key2': 'value2', 'key3': 'value3'},
         attempts[1].plugin_data)
     self.assertIsNotNone(attempts[1].last_event_time)
@@ -358,8 +360,11 @@ class CommandTaskApiTest(api_test.ApiTest):
             plugin_data=[
                 api_messages.KeyValuePair(key='ants_invocation_id',
                                           value='i123'),
-                api_messages.KeyValuePair(
-                    key='ants_work_unit_id', value='w123')
+                api_messages.KeyValuePair(key='ants_work_unit_id',
+                                          value='w123'),
+                api_messages.KeyValuePair(key='host_group', value='cluster'),
+                api_messages.KeyValuePair(key='hostname', value='hostname'),
+                api_messages.KeyValuePair(key='lab_name', value='alab'),
             ]),
         command_task_api.CommandTask(
             task_id='1001-3-0',
@@ -370,12 +375,13 @@ class CommandTaskApiTest(api_test.ApiTest):
             run_index=0,
             attempt_index=0,
             plugin_data=[
-                api_messages.KeyValuePair(key='ants_invocation_id',
-                                          value=''),
-                api_messages.KeyValuePair(
-                    key='ants_work_unit_id', value='')
+                api_messages.KeyValuePair(key='ants_invocation_id', value=''),
+                api_messages.KeyValuePair(key='ants_work_unit_id', value=''),
+                api_messages.KeyValuePair(key='host_group', value='cluster'),
+                api_messages.KeyValuePair(key='hostname', value='hostname'),
+                api_messages.KeyValuePair(key='lab_name', value='alab'),
             ])
-    ], self.host)])
+    ])])
     ensure_consistency.assert_has_calls([
         mock.call(REQUEST_ID, '2', '%s-2-0' % REQUEST_ID),
         mock.call(REQUEST_ID, '3', '%s-3-0' % REQUEST_ID)])
@@ -531,8 +537,8 @@ class CommandTaskApiTest(api_test.ApiTest):
   @mock.patch.object(
       command_task_api.CommandTaskApi, '_CreateCommandAttempt')
   def testLeaseHostTasks_nonExistHost(
-      self, create_command_attempt,
-      ensure_consistency, mock_touch, record_timing):
+      self, create_command_attempt, ensure_consistency, mock_touch,
+      record_timing):
     mock_touch.side_effect = [mock.MagicMock(create_time=TIMESTAMP)]
     ensure_consistency.return_value = True
     self._AddCommand(
@@ -571,6 +577,13 @@ class CommandTaskApiTest(api_test.ApiTest):
     self.assertEqual('%s-2-0' % REQUEST_ID, task.task_id)
     self.assertEqual(['d1'], task.device_serials)
 
+    plugin_data = [
+        api_messages.KeyValuePair(key='ants_invocation_id', value='i123'),
+        api_messages.KeyValuePair(key='ants_work_unit_id', value='w123'),
+        api_messages.KeyValuePair(key='host_group', value='non-exist-group1'),
+        api_messages.KeyValuePair(key='hostname', value='non-exist-host'),
+        api_messages.KeyValuePair(key='lab_name', value='UNKNOWN'),
+    ]
     create_command_attempt.assert_has_calls([
         mock.call(
             [command_task_api.CommandTask(
@@ -581,14 +594,7 @@ class CommandTaskApiTest(api_test.ApiTest):
                 device_serials=['d1'],
                 run_index=0,
                 attempt_index=0,
-                plugin_data=[
-                    api_messages.KeyValuePair(key='ants_invocation_id',
-                                              value='i123'),
-                    api_messages.KeyValuePair(
-                        key='ants_work_unit_id', value='w123')
-                ])],
-            datastore_entities.HostInfo(hostname='non-exist-host',
-                                        host_group='non-exist-group1'))])
+                plugin_data=plugin_data)])])
     ensure_consistency.assert_has_calls([
         mock.call(REQUEST_ID, '2', '%s-2-0' % REQUEST_ID)])
     mock_touch.assert_has_calls([

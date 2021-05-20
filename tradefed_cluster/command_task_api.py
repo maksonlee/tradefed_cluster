@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """API module to serve command task service calls."""
-
+import copy
 import datetime
 import logging
 import uuid
@@ -36,6 +36,10 @@ from tradefed_cluster import device_manager
 from tradefed_cluster import env_config
 from tradefed_cluster import metric
 from tradefed_cluster import request_manager
+
+_HOSTNAME_KEY = "hostname"
+_HOST_GROUP_KEY = "host_group"
+_LAB_NAME_KEY = "lab_name"
 
 
 class CommandTask(messages.Message):
@@ -114,7 +118,7 @@ class CommandTaskApi(remote.Service):
     for cluster in clusters:
       try:
         cluster_leased_tasks = self._LeaseHostTasksForCluster(
-            matcher, cluster, num_tasks)
+            matcher, cluster, host, num_tasks)
         leased_tasks.extend(cluster_leased_tasks)
         if num_tasks is not None:
           num_tasks -= len(cluster_leased_tasks)
@@ -128,20 +132,15 @@ class CommandTaskApi(remote.Service):
             cluster)
 
     env_config.CONFIG.plugin.OnCommandTasksLease(leased_tasks)
-    self._CreateCommandAttempt(leased_tasks, host)
+    self._CreateCommandAttempt(leased_tasks)
     return CommandTaskList(tasks=leased_tasks)
 
-  def _CreateCommandAttempt(self, leased_tasks, host):
+  def _CreateCommandAttempt(self, leased_tasks):
     for task in leased_tasks:
       attempt_id = str(uuid.uuid4())
       task.attempt_id = attempt_id
 
       plugin_data_ = api_messages.KeyValuePairMessagesToMap(task.plugin_data)
-      plugin_data_["hostname"] = host.hostname
-      plugin_data_["lab_name"] = host.lab_name
-      plugin_data_["cluster"] = host.host_group
-      plugin_data_["serial"] = task.device_serials[0]
-      plugin_data_["serials"] = ",".join(task.device_serials)
       attempt_key = ndb.Key(
           datastore_entities.Request, task.request_id,
           datastore_entities.Command, task.command_id,
@@ -156,14 +155,15 @@ class CommandTaskApi(remote.Service):
           task_id=task.task_id,
           run_index=task.run_index,
           attempt_index=task.attempt_index,
-          hostname=host.hostname,
+          hostname=plugin_data_.get(_HOSTNAME_KEY),
           device_serial=task.device_serials[0],
           device_serials=task.device_serials,
           plugin_data=plugin_data_)
       command_manager.AddToSyncCommandAttemptQueue(attempt_entity)
       attempt_entity.put()
 
-  def _LeaseHostTasksForCluster(self, matcher, cluster, num_tasks=None):
+  def _LeaseHostTasksForCluster(
+      self, matcher, cluster, host, num_tasks=None):
     leased_tasks = []
     leasable_tasks = command_task_store.GetLeasableTasks(
         cluster, matcher.GetRunTargets())
@@ -193,7 +193,11 @@ class CommandTaskApi(remote.Service):
       logging.debug("lease task %s to run on %s",
                     str(task.task_id),
                     tuple(m.device_serial for m in matched_devices))
-      plugin_data_ = api_messages.MapToKeyValuePairMessages(task.plugin_data)
+      plugin_data_dict = copy.copy(task.plugin_data)
+      plugin_data_dict[_HOSTNAME_KEY] = host.hostname
+      plugin_data_dict[_LAB_NAME_KEY] = host.lab_name or common.UNKNOWN_LAB_NAME
+      plugin_data_dict[_HOST_GROUP_KEY] = host.host_group
+      plugin_data_ = api_messages.MapToKeyValuePairMessages(plugin_data_dict)
       leased_tasks.append(
           CommandTask(
               request_id=task.request_id,

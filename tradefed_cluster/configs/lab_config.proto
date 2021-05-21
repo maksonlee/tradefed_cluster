@@ -124,6 +124,8 @@ message HostConfig {
   repeated string extra_docker_args = 9;
   // The inventory groups the host belong to.
   repeated string inventory_groups = 10;
+  // The maximum number of virtual devices that ATS can simultaneously allocate.
+  optional uint32 max_local_virtual_devices = 11;
 }
 
 // Tmpfs to mount in the dockerized tradefed container.

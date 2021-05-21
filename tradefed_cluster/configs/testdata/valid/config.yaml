@@ -53,6 +53,7 @@ cluster_configs:
   - path: /btmpfs
   host_configs:
   - hostname: host1
+    max_local_virtual_devices: 5
     extra_docker_args: ['--arg2', 'value2']
     tmpfs_configs:
     - path: /atmpfs

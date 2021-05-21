@@ -84,6 +84,7 @@ class ConfigTest(unittest.TestCase):
     self.assertEqual(3, len(cluster.host_configs))
     host = cluster.host_configs[0]
     self.assertEqual('host1', host.hostname)
+    self.assertEqual(5, host.max_local_virtual_devices)
     self.assertEqual(1, len(host.tmpfs_configs))
     self.assertEqual('/atmpfs', host.tmpfs_configs[0].path)
     self.assertEqual(2000, host.tmpfs_configs[0].size)
@@ -503,7 +504,8 @@ class HostConfigTest(unittest.TestCase):
         enable_stackdriver=True,
         enable_autoupdate=True,
         service_account_json_key_path='a_service_keyfile',
-        control_server_url='tfc')
+        control_server_url='tfc',
+        max_local_virtual_devices=1)
     new_host_config = host_config.SetDockerImage('b_docker_image')
     new_host_config = new_host_config.SetServiceAccountJsonKeyPath(
         'b_service_keyfile')
@@ -517,6 +519,7 @@ class HostConfigTest(unittest.TestCase):
 
     self.assertEqual('alab', new_host_config.lab_name)
     self.assertEqual('acluster', new_host_config.cluster_name)
+    self.assertEqual(1, new_host_config.max_local_virtual_devices)
 
   def testConfigEquals_equals(self):
     host_config_1 = lab_config.CreateHostConfig(

@@ -278,6 +278,10 @@ class HostConfig(object):
     return self.host_config_pb.inventory_groups
 
   @property
+  def max_local_virtual_devices(self):
+    return self.host_config_pb.max_local_virtual_devices
+
+  @property
   def ssh_arg(self):
     """Get host's ssh arg."""
     return self.lab_config_pb.ssh_arg
@@ -339,6 +343,7 @@ def CreateHostConfig(
     engprod_api_key=None,
     ssh_arg=None,
     operation_mode=None,
+    max_local_virtual_devices=None,
 ):
   """Create a host config from raw data.
 
@@ -366,6 +371,7 @@ def CreateHostConfig(
     engprod_api_key: string, API Key for Android Engprod API discovery.
     ssh_arg: string, ssh args to the host.
     operation_mode: string, host operation mode.
+    max_local_virtual_devices: int, maximum number of virtual devices
   Returns:
     a HostConfig have all those data.
   """
@@ -377,7 +383,8 @@ def CreateHostConfig(
       docker_image=docker_image,
       docker_server=docker_server,
       extra_docker_args=list(extra_docker_args),
-      enable_ui_update=enable_ui_update)
+      enable_ui_update=enable_ui_update,
+      max_local_virtual_devices=max_local_virtual_devices,)
   cluster_config_pb = lab_config_pb2.ClusterConfig(
       cluster_name=cluster_name,
       host_login_name=host_login_name,

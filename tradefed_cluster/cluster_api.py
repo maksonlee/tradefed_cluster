@@ -54,6 +54,7 @@ class ClusterApi(remote.Service):
     clusters = datastore_entities.ClusterInfo.query().fetch()
     for cluster in clusters:
       host_msgs = []
+      # TODO: deprecate option include_hosts.
       if request.include_hosts:
         host_msgs = self._GetHostsForCluster(cluster.cluster)
       cluster_infos.append(self._BuildClusterInfo(cluster, host_msgs))

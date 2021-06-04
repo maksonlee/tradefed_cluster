@@ -28,7 +28,6 @@ from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import env_config
 from tradefed_cluster.services import task_scheduler
-from tradefed_cluster.util import command_util
 from tradefed_cluster.util import ndb_shim as ndb
 
 REQUEST_QUEUE = "test-request-queue"
@@ -419,15 +418,11 @@ def GetCommandAttempt(request_id, command_id, attempt_id):
 
 
 def CreateRequest(user,
-                  command_line,
+                  command_infos,
                   priority=None,
                   queue_timeout_seconds=None,
                   type_=None,
                   request_id=None,
-                  cluster=None,
-                  run_target=None,
-                  run_count=None,
-                  shard_count=None,
                   plugin_data=None,
                   max_retry_on_test_failures=None,
                   prev_test_context=None):
@@ -435,15 +430,11 @@ def CreateRequest(user,
 
   Args:
     user: a requesting user.
-    command_line: a command line string.
+    command_infos: a list of CommandInfo entities.
     priority: a request priority.
     queue_timeout_seconds: a request timeout in seconds.
     type_: a request type.
     request_id: request_id, used for easy testing.
-    cluster: the cluster to run the test.
-    run_target: the run target to run the test.
-    run_count: run count.
-    shard_count: shard count.
     plugin_data: a map that contains the plugin data.
     max_retry_on_test_failures: the max number of completed but failed attempts
         for each command.
@@ -453,40 +444,17 @@ def CreateRequest(user,
   """
   if not request_id:
     request_id = _CreateRequestId()
-  if not type_:
-    # For an unmanaged request, parameters can passed via a command line.
-    command_line_obj = command_util.CommandLine(command_line)
-    cluster = cluster or command_line_obj.GetOption("--cluster")
-    run_target = run_target or command_line_obj.GetOption("--run-target")
-    run_count = (run_count or
-                 int(command_line_obj.GetOption("--run-count", 1)) or
-                 1)
-    # If shard_count field is set, use it, otherwise if it's local sharding
-    # fake one shard_count and the actual "shard-count" will let Tradefed shard
-    # the config
-    if not shard_count and command_line_obj.GetOption("--shard-index") is None:
-      shard_count = 1
-    else:
-      shard_count = (
-          shard_count or int(command_line_obj.GetOption("--shard-count", 1)) or
-          1)
-
   key = ndb.Key(
       datastore_entities.Request, request_id,
       namespace=common.NAMESPACE)
-
   request = datastore_entities.Request(
       key=key,
       user=user,
-      command_line=command_line,
+      command_infos=command_infos,
       state=common.RequestState.UNKNOWN,
       priority=priority,
       queue_timeout_seconds=queue_timeout_seconds,
       type=type_,
-      cluster=cluster,
-      run_target=run_target,
-      run_count=run_count,
-      shard_count=shard_count,
       plugin_data=plugin_data,
       max_retry_on_test_failures=max_retry_on_test_failures,
       prev_test_context=prev_test_context)
@@ -518,13 +486,7 @@ def AddToQueue(request):
     request: request entity, read only
   """
   task_name = str(request.key.id())
-  payload = json.dumps({
-      "id": request.key.id(),
-      "user": request.user,
-      "command_line": request.command_line,
-      "priority": request.priority,
-      "queue_timeout_seconds": request.queue_timeout_seconds
-  })
+  payload = json.dumps({"id": request.key.id()})
   compressed_payload = zlib.compress(six.ensure_binary(payload))
   task_scheduler.AddTask(
       queue_name=REQUEST_QUEUE, name=task_name, payload=compressed_payload)
@@ -587,7 +549,7 @@ def SetTestEnvironment(request_id, test_env):
 
   Args:
     request_id: a request ID.
-    test_env: a ndb_models.TestEnvironment object.
+    test_env: a datastore_entities.TestEnvironment object.
   """
   request_key = ndb.Key(
       datastore_entities.Request, request_id,
@@ -614,29 +576,18 @@ def GetTestEnvironment(request_id):
   return datastore_entities.TestEnvironment.query(ancestor=request_key).get()
 
 
-def AddTestResource(request_id, name, url, decompress, decompress_dir,
-                    decompress_files):
+def AddTestResource(request_id, test_resource):
   """Addes a test resource to a request.
 
   Args:
     request_id: a request ID.
-    name: a resource name.
-    url: a resource URL.
-    decompress: whether the hosts should decompress the downloaded file.
-    decompress_dir: the directory where the host decompresses the file.
-    decompress_files: the files to be decompressed from the downloaded file.
+    test_resource: a datastore_entities.TestResource object.
   """
   request_key = ndb.Key(datastore_entities.Request, request_id,
                         namespace=common.NAMESPACE)
-  resource = datastore_entities.TestResource(
-      parent=request_key,
-      name=name,
-      url=url,
-      decompress=decompress,
-      decompress_dir=decompress_dir,
-      params=datastore_entities.TestResourceParameters(
-          decompress_files=decompress_files))
-  resource.put()
+  resource_to_put = datastore_entities.TestResource(parent=request_key)
+  resource_to_put.CopyFrom(test_resource)
+  resource_to_put.put()
 
 
 def GetTestResources(request_id):

@@ -90,6 +90,30 @@ pytype_strict_library(
 )
 
 pytype_strict_library(
+    name = "ndb_util_lib",
+    srcs = [
+        "ndb_util.py",
+    ],
+    deps = [
+        ":ndb_shim_lib",
+    ],
+)
+
+py_test(
+    name = "ndb_util_test",
+    srcs = [
+        "ndb_util_test.py",
+    ],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":ndb_shim_lib",
+        ":ndb_util_lib",
+        "//tradefed_cluster:testbed_dependent_test_lib",
+    ],
+)
+
+pytype_strict_library(
     name = "pubsub_client_lib",
     srcs = [
         "pubsub_client.py",

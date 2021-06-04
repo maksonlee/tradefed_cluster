@@ -50,11 +50,25 @@ class RequestApiTest(api_test.ApiTest):
   def setUp(self):
     api_test.ApiTest.setUp(self)
     self.request1 = request_manager.CreateRequest(
-        request_id='1', user='user1', command_line='command_line1')
+        request_id='1',
+        user='user1',
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line='command_line1',
+                cluster='cluster',
+                run_target='run_target')
+        ])
     self.request1.state = common.RequestState.RUNNING
     self.request1.put()
     self.request2 = request_manager.CreateRequest(
-        request_id='2', user='user2', command_line='command_line2')
+        request_id='2',
+        user='user2',
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line='command_line2',
+                cluster='cluster',
+                run_target='run_target')
+        ])
     self.request2.state = common.RequestState.COMPLETED
     self.request2.put()
     self.requests = [self.request1, self.request2]
@@ -90,7 +104,7 @@ class RequestApiTest(api_test.ApiTest):
     self.command2.put()
     self.commands = [self.command1, self.command2]
 
-  def testNewRequests(self):
+  def testNewRequest(self):
     command_line = (
         'command_line1 --branch branch'
         ' --build-flavor build_target'
@@ -121,9 +135,9 @@ class RequestApiTest(api_test.ApiTest):
     self.assertEqual(common.NAMESPACE, return_request.api_module_version)
     request_entity = request_manager.GetRequest(return_request.id)
     self.assertEqual('user1', request_entity.user)
-    self.assertEqual(command_line, request_entity.command_line)
-    self.assertEqual(3, request_entity.shard_count)
-    self.assertEqual(1, request_entity.run_count)
+    self.assertEqual(command_line, request_entity.command_infos[0].command_line)
+    self.assertEqual(3, request_entity.command_infos[0].shard_count)
+    self.assertEqual(1, request_entity.command_infos[0].run_count)
     self.assertEqual(10, request_entity.max_retry_on_test_failures)
     self.assertEqual('i123', request_entity.plugin_data.get(
         'ants_invocation_id'))
@@ -136,8 +150,6 @@ class RequestApiTest(api_test.ApiTest):
 
     request_task = json.loads(zlib.decompress(tasks[0].payload))
     self.assertEqual(request_task['id'], return_request.id)
-    self.assertEqual(request_task['command_line'], command_line)
-    self.assertEqual(request_task['user'], 'user1')
 
     monitor_tasks = self.mock_task_scheduler.GetTasks(
         queue_names=(request_sync_monitor.REQUEST_SYNC_QUEUE,))
@@ -147,7 +159,7 @@ class RequestApiTest(api_test.ApiTest):
     self.assertEqual(monitor_task[request_sync_monitor.REQUEST_ID_KEY],
                      return_request.id)
 
-  def testNewRequests_withEscape(self):
+  def testNewRequest_withEscape(self):
     command_line = (
         'command_line1 --branch branch'
         ' --build-flavor build_target'
@@ -179,9 +191,10 @@ class RequestApiTest(api_test.ApiTest):
     self.assertEqual(common.NAMESPACE, return_request.api_module_version)
     request_entity = request_manager.GetRequest(return_request.id)
     self.assertEqual('user1', request_entity.user)
-    self.assertEqual(command_line, request_entity.command_line)
-    self.assertEqual(3, request_entity.shard_count)
-    self.assertEqual(1, request_entity.run_count)
+    command_info = request_entity.command_infos[0]
+    self.assertEqual(command_line, command_info.command_line)
+    self.assertEqual(3, command_info.shard_count)
+    self.assertEqual(1, command_info.run_count)
     self.assertEqual('i123', request_entity.plugin_data.get(
         'ants_invocation_id'))
     self.assertEqual('w123', request_entity.plugin_data.get(
@@ -193,14 +206,12 @@ class RequestApiTest(api_test.ApiTest):
 
     request_task = json.loads(zlib.decompress(tasks[0].payload))
     self.assertEqual(request_task['id'], return_request.id)
-    self.assertEqual(request_task['command_line'], command_line)
-    self.assertEqual(request_task['user'], 'user1')
 
     monitor_tasks = self.mock_task_scheduler.GetTasks(
         queue_names=(request_sync_monitor.REQUEST_SYNC_QUEUE,))
     self.assertLen(monitor_tasks, 1)
 
-  def testNewRequests_missingFields(self):
+  def testNewRequest_missingFields(self):
     command_line = (
         'command_line1 --branch branch'
         ' --build-flavor build_target'
@@ -225,19 +236,18 @@ class RequestApiTest(api_test.ApiTest):
     self.assertIsNotNone(return_request.id)
 
     request_entity = request_manager.GetRequest(return_request.id)
-    self.assertEqual(3, request_entity.shard_count)
-    self.assertEqual(1, request_entity.run_count)
-    self.assertEqual('cluster', request_entity.cluster)
-    self.assertEqual('run_target', request_entity.run_target)
     self.assertEqual('user1', request_entity.user)
-    self.assertEqual(command_line, request_entity.command_line)
+    command_info = request_entity.command_infos[0]
+    self.assertEqual(3, command_info.shard_count)
+    self.assertEqual(1, command_info.run_count)
+    self.assertEqual('cluster', command_info.cluster)
+    self.assertEqual('run_target', command_info.run_target)
+    self.assertEqual(command_line, command_info.command_line)
     tasks = self.mock_task_scheduler.GetTasks(
         queue_names=(request_manager.REQUEST_QUEUE,))
     self.assertEqual(len(tasks), 1)
     request_task = json.loads(zlib.decompress(tasks[0].payload))
     self.assertEqual(request_task['id'], return_request.id)
-    self.assertEqual(request_task['command_line'], command_line)
-    self.assertEqual(request_task['user'], 'user1')
     self.assertIsNone(request_entity.plugin_data.get('ants_invocation_id'))
     self.assertIsNone(request_entity.plugin_data.get('ants_work_unit_id'))
 
@@ -245,7 +255,7 @@ class RequestApiTest(api_test.ApiTest):
         queue_names=(request_sync_monitor.REQUEST_SYNC_QUEUE,))
     self.assertLen(monitor_tasks, 1)
 
-  def testNewRequests_emptyField(self):
+  def testNewRequest_emptyField(self):
     api_request = {
         'user': 'user1',
         'command_line': (
@@ -261,7 +271,7 @@ class RequestApiTest(api_test.ApiTest):
                                           api_request, expect_errors=True)
     self.assertEqual('400 Bad Request', api_response.status)
 
-  def testNewRequests_withTestEnvironmentAndTestResources(self):
+  def testNewRequest_withTestEnvironmentAndTestResources(self):
     command_line = 'command_line1'
     api_request = {
         'user': 'user',
@@ -295,7 +305,7 @@ class RequestApiTest(api_test.ApiTest):
 
     request_entity = request_manager.GetRequest(request_msg.id)
     self.assertEqual('user', request_entity.user)
-    self.assertEqual(command_line, request_entity.command_line)
+    self.assertEqual(command_line, request_entity.command_infos[0].command_line)
     self.assertEqual(api_messages.RequestType.MANAGED,
                      request_entity.type)
 
@@ -318,22 +328,24 @@ class RequestApiTest(api_test.ApiTest):
       self.assertEqual(request['name'], entity.name)
       self.assertEqual(request.get('decompress'), entity.decompress)
       self.assertEqual(request.get('decompress_dir'), entity.decompress_dir)
-      self.assertEqual(request.get('params', {}).get('decompress_files', []),
-                       entity.params.decompress_files)
-
+      params = entity.params
+      if request.get('params') is None:
+        self.assertIsNone(params)
+      else:
+        self.assertIsNotNone(params)
+        decompress_files = request['params'].get('decompress_files', [])
+        self.assertEqual(decompress_files, params.decompress_files)
     tasks = self.mock_task_scheduler.GetTasks(
         queue_names=(request_manager.REQUEST_QUEUE,))
     self.assertEqual(len(tasks), 1)
     request_task = json.loads(zlib.decompress(tasks[0].payload))
     self.assertEqual(request_msg.id, request_task['id'])
-    self.assertEqual(command_line, request_task['command_line'])
-    self.assertEqual('user', request_task['user'])
 
     monitor_tasks = self.mock_task_scheduler.GetTasks(
         queue_names=(request_sync_monitor.REQUEST_SYNC_QUEUE,))
     self.assertLen(monitor_tasks, 1)
 
-  def testNewRequests_withTestBenchAttributes(self):
+  def testNewRequest_withTestBenchAttributes(self):
     api_request = {
         'user': 'user1',
         'command_line': 'command_line1',
@@ -349,7 +361,7 @@ class RequestApiTest(api_test.ApiTest):
                                               api_response.body)
     self.assertIsNotNone(return_request.id)
     request_entity = request_manager.GetRequest(return_request.id)
-    run_target_json = json.loads(request_entity.run_target)
+    run_target_json = json.loads(request_entity.command_infos[0].run_target)
     run_target_json = run_target_json['host']['groups'][0]['run_targets'][0]
     self.assertEqual('run_target', run_target_json['name'])
     self.assertEqual('attr1', run_target_json['device_attributes'][0]['name'])
@@ -357,11 +369,92 @@ class RequestApiTest(api_test.ApiTest):
     self.assertEqual('attr2', run_target_json['device_attributes'][1]['name'])
     self.assertEqual('val2', run_target_json['device_attributes'][1]['value'])
 
+  def testNewMultiCommandRequest(self):
+    api_request = {
+        'user': 'user1',
+        'command_infos': [
+            {
+                'name': 'foo',
+                'command_line': 'foo_command_line',
+                'cluster': 'foo_cluster',
+                'run_target': 'foo_run_target',
+                'run_count': 1,
+                'shard_count': 1,
+            },
+            {
+                'name': 'bar',
+                'command_line': 'bar_command_line',
+                'cluster': 'bar_cluster',
+                'run_target': 'bar_run_target',
+                'run_count': 10,
+                'shard_count': 1,
+            },
+            {
+                'name': 'zzz',
+                'command_line': 'zzz_command_line',
+                'cluster': 'zzz_cluster',
+                'run_target': 'zzz_run_target',
+                'run_count': 1,
+                'shard_count': 10,
+            },
+        ],
+        'plugin_data': [
+            {'key': 'ants_invocation_id', 'value': 'i123'},
+            {'key': 'ants_work_unit_id', 'value': 'w123'},
+        ],
+        'max_retry_on_test_failures': 10,
+    }
+
+    api_response = self.testapp.post_json(
+        '/_ah/api/RequestApi.NewMultiCommandRequest', api_request)
+
+    return_request = protojson.decode_message(
+        api_messages.RequestMessage, api_response.body)
+    self.assertIsNotNone(return_request.id)
+    self.assertEqual(common.NAMESPACE, return_request.api_module_version)
+    request_entity = request_manager.GetRequest(return_request.id)
+    self.assertEqual('user1', request_entity.user)
+    for o, d in zip(
+        request_entity.command_infos, api_request['command_infos']):
+      self.assertEqual(d['name'], o.name)
+      self.assertEqual(d['command_line'], o.command_line)
+      self.assertEqual(d['cluster'], o.cluster)
+      self.assertEqual(d['run_target'], o.run_target)
+      self.assertEqual(d['run_count'], o.run_count)
+      self.assertEqual(d['shard_count'], o.shard_count)
+    self.assertEqual(10, request_entity.max_retry_on_test_failures)
+    self.assertEqual('i123', request_entity.plugin_data.get(
+        'ants_invocation_id'))
+    self.assertEqual('w123', request_entity.plugin_data.get(
+        'ants_work_unit_id'))
+
+    tasks = self.mock_task_scheduler.GetTasks(
+        queue_names=(request_manager.REQUEST_QUEUE,))
+    self.assertEqual(len(tasks), 1)
+
+    request_task = json.loads(zlib.decompress(tasks[0].payload))
+    self.assertEqual(request_task['id'], return_request.id)
+
+    monitor_tasks = self.mock_task_scheduler.GetTasks(
+        queue_names=(request_sync_monitor.REQUEST_SYNC_QUEUE,))
+    self.assertLen(monitor_tasks, 1)
+
+    monitor_task = json.loads(monitor_tasks[0].payload)
+    self.assertEqual(monitor_task[request_sync_monitor.REQUEST_ID_KEY],
+                     return_request.id)
+
   def testListRequests(self):
     for request_id in range(1, 11):
       request_id = str(request_id)
       request_manager.CreateRequest(
-          user='user1', command_line='command_line1', request_id=request_id)
+          user='user1',
+          request_id=request_id,
+          command_infos=[
+              datastore_entities.CommandInfo(
+                  command_line='command_line1',
+                  cluster='cluster',
+                  run_target='run_target')
+          ])
     api_request = {
         'user': 'user1',
         'state': 0,
@@ -407,7 +500,7 @@ class RequestApiTest(api_test.ApiTest):
 
     self.assertEqual(request.id, '1')
     self.assertEqual(request.user, 'user1')
-    self.assertEqual(request.command_line, 'command_line1')
+    self.assertEqual(request.command_infos[0].command_line, 'command_line1')
     self.assertEqual(1, len(request.command_attempts))
     command_attempt = request.command_attempts[0]
     self.assertEqual('task_id', command_attempt.task_id)
@@ -436,7 +529,7 @@ class RequestApiTest(api_test.ApiTest):
     request = protojson.decode_message(api_messages.RequestMessage,
                                        api_response.body)
     self.assertEqual('user2', request.user)
-    self.assertEqual('command_line2', request.command_line)
+    self.assertEqual('command_line2', request.command_infos[0].command_line)
     self.assertEqual(0, len(request.command_attempts))
     self.assertEqual(0, len(request.commands))
 
@@ -452,7 +545,7 @@ class RequestApiTest(api_test.ApiTest):
 
     self.assertEqual(request.id, '1')
     self.assertEqual(request.user, 'user1')
-    self.assertEqual(request.command_line, 'command_line1')
+    self.assertEqual(request.command_infos[0].command_line, 'command_line1')
     cancel_command.assert_called_once_with(
         request_id='1', cancel_reason=common.CancelReason.REQUEST_API)
 

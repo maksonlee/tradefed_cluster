@@ -32,8 +32,8 @@ from tradefed_cluster import command_manager
 from tradefed_cluster import command_monitor
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
-from tradefed_cluster import env_config  from tradefed_cluster import request_manager
-from tradefed_cluster import testbed_dependent_test
+from tradefed_cluster import datastore_test_util
+from tradefed_cluster import env_config  from tradefed_cluster import testbed_dependent_test
 from tradefed_cluster.services import task_scheduler
 from tradefed_cluster.util import ndb_shim as ndb
 
@@ -47,13 +47,13 @@ class CommandMonitorTest(testbed_dependent_test.TestbedDependentTest):
         '__main__.env_config.CONFIG.plugin')
     self.plugin_patcher.start()
 
-    self.request = request_manager.CreateRequest(
+    self.request = datastore_test_util.CreateRequest(
         request_id='1001',
         user='user1',
         command_line='command_line',
         cluster='cluster',
         run_target='run_target')
-    self.request_2 = request_manager.CreateRequest(
+    self.request_2 = datastore_test_util.CreateRequest(
         request_id='1002',
         user='user1',
         command_line='command_line',

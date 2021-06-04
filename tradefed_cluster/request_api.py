@@ -55,6 +55,43 @@ class RequestApi(remote.Service):
     logging.info("request from user %s", user)
     # TODO: Add additional authorization logic here.
 
+  def _CreateRequest(
+      self,
+      user,
+      command_infos,
+      priority,
+      queue_timeout_seconds,
+      type_,
+      plugin_data,
+      max_retry_on_test_failures,
+      prev_test_context,
+      test_environment,
+      test_resources):
+    new_request = request_manager.CreateRequest(
+        user=user,
+        command_infos=[
+            datastore_entities.CommandInfo.FromMessage(o)
+            for o in command_infos
+        ],
+        priority=priority,
+        queue_timeout_seconds=queue_timeout_seconds,
+        type_=type_,
+        plugin_data=api_messages.KeyValuePairMessagesToMap(plugin_data),
+        max_retry_on_test_failures=max_retry_on_test_failures,
+        prev_test_context=datastore_entities.TestContext.FromMessage(
+            prev_test_context))
+    if test_environment:
+      request_manager.SetTestEnvironment(
+          new_request.key.id(),
+          datastore_entities.TestEnvironment.FromMessage(test_environment))
+    for res in test_resources or []:
+      request_manager.AddTestResource(
+          new_request.key.id(),
+          datastore_entities.TestResource.FromMessage(res))
+    request_manager.AddToQueue(new_request)
+    request_sync_monitor.Monitor(request_id=new_request.key.id())
+    return new_request
+
   @endpoints.method(
       api_messages.NewRequestMessage,
       api_messages.RequestMessage,
@@ -72,60 +109,58 @@ class RequestApi(remote.Service):
     """
     # TODO: figure a better way for auth.
     # self._CheckAuth()
-    logging.info("Request API new request start: %s", request.user)
-    if not request.user:
-      raise endpoints.BadRequestException("user cannot be null.")
-    if not request.command_line:
-      raise endpoints.BadRequestException("command_line cannot be null.")
-
     run_target = request.run_target
     if request.test_bench_attributes:
       run_target = _BuildRunTarget(
           request.run_target, request.test_bench_attributes)
-
-    prev_test_context_obj = None
-    if request.prev_test_context:
-      prev_test_context_obj = datastore_entities.TestContext.FromMessage(
-          request.prev_test_context)
-
-    plugin_data_ = api_messages.KeyValuePairMessagesToMap(request.plugin_data)
-
-    logging.info("Request API new request before create request: %s",
-                 request.user)
-
-    new_request = request_manager.CreateRequest(
-        request.user,
-        request.command_line,
+    new_request = self._CreateRequest(
+        user=request.user,
+        command_infos=[
+            api_messages.CommandInfo(
+                command_line=request.command_line,
+                cluster=request.cluster,
+                run_target=run_target,
+                run_count=request.run_count,
+                shard_count=request.shard_count)
+        ],
         priority=request.priority,
         queue_timeout_seconds=request.queue_timeout_seconds,
         type_=request.type,
-        cluster=request.cluster,
-        run_target=run_target,
-        run_count=request.run_count,
-        shard_count=request.shard_count,
-        plugin_data=plugin_data_,
+        plugin_data=request.plugin_data,
         max_retry_on_test_failures=request.max_retry_on_test_failures,
-        prev_test_context=prev_test_context_obj)
-    logging.info("Request API new request after create request: %s %s",
-                 new_request.key.id(), request.user)
-    if request.test_environment:
-      request_manager.SetTestEnvironment(
-          new_request.key.id(),
-          datastore_entities.TestEnvironment.FromMessage(
-              request.test_environment))
-    logging.info("Request API new request after setting test environment %s %s",
-                 new_request.key.id(), request.user)
-    for res in request.test_resources or []:
-      request_manager.AddTestResource(
-          request_id=new_request.key.id(), name=res.name, url=res.url,
-          decompress=res.decompress, decompress_dir=res.decompress_dir,
-          decompress_files=res.params.decompress_files if res.params else [])
-    logging.info("Request API new request after adding test resources %s %s",
-                 new_request.key.id(), request.user)
-    request_manager.AddToQueue(new_request)
-    logging.info("Request API new request after adding request to queue %s %s",
-                 new_request.key.id(), request.user)
-    request_sync_monitor.Monitor(request_id=new_request.key.id())
+        prev_test_context=request.prev_test_context,
+        test_environment=request.test_environment,
+        test_resources=request.test_resources)
+    return api_messages.RequestMessage(
+        id=new_request.key.id(),
+        api_module_version=common.NAMESPACE)
+
+  @endpoints.method(
+      api_messages.NewMultiCommandRequestMessage,
+      api_messages.RequestMessage,
+      path="/new_multi_command_request",
+      http_method="POST",
+      name="newMultiCommandRequest")
+  @api_common.with_ndb_context
+  def NewMultiCommandRequest(self, request):
+    """Create a new multi command request.
+
+    Args:
+      request: a request to create.
+    Returns:
+      a new request object with a valid ID.
+    """
+    new_request = self._CreateRequest(
+        user=request.user,
+        command_infos=request.command_infos,
+        priority=request.priority,
+        queue_timeout_seconds=request.queue_timeout_seconds,
+        type_=request.type,
+        plugin_data=request.plugin_data,
+        max_retry_on_test_failures=request.max_retry_on_test_failures,
+        prev_test_context=request.prev_test_context,
+        test_environment=request.test_environment,
+        test_resources=request.test_resources)
     return api_messages.RequestMessage(
         id=new_request.key.id(),
         api_module_version=common.NAMESPACE)

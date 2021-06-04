@@ -867,8 +867,11 @@ def CreateCommands(request_id,
   request_key = ndb.Key(
       datastore_entities.Request, request_id,
       namespace=common.NAMESPACE)
-  command_ids = [command_id.id() for command_id in datastore_entities.Command\
-                 .allocate_ids(size=len(command_lines), parent=request_key)]
+  command_ids = [
+      command_id.id()
+      for command_id in datastore_entities.Command.allocate_ids(
+          size=len(command_lines), parent=request_key)
+  ]
 
   command_plugin_data_map = {}
   command_infos = []

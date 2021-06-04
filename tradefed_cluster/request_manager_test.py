@@ -31,6 +31,7 @@ from six.moves import range
 from tradefed_cluster import api_messages
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
+from tradefed_cluster import datastore_test_util
 from tradefed_cluster import request_manager
 from tradefed_cluster import testbed_dependent_test
 from tradefed_cluster.services import task_scheduler
@@ -51,13 +52,13 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
 
   def setUp(self):
     testbed_dependent_test.TestbedDependentTest.setUp(self)
-    self.request = request_manager.CreateRequest(
+    self.request = datastore_test_util.CreateRequest(
         user="user", command_line="command line", request_id=REQUEST_ID,
         run_target="run_target", cluster="cluster")
-    request_manager.CreateRequest(
+    datastore_test_util.CreateRequest(
         user="foo", command_line="short command line", request_id="2",
         run_target="run_target", cluster="cluster")
-    request_manager.CreateRequest(
+    datastore_test_util.CreateRequest(
         user="bar", command_line="long command line", request_id="3",
         run_target="run_target", cluster="cluster")
     self._request_id = int(REQUEST_ID)
@@ -76,8 +77,6 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(len(tasks), 1)
     request_task = json.loads(zlib.decompress(tasks[0].payload))
     self.assertEqual(REQUEST_ID, request_task["id"])
-    self.assertEqual("command line", request_task["command_line"])
-    self.assertEqual("user", request_task["user"])
 
   @mock.patch.object(task_scheduler, "DeleteTask")
   def testDeleteFromQueue(self, mock_delete):
@@ -89,7 +88,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   @mock.patch.object(common, "Now")
   def testCreateRequestEventMessage(self, mock_now):
     mock_now.return_value = self.END_TIME
-    request = request_manager.CreateRequest(
+    request = datastore_test_util.CreateRequest(
         user="user", command_line="command_line", request_id="1234567")
     request.state = common.RequestState.CANCELED
     request.put()
@@ -176,12 +175,12 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   def testGetRequests_withState(self):
     """Tests request_manager.GetRequests() with a given state."""
     for request_id in range(1, 11):
-      request = request_manager.CreateRequest(
+      request = datastore_test_util.CreateRequest(
           user="user", command_line="command_line", request_id=request_id)
       request.state = common.RequestState.CANCELED
       request.put()
     for request_id in range(11, 16):
-      request = request_manager.CreateRequest(
+      request = datastore_test_util.CreateRequest(
           user="user", command_line="command_line", request_id=request_id)
       request.state = common.RequestState.QUEUED
       request.put()
@@ -196,17 +195,17 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   def testGetRequests_withUserAndState(self):
     """Tests request_manager.GetRequests() with a given user and state."""
     for request_id in range(1, 11):
-      request = request_manager.CreateRequest(
+      request = datastore_test_util.CreateRequest(
           user="user2", command_line="command_line", request_id=request_id)
       request.state = common.RequestState.CANCELED
       request.put()
     for request_id in range(11, 16):
-      request = request_manager.CreateRequest(
+      request = datastore_test_util.CreateRequest(
           user="user1", command_line="command_line", request_id=request_id)
       request.state = common.RequestState.RUNNING
       request.put()
     for request_id in range(16, 31):
-      request = request_manager.CreateRequest(
+      request = datastore_test_util.CreateRequest(
           user="user2", command_line="command_line", request_id=request_id)
       request.state = common.RequestState.RUNNING
       request.put()
@@ -256,9 +255,10 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     datetime_2 = datetime.datetime(2015, 5, 6)
     datetime_3 = datetime.datetime(2015, 7, 18)
 
-    request_1 = request_manager.CreateRequest(user="user1",
-                                              command_line="command_line",
-                                              request_id="1111")
+    request_1 = datastore_test_util.CreateRequest(
+        user="user1",
+        command_line="command_line",
+        request_id="1111")
     for _ in range(10):
       command_entity = datastore_entities.Command(
           parent=request_1.key,
@@ -271,9 +271,10 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
           end_time=datetime_2)
       command_entity.put()
 
-    request_2 = request_manager.CreateRequest(user="user2",
-                                              command_line="command_line",
-                                              request_id="2222")
+    request_2 = datastore_test_util.CreateRequest(
+        user="user2",
+        command_line="command_line",
+        request_id="2222")
     for _ in range(5):
       command_entity = datastore_entities.Command(
           parent=request_2.key,
@@ -307,7 +308,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   @mock.patch.object(task_scheduler, "AddTask")
   def testEvaluateState_noCommands(self, mock_add):
     """Tests request_manager.EvaluateState() when there are no commands."""
-    request = request_manager.CreateRequest(
+    request = datastore_test_util.CreateRequest(
         user="user1", command_line="command_line", request_id="1")
     self.assertEqual(common.RequestState.UNKNOWN, request.state)
     self.assertIsNone(request.start_time)
@@ -325,7 +326,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   def testEvaluateState_singleCommandCompletion(self, now, mock_add):
     """Tests updating a request with a single command up to completion."""
     now.return_value = self.END_TIME
-    request = request_manager.CreateRequest(
+    request = datastore_test_util.CreateRequest(
         user="user1", command_line="command_line", request_id="1")
     command_entity = datastore_entities.Command(
         parent=request.key,
@@ -380,7 +381,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   def testEvaluateState_multiCommandCompletion(self, now, mock_add):
     """Tests updating a request with multiple commands up to completion."""
     now.return_value = self.END_TIME
-    request = request_manager.CreateRequest(
+    request = datastore_test_util.CreateRequest(
         user="user1", command_line="command_line", request_id="1")
     command_entity1 = datastore_entities.Command(
         parent=request.key,
@@ -468,7 +469,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   def testEvaluateState_withCompleteCommand(self, now, mock_add):
     """Tests Request.UpdateState() when all commands are complete."""
     now.return_value = self.END_TIME
-    request = request_manager.CreateRequest(
+    request = datastore_test_util.CreateRequest(
         user="user1", command_line="command_line", request_id="1")
     command_entity = datastore_entities.Command(
         parent=request.key,
@@ -492,7 +493,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   @mock.patch.object(task_scheduler, "AddTask")
   def testEvaluateState_withCompleteCommand_notifyError(self, mock_add):
     """Tests request_manager.EvaluateState() when it gets a notify error."""
-    request = request_manager.CreateRequest(
+    request = datastore_test_util.CreateRequest(
         user="user1", command_line="command_line", request_id="1")
     command_entity = datastore_entities.Command(
         parent=request.key,
@@ -521,7 +522,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   def testEvaluateState_withErrorCommand(self, now, mock_add):
     """Tests EvaluateState() when a command is in error state."""
     now.return_value = self.END_TIME
-    request = request_manager.CreateRequest(
+    request = datastore_test_util.CreateRequest(
         user="user1", command_line="command_line", request_id="1")
     command_complete = datastore_entities.Command(
         parent=request.key,
@@ -559,7 +560,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   def testEvaluteState_withCanceledCommand(self, now, mock_add):
     """Tests EvaluateState() when a command is in canceled state."""
     now.return_value = self.END_TIME
-    request = request_manager.CreateRequest(
+    request = datastore_test_util.CreateRequest(
         user="user1", command_line="command_line", request_id="1")
     command_complete = datastore_entities.Command(
         parent=request.key,
@@ -600,7 +601,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   def testEvaluateState_cancelCompletedCommand(self, now, mock_add):
     """Tests EvaluateState() when cancelling a completed command."""
     now.return_value = self.END_TIME
-    request = request_manager.CreateRequest(
+    request = datastore_test_util.CreateRequest(
         user="user1", command_line="command_line", request_id="1")
     command_entity = datastore_entities.Command(
         parent=request.key,
@@ -638,7 +639,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   def testEvaluateState_completeCancelledCommand(self, now, mock_add):
     """Tests EvaluateState() when updating a cancelled command."""
     now.return_value = self.END_TIME
-    request = request_manager.CreateRequest(
+    request = datastore_test_util.CreateRequest(
         user="user1", command_line="command_line", request_id="1")
     command_entity = datastore_entities.Command(
         parent=request.key,
@@ -765,59 +766,63 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   def testCreateRequest(self):
     request_manager.CreateRequest(
         user="user",
-        command_line="command_line",
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line="command_line",
+                run_target="run_target0",
+                cluster="cluster0",
+                run_count=10,
+                shard_count=20),
+        ],
         priority=1,
         queue_timeout_seconds=10,
         type_=api_messages.RequestType.MANAGED,
-        request_id="1001",
-        run_target="run_target0",
-        cluster="cluster0",
-        run_count=10,
-        shard_count=20)
+        request_id="1001")
     request = ndb.Key(datastore_entities.Request, "1001",
                       namespace=common.NAMESPACE).get(use_cache=False)
     self.assertEqual("user", request.user)
-    self.assertEqual("command_line", request.command_line)
+    self.assertEqual("command_line", request.command_infos[0].command_line)
+    self.assertEqual("run_target0", request.command_infos[0].run_target)
+    self.assertEqual("cluster0", request.command_infos[0].cluster)
+    self.assertEqual(10, request.command_infos[0].run_count)
+    self.assertEqual(20, request.command_infos[0].shard_count)
     self.assertEqual(10, request.queue_timeout_seconds)
     self.assertEqual(1, request.priority)
     self.assertEqual(api_messages.RequestType.MANAGED, request.type)
-    self.assertEqual("run_target0", request.run_target)
-    self.assertEqual("cluster0", request.cluster)
-    self.assertEqual(10, request.run_count)
-    self.assertEqual(20, request.shard_count)
 
   def testCreateRequest_escapeInCommandLine(self):
     command_line = 'command_line --arg \'option=\'"\'"\'value\'"\'"\'\''
     request_manager.CreateRequest(
         user="user",
-        command_line=command_line,
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line=command_line,
+                run_target="run_target0",
+                cluster="cluster0",
+                run_count=10,
+                shard_count=20)
+        ],
         priority=1,
         queue_timeout_seconds=10,
         type_=api_messages.RequestType.MANAGED,
-        request_id="1001",
-        run_target="run_target0",
-        cluster="cluster0",
-        run_count=10,
-        shard_count=20)
+        request_id="1001")
     request = ndb.Key(datastore_entities.Request, "1001",
                       namespace=common.NAMESPACE).get(use_cache=False)
     self.assertEqual("user", request.user)
-    # CreateRequest doesn't change the command line
-    self.assertEqual(
-        command_line,
-        request.command_line)
     self.assertEqual(10, request.queue_timeout_seconds)
     self.assertEqual(1, request.priority)
     self.assertEqual(api_messages.RequestType.MANAGED, request.type)
-    self.assertEqual("run_target0", request.run_target)
-    self.assertEqual("cluster0", request.cluster)
-    self.assertEqual(10, request.run_count)
-    self.assertEqual(20, request.shard_count)
+    # CreateRequest doesn't change the command line
+    self.assertEqual(command_line, request.command_infos[0].command_line)
+    self.assertEqual("run_target0", request.command_infos[0].run_target)
+    self.assertEqual("cluster0", request.command_infos[0].cluster)
+    self.assertEqual(10, request.command_infos[0].run_count)
+    self.assertEqual(20, request.command_infos[0].shard_count)
 
   def testGetRequest(self):
     request = request_manager.GetRequest("1001")
     self.assertEqual(self.request.key, request.key)
-    self.assertEqual(self.request.command_line, request.command_line)
+    self.assertEqual(self.request.command_infos, request.command_infos)
     self.assertEqual(self.request.user, request.user)
 
   def testGetRequest_nonExistent(self):
@@ -854,7 +859,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   @mock.patch.object(common, "Now")
   def testNotifyRequestState(self, now, mock_add_task):
     now.return_value = self.END_TIME
-    request = self._CreateTestRequest(common.RequestState.COMPLETED)
+    request = datastore_test_util.CreateRequest(
+        request_id=self._request_id, state=common.RequestState.COMPLETED)
     command = self._CreateTestCommand(request, common.CommandState.COMPLETED)
     self._CreateTestCommandAttempt(
         command,
@@ -888,7 +894,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   @mock.patch.object(common, "Now")
   def testNotifyRequestState_withV2Link(self, now, mock_add_task):
     now.return_value = self.END_TIME
-    request = self._CreateTestRequest(common.RequestState.COMPLETED)
+    request = datastore_test_util.CreateRequest(
+        request_id=self._request_id, state=common.RequestState.COMPLETED)
     command = self._CreateTestCommand(request, common.CommandState.COMPLETED)
     self._CreateTestCommandAttempt(
         command,
@@ -923,7 +930,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   def testNotifyRequestState_commandWithMultipleAttempts(
       self, now, mock_add_task):
     now.return_value = self.END_TIME
-    request = self._CreateTestRequest(common.RequestState.COMPLETED)
+    request = datastore_test_util.CreateRequest(
+        request_id=self._request_id, state=common.RequestState.COMPLETED)
     command = self._CreateTestCommand(request, common.CommandState.COMPLETED)
     self._CreateTestCommandAttempt(
         command,
@@ -967,7 +975,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   @mock.patch.object(common, "Now")
   def testNotifyRequestState_commandWithError(self, now, mock_add_task):
     now.return_value = self.END_TIME
-    request = self._CreateTestRequest(common.RequestState.ERROR)
+    request = datastore_test_util.CreateRequest(
+        request_id=self._request_id, state=common.RequestState.ERROR)
     command = self._CreateTestCommand(request, common.CommandState.ERROR)
     attempts = []
     for _ in range(3):
@@ -1004,7 +1013,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   def testNotifyRequestState_commandWithFatalError(self, now, mock_add_task):
     now.return_value = self.END_TIME
     error_message = "com.android.tradefed.config.ConfigurationException"
-    request = self._CreateTestRequest(common.RequestState.ERROR)
+    request = datastore_test_util.CreateRequest(
+        request_id=self._request_id, state=common.RequestState.ERROR)
     command = self._CreateTestCommand(request, state=common.CommandState.FATAL)
     attempt = self._CreateTestCommandAttempt(
         command,
@@ -1039,7 +1049,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   def testNotifyRequestState_commandWithErrorType(self, now, mock_add_task):
     now.return_value = self.END_TIME
     error_message = "error"
-    request = self._CreateTestRequest(common.RequestState.ERROR)
+    request = datastore_test_util.CreateRequest(
+        request_id=self._request_id, state=common.RequestState.ERROR)
     command = self._CreateTestCommand(request, state=common.CommandState.ERROR)
     attempts = []
     for _ in range(3):
@@ -1074,7 +1085,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   @mock.patch.object(common, "Now")
   def testNotifyRequestState_multipleRunCount(self, now, mock_add_task):
     now.return_value = self.END_TIME
-    request = self._CreateTestRequest(common.RequestState.COMPLETED)
+    request = datastore_test_util.CreateRequest(
+        request_id=self._request_id, state=common.RequestState.COMPLETED)
     command = self._CreateTestCommand(request,
                                       state=common.CommandState.COMPLETED,
                                       run_count=2)
@@ -1114,7 +1126,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   @mock.patch.object(common, "Now")
   def testNotifyRequestState_multipleCommands(self, now, mock_add_task):
     now.return_value = self.END_TIME
-    request = self._CreateTestRequest(common.RequestState.COMPLETED)
+    request = datastore_test_util.CreateRequest(
+        request_id=self._request_id, state=common.RequestState.COMPLETED)
     commands = [self._CreateTestCommand(
         request,
         state=common.CommandState.COMPLETED) for _ in range(2)]
@@ -1154,7 +1167,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   @mock.patch.object(common, "Now")
   def testNotifyRequestState_completedMissingFields(self, now, mock_add_task):
     now.return_value = self.END_TIME
-    request = self._CreateTestRequest(common.RequestState.COMPLETED)
+    request = datastore_test_util.CreateRequest(
+        request_id=self._request_id, state=common.RequestState.COMPLETED)
     command = self._CreateTestCommand(request, common.CommandState.COMPLETED)
     attempt = self._CreateTestCommandAttempt(
         command,
@@ -1189,7 +1203,8 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   @mock.patch.object(common, "Now")
   def testNotifyRequestStateChange_errorMissingFields(self, now, mock_add_task):
     now.return_value = self.END_TIME
-    request = self._CreateTestRequest(state=common.RequestState.ERROR)
+    request = datastore_test_util.CreateRequest(
+        request_id=self._request_id, state=common.RequestState.ERROR)
     command = self._CreateTestCommand(request, state=common.CommandState.ERROR)
     attempt = self._CreateTestCommandAttempt(
         command,
@@ -1218,19 +1233,6 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
   def testCreateRequestId(self):
     id_ = request_manager._CreateRequestId()
     self.assertGreater(int(id_), 30000000)
-
-  def _CreateTestRequest(self, state=common.RequestState.UNKNOWN):
-    """Creates a Request for testing purposes."""
-    request = request_manager.CreateRequest(
-        user="user",
-        command_line="command_line --request-id %d" % self._request_id,
-        request_id=str(self._request_id),
-        cluster="cluster",
-        run_target="run_target")
-    request.state = state
-    request.put()
-    self._request_id += 1
-    return request
 
   def _CreateTestCommand(self, request, state, run_count=1):
     """Creates a Command associated with a Request."""

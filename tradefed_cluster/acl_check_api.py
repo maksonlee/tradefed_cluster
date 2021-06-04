@@ -96,8 +96,11 @@ class AclApi(remote.Service):
     Returns:
       the AclCheckResult api message.
     """
+    # every host belong to the "all" group in ansible, thus we should also
+    # check accessibility for the "all" group.
+    # https://docs.ansible.com/ansible/latest/user_guide/intro_inventory.html#default-groups
     keys = []
-    for group_name in host_config.inventory_groups:
+    for group_name in ["all"] + host_config.inventory_groups:
       keys.append(
           ndb.Key(
               datastore_entities.HostGroupConfig,

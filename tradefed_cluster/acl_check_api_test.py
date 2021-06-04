@@ -42,7 +42,16 @@ class AclCheckApiTest(api_test.ApiTest):
                 'principals': ['principalA', 'principalB']
             }
         })
-    acl_service.CheckMembership = mock.MagicMock(return_value=True)
+    datastore_test_util.CreateHostGroupConfig(
+        'all',
+        'foo-lab',
+        account_principals={
+            'bar-admin': {
+                'principals': ['principalC', 'principalD']
+            }
+        })
+    acl_service.CheckMembership = mock.MagicMock(
+        side_effect=[False, False, True])
     api_request = {
         'hostname': 'mock.host.google.com',
         'host_account': 'android-test',
@@ -54,8 +63,11 @@ class AclCheckApiTest(api_test.ApiTest):
                                                   api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertTrue(account_principals.has_access)
-    acl_service.CheckMembership.assert_called_once_with('mock-user',
-                                                        'principalA')
+    acl_service.CheckMembership.assert_has_calls([
+        mock.call('mock-user', 'principalC'),
+        mock.call('mock-user', 'principalD'),
+        mock.call('mock-user', 'principalA'),
+    ])
 
   def testAuthAccountPrinciples_jumpHostNoAccess(self):
     datastore_test_util.CreateHostConfig(
@@ -81,7 +93,7 @@ class AclCheckApiTest(api_test.ApiTest):
                                                   api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertFalse(account_principals.has_access)
-    self.assertEqual(acl_service.CheckMembership.call_args_list, [
+    acl_service.CheckMembership.assert_has_calls([
         mock.call('mock-user', 'principalA'),
         mock.call('mock-user', 'principalB')
     ])
@@ -97,7 +109,16 @@ class AclCheckApiTest(api_test.ApiTest):
                 'principals': ['principalA', 'principalB']
             }
         })
-    acl_service.CheckMembership = mock.MagicMock(return_value=True)
+    datastore_test_util.CreateHostGroupConfig(
+        'all',
+        'foo-lab',
+        account_principals={
+            'bar-admin': {
+                'principals': ['principalC', 'principalD']
+            }
+        })
+    acl_service.CheckMembership = mock.MagicMock(
+        side_effect=[False, False, True])
     api_request = {
         'hostname': 'mock.host.google.com',
         'host_account': 'bar-admin',
@@ -109,8 +130,12 @@ class AclCheckApiTest(api_test.ApiTest):
                                                   api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertTrue(account_principals.has_access)
-    acl_service.CheckMembership.assert_called_once_with('mock-user',
-                                                        'principalA')
+    self.assertEqual(acl_service.CheckMembership.call_count, 3)
+    acl_service.CheckMembership.assert_has_calls([
+        mock.call('mock-user', 'principalC'),
+        mock.call('mock-user', 'principalD'),
+        mock.call('mock-user', 'principalA')
+    ])
 
   def testAuthAccountPrinciples_hostGroupNoAccess(self):
     datastore_test_util.CreateHostConfig(

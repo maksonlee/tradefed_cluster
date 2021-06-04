@@ -68,6 +68,19 @@ def ToMessage(entity, *args, **kwargs):
     return _CONVERTER_DISPATCH_DICT[type(entity)](entity, *args, **kwargs)
 
 
+class TestResourceParameters(ndb.Model):
+  """Repeated properties of TestResource.
+
+  Because TestResource is a StructuredProperty of TestContext, it cannot
+  directly contain repeated properties. The test resource model uses this class
+  to wrap the repeated properties in a LocalStructuredProperty.
+
+  Attribtues:
+    decompress_files: the files to be decompressed from the downloaded file.
+  """
+  decompress_files = ndb.StringProperty(repeated=True)
+
+
 class TestResource(ndb.Model):
   """A test resource entity.
 
@@ -77,17 +90,40 @@ class TestResource(ndb.Model):
     path: an expected path in a test working directory.
     decompress: whether the host should decompress the downloaded file.
     decompress_dir: the directory where the host decompresses the file.
+    params: test resource parameters.
   """
   url = ndb.StringProperty()
   name = ndb.StringProperty()
   path = ndb.StringProperty()
   decompress = ndb.BooleanProperty()
   decompress_dir = ndb.StringProperty()
+  params = ndb.LocalStructuredProperty(TestResourceParameters)
 
   @classmethod
   def FromMessage(cls, msg):
-    return cls(url=msg.url, name=msg.name, path=msg.path,
-               decompress=msg.decompress, decompress_dir=msg.decompress_dir)
+    return cls(
+        url=msg.url,
+        name=msg.name,
+        path=msg.path,
+        decompress=msg.decompress,
+        decompress_dir=msg.decompress_dir,
+        params=(TestResourceParameters(
+            decompress_files=msg.params.decompress_files)
+                if msg.params else None))
+
+
+@MessageConverter(TestResource)
+def TestResourceToMessage(entity):
+  """Converts a TestResource entity to a message."""
+  return api_messages.TestResource(
+      name=entity.name,
+      url=entity.url,
+      path=entity.path,
+      decompress=entity.decompress,
+      decompress_dir=entity.decompress_dir,
+      params=(api_messages.TestResourceParameters(
+          decompress_files=entity.params.decompress_files)
+              if entity.params else None))
 
 
 class TestContext(ndb.Model):
@@ -129,11 +165,7 @@ def TestContextToMessage(entity):
     ]
   test_resources = []
   if entity.test_resources:
-    test_resources = [
-        api_messages.TestResource(
-            name=r.name, url=r.url, path=r.path, decompress=r.decompress,
-            decompress_dir=r.decompress_dir) for r in entity.test_resources
-    ]
+    test_resources = [ToMessage(r) for r in entity.test_resources]
   return api_messages.TestContext(
       command_line=entity.command_line,
       env_vars=env_vars,

@@ -278,10 +278,11 @@ class RequestApiTest(api_test.ApiTest):
         },
         'test_resources': [{
             'url': 'url1', 'name': 'name1', 'decompress': True,
-            'decompress_dir': 'dir1'
+            'decompress_dir': 'dir1', 'params': {'decompress_files': ['file1']}
         }, {
-            'url': 'url2', 'name': 'name2', 'decompress': False,
-            'decompress_dir': ''
+            'url': 'url2', 'name': 'name2'
+        }, {
+            'url': 'url3', 'name': 'name3', 'decompress': True, 'params': {}
         }]
     }
 
@@ -311,17 +312,14 @@ class RequestApiTest(api_test.ApiTest):
         test_env.use_parallel_setup)
     test_resources = request_manager.GetTestResources(request_msg.id)
     self.assertEqual(len(api_request['test_resources']), len(test_resources))
-    for i in range(len(api_request['test_resources'])):
-      self.assertEqual(
-          api_request['test_resources'][i]['url'], test_resources[i].url)
-      self.assertEqual(
-          api_request['test_resources'][i]['name'], test_resources[i].name)
-      self.assertEqual(
-          api_request['test_resources'][i]['decompress'],
-          test_resources[i].decompress)
-      self.assertEqual(
-          api_request['test_resources'][i]['decompress_dir'],
-          test_resources[i].decompress_dir)
+    for i, request in enumerate(api_request['test_resources']):
+      entity = test_resources[i]
+      self.assertEqual(request['url'], entity.url)
+      self.assertEqual(request['name'], entity.name)
+      self.assertEqual(request.get('decompress'), entity.decompress)
+      self.assertEqual(request.get('decompress_dir'), entity.decompress_dir)
+      self.assertEqual(request.get('params', {}).get('decompress_files', []),
+                       entity.params.decompress_files)
 
     tasks = self.mock_task_scheduler.GetTasks(
         queue_names=(request_manager.REQUEST_QUEUE,))
@@ -605,11 +603,19 @@ class RequestApiTest(api_test.ApiTest):
     test_context = datastore_entities.TestContext(
         key=key,
         command_line='command_line',
-        env_vars={'foo': 'bar', 'TFC_ATTEMPT_NUMBER': '0'},
+        env_vars={
+            'foo': 'bar',
+            'TFC_ATTEMPT_NUMBER': '0'
+        },
         test_resources=[
             datastore_entities.TestResource(
-                name='name', url='url', path='path', decompress=True,
-                decompress_dir='dir')
+                name='name',
+                url='url',
+                path='path',
+                decompress=True,
+                decompress_dir='dir',
+                params=datastore_entities.TestResourceParameters(
+                    decompress_files=['file']))
         ])
     test_context.put()
 
@@ -633,6 +639,7 @@ class RequestApiTest(api_test.ApiTest):
       self.assertEqual(a.path, b.path)
       self.assertEqual(a.decompress, b.decompress)
       self.assertEqual(a.decompress_dir, b.decompress_dir)
+      self.assertEqual(a.params.decompress_files, b.params.decompress_files)
 
   def testUpdateTestContext(self):
     request_id = 1

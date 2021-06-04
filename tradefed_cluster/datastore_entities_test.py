@@ -338,6 +338,50 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
          'label:' + 'v' * 80],
         host.flated_extra_info)
 
+  def assertSameTestResource(self, entity, msg):
+    self.assertIsInstance(entity, datastore_entities.TestResource)
+    self.assertIsInstance(msg, api_messages.TestResource)
+    self.assertEqual(entity.url, msg.url)
+    self.assertEqual(entity.name, msg.name)
+    self.assertEqual(entity.path, msg.path)
+    self.assertEqual(entity.decompress, msg.decompress)
+    self.assertEqual(entity.decompress_dir, msg.decompress_dir)
+    if entity.params and msg.params:
+      self.assertEqual(entity.params.decompress_files,
+                       msg.params.decompress_files)
+    else:
+      self.assertIsNone(entity.params)
+      self.assertIsNone(msg.params)
+
+  def testTestResourceFromMessage(self):
+    msg = api_messages.TestResource()
+    self.assertSameTestResource(
+        datastore_entities.TestResource.FromMessage(msg), msg)
+    msg = api_messages.TestResource(
+        url='url',
+        name='name',
+        path='path',
+        decompress=True,
+        decompress_dir='dir',
+        params=api_messages.TestResourceParameters(decompress_files=['file']))
+    self.assertSameTestResource(
+        datastore_entities.TestResource.FromMessage(msg), msg)
+
+  def testTestResourceToMessage(self):
+    entity = datastore_entities.TestResource()
+    self.assertSameTestResource(
+        entity, datastore_entities.TestResourceToMessage(entity))
+    entity = datastore_entities.TestResource(
+        url='url',
+        name='name',
+        path='path',
+        decompress=True,
+        decompress_dir='dir',
+        params=datastore_entities.TestResourceParameters(
+            decompress_files=['file']))
+    self.assertSameTestResource(
+        entity, datastore_entities.TestResourceToMessage(entity))
+
 
 if __name__ == '__main__':
   unittest.main()

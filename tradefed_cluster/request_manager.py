@@ -614,7 +614,8 @@ def GetTestEnvironment(request_id):
   return datastore_entities.TestEnvironment.query(ancestor=request_key).get()
 
 
-def AddTestResource(request_id, name, url, decompress, decompress_dir):
+def AddTestResource(request_id, name, url, decompress, decompress_dir,
+                    decompress_files):
   """Addes a test resource to a request.
 
   Args:
@@ -623,12 +624,18 @@ def AddTestResource(request_id, name, url, decompress, decompress_dir):
     url: a resource URL.
     decompress: whether the hosts should decompress the downloaded file.
     decompress_dir: the directory where the host decompresses the file.
+    decompress_files: the files to be decompressed from the downloaded file.
   """
   request_key = ndb.Key(datastore_entities.Request, request_id,
                         namespace=common.NAMESPACE)
   resource = datastore_entities.TestResource(
-      parent=request_key, name=name, url=url, decompress=decompress,
-      decompress_dir=decompress_dir)
+      parent=request_key,
+      name=name,
+      url=url,
+      decompress=decompress,
+      decompress_dir=decompress_dir,
+      params=datastore_entities.TestResourceParameters(
+          decompress_files=decompress_files))
   resource.put()
 
 

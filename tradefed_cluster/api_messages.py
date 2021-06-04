@@ -159,6 +159,15 @@ class TestEnvironment(messages.Message):
   use_parallel_setup = messages.BooleanField(15)
 
 
+class TestResourceParameters(messages.Message):
+  """Repeated properties of TestResource.
+
+  Attribtues:
+    decompress_files: the files to be decompressed from the downloaded file.
+  """
+  decompress_files = messages.StringField(1, repeated=True)
+
+
 class TestResource(messages.Message):
   """A message class for a test resource.
 
@@ -170,12 +179,14 @@ class TestResource(messages.Message):
         to.
     decompress: whether the host should decompress the downloaded file.
     decompress_dir: the directory where the host decompresses the file.
+    params: test resource parameters.
   """
   url = messages.StringField(1, required=True)
   name = messages.StringField(2)
   path = messages.StringField(3)
   decompress = messages.BooleanField(4)
   decompress_dir = messages.StringField(5)
+  params = messages.MessageField(TestResourceParameters, 6)
 
 
 class TestResourceCollection(messages.Message):

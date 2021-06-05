@@ -204,6 +204,12 @@ indexes:
   - name: note.timestamp
     direction: desc
 
+- kind: HostUpdateStateHistory
+  properties:
+  - name: hostname
+  - name: update_timestamp
+    direction: desc
+
 - kind: Note
   properties:
   - name: type

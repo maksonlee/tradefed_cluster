@@ -268,14 +268,17 @@ class CommandTaskApiTest(api_test.ApiTest):
         attempts[1].plugin_data)
     self.assertIsNotNone(attempts[1].last_event_time)
 
+  @mock.patch.object(common, 'Now')
   @mock.patch.object(metric, 'RecordCommandTimingMetric')
   @mock.patch.object(command_manager, 'Touch')
   @mock.patch.object(
       command_task_api.CommandTaskApi, '_EnsureCommandConsistency')
   @mock.patch.object(
       command_task_api.CommandTaskApi, '_CreateCommandAttempt')
-  def testLeaseHostTasks(self, create_command_attempt,
-                         ensure_consistency, mock_touch, record_timing):
+  def testLeaseHostTasks(
+      self, create_command_attempt, ensure_consistency, mock_touch,
+      record_timing, mock_now):
+    mock_now.return_value = TIMESTAMP
     mock_touch.side_effect = [
         mock.MagicMock(create_time=TIMESTAMP),
         mock.MagicMock(create_time=TIMESTAMP)]
@@ -365,6 +368,12 @@ class CommandTaskApiTest(api_test.ApiTest):
                 api_messages.KeyValuePair(key='host_group', value='cluster'),
                 api_messages.KeyValuePair(key='hostname', value='hostname'),
                 api_messages.KeyValuePair(key='lab_name', value='alab'),
+                api_messages.KeyValuePair(
+                    key='tfc_command_attempt_queue_end_timestamp',
+                    value='1525071600000'),
+                api_messages.KeyValuePair(
+                    key='tfc_command_attempt_queue_start_timestamp',
+                    value='1525071600000'),
             ]),
         command_task_api.CommandTask(
             task_id='1001-3-0',
@@ -380,6 +389,12 @@ class CommandTaskApiTest(api_test.ApiTest):
                 api_messages.KeyValuePair(key='host_group', value='cluster'),
                 api_messages.KeyValuePair(key='hostname', value='hostname'),
                 api_messages.KeyValuePair(key='lab_name', value='alab'),
+                api_messages.KeyValuePair(
+                    key='tfc_command_attempt_queue_end_timestamp',
+                    value='1525071600000'),
+                api_messages.KeyValuePair(
+                    key='tfc_command_attempt_queue_start_timestamp',
+                    value='1525071600000'),
             ])
     ])])
     ensure_consistency.assert_has_calls([
@@ -530,6 +545,7 @@ class CommandTaskApiTest(api_test.ApiTest):
 
     self.assertEqual(1, len(task_list.tasks))
 
+  @mock.patch.object(common, 'Now')
   @mock.patch.object(metric, 'RecordCommandTimingMetric')
   @mock.patch.object(command_manager, 'Touch')
   @mock.patch.object(
@@ -538,7 +554,8 @@ class CommandTaskApiTest(api_test.ApiTest):
       command_task_api.CommandTaskApi, '_CreateCommandAttempt')
   def testLeaseHostTasks_nonExistHost(
       self, create_command_attempt, ensure_consistency, mock_touch,
-      record_timing):
+      record_timing, mock_now):
+    mock_now.return_value = TIMESTAMP
     mock_touch.side_effect = [mock.MagicMock(create_time=TIMESTAMP)]
     ensure_consistency.return_value = True
     self._AddCommand(
@@ -583,6 +600,12 @@ class CommandTaskApiTest(api_test.ApiTest):
         api_messages.KeyValuePair(key='host_group', value='non-exist-group1'),
         api_messages.KeyValuePair(key='hostname', value='non-exist-host'),
         api_messages.KeyValuePair(key='lab_name', value='UNKNOWN'),
+        api_messages.KeyValuePair(
+            key='tfc_command_attempt_queue_end_timestamp',
+            value='1525071600000'),
+        api_messages.KeyValuePair(
+            key='tfc_command_attempt_queue_start_timestamp',
+            value='1525071600000'),
     ]
     create_command_attempt.assert_has_calls([
         mock.call(

@@ -1605,6 +1605,8 @@ class CommandTask(ndb.Model):
     lease_expiration_timestamp: the task's lease expiration timestamp
     create_timestamp: create timestamp
     update_timestamp: update timestamp
+    schedule_timestamp: the last timestamp the task become leasable.
+    lease_timestamp: the last timestamp the task is leased.
     request_type: a request type
     plugin_data: the plugin data.
   """
@@ -1642,6 +1644,8 @@ class CommandTask(ndb.Model):
   lease_expiration_timestamp = ndb.DateTimeProperty()
   create_timestamp = ndb.DateTimeProperty(auto_now_add=True)
   update_timestamp = ndb.DateTimeProperty(auto_now=True)
+  schedule_timestamp = ndb.DateTimeProperty()
+  lease_timestamp = ndb.DateTimeProperty()
   request_type = ndb.EnumProperty(api_messages.RequestType)
   plugin_data = ndb.JsonProperty()
 

@@ -396,3 +396,8 @@ def ParseFloat(num_str):
     return float(num_str)
   except (ValueError, TypeError):
     return None
+
+
+def DatetimeToAntsTimestampProperty(time):
+  """Change datetime to str represent milliseconds."""
+  return str(int(time.timestamp() * 1000))

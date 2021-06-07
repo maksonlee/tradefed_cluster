@@ -167,7 +167,8 @@ def CreateTask(command_task_args):
       test_bench=test_bench,
       priority=command_task_args.priority or 0,
       leasable=True,
-      request_type=command_task_args.request_type)
+      request_type=command_task_args.request_type,
+      schedule_timestamp=common.Now())
   return _DoCreateTask(task)
 
 
@@ -206,6 +207,7 @@ def RescheduleTask(task_id, run_index, attempt_index):
       logging.info('%s is leasable, don\'t reschedule', str(task_id))
       return
     task.leasable = True
+    task.schedule_timestamp = common.Now()
     task.run_index = run_index
     task.attempt_index = attempt_index
     task.put()
@@ -250,6 +252,7 @@ def LeaseTask(task_id):
   if not task or not task.leasable:
     return False
   task.leasable = False
+  task.lease_timestamp = common.Now()
   task.lease_count += 1
   task.put()
   return True

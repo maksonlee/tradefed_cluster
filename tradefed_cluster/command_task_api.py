@@ -40,6 +40,10 @@ from tradefed_cluster import request_manager
 _HOSTNAME_KEY = "hostname"
 _HOST_GROUP_KEY = "host_group"
 _LAB_NAME_KEY = "lab_name"
+_TFC_COMMAND_ATTEMPT_QUEUE_START_TIMESTAMP_KEY = (
+    "tfc_command_attempt_queue_start_timestamp")
+_TFC_COMMAND_ATTEMPT_QUEUE_END_TIMESTAMP_KEY = (
+    "tfc_command_attempt_queue_end_timestamp")
 
 
 class CommandTask(messages.Message):
@@ -197,6 +201,13 @@ class CommandTaskApi(remote.Service):
       plugin_data_dict[_HOSTNAME_KEY] = host.hostname
       plugin_data_dict[_LAB_NAME_KEY] = host.lab_name or common.UNKNOWN_LAB_NAME
       plugin_data_dict[_HOST_GROUP_KEY] = host.host_group
+      if task.schedule_timestamp:
+        plugin_data_dict[_TFC_COMMAND_ATTEMPT_QUEUE_START_TIMESTAMP_KEY] = (
+            common.DatetimeToAntsTimestampProperty(task.schedule_timestamp))
+      plugin_data_dict[_TFC_COMMAND_ATTEMPT_QUEUE_END_TIMESTAMP_KEY] = (
+          common.DatetimeToAntsTimestampProperty(task.lease_timestamp or
+                                                 common.Now()))
+
       plugin_data_ = api_messages.MapToKeyValuePairMessages(plugin_data_dict)
       leased_tasks.append(
           CommandTask(

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """Tests for google3.wireless.android.test_tools.tradefed_cluster.common."""
-
+import datetime
 import unittest
 import six
 
@@ -60,6 +60,12 @@ class CommonTest(unittest.TestCase):
     self.assertEqual(1.2, common.ParseFloat("1.2"))
     self.assertIsNone(common.ParseFloat("P1234"))
     self.assertIsNone(common.ParseFloat(None))
+
+  def testDatetimeToTimestampProperty(self):
+    self.assertEqual(
+        "1622793723000",
+        common.DatetimeToAntsTimestampProperty(
+            datetime.datetime(2021, 6, 4, 1, 2, 3)))
 
 
 if __name__ == "__main__":

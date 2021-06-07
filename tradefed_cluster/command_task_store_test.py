@@ -230,6 +230,7 @@ class TaskStoreTest(testbed_dependent_test.TestbedDependentTest):
     self.assertTrue(task.leasable)
     self.assertEqual(0, task.lease_count)
     self.assertEqual(1, task.priority)
+    self.assertIsNotNone(task.schedule_timestamp)
 
   def testCreateTask_largeTextCommandLine(self):
     command_line = 'command_line ' + 'arg ' * 10000
@@ -253,6 +254,7 @@ class TaskStoreTest(testbed_dependent_test.TestbedDependentTest):
     self.assertTrue(task.leasable)
     self.assertEqual('task_id3', task.task_id)
     self.assertEqual(command_line, task.command_line)
+    self.assertIsNotNone(task.schedule_timestamp)
 
   def testGetLeasableTasks(self):
     tasks = list(command_task_store.GetLeasableTasks(
@@ -292,6 +294,7 @@ class TaskStoreTest(testbed_dependent_test.TestbedDependentTest):
     self.assertFalse(command_task_store.LeaseTask('task_id1'))
     task = command_task_store._Key('task_id1').get()
     self.assertFalse(task.leasable)
+    self.assertIsNotNone(task.lease_timestamp)
 
   def testLeaseTask_notExistTask(self):
     # lease works for the first time
@@ -314,12 +317,15 @@ class TaskStoreTest(testbed_dependent_test.TestbedDependentTest):
   def testRescheduleTask(self):
     self.assertTrue(command_task_store.LeaseTask('task_id1'))
     task = command_task_store._Key('task_id1').get()
+    old_schedule_timestamp = task.schedule_timestamp
     self.assertFalse(task.leasable)
     command_task_store.RescheduleTask('task_id1', 1, 2)
     task = command_task_store._Key('task_id1').get()
     self.assertTrue(task.leasable)
     self.assertEqual(1, task.run_index)
     self.assertEqual(2, task.attempt_index)
+    self.assertIsNotNone(task.schedule_timestamp)
+    self.assertNotEqual(old_schedule_timestamp, task.schedule_timestamp)
 
   def testGetActiveTaskCount(self):
     count = command_task_store.GetActiveTaskCount([

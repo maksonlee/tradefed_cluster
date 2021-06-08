@@ -23,7 +23,6 @@ from tradefed_cluster import command_manager
 from tradefed_cluster import command_monitor
 from tradefed_cluster import commander
 from tradefed_cluster import common
-from tradefed_cluster import datastore_test_util
 from tradefed_cluster import env_config
 from tradefed_cluster import request_manager
 from tradefed_cluster import testbed_dependent_test
@@ -42,15 +41,15 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
   def testProcessRequest(self, plugin, schedule_tasks, monitor):
     request_id1 = "1001"
     request_id2 = "1002"
-    datastore_test_util.CreateRequest(
-        user="user",
-        command_line="command_line0 --run-target run_target --cluster cluster",
+    request_manager.CreateRequest(
+        "user",
+        "command_line0 --run-target run_target --cluster cluster",
         request_id=request_id1,
         plugin_data={"ants_invocation_id": "i123",
                      "ants_work_unit_id": "w123"})
-    datastore_test_util.CreateRequest(
-        user="user",
-        command_line="command_line0 --run-target run_target --cluster cluster",
+    request_manager.CreateRequest(
+        "user",
+        "command_line0 --run-target run_target --cluster cluster",
         request_id=request_id2,
         priority=100,
         queue_timeout_seconds=86400)
@@ -108,11 +107,9 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
                                         cancel_request,
                                         schedule_tasks):
     request_id1 = "1001"
-    datastore_test_util.CreateRequest(
-        user="user",
-        command_line="command_line0",
-        cluster="cluster",
-        run_target=None,
+    request_manager.CreateRequest(
+        "user",
+        "command_line0 --cluster cluster",
         request_id=request_id1)
 
     commander._ProcessRequest(request_id1)
@@ -130,11 +127,9 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
   def testProcessRequests_shardedRequests(self, plugin, schedule_tasks):
     """Tests processing of sharded requests."""
     request_id = "1001"
-    datastore_test_util.CreateRequest(
-        user="user",
-        command_line="command_line0",
-        cluster="cluster",
-        run_target="bullhead",
+    request_manager.CreateRequest(
+        "user",
+        "command_line0 --run-target bullhead --cluster cluster",
         shard_count=3,
         request_id=request_id)
 
@@ -160,11 +155,9 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
   def testProcessRequests_RequestlocalSharding(self, plugin, schedule_tasks):
     """Tests processing of sharded requests with local sharding."""
     request_id = "1001"
-    datastore_test_util.CreateRequest(
-        user="user",
-        command_line="command_line0 --shard-count 3",
-        cluster="cluster",
-        run_target="bullhead",
+    request_manager.CreateRequest(
+        "user",
+        "command_line0 --run-target bullhead --cluster cluster --shard-count 3",
         request_id=request_id)
 
     commander._ProcessRequest(request_id)
@@ -188,11 +181,9 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
                                                    schedule_tasks):
     """Tests processing of sharded requests with a single shard."""
     request_id = "1001"
-    datastore_test_util.CreateRequest(
-        user="user",
-        command_line="command_line0",
-        cluster="cluster",
-        run_target="bullhead",
+    request_manager.CreateRequest(
+        "user",
+        "command_line0 --run-target bullhead --cluster cluster",
         shard_count=1,
         request_id=request_id)
 
@@ -213,11 +204,9 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
   @mock.patch.object(request_manager, "CancelRequest")
   def testProcessRequests_missingRunTarget(self, cancel_request):
     request_id = "1001"
-    datastore_test_util.CreateRequest(
-        user="user",
-        command_line="command_line0 --shard-count 1",
-        cluster="cluster",
-        run_target=None,
+    request_manager.CreateRequest(
+        "user",
+        "command_line0 --cluster cluster --shard-count 1",
         request_id=request_id)
 
     commander._ProcessRequest(request_id)
@@ -228,12 +217,10 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
   @mock.patch.object(env_config.CONFIG, "plugin")
   def testProcessRequest_escapeInCommandLine(self, plugin, schedule_tasks):
     request_id1 = "1001"
-    datastore_test_util.CreateRequest(
-        user="user",
-        command_line=(
-            "command_line0"' --arg \'option=\'"\'"\'value\'"\'"\'\''),
-        cluster="cluster",
-        run_target="run_target",
+    request_manager.CreateRequest(
+        "user",
+        "command_line0 --run-target run_target --cluster cluster"
+        ' --arg \'option=\'"\'"\'value\'"\'"\'\'',
         request_id=request_id1)
 
     commander._ProcessRequest(request_id1)
@@ -254,7 +241,7 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
 class HandleRequestTest(testbed_dependent_test.TestbedDependentTest):
 
   def setUp(self):
-    super(HandleRequestTest, self).setUp()
+    testbed_dependent_test.TestbedDependentTest.setUp(self)
     self.testapp = webtest.TestApp(commander.APP)
     self.plugin_patcher = mock.patch(
         "__main__.env_config.CONFIG.plugin")
@@ -267,11 +254,9 @@ class HandleRequestTest(testbed_dependent_test.TestbedDependentTest):
   @mock.patch.object(command_manager, "ScheduleTasks")
   def testPost(self, schedule_tasks):
     request_id = "request_id"
-    request = datastore_test_util.CreateRequest(
-        user="user",
-        command_line="command_line0",
-        cluster="cluster",
-        run_target="bullhead",
+    request = request_manager.CreateRequest(
+        "user",
+        "command_line0 --run-target bullhead --cluster cluster",
         request_id=request_id,
         plugin_data={"ants_invocation_id": "i123", "ants_work_unit_id": "w123"})
     request_manager.AddToQueue(request)

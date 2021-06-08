@@ -25,7 +25,6 @@ from tradefed_cluster import api_messages
 from tradefed_cluster import api_test
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
-from tradefed_cluster import datastore_test_util
 
 TIME = datetime.datetime(2018, 8, 20, 0, 0, 0)
 TIME_DELTA = datetime.timedelta(minutes=1)
@@ -38,8 +37,8 @@ class CommandAttemptApiTest(api_test.ApiTest):
     request_key = ndb.Key(
         datastore_entities.Request, '1001',
         namespace=common.NAMESPACE)
-    request = datastore_test_util.CreateRequest(
-        request_id=request_key.id(),
+    request = datastore_entities.Request(
+        key=request_key,
         user='user1',
         command_line='command_line')
     request.put()

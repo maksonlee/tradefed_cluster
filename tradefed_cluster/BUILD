@@ -350,7 +350,6 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":api_test_lib",
-        ":datastore_test_util_lib",
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
     ],
@@ -366,7 +365,6 @@ py_test(
     deps = [
         ":command_event_test_util",
         ":command_lib",
-        ":datastore_test_util_lib",
         ":testbed_dependent_test_lib",
         third_party("hamcrest"),
         third_party("mock"),
@@ -459,7 +457,6 @@ py_test(
     deps = [
         ":command_event_handler_lib",
         ":command_event_test_util",
-        ":datastore_test_util_lib",
         ":testbed_dependent_test_lib",
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
@@ -550,7 +547,6 @@ py_test(
         ":command_task_store_lib",
         ":common_lib",
         ":datastore_entities_lib",
-        ":datastore_test_util_lib",
         ":env_config_lib",
         ":metric_lib",
         ":request_manager_lib",
@@ -571,7 +567,6 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":command_lib",
-        ":datastore_test_util_lib",
         ":testbed_dependent_test_lib",
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
@@ -731,7 +726,6 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":commander_lib",
-        ":datastore_test_util_lib",
         ":testbed_dependent_test_lib",
         third_party("mock"),
         third_party("webtest"),
@@ -873,7 +867,6 @@ pytype_strict_library(
         ":api_messages_lib",
         ":common_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
-        "//tradefed_cluster/util:ndb_util_lib",
         third_party("six"),
     ],
 )
@@ -1381,7 +1374,6 @@ py_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
-        ":datastore_test_util_lib",
         ":notification_handler_lib",
         ":testbed_dependent_test_lib",
         third_party("mock"),
@@ -1414,7 +1406,6 @@ py_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
-        ":datastore_test_util_lib",
         ":env_config_lib",
         ":notifier_lib",
         ":testbed_dependent_test_lib",
@@ -1519,7 +1510,6 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":api_test_lib",
-        ":datastore_test_util_lib",
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
     ],
@@ -1552,7 +1542,6 @@ py_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
-        ":datastore_test_util_lib",
         ":env_config_lib",
         ":request_manager_lib",
         ":testbed_dependent_test_lib",
@@ -1589,7 +1578,7 @@ py_test(
     python_version = "PY3",
     deps = [
         ":command_event_test_util",
-        ":datastore_test_util_lib",
+        ":request_manager_lib",
         ":request_sync_monitor_lib",
         ":testbed_dependent_test_lib",
         third_party("mock"),

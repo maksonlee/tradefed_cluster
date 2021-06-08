@@ -37,31 +37,6 @@ RequestState = common.RequestState
 HostUpdateState = common.HostUpdateState
 
 
-class NonEmptyStringField(messages.StringField):
-  """A StringField can not be empty or all whitespace."""
-
-  def validate_element(self, value):
-    """Validate the value is not empty or all whitespace.
-
-    Args:
-      value: the value of the field
-    Raises:
-      ValidationError: value is empty or all whitespace
-    """
-    if isinstance(value, str) or isinstance(value, six.text_type):
-      if not value.strip():
-        name = getattr(self, "name")
-        if not name:
-          validation_error = messages.ValidationError(
-              "Field encountered empty string %s" % value)
-        else:
-          validation_error = messages.ValidationError(
-              "Field %s encountered empty string %s" % (name, value))
-          validation_error.field_name = name
-        raise validation_error
-    messages.StringField.validate_element(self, value)
-
-
 class KeyValuePair(messages.Message):
   """A message class for a key-value pair."""
   key = messages.StringField(1, required=True)
@@ -321,25 +296,6 @@ class CommandAttemptEventMessage(messages.Message):
   event_time = message_types.DateTimeField(5)
 
 
-class CommandInfo(messages.Message):
-  """A command info message.
-
-  Attributes:
-    name: an optional human-friendly name for a command.
-    command_line: a command line.
-    cluster: a cluster.
-    run_target: a run target.
-    run_count: a run count.
-    shard_count: a shard count.
-  """
-  name = messages.StringField(1)
-  command_line = NonEmptyStringField(2)
-  cluster = NonEmptyStringField(3)
-  run_target = NonEmptyStringField(4)
-  run_count = messages.IntegerField(5, default=1)
-  shard_count = messages.IntegerField(6, default=1)
-
-
 class CommandMessage(messages.Message):
   """Information for a Command."""
   id = messages.StringField(1, required=True)
@@ -357,7 +313,6 @@ class CommandMessage(messages.Message):
   update_time = message_types.DateTimeField(13)
   cancel_reason = messages.EnumField(common.CancelReason, 14)
   error_reason = messages.EnumField(common.ErrorReason, 15)
-  name = messages.StringField(16)
 
 
 class RequestType(messages.Enum):
@@ -387,7 +342,6 @@ class RequestMessage(messages.Message):
     max_retry_on_test_failures: the max number of retries on test failure per
         each command.
     prev_test_context: a previous test context.
-    command_infos: a list of command infos.
 
     state: a state of the request.
     start_time: test execution start time.
@@ -413,7 +367,6 @@ class RequestMessage(messages.Message):
   shard_count = messages.IntegerField(11)
   max_retry_on_test_failures = messages.IntegerField(12)
   prev_test_context = messages.MessageField(TestContext, 13)
-  command_infos = messages.MessageField(CommandInfo, 14, repeated=True)
 
   state = messages.EnumField(common.RequestState, 15)
   start_time = message_types.DateTimeField(16)
@@ -796,11 +749,36 @@ class CheckAdminMessage(messages.Message):
   isAdmin = messages.BooleanField(1, default=False)
 
 
+class NonEmptyStringField(messages.StringField):
+  """A StringField can not be empty or all whitespace."""
+
+  def validate_element(self, value):
+    """Validate the value is not empty or all whitespace.
+
+    Args:
+      value: the value of the field
+    Raises:
+      ValidationError: value is empty or all whitespace
+    """
+    if isinstance(value, str) or isinstance(value, six.text_type):
+      if not value.strip():
+        name = getattr(self, "name")
+        if not name:
+          validation_error = messages.ValidationError(
+              "Field encountered empty string %s" % value)
+        else:
+          validation_error = messages.ValidationError(
+              "Field %s encountered empty string %s" % (name, value))
+          validation_error.field_name = name
+        raise validation_error
+    messages.StringField.validate_element(self, value)
+
+
 class NewRequestMessage(messages.Message):
   """A message class for parameters to create new request."""
   type = messages.EnumField(RequestType, 1)
-  user = NonEmptyStringField(2)
-  command_line = NonEmptyStringField(3)
+  user = messages.StringField(2)
+  command_line = messages.StringField(3)
   priority = messages.IntegerField(4)
   queue_timeout_seconds = messages.IntegerField(5)
   cluster = NonEmptyStringField(6)
@@ -808,43 +786,12 @@ class NewRequestMessage(messages.Message):
   run_count = messages.IntegerField(8, default=1)
   shard_count = messages.IntegerField(9, default=1)
   max_retry_on_test_failures = messages.IntegerField(10)
-
   prev_test_context = messages.MessageField(TestContext, 11)
+
   test_environment = messages.MessageField(TestEnvironment, 12)
   test_resources = messages.MessageField(TestResource, 13, repeated=True)
   plugin_data = messages.MessageField(KeyValuePair, 14, repeated=True)
   test_bench_attributes = messages.StringField(15, repeated=True)
-
-
-class NewMultiCommandRequestMessage(messages.Message):
-  """A message class for parameters to create new request.
-
-  Attributes:
-    type: a request type.
-    user: a user ID.
-    command_infos: infos on commands to run.
-    priority: a priority of a request.
-    queue_timeout_seconds: a queue timeout in seconds.
-    max_retry_on_test_failures: a max number of retries on test failures.
-    max_concurrent_commands: a max number of concurrent commands.
-
-    prev_test_context: a previous test context. Only used for managed requests.
-    test_environment: a test environment. Only used for managed requests.
-    test_resources: a list of test resources. Only used for managed
-        requests.
-    plugin_data: plugin data.
-  """
-  type = messages.EnumField(RequestType, 1)
-  user = NonEmptyStringField(2)
-  command_infos = messages.MessageField(CommandInfo, 3, repeated=True)
-  priority = messages.IntegerField(4)
-  queue_timeout_seconds = messages.IntegerField(5)
-  max_retry_on_test_failures = messages.IntegerField(6)
-
-  prev_test_context = messages.MessageField(TestContext, 7)
-  test_environment = messages.MessageField(TestEnvironment, 8)
-  test_resources = messages.MessageField(TestResource, 9, repeated=True)
-  plugin_data = messages.MessageField(KeyValuePair, 10, repeated=True)
 
 
 class CommandEventType(messages.Enum):

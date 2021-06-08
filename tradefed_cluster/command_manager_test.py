@@ -36,7 +36,6 @@ from tradefed_cluster import command_manager
 from tradefed_cluster import command_task_store
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
-from tradefed_cluster import datastore_test_util
 from tradefed_cluster import env_config
 from tradefed_cluster import metric
 from tradefed_cluster import request_manager
@@ -54,10 +53,9 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
 
   def setUp(self):
     super(CommandManagerTest, self).setUp()
-    datastore_test_util.CreateRequest(
-        user="user1",
-        command_line="command_line",
-        request_id=REQUEST_ID)
+    request_manager.CreateRequest(user="user1",
+                                  command_line="command_line",
+                                  request_id=REQUEST_ID)
     self.plugin_patcher = mock.patch(
         "__main__.env_config.CONFIG.plugin")
     self.plugin_patcher.start()
@@ -181,11 +179,11 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
 
   @mock.patch.object(request_manager, "NotifyRequestState")
   def testScheduleTasks_withPriority(self, _):
-    datastore_test_util.CreateRequest(
+    request_manager.CreateRequest(
         user="user1", command_line="low priority command", request_id="1001")
-    datastore_test_util.CreateRequest(
+    request_manager.CreateRequest(
         user="user1", command_line="medium priority command", request_id="1002")
-    datastore_test_util.CreateRequest(
+    request_manager.CreateRequest(
         user="user1", command_line="high priority command", request_id="1003")
     commands = [
         self._CreateCommand(
@@ -820,16 +818,16 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertIsNone(command)
 
   def _CreateCommands(self):
-    datastore_test_util.CreateRequest(
+    request_manager.CreateRequest(
         user="user", request_id="1001", command_line="command_line1")
     self._CreateCommand("1001", command_line="command_line1")
-    datastore_test_util.CreateRequest(
+    request_manager.CreateRequest(
         user="user", request_id="1002", command_line="command_line2")
     self._CreateCommand("1002", command_line="command_line2")
-    datastore_test_util.CreateRequest(
+    request_manager.CreateRequest(
         user="user", request_id="1003", command_line="command_line3")
     self._CreateCommand("1003", command_line="command_line3")
-    datastore_test_util.CreateRequest(
+    request_manager.CreateRequest(
         user="user", request_id="1004", command_line="command_line4")
     self._CreateCommand("1004", command_line="command_line4")
 

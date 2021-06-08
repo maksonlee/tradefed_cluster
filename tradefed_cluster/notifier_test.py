@@ -26,8 +26,8 @@ import webtest
 from tradefed_cluster import api_messages
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
-from tradefed_cluster import datastore_test_util
 from tradefed_cluster import notifier
+from tradefed_cluster import request_manager
 from tradefed_cluster import testbed_dependent_test
 
 
@@ -131,7 +131,7 @@ class NotifierTest(testbed_dependent_test.TestbedDependentTest):
 
   def _CreateTestRequest(self, state=common.RequestState.UNKNOWN):
     """Creates a Request for testing purposes."""
-    request = datastore_test_util.CreateRequest(
+    request = request_manager.CreateRequest(
         user='user',
         command_line='command_line --request-id %d' % self._request_id,
         request_id=str(self._request_id),
@@ -147,8 +147,8 @@ class NotifierTest(testbed_dependent_test.TestbedDependentTest):
     command = datastore_entities.Command(
         parent=request.key,
         id=str(self._command_id),
-        command_line='%s --command-id %d' % (
-            request.command_infos[0].command_line, self._command_id),
+        command_line='%s --command-id %d' % (request.command_line,
+                                             self._command_id),
         cluster='cluster',
         run_target='run_target',
         run_count=run_count,

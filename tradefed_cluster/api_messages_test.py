@@ -74,35 +74,28 @@ class ApiMessagesTest(api_test.ApiTest):
     request = datastore_entities.Request(
         id='id',
         user='user',
-        command_infos=[
-            datastore_entities.CommandInfo(
-                command_line='command_line',
-                shard_count=2,
-                run_count=3,
-                cluster='cluster',
-                run_target='run_target')
-        ],
-        state=common.RequestState.UNKNOWN)
+        command_line='command_line',
+        state=common.RequestState.UNKNOWN,
+        shard_count=2,
+        run_count=3,
+        cluster='cluster',
+        run_target='run_target')
     message = datastore_entities.ToMessage(request)
     self.AssertEqualRequest(request, message)
 
-  def testRequestFromEntity_canceledRequest(self):
+  def testRequestFromEntity_cancelRequest(self):
     """Tests converting a cancelled Request entity to a message."""
     request = datastore_entities.Request(
         id='id',
         user='user',
-        command_infos=[
-            datastore_entities.CommandInfo(
-                command_line='command_line',
-                shard_count=2,
-                run_count=3,
-                cluster='cluster',
-                run_target='run_target')
-        ],
+        command_line='command_line',
         state=common.RequestState.CANCELED,
         cancel_reason=common.CancelReason.QUEUE_TIMEOUT)
     message = datastore_entities.ToMessage(request)
-    self.AssertEqualRequest(request, message)
+    self.assertEqual(request.key.id(), message.id)
+    self.assertEqual(request.command_line, message.command_line)
+    self.assertEqual(request.state, message.state)
+    self.assertEqual(request.cancel_reason, message.cancel_reason)
 
   def testMessageFromEntity_cancelRequest_invalidRequest(self):
     """Tests converting a Request object to a message."""
@@ -110,16 +103,13 @@ class ApiMessagesTest(api_test.ApiTest):
     request = datastore_entities.Request(
         key=request_key,
         user='user',
-        command_infos=[
-            datastore_entities.CommandInfo(
-                command_line='command_line',
-                shard_count=2,
-                run_count=3,
-                cluster='cluster',
-                run_target='run_target')
-        ],
+        command_line='command_line',
         state=common.RequestState.UNKNOWN,
-        cancel_reason=common.CancelReason.INVALID_REQUEST)
+        cancel_reason=common.CancelReason.INVALID_REQUEST,
+        shard_count=2,
+        run_count=3,
+        cluster='cluster',
+        run_target='run_target')
     message = datastore_entities.ToMessage(request)
     self.AssertEqualRequest(request, message)
 
@@ -129,16 +119,13 @@ class ApiMessagesTest(api_test.ApiTest):
     request = datastore_entities.Request(
         key=request_key,
         user='user',
-        command_infos=[
-            datastore_entities.CommandInfo(
-                command_line='command_line',
-                shard_count=2,
-                run_count=3,
-                cluster='cluster',
-                run_target='run_target')
-        ],
+        command_line='command_line',
         state=common.RequestState.UNKNOWN,
-        cancel_reason=common.CancelReason.QUEUE_TIMEOUT)
+        cancel_reason=common.CancelReason.QUEUE_TIMEOUT,
+        shard_count=2,
+        run_count=3,
+        cluster='cluster',
+        run_target='run_target')
     command1_key = ndb.Key(datastore_entities.Command, '456',
                            parent=request_key)
     cmd1 = datastore_entities.Command(
@@ -251,20 +238,13 @@ class ApiMessagesTest(api_test.ApiTest):
     """Helper to compare request entities and messages."""
     self.assertEqual(request.key.id(), request_message.id)
     self.assertEqual(request.user, request_message.user)
-    command_info = request.command_infos[0]
-    self.assertEqual(command_info.command_line, request_message.command_line)
-    self.assertEqual(command_info.cluster, request_message.cluster)
-    self.assertEqual(command_info.run_target, request_message.run_target)
-    self.assertEqual(command_info.shard_count, request_message.shard_count)
-    self.assertEqual(command_info.run_count, request_message.run_count)
-    for obj, msg in zip(request.command_infos, request_message.command_infos):
-      self.assertEqual(obj.command_line, msg.command_line)
-      self.assertEqual(obj.cluster, msg.cluster)
-      self.assertEqual(obj.run_target, msg.run_target)
-      self.assertEqual(obj.shard_count, msg.shard_count)
-      self.assertEqual(obj.run_count, msg.run_count)
+    self.assertEqual(request.command_line, request_message.command_line)
     self.assertEqual(request.state, request_message.state)
     self.assertEqual(request.cancel_message, request_message.cancel_message)
+    self.assertEqual(request.cluster, request_message.cluster)
+    self.assertEqual(request.run_target, request_message.run_target)
+    self.assertEqual(request.shard_count, request_message.shard_count)
+    self.assertEqual(request.run_count, request_message.run_count)
     if request.cancel_reason is None:
       self.assertIsNone(request_message.cancel_reason)
     else:
@@ -311,9 +291,7 @@ class ApiMessagesTest(api_test.ApiTest):
     request = datastore_entities.Request(
         id='request_id',
         user='user',
-        command_infos=[
-            datastore_entities.CommandInfo(command_line='command_line')
-        ])
+        command_line='command_line')
     message = api_messages.RequestEventMessage(
         type='request_state_changed',
         request_id=request.key.id(),

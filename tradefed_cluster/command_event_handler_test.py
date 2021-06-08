@@ -33,7 +33,6 @@ from tradefed_cluster import command_manager
 from tradefed_cluster import command_task_store
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
-from tradefed_cluster import datastore_test_util
 from tradefed_cluster import env_config  from tradefed_cluster import metric
 from tradefed_cluster import request_manager
 from tradefed_cluster import request_sync_monitor
@@ -54,7 +53,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         "__main__.env_config.CONFIG.plugin")
     self.plugin_patcher.start()
 
-    self.request = datastore_test_util.CreateRequest(
+    self.request = request_manager.CreateRequest(
         request_id="1001", user="user1", command_line="command_line",
         cluster="cluster", run_target="run_target")
     self.command = command_manager.CreateCommands(
@@ -122,7 +121,7 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertFalse(mock_process.called)
 
   def testEnqueueCommandEvents_multipleEvents(self):
-    self.request = datastore_test_util.CreateRequest(
+    self.request = request_manager.CreateRequest(
         request_id="9999", user="user1", command_line="command_line",
         cluster="cluster", run_target="run_target", shard_count=2)
     command_1, command_2 = command_manager.CreateCommands(

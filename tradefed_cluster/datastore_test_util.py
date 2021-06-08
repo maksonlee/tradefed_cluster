@@ -311,39 +311,3 @@ def CreateHostGroupConfig(name,
       account_principals=account_principals)
   group_config.put()
   return group_config
-
-
-def CreateRequest(
-    request_id,
-    user='user',
-    command_line='command_line',
-    cluster='cluster',
-    run_target='run_target',
-    shard_count=1,
-    run_count=1,
-    priority=None,
-    queue_timeout_seconds=None,
-    plugin_data=None,
-    state=common.RequestState.UNKNOWN,
-    notify_state_change=False):
-  """Creates a Request entity."""
-  key = ndb.Key(
-      datastore_entities.Request, str(request_id), namespace=common.NAMESPACE)
-  entity = datastore_entities.Request(
-      key=key,
-      user=user,
-      command_infos=[
-          datastore_entities.CommandInfo(
-              command_line=command_line,
-              cluster=cluster,
-              run_target=run_target,
-              shard_count=shard_count,
-              run_count=run_count)
-      ],
-      priority=priority,
-      queue_timeout_seconds=queue_timeout_seconds,
-      plugin_data=plugin_data,
-      state=state,
-      notify_state_change=notify_state_change)
-  entity.put()
-  return entity

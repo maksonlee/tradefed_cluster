@@ -30,8 +30,8 @@ from tradefed_cluster import command_manager
 from tradefed_cluster import command_monitor
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
-from tradefed_cluster import datastore_test_util
-from tradefed_cluster import env_config  from tradefed_cluster import request_sync_monitor
+from tradefed_cluster import env_config  from tradefed_cluster import request_manager
+from tradefed_cluster import request_sync_monitor
 from tradefed_cluster.util import ndb_shim as ndb
 
 
@@ -43,7 +43,7 @@ class CoordinatorApiTest(api_test.ApiTest):
         '__main__.env_config.CONFIG.plugin')
     self.plugin_patcher.start()
 
-    self.request = datastore_test_util.CreateRequest(
+    self.request = request_manager.CreateRequest(
         request_id='1001',
         user='user1',
         command_line='command_line',
@@ -151,7 +151,7 @@ class CoordinatorApiTest(api_test.ApiTest):
 
   @mock.patch.object(request_sync_monitor, 'Monitor')
   def testBackfillRequestSyncs(self, mock_monitor):
-    queued_request = datastore_test_util.CreateRequest(
+    queued_request = request_manager.CreateRequest(
         request_id='queued_id', user='user2', command_line='command_line2')
     queued_request.state = common.RequestState.QUEUED
     queued_request.put()

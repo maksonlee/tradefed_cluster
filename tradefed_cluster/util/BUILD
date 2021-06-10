@@ -116,6 +116,30 @@ py_test(
     ],
 )
 
+pytype_strict_library(
+    name = "elasticsearch_client_lib",
+    srcs = [
+        "elasticsearch_client.py",
+    ],
+    srcs_version = "PY3",
+    deps = [
+        "//third_party/py/elasticsearch",
+    ],
+)
+
+py_test(
+    name = "elasticsearch_client_test",
+    srcs = [
+        "elasticsearch_client_test.py",
+    ],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":elasticsearch_client_lib",
+        "//third_party/py/elasticsearch",
+    ],
+)
+
 filegroup(
     name = "testdata",
     srcs = glob([

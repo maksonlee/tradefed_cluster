@@ -33,3 +33,13 @@ class ElasticsearchClient(object):
       a document object.
     """
     return self._GetEsClient().get(index=index_name, id=doc_id)['_source']
+
+  def UpsertDoc(self, index_name, doc_id, document):
+    """Insert or update a document.
+
+    Args:
+      index_name: the index
+      doc_id: Unique id
+      document: an entity
+    """
+    self._GetEsClient().index(index_name, id=doc_id, body=document)

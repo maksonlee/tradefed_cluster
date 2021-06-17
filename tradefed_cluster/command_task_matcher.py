@@ -378,6 +378,14 @@ def _MatchDeviceAttribute(required_attr, device_attrs):
 
   device_attr_value = device_attrs[required_attr.name]
   required_value = required_attr.value
+  required_attribute_value = required_value.split('|')
+
+  if len(required_attribute_value) > 1:
+    if operator == '=' and required_attr.name not in common.NUMBER_DEVICE_ATTRIBUTES:
+      return device_attr_value in required_attribute_value
+    else:
+      raise ValueError('Operator "|" is not supported.')
+
   if required_attr.name in common.NUMBER_DEVICE_ATTRIBUTES:
     required_value = common.ParseFloat(required_value)
     if required_value is None:

@@ -1011,6 +1011,7 @@ pytype_strict_library(
         ":common_lib",
         ":datastore_entities_lib",
         ":env_config_lib",
+        ":harness_image_metadata_syncer_lib",
         ":host_event_lib",
         ":metric_lib",
         "//tradefed_cluster/services:task_scheduler_lib",

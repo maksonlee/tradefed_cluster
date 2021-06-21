@@ -45,6 +45,7 @@ _DEFAULT_TRADEFED_REPO = 'gcr.io/dockerized-tradefed/tradefed'
 _TRADEFED_HARNESS_NAME = 'tradefed'
 # Template to create image metadata datastore key
 _IMAGE_METADATA_KEY_TMPL = '{}:{}'
+UNKNOW_VERSION = 'UNKNOWN'
 
 
 @APP.route(r'/cron/syncer/sync_harness_image_metadata')
@@ -186,3 +187,20 @@ def AreHarnessImagesEqual(image_url_a, image_url_b):
   if image_a and image_b and image_a.digest == image_b.digest:
     return True
   return False
+
+
+def GetHarnessVersionFromImageUrl(image_url):
+  """Helper function to get test harness version number from image url.
+
+  Args:
+    image_url: string, url to the image.
+
+  Returns:
+    A string, representing the version number in text.
+  """
+  repo, tag = _SplitImageUrlIntoRepoAndTag(image_url)
+  image_metadata = _GetTestHarnessImageMetadata(repo, tag)
+  version = UNKNOW_VERSION
+  if image_metadata and image_metadata.test_harness_version:
+    version = image_metadata.test_harness_version
+  return version

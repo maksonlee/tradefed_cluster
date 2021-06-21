@@ -240,6 +240,22 @@ class HarnessImageMetadataSyncerTest(parameterized.TestCase,
         harness_image_metadata_syncer.AreHarnessImagesEqual(
             image_url_a, image_url_b))
 
+  @parameterized.named_parameters(
+      ('Image URL found.', 'test_repo_1:t1_1', 'v1_1'),
+      ('Image URL found with latest tag.', 'test_repo_1', 'v1_1'),
+      ('Image URL not found.', 'test_repo_1:t1_3', 'UNKNOWN'),
+  )
+  def testGetHarnessVersionFromImageUrl(self, image_url, expected_version):
+    datastore_test_util.CreateTestHarnessImageMetadata(
+        repo_name='test_repo_1',
+        digest='d1',
+        current_tags=['t1_1', 't1_2', 'latest'],
+        test_harness_version='v1_1')
+
+    self.assertEqual(
+        expected_version,
+        harness_image_metadata_syncer.GetHarnessVersionFromImageUrl(image_url))
+
 
 if __name__ == '__main__':
   unittest.main()

@@ -1202,6 +1202,8 @@ class HostUpdateState(ndb.Model):
     state: host update state, see HostUpdateState in api message.
     display_message: the optional display message to further clarify the current
       host update state.
+    target_version: the target test harness version to which the host is
+      going to update.
   """
   hostname = ndb.StringProperty()
   state = ndb.EnumProperty(
@@ -1210,6 +1212,7 @@ class HostUpdateState(ndb.Model):
   update_timestamp = ndb.DateTimeProperty()
   update_task_id = ndb.StringProperty()
   display_message = ndb.TextProperty()
+  target_version = ndb.StringProperty()
 
 
 class HostUpdateStateHistory(HostUpdateState):

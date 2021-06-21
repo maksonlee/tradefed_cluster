@@ -31,6 +31,7 @@ from tradefed_cluster import api_messages
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import env_config
+from tradefed_cluster import harness_image_metadata_syncer
 from tradefed_cluster import metric
 from tradefed_cluster.services import task_scheduler
 from tradefed_cluster.util import ndb_shim as ndb
@@ -132,7 +133,13 @@ def HandleDeviceSnapshotWithNDB(event):
         host.test_harness, host.test_harness_version,
         host.physical_cluster, host.hostname)
   elif event.type in HOST_UPDATE_STATE_CHANGED_TYPES:
-    _UpdateHostUpdateStateWithEvent(event)
+    # Get the objective version early to avoid querying NDB entities other than
+    # HostUpdateState.
+    host_update_target_version = (
+        harness_image_metadata_syncer.GetHarnessVersionFromImageUrl(
+            event.data.get("host_update_target_image", "")))
+    _UpdateHostUpdateStateWithEvent(
+        event, target_version=host_update_target_version)
   else:
     logging.warning("Skip unsupported type of event: <%s>", event.type)
   StartHostSync(event.hostname)
@@ -172,11 +179,13 @@ def _UpdateHostWithHostChangedEvent(event):
 
 
 @ndb.transactional()
-def _UpdateHostUpdateStateWithEvent(event):
+def _UpdateHostUpdateStateWithEvent(
+    event, target_version=harness_image_metadata_syncer.UNKNOW_VERSION):
   """Update the host with a host update state change event.
 
   Args:
     event: HostEvent object.
+    target_version: The test harness version which the host updates to.
   """
   entities_to_update = []
 
@@ -197,7 +206,8 @@ def _UpdateHostUpdateStateWithEvent(event):
         state=host_update_state_enum,
         update_timestamp=event.timestamp,
         update_task_id=event.host_update_task_id,
-        display_message=event.host_update_state_display_message)
+        display_message=event.host_update_state_display_message,
+        target_version=target_version)
     entities_to_update.append(host_update_state)
 
   host_update_state_history = datastore_entities.HostUpdateStateHistory(
@@ -206,7 +216,8 @@ def _UpdateHostUpdateStateWithEvent(event):
       state=host_update_state_enum,
       update_timestamp=event.timestamp,
       update_task_id=event.host_update_task_id,
-      display_message=event.host_update_state_display_message)
+      display_message=event.host_update_state_display_message,
+      target_version=target_version)
   entities_to_update.append(host_update_state_history)
 
   ndb.put_multi(entities_to_update)

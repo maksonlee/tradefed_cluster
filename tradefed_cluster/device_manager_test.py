@@ -1948,9 +1948,11 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     }
 
     event = host_event.HostEvent(**host_event_msg)
-    device_manager._UpdateHostUpdateStateWithEvent(event)
+    device_manager._UpdateHostUpdateStateWithEvent(
+        event, target_version="v1")
     state = datastore_entities.HostUpdateState.get_by_id(hostname)
     self.assertEqual(api_messages.HostUpdateState.PENDING, state.state)
+    self.assertEqual("v1", state.target_version)
 
   def testHandleHostUpdateStateChangedEvent_newStateSYNCING(self):
     """Test update host with a new syncing state."""
@@ -1965,10 +1967,12 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     }
 
     event = host_event.HostEvent(**host_event_msg)
-    device_manager._UpdateHostUpdateStateWithEvent(event)
+    device_manager._UpdateHostUpdateStateWithEvent(
+        event, target_version="v1")
     state = datastore_entities.HostUpdateState.get_by_id(hostname)
     self.assertEqual(api_messages.HostUpdateState.SYNCING, state.state)
     self.assertEqual(update_task_id, state.update_task_id)
+    self.assertEqual("v1", state.target_version)
 
   def testHandleHostUpdateStateChangedEvent_newStateSHUTTINGDOWN(self):
     """Test update host with a new shutting down state."""
@@ -1983,10 +1987,12 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     }
 
     event = host_event.HostEvent(**host_event_msg)
-    device_manager._UpdateHostUpdateStateWithEvent(event)
+    device_manager._UpdateHostUpdateStateWithEvent(
+        event, target_version="v1")
     state = datastore_entities.HostUpdateState.get_by_id(hostname)
     self.assertEqual(api_messages.HostUpdateState.SHUTTING_DOWN, state.state)
     self.assertEqual(update_task_id, state.update_task_id)
+    self.assertEqual("v1", state.target_version)
 
   def testHandleHostUpdateStateChangedEvent_newStateSUCCEEDED(self):
     """Test update host with a new succeeded state."""
@@ -2001,10 +2007,12 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     }
 
     event = host_event.HostEvent(**host_event_msg)
-    device_manager._UpdateHostUpdateStateWithEvent(event)
+    device_manager._UpdateHostUpdateStateWithEvent(
+        event, target_version="v1")
     state = datastore_entities.HostUpdateState.get_by_id(hostname)
     self.assertEqual(api_messages.HostUpdateState.SUCCEEDED, state.state)
     self.assertEqual(update_task_id, state.update_task_id)
+    self.assertEqual("v1", state.target_version)
 
   def testHandleHostUpdateStateChangedEvent_newStateRESTARTING(self):
     """Test update host with a new restarting state."""
@@ -2019,10 +2027,12 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     }
 
     event = host_event.HostEvent(**host_event_msg)
-    device_manager._UpdateHostUpdateStateWithEvent(event)
+    device_manager._UpdateHostUpdateStateWithEvent(
+        event, target_version="v1")
     state = datastore_entities.HostUpdateState.get_by_id(hostname)
     self.assertEqual(api_messages.HostUpdateState.SYNCING, state.state)
     self.assertEqual(update_task_id, state.update_task_id)
+    self.assertEqual("v1", state.target_version)
 
   def testHandleHostUpdateStateChangedEvent_MultipleEventsNoOutdated(self):
     """Test update state histories are preserved."""
@@ -2043,13 +2053,17 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     }
 
     event_1 = host_event.HostEvent(**host_event_1)
-    device_manager._UpdateHostUpdateStateWithEvent(event_1)
+    device_manager._UpdateHostUpdateStateWithEvent(
+        event_1, target_version="v1")
     state = datastore_entities.HostUpdateState.get_by_id(hostname)
     self.assertEqual(api_messages.HostUpdateState.PENDING, state.state)
+    self.assertEqual("v1", state.target_version)
     event_2 = host_event.HostEvent(**host_event_2)
-    device_manager._UpdateHostUpdateStateWithEvent(event_2)
+    device_manager._UpdateHostUpdateStateWithEvent(
+        event_2, target_version="v1")
     state = datastore_entities.HostUpdateState.get_by_id(hostname)
     self.assertEqual(api_messages.HostUpdateState.SYNCING, state.state)
+    self.assertEqual("v1", state.target_version)
 
     state_histories = device_manager.GetHostUpdateStateHistories(hostname)
 
@@ -2081,16 +2095,20 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     }
 
     event_1 = host_event.HostEvent(**host_event_1)
-    device_manager._UpdateHostUpdateStateWithEvent(event_1)
+    device_manager._UpdateHostUpdateStateWithEvent(
+        event_1, target_version="v1")
     state = datastore_entities.HostUpdateState.get_by_id(hostname)
     self.assertEqual(api_messages.HostUpdateState.RESTARTING, state.state)
+    self.assertEqual("v1", state.target_version)
     # The 2nd event does not overwrite host update state, because the event time
     # is older.
     event_2 = host_event.HostEvent(**host_event_2)
-    device_manager._UpdateHostUpdateStateWithEvent(event_2)
+    device_manager._UpdateHostUpdateStateWithEvent(
+        event_2, target_version="v1")
     state = datastore_entities.HostUpdateState.get_by_id(hostname)
     self.assertEqual(api_messages.HostUpdateState.RESTARTING, state.state)
     self.assertEqual(update_task_id, state.update_task_id)
+    self.assertEqual("v1", state.target_version)
 
     state_histories = device_manager.GetHostUpdateStateHistories(hostname)
 

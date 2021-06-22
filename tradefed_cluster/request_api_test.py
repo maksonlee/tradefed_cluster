@@ -318,8 +318,14 @@ class RequestApiTest(api_test.ApiTest):
       self.assertEqual(request['name'], entity.name)
       self.assertEqual(request.get('decompress'), entity.decompress)
       self.assertEqual(request.get('decompress_dir'), entity.decompress_dir)
-      self.assertEqual(request.get('params', {}).get('decompress_files', []),
-                       entity.params.decompress_files)
+      self.assertEqual(request.get('mount_zip'), entity.mount_zip)
+      params = request.get('params')
+      if params is None:
+        self.assertIsNone(entity.params)
+      else:
+        entity_params = entity.params
+        self.assertEqual(
+            params.get('decompress_files', []), entity_params.decompress_files)
 
     tasks = self.mock_task_scheduler.GetTasks(
         queue_names=(request_manager.REQUEST_QUEUE,))

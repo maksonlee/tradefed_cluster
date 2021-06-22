@@ -80,6 +80,17 @@ class TestResourceParameters(ndb.Model):
   """
   decompress_files = ndb.StringProperty(repeated=True)
 
+  @classmethod
+  def FromMessage(cls, msg):
+    return TestResourceParameters(decompress_files=msg.decompress_files)
+
+
+@MessageConverter(TestResourceParameters)
+def TestResourceParametersToMessage(entity):
+  """Converts a TestResourceParameters entity to a message."""
+  return api_messages.TestResourceParameters(
+      decompress_files=entity.decompress_files)
+
 
 class TestResource(ndb.Model):
   """A test resource entity.
@@ -90,6 +101,7 @@ class TestResource(ndb.Model):
     path: an expected path in a test working directory.
     decompress: whether the host should decompress the downloaded file.
     decompress_dir: the directory where the host decompresses the file.
+    mount_zip: whether to mount a zip file.
     params: test resource parameters.
   """
   url = ndb.StringProperty()
@@ -97,6 +109,7 @@ class TestResource(ndb.Model):
   path = ndb.StringProperty()
   decompress = ndb.BooleanProperty()
   decompress_dir = ndb.StringProperty()
+  mount_zip = ndb.BooleanProperty()
   params = ndb.LocalStructuredProperty(TestResourceParameters)
 
   @classmethod
@@ -107,9 +120,10 @@ class TestResource(ndb.Model):
         path=msg.path,
         decompress=msg.decompress,
         decompress_dir=msg.decompress_dir,
-        params=(TestResourceParameters(
-            decompress_files=msg.params.decompress_files)
-                if msg.params else None))
+        mount_zip=msg.mount_zip,
+        params=(
+            TestResourceParameters.FromMessage(msg.params)
+            if msg.params else None))
 
 
 @MessageConverter(TestResource)
@@ -121,9 +135,8 @@ def TestResourceToMessage(entity):
       path=entity.path,
       decompress=entity.decompress,
       decompress_dir=entity.decompress_dir,
-      params=(api_messages.TestResourceParameters(
-          decompress_files=entity.params.decompress_files)
-              if entity.params else None))
+      mount_zip=entity.mount_zip,
+      params=ToMessage(entity.params) if entity.params else None)
 
 
 class TestContext(ndb.Model):

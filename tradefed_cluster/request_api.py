@@ -117,9 +117,8 @@ class RequestApi(remote.Service):
                  new_request.key.id(), request.user)
     for res in request.test_resources or []:
       request_manager.AddTestResource(
-          request_id=new_request.key.id(), name=res.name, url=res.url,
-          decompress=res.decompress, decompress_dir=res.decompress_dir,
-          decompress_files=res.params.decompress_files if res.params else [])
+          new_request.key.id(),
+          datastore_entities.TestResource.FromMessage(res))
     logging.info("Request API new request after adding test resources %s %s",
                  new_request.key.id(), request.user)
     request_manager.AddToQueue(new_request)
@@ -331,8 +330,9 @@ class RequestApi(remote.Service):
     """
     request_id = str(request.request_id)
     request_entities = request_manager.GetTestResources(request_id)
-    test_resources = [datastore_entities.ToMessage(entity)
-                      for entity in request_entities]
+    test_resources = []
+    for entity in request_entities:
+      test_resources.append(datastore_entities.ToMessage(entity))
     return api_messages.TestResourceCollection(test_resources=test_resources)
 
   @endpoints.method(

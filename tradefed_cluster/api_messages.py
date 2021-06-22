@@ -179,6 +179,7 @@ class TestResource(messages.Message):
         to.
     decompress: whether the host should decompress the downloaded file.
     decompress_dir: the directory where the host decompresses the file.
+    mount_zip: whether to mount a zip file.
     params: test resource parameters.
   """
   url = messages.StringField(1, required=True)
@@ -186,7 +187,8 @@ class TestResource(messages.Message):
   path = messages.StringField(3)
   decompress = messages.BooleanField(4)
   decompress_dir = messages.StringField(5)
-  params = messages.MessageField(TestResourceParameters, 6)
+  mount_zip = messages.BooleanField(6)
+  params = messages.MessageField(TestResourceParameters, 7)
 
 
 class TestResourceCollection(messages.Message):

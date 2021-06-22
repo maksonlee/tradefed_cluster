@@ -911,7 +911,8 @@ class ClusterHostApi(remote.Service):
             time=datetime.datetime.utcnow(),
             type=_HOST_UPDATE_STATE_CHANGED_EVENT_NAME,
             hostname=hostname,
-            host_update_state=_HOST_UPDATE_STATE_PENDING)
+            host_update_state=_HOST_UPDATE_STATE_PENDING,
+            data={"host_update_target_image": request.test_harness_image})
         device_manager.HandleDeviceSnapshotWithNDB(event)
       metadata.populate(test_harness_image=request.test_harness_image)
       metadatas_to_update.append(metadata)

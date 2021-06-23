@@ -163,7 +163,6 @@ def pytype_strict_binary(name, **kwargs):
         name: a unique name for a target.
         **kwargs: unused args.
     """
-    kwargs.pop("disable_py3_errors", None)
     test_lib = kwargs.pop("test_lib", None)
     if test_lib:
         _py_library(

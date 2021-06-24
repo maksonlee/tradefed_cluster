@@ -184,8 +184,8 @@ def SyncToNDB():
       logging.debug('Processing cloudstorage file: %s', stat.filename)
       lab_config_pb = GetLabConfigFromGCS(stat.filename)
       _UpdateLabConfig(lab_config_pb)
-      _UpdateClusterConfigs(lab_config_pb.cluster_configs)
-      for cluster_config_pb in lab_config_pb.cluster_configs:
+      _UpdateClusterConfigs(lab_config_pb.cluster_configs)  # pytype: disable=attribute-error
+      for cluster_config_pb in lab_config_pb.cluster_configs:  # pytype: disable=attribute-error
         _UpdateHostConfigs(cluster_config_pb.host_configs, cluster_config_pb,
                            lab_config_pb)
 

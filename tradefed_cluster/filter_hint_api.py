@@ -68,6 +68,8 @@ class FilterHintApi(remote.Service):
       return self._ListDeviceStates()
     elif request.type == common.FilterHintType.HOST_GROUP:
       return self._ListHostGroup()
+    elif request.type == common.FilterHintType.UPDATE_STATE:
+      return self._ListHostUpdateStates()
     else:
       raise endpoints.BadRequestException("Invalid type: %s" % request.type)
 
@@ -157,5 +159,13 @@ class FilterHintApi(remote.Service):
     infos = [
         api_messages.FilterHintMessage(value=item.host_group)
         for item in entities
+    ]
+    return api_messages.FilterHintCollection(filter_hints=infos)
+
+  def _ListHostUpdateStates(self):
+    """Fetches a list of host update states."""
+    infos = [
+        api_messages.FilterHintMessage(value=state.name)
+        for state in api_messages.HostUpdateState
     ]
     return api_messages.FilterHintCollection(filter_hints=infos)

@@ -312,6 +312,7 @@ class FilterHintType(messages.Enum):
   DEVICE_STATE = 6
   HOST_STATE = 7
   HOST_GROUP = 8
+  UPDATE_STATE = 9
 
 
 class Operator(messages.Enum):

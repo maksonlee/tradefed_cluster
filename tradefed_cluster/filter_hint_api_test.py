@@ -270,5 +270,28 @@ class FilterHintApiTest(api_test.ApiTest):
     self.assertEqual(host_groups[0].value, 'free')
     self.assertEqual(host_groups[1].value, 'paid')
 
+  def testListHostUpdateStates(self):
+    """Tests ListHostUpdateStates."""
+    api_request = {'type': 'UPDATE_STATE'}
+    api_response = self.testapp.post_json(
+        '/_ah/api/FilterHintApi.ListFilterHints', api_request)
+    host_state_collection = protojson.decode_message(
+        api_messages.FilterHintCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(8, len(host_state_collection.filter_hints))
+    states = list(host_state_collection.filter_hints)
+    self.assertEqual(states[0].value, api_messages.HostUpdateState.UNKNOWN.name)
+    self.assertEqual(states[1].value, api_messages.HostUpdateState.PENDING.name)
+    self.assertEqual(states[2].value, api_messages.HostUpdateState.SYNCING.name)
+    self.assertEqual(
+        states[3].value, api_messages.HostUpdateState.SHUTTING_DOWN.name)
+    self.assertEqual(
+        states[4].value, api_messages.HostUpdateState.RESTARTING.name)
+    self.assertEqual(
+        states[5].value, api_messages.HostUpdateState.TIMED_OUT.name)
+    self.assertEqual(states[6].value, api_messages.HostUpdateState.ERRORED.name)
+    self.assertEqual(
+        states[7].value, api_messages.HostUpdateState.SUCCEEDED.name)
+
 if __name__ == '__main__':
   unittest.main()

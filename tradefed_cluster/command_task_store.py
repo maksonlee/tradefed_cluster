@@ -246,16 +246,16 @@ def LeaseTask(task_id):
   Args:
     task_id: the task id
   Returns:
-    true if leased successfully, otherwise false.
+    None if the task is not leasable, otherwise the task.
   """
   task = _Key(task_id).get()
   if not task or not task.leasable:
-    return False
+    return None
   task.leasable = False
   task.lease_timestamp = common.Now()
   task.lease_count += 1
   task.put()
-  return True
+  return task
 
 
 def DeleteTask(task_id):

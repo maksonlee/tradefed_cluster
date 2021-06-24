@@ -491,7 +491,6 @@ class CommandTaskApiTest(api_test.ApiTest):
 
   @mock.patch.object(command_task_store, 'LeaseTask')
   def testLeaseHostTasks_datastoreContention(self, mock_lease_task):
-    mock_lease_task.side_effect = [mock.MagicMock(), grpc.RpcError()]
     self._AddCommand(
         self.request.key.id(),
         '2',
@@ -508,6 +507,11 @@ class CommandTaskApiTest(api_test.ApiTest):
         'run_target3',
         ants_invocation_id='',
         ants_work_unit_id='')
+    task1 = datastore_entities.CommandTask.query(
+        datastore_entities.CommandTask.request_id == self.request.key.id(),
+        datastore_entities.CommandTask.command_id == '2',
+        namespace=common.NAMESPACE).fetch(1)[0]
+    mock_lease_task.side_effect = [task1, grpc.RpcError()]
 
     request = {
         'hostname': 'hostname',

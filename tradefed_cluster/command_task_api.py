@@ -179,7 +179,11 @@ class CommandTaskApi(remote.Service):
         # b/27136167: Touch command to prevent coordinator from cancelling
         # during task lease.
         command = command_manager.Touch(task.request_id, task.command_id)
-        if not command_task_store.LeaseTask(task.task_id):
+        # task comes from GetLeasableTasks is eventual consistent.
+        # LeaseTask return the strong consistent task, so the data is more
+        # accurate.
+        leased_task = command_task_store.LeaseTask(task.task_id)
+        if not leased_task:
           continue
         data_consistent = self._EnsureCommandConsistency(
             task.request_id, task.command_id, task.task_id)
@@ -195,34 +199,35 @@ class CommandTaskApi(remote.Service):
       matcher.RemoveDeviceGroups(matched_devices)
 
       logging.debug("lease task %s to run on %s",
-                    str(task.task_id),
+                    str(leased_task.task_id),
                     tuple(m.device_serial for m in matched_devices))
-      plugin_data_dict = copy.copy(task.plugin_data)
+      plugin_data_dict = copy.copy(leased_task.plugin_data)
       plugin_data_dict[_HOSTNAME_KEY] = host.hostname
       plugin_data_dict[_LAB_NAME_KEY] = host.lab_name or common.UNKNOWN_LAB_NAME
       plugin_data_dict[_HOST_GROUP_KEY] = host.host_group
-      if task.schedule_timestamp:
+      if leased_task.schedule_timestamp:
         plugin_data_dict[_TFC_COMMAND_ATTEMPT_QUEUE_START_TIMESTAMP_KEY] = (
-            common.DatetimeToAntsTimestampProperty(task.schedule_timestamp))
+            common.DatetimeToAntsTimestampProperty(
+                leased_task.schedule_timestamp))
       plugin_data_dict[_TFC_COMMAND_ATTEMPT_QUEUE_END_TIMESTAMP_KEY] = (
-          common.DatetimeToAntsTimestampProperty(task.lease_timestamp or
+          common.DatetimeToAntsTimestampProperty(leased_task.lease_timestamp or
                                                  common.Now()))
 
       plugin_data_ = api_messages.MapToKeyValuePairMessages(plugin_data_dict)
       leased_tasks.append(
           CommandTask(
-              request_id=task.request_id,
-              command_id=task.command_id,
-              task_id=task.task_id,
-              command_line=task.command_line,
-              request_type=task.request_type,
+              request_id=leased_task.request_id,
+              command_id=leased_task.command_id,
+              task_id=leased_task.task_id,
+              command_line=leased_task.command_line,
+              request_type=leased_task.request_type,
               device_serials=[match.device_serial for match in matched_devices],
-              shard_count=task.shard_count,
-              shard_index=task.shard_index,
-              run_index=task.run_index,
-              attempt_index=task.attempt_index,
+              shard_count=leased_task.shard_count,
+              shard_index=leased_task.shard_index,
+              run_index=leased_task.run_index,
+              attempt_index=leased_task.attempt_index,
               plugin_data=plugin_data_))
-      for run_target in task.run_targets:
+      for run_target in leased_task.run_targets:
         metric.RecordCommandTimingMetric(
             cluster_id=cluster,
             run_target=run_target,

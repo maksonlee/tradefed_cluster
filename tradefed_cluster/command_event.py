@@ -59,6 +59,8 @@ class CommandEvent(object):
     self.error = _GetEventData(self.data, CommandEventDataKey.ERROR)
     self.subprocess_command_error = _GetEventData(
         self.data, CommandEventDataKey.SUBPROCESS_COMMAND_ERROR)
+    self.error_status = _GetEventData(
+        self.data, CommandEventDataKey.ERROR_STATUS)
     self.summary = _GetEventData(self.data, CommandEventDataKey.SUMMARY)
     self.summary = Truncate(self.summary)
     self.total_test_count = _GetEventData(
@@ -101,7 +103,10 @@ class CommandEvent(object):
           self.error or "Device did not meet command requirements")
       return
     if self.type == common.InvocationEventType.CONFIGURATION_ERROR:
-      self.attempt_state = common.CommandState.FATAL
+      if self.error_status == common.TF_ERROR_STATUS_CUSTOMER_ISSUE:
+        self.attempt_state = common.CommandState.FATAL
+        return
+      self.attempt_state = common.CommandState.ERROR
       return
     if self.type in (common.InvocationEventType.FETCH_FAILED,
                      common.InvocationEventType.EXECUTE_FAILED):
@@ -255,3 +260,4 @@ class CommandEventDataKey(object):
   FAILED_TEST_RUN_COUNT = "failed_test_run_count"
   DEVICE_LOST_DETECTED = "device_lost_detected"
   SUBPROCESS_COMMAND_ERROR = "subprocess_command_error"
+  ERROR_STATUS = "error_status"

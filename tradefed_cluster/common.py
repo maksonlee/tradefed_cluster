@@ -402,3 +402,6 @@ def ParseFloat(num_str):
 def DatetimeToAntsTimestampProperty(time):
   """Change datetime to str represent milliseconds."""
   return str(int(time.timestamp() * 1000))
+
+
+TF_ERROR_STATUS_CUSTOMER_ISSUE = "CUSTOMER_ISSUE"

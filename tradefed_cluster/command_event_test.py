@@ -102,8 +102,18 @@ class CommandEventTest(unittest.TestCase):
   def testInit_configurationError(self):
     event = command_event_test_util.CreateTestCommandEvent(
         REQUEST_ID, COMMAND_ID, ATTEMPT_ID,
-        common.InvocationEventType.CONFIGURATION_ERROR)
+        common.InvocationEventType.CONFIGURATION_ERROR,
+        data={"error_status": "CUSTOMER_ISSUE"})
+    self.assertEqual("CUSTOMER_ISSUE", event.error_status)
     self.assertEqual(common.CommandState.FATAL, event.attempt_state)
+
+  def testInit_configurationError_hostIssue(self):
+    event = command_event_test_util.CreateTestCommandEvent(
+        REQUEST_ID, COMMAND_ID, ATTEMPT_ID,
+        common.InvocationEventType.CONFIGURATION_ERROR,
+        data={"error_status": "INFRA_FAILURE"})
+    self.assertEqual("INFRA_FAILURE", event.error_status)
+    self.assertEqual(common.CommandState.ERROR, event.attempt_state)
 
   def testInit_fetchFailed(self):
     event = command_event_test_util.CreateTestCommandEvent(

@@ -963,7 +963,9 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     queried_command = command_manager.GetCommand(request_id, command_id)
     self.assertNotEqual(common.CommandState.FATAL, queried_command.state)
     event = command_event_test_util.CreateTestCommandEvent(
-        request_id, command_id, "0", "ConfigurationError", task=tasks[0])
+        request_id, command_id, "0", "ConfigurationError",
+        data={"error_status": "CUSTOMER_ISSUE"},
+        task=tasks[0])
     command_event_handler.ProcessCommandEvent(event)
 
     queried_command = command_manager.GetCommand(request_id, command_id)

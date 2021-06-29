@@ -704,6 +704,7 @@ class HostUpdateStateSummary(messages.Message):
   errored = messages.IntegerField(8)
   succeeded = messages.IntegerField(9)
   update_timestamp = message_types.DateTimeField(10)
+  target_version = messages.StringField(11)
 
 
 class ClusterInfo(messages.Message):

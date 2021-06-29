@@ -180,7 +180,7 @@ def _UpdateHostWithHostChangedEvent(event):
 
 @ndb.transactional()
 def _UpdateHostUpdateStateWithEvent(
-    event, target_version=harness_image_metadata_syncer.UNKNOW_VERSION):
+    event, target_version=common.UNKNOWN_TEST_HARNESS_VERSION):
   """Update the host with a host update state change event.
 
   Args:

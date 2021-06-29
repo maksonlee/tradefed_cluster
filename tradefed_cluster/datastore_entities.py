@@ -911,6 +911,8 @@ class HostUpdateStateSummary(ndb.Model):
     errored: number of host with HostUpdateState.ERRORED .
     succeeded: number of host with HostUpdateState.SUCCEEDED .
     summary_update_timestamp: time when the summary is calculated.
+    target_version: the test harness version number that the current update
+      task is running with.
   """
   total = ndb.IntegerProperty(default=0)
   unknown = ndb.IntegerProperty(default=0)
@@ -922,8 +924,23 @@ class HostUpdateStateSummary(ndb.Model):
   errored = ndb.IntegerProperty(default=0)
   succeeded = ndb.IntegerProperty(default=0)
   summary_update_timestamp = ndb.DateTimeProperty(auto_now=True)
+  target_version = ndb.StringProperty(
+      default=common.UNKNOWN_TEST_HARNESS_VERSION)
 
   def __add__(self, other):
+
+    if (self.target_version == common.UNKNOWN_TEST_HARNESS_VERSION and
+        other.target_version == common.UNKNOWN_TEST_HARNESS_VERSION):
+      target_version = common.UNKNOWN_TEST_HARNESS_VERSION
+    elif self.target_version == common.UNKNOWN_TEST_HARNESS_VERSION:
+      target_version = other.target_version
+    elif other.target_version == common.UNKNOWN_TEST_HARNESS_VERSION:
+      target_version = self.target_version
+    elif self.target_version != other.target_version:
+      target_version = common.UNKNOWN_TEST_HARNESS_VERSION
+    else:
+      target_version = self.target_version
+
     return HostUpdateStateSummary(
         total=self.total+other.total,
         unknown=self.unknown+other.unknown,
@@ -933,7 +950,8 @@ class HostUpdateStateSummary(ndb.Model):
         restarting=self.restarting+other.restarting,
         timed_out=self.timed_out+other.timed_out,
         errored=self.errored+other.errored,
-        succeeded=self.succeeded+other.succeeded)
+        succeeded=self.succeeded+other.succeeded,
+        target_version=target_version)
 
 
 @MessageConverter(HostUpdateStateSummary)
@@ -953,7 +971,7 @@ def HostUpdateStateSummaryToMessage(host_update_state_summary_entity):
       succeeded=host_update_state_summary_entity.succeeded,
       update_timestamp=(
           host_update_state_summary_entity.summary_update_timestamp),
-      )
+      target_version=host_update_state_summary_entity.target_version)
 
 
 class ClusterInfo(ndb.Expando):
@@ -969,6 +987,8 @@ class ClusterInfo(ndb.Expando):
     device_count_timestamp: time when the device counts were calculated
     host_update_state_summary: host update states summary under the cluster
     host_count_by_harness_version: count hosts by test harness version
+    host_update_state_summaries_by_version: host update state summary by
+      versions.
   """
   cluster = ndb.StringProperty()
   lab_name = ndb.StringProperty()
@@ -980,6 +1000,8 @@ class ClusterInfo(ndb.Expando):
   device_count_timestamp = ndb.DateTimeProperty()
   host_update_state_summary = ndb.StructuredProperty(HostUpdateStateSummary)
   host_count_by_harness_version = ndb.JsonProperty()
+  host_update_state_summaries_by_version = ndb.LocalStructuredProperty(
+      HostUpdateStateSummary, repeated=True)
 
 
 class DeviceCountSummary(ndb.Model):
@@ -1399,11 +1421,15 @@ class LabInfo(ndb.Expando):
     timestamp: the timestamp the entity gets updated.
     host_update_state_summary: host update states summary under the cluster
     host_count_by_harness_version: count hosts by test harness version
+    host_update_state_summaries_by_version: host update state summary by
+      versions.
   """
   lab_name = ndb.StringProperty()
   update_timestamp = ndb.DateTimeProperty(auto_now_add=True)
   host_update_state_summary = ndb.StructuredProperty(HostUpdateStateSummary)
   host_count_by_harness_version = ndb.JsonProperty()
+  host_update_state_summaries_by_version = ndb.LocalStructuredProperty(
+      HostUpdateStateSummary, repeated=True)
 
 
 @MessageConverter(LabInfo)

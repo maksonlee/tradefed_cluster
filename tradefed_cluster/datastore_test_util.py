@@ -30,7 +30,8 @@ def CreateCluster(cluster,
                   allocated_devices=0,
                   device_count_timestamp=None,
                   host_update_state_summary=None,
-                  host_count_by_harness_version=None):
+                  host_count_by_harness_version=None,
+                  host_update_state_summaries_by_version=None):
   """Create a cluster."""
   cluster = datastore_entities.ClusterInfo(
       id=cluster,
@@ -43,7 +44,9 @@ def CreateCluster(cluster,
       device_count_timestamp=device_count_timestamp,
       host_update_state_summary=(host_update_state_summary or
                                  datastore_entities.HostUpdateStateSummary()),
-      host_count_by_harness_version=(host_count_by_harness_version or {}))
+      host_count_by_harness_version=(host_count_by_harness_version or {}),
+      host_update_state_summaries_by_version=(
+          host_update_state_summaries_by_version or []))
   cluster.put()
   return cluster
 
@@ -264,7 +267,7 @@ def CreateTestHarnessImageMetadata(repo_name='test_repo',
 
 def CreateHostUpdateState(
     hostname, state=None, update_timestamp=None, update_task_id=None,
-    display_message=None):
+    display_message=None, target_version=None):
   """Create a HostUpdateState."""
   host_update_state = datastore_entities.HostUpdateState(
       id=hostname,
@@ -272,7 +275,8 @@ def CreateHostUpdateState(
       state=state,
       update_timestamp=update_timestamp,
       update_task_id=update_task_id,
-      display_message=display_message)
+      display_message=display_message,
+      target_version=target_version)
   host_update_state.put()
   return host_update_state
 

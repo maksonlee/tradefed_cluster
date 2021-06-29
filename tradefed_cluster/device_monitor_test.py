@@ -186,6 +186,91 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(1, cluster.host_update_state_summary.succeeded)
     self.assertEqual(1, cluster.host_update_state_summary.unknown)
 
+  def testUpdateClusters_calculateHostUpdateStateSummaryPerVersion(self):
+    cluster_name = 'cluster1'
+    host1 = datastore_test_util.CreateHost(
+        cluster_name, 'host1.mtv', lab_name='alab')
+    host2 = datastore_test_util.CreateHost(
+        cluster_name, 'host2.mtv', lab_name='alab')
+    host3 = datastore_test_util.CreateHost(
+        cluster_name, 'host3.mtv', lab_name='alab')
+    host4 = datastore_test_util.CreateHost(
+        cluster_name, 'host4.mtv', lab_name='alab')
+    host5 = datastore_test_util.CreateHost(
+        cluster_name, 'host5.mtv', lab_name='alab')
+    host6 = datastore_test_util.CreateHost(
+        cluster_name, 'host6.mtv', lab_name='alab')
+    host7 = datastore_test_util.CreateHost(
+        cluster_name, 'host7.mtv', lab_name='alab')
+    host8 = datastore_test_util.CreateHost(
+        cluster_name, 'host8.mtv', lab_name='alab')
+    host9 = datastore_test_util.CreateHost(
+        cluster_name, 'host9.mtv', lab_name='alab')
+    datastore_test_util.CreateHostUpdateState(
+        host1.hostname,
+        state=api_messages.HostUpdateState.SYNCING,
+        target_version='v2')
+    datastore_test_util.CreateHostUpdateState(
+        host2.hostname,
+        state=api_messages.HostUpdateState.SYNCING,
+        target_version='v2')
+    datastore_test_util.CreateHostUpdateState(
+        host3.hostname,
+        state=api_messages.HostUpdateState.RESTARTING,
+        target_version='v2')
+    datastore_test_util.CreateHostUpdateState(
+        host4.hostname,
+        state=api_messages.HostUpdateState.ERRORED,
+        target_version='v2')
+    datastore_test_util.CreateHostUpdateState(
+        host5.hostname,
+        state=api_messages.HostUpdateState.PENDING,
+        target_version='v2')
+    datastore_test_util.CreateHostUpdateState(
+        host6.hostname,
+        state=api_messages.HostUpdateState.TIMED_OUT,
+        target_version='v2')
+    datastore_test_util.CreateHostUpdateState(
+        host7.hostname,
+        state=api_messages.HostUpdateState.SUCCEEDED,
+        target_version='v1')
+    datastore_test_util.CreateHostUpdateState(
+        host8.hostname,
+        state=api_messages.HostUpdateState.SHUTTING_DOWN,
+        target_version='v2')
+    datastore_test_util.CreateHostUpdateState(
+        host9.hostname,
+        state=api_messages.HostUpdateState.UNKNOWN,
+        target_version='v2')
+
+    device_monitor._UpdateClusters(
+        [host1, host2, host3, host4, host5, host6, host7, host8, host9])
+
+    cluster = datastore_entities.ClusterInfo.get_by_id(cluster_name)
+    version_to_summaries = {
+        summary.target_version: summary
+        for summary in cluster.host_update_state_summaries_by_version
+    }
+    self.assertEqual(1, version_to_summaries['v1'].total)
+    self.assertEqual(0, version_to_summaries['v1'].pending)
+    self.assertEqual(0, version_to_summaries['v1'].syncing)
+    self.assertEqual(0, version_to_summaries['v1'].shutting_down)
+    self.assertEqual(0, version_to_summaries['v1'].restarting)
+    self.assertEqual(0, version_to_summaries['v1'].errored)
+    self.assertEqual(0, version_to_summaries['v1'].timed_out)
+    self.assertEqual(1, version_to_summaries['v1'].succeeded)
+    self.assertEqual(0, version_to_summaries['v1'].unknown)
+
+    self.assertEqual(8, version_to_summaries['v2'].total)
+    self.assertEqual(1, version_to_summaries['v2'].pending)
+    self.assertEqual(2, version_to_summaries['v2'].syncing)
+    self.assertEqual(1, version_to_summaries['v2'].shutting_down)
+    self.assertEqual(1, version_to_summaries['v2'].restarting)
+    self.assertEqual(1, version_to_summaries['v2'].errored)
+    self.assertEqual(1, version_to_summaries['v2'].timed_out)
+    self.assertEqual(0, version_to_summaries['v2'].succeeded)
+    self.assertEqual(1, version_to_summaries['v2'].unknown)
+
   def testUpdateClusters_calculateHostCountByHarnessVersion(self):
     cluster_name = 'cluster1'
     host1 = datastore_test_util.CreateHost(
@@ -335,6 +420,92 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(2, lab_info.host_update_state_summary.timed_out)
     self.assertEqual(1, lab_info.host_update_state_summary.succeeded)
     self.assertEqual(2, lab_info.host_update_state_summary.unknown)
+
+  def testUpdateLabs_calculateUpdateStateSummaryPerVersionFromClusters(self):
+    cluster1 = datastore_test_util.CreateCluster(
+        'cluster1',
+        lab_name='alab',
+        host_update_state_summaries_by_version=[
+            datastore_entities.HostUpdateStateSummary(
+                total=17,
+                pending=1,
+                syncing=2,
+                shutting_down=3,
+                restarting=4,
+                errored=3,
+                timed_out=1,
+                succeeded=3,
+                target_version='v1'),
+            datastore_entities.HostUpdateStateSummary(
+                total=6,
+                pending=1,
+                syncing=1,
+                shutting_down=1,
+                restarting=1,
+                errored=2,
+                target_version='v2'),
+        ])
+    cluster2 = datastore_test_util.CreateCluster(
+        'cluster2',
+        lab_name='alab',
+        host_update_state_summaries_by_version=[
+            datastore_entities.HostUpdateStateSummary(
+                total=11,
+                pending=2,
+                syncing=2,
+                shutting_down=2,
+                restarting=2,
+                errored=0,
+                timed_out=2,
+                succeeded=1,
+                target_version='v1'),
+            datastore_entities.HostUpdateStateSummary(
+                total=7,
+                pending=2,
+                syncing=0,
+                shutting_down=2,
+                restarting=1,
+                errored=2,
+                target_version='v3'),
+        ])
+
+    device_monitor._UpdateLabs([cluster1, cluster2])
+
+    lab_info = datastore_entities.LabInfo.get_by_id('alab')
+    version_to_summaries = {
+        summary.target_version: summary
+        for summary in lab_info.host_update_state_summaries_by_version
+    }
+
+    self.assertEqual(28, version_to_summaries['v1'].total)
+    self.assertEqual(3, version_to_summaries['v1'].pending)
+    self.assertEqual(4, version_to_summaries['v1'].syncing)
+    self.assertEqual(5, version_to_summaries['v1'].shutting_down)
+    self.assertEqual(6, version_to_summaries['v1'].restarting)
+    self.assertEqual(3, version_to_summaries['v1'].errored)
+    self.assertEqual(3, version_to_summaries['v1'].timed_out)
+    self.assertEqual(4, version_to_summaries['v1'].succeeded)
+    self.assertEqual(0, version_to_summaries['v1'].unknown)
+
+    self.assertEqual(6, version_to_summaries['v2'].total)
+    self.assertEqual(1, version_to_summaries['v2'].pending)
+    self.assertEqual(1, version_to_summaries['v2'].syncing)
+    self.assertEqual(1, version_to_summaries['v2'].shutting_down)
+    self.assertEqual(1, version_to_summaries['v2'].restarting)
+    self.assertEqual(2, version_to_summaries['v2'].errored)
+    self.assertEqual(0, version_to_summaries['v2'].timed_out)
+    self.assertEqual(0, version_to_summaries['v2'].succeeded)
+    self.assertEqual(0, version_to_summaries['v2'].unknown)
+
+    self.assertEqual(7, version_to_summaries['v3'].total)
+    self.assertEqual(2, version_to_summaries['v3'].pending)
+    self.assertEqual(0, version_to_summaries['v3'].syncing)
+    self.assertEqual(2, version_to_summaries['v3'].shutting_down)
+    self.assertEqual(1, version_to_summaries['v3'].restarting)
+    self.assertEqual(2, version_to_summaries['v3'].errored)
+    self.assertEqual(0, version_to_summaries['v3'].timed_out)
+    self.assertEqual(0, version_to_summaries['v3'].succeeded)
+    self.assertEqual(0, version_to_summaries['v3'].unknown)
 
   def testUpdateLabs_calculateHostCountByHarnessVersion(self):
     host_count_by_harness_version_1 = {

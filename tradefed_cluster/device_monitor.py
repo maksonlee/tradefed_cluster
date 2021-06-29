@@ -113,6 +113,7 @@ def _UpdateClusters(hosts):
     cluster_entity.allocated_devices = 0
     cluster_entity.device_count_timestamp = _Now()
     host_update_states = []
+    host_update_states_by_target_version = collections.defaultdict(list)
     host_count_by_harness_version = collections.Counter()
     for host in hosts:
       cluster_entity.total_devices += host.total_devices or 0
@@ -122,6 +123,8 @@ def _UpdateClusters(hosts):
       host_update_state = update_states_by_hostname.get(host.hostname)
       if host_update_state:
         host_update_states.append(host_update_state)
+        host_update_states_by_target_version[
+            host_update_state.target_version].append(host_update_state)
       if host.test_harness_version:
         host_count_by_harness_version[host.test_harness_version] += 1
       else:
@@ -129,23 +132,30 @@ def _UpdateClusters(hosts):
     cluster_entity.host_count_by_harness_version = host_count_by_harness_version
     cluster_entity.host_update_state_summary = _CreateHostUpdateStateSummary(
         host_update_states)
+    for version, states in host_update_states_by_target_version.items():
+      cluster_entity.host_update_state_summaries_by_version.append(
+          _CreateHostUpdateStateSummary(states, target_version=version))
     clusters_to_upsert.append(cluster_entity)
   ndb.put_multi(clusters_to_upsert)
   logging.debug('Updated clusters.')
   return clusters_to_upsert
 
 
-def _CreateHostUpdateStateSummary(host_update_states):
+def _CreateHostUpdateStateSummary(host_update_states, target_version=None):
   """Create host update state summary entity.
 
   Args:
     host_update_states: list of HostUpdateState entities.
+    target_version: optional string, the test harness version the hosts are
+      running updates to.
 
   Returns:
     a HostUpdateStateSummary datastore entity.
   """
   summary = datastore_entities.HostUpdateStateSummary(
       total=len(host_update_states))
+  if target_version:
+    summary.target_version = target_version
   for host_update_state in host_update_states:
     if not host_update_state:
       continue
@@ -191,10 +201,17 @@ def _UpdateLabs(clusters):
   labs = []
   for lab_name, cluster_infos in clusters_by_lab_names.items():
     lab_host_update_state_summary = datastore_entities.HostUpdateStateSummary()
+    lab_host_update_state_summaries_by_version = collections.defaultdict(
+        datastore_entities.HostUpdateStateSummary)
     host_count_by_harness_version = collections.Counter()
+
     for cluster_info in cluster_infos:
       if cluster_info and cluster_info.host_update_state_summary:
         lab_host_update_state_summary += cluster_info.host_update_state_summary
+      if cluster_info and cluster_info.host_update_state_summaries_by_version:
+        for summary in cluster_info.host_update_state_summaries_by_version:
+          lab_host_update_state_summaries_by_version[
+              summary.target_version] += summary
       if cluster_info and cluster_info.host_count_by_harness_version:
         host_count_by_harness_version += collections.Counter(
             cluster_info.host_count_by_harness_version)
@@ -208,6 +225,8 @@ def _UpdateLabs(clusters):
     lab.populate(
         host_update_state_summary=lab_host_update_state_summary,
         host_count_by_harness_version=host_count_by_harness_version,
+        host_update_state_summaries_by_version=list(
+            lab_host_update_state_summaries_by_version.values()),
         update_timestamp=_Now())
     labs.append(lab)
 

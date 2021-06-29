@@ -184,4 +184,8 @@ class ClusterApi(remote.Service):
         host_update_state_summary=datastore_entities.ToMessage(
             cluster.host_update_state_summary),
         host_count_by_harness_version=api_messages.MapToKeyValuePairMessages(
-            cluster.host_count_by_harness_version))
+            cluster.host_count_by_harness_version),
+        host_update_state_summaries_by_version=[
+            datastore_entities.ToMessage(summary) for summary
+            in cluster.host_update_state_summaries_by_version
+        ])

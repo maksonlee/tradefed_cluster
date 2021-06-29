@@ -35,7 +35,8 @@ class ClusterApiTest(api_test.ApiTest):
     self.host_update_state_summary_0 = (
         datastore_entities.HostUpdateStateSummary(
             total=2,
-            succeeded=2))
+            succeeded=2,
+            target_version='v1'))
     host_count_by_harness_version = {
         'version1': 72,
         'version2': 20,
@@ -48,6 +49,8 @@ class ClusterApiTest(api_test.ApiTest):
         allocated_devices=7,
         device_count_timestamp=self.TIMESTAMP,
         host_update_state_summary=self.host_update_state_summary_0,
+        host_update_state_summaries_by_version=[
+            self.host_update_state_summary_0],
         host_count_by_harness_version=host_count_by_harness_version)
     self.cluster_1 = datastore_test_util.CreateCluster(
         cluster='paid',
@@ -261,6 +264,20 @@ class ClusterApiTest(api_test.ApiTest):
     self.assertEqual(0, host_update_state_summary.errored)
     self.assertEqual(0, host_update_state_summary.unknown)
     self.assertIsNotNone(host_update_state_summary.update_timestamp)
+
+  def testGetCluster_withHostUpdateStateSummaryPerVersion(self):
+    """Tests GetCluster where the cluster has host update state summary."""
+    api_request = {'cluster_id': 'free'}
+    api_response = self.testapp.post_json('/_ah/api/ClusterApi.GetCluster',
+                                          api_request)
+    cluster_info = protojson.decode_message(api_messages.ClusterInfo,
+                                            api_response.body)
+    summaries = cluster_info.host_update_state_summaries_by_version
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual('free', cluster_info.cluster_id)
+    self.assertEqual(2, summaries[0].total)
+    self.assertEqual(2, summaries[0].succeeded)
+    self.assertEqual('v1', summaries[0].target_version)
 
   def testGetCluster_withHostCountByHarnessVersion(self):
     """Tests GetCluster where the cluster has host count by harness version."""

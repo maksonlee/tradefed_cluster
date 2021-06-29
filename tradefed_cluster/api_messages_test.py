@@ -539,7 +539,10 @@ class ApiMessagesTest(api_test.ApiTest):
         lab_name='alab',
         update_timestamp=TIMESTAMP,
         host_update_state_summary=datastore_entities.HostUpdateStateSummary(
-            total=2))
+            total=2),
+        host_update_state_summaries_by_version=[
+            datastore_entities.HostUpdateStateSummary(
+                total=2, target_version='v1')])
     lab_config = datastore_entities.LabConfig(
         id='alab',
         owners=['user1', 'user2', 'user3'])
@@ -549,6 +552,12 @@ class ApiMessagesTest(api_test.ApiTest):
     self.assertEqual(lab_info.update_timestamp, msg.update_timestamp)
     self.assertEqual(lab_info.host_update_state_summary.total,
                      msg.host_update_state_summary.total)
+    self.assertEqual(
+        lab_info.host_update_state_summaries_by_version[0].total,
+        msg.host_update_state_summaries_by_version[0].total)
+    self.assertEqual(
+        lab_info.host_update_state_summaries_by_version[0].target_version,
+        msg.host_update_state_summaries_by_version[0].target_version)
 
   def testMapToKeyMultiValuePairMessages(self):
     d = collections.OrderedDict([

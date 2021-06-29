@@ -1442,8 +1442,11 @@ def LabInfoToMessage(lab_info_entity, lab_config_entity=None):
       host_update_state_summary=ToMessage(
           lab_info_entity.host_update_state_summary),
       host_count_by_harness_version=api_messages.MapToKeyValuePairMessages(
-          lab_info_entity.host_count_by_harness_version)
-      )
+          lab_info_entity.host_count_by_harness_version),
+      host_update_state_summaries_by_version=[
+          ToMessage(summary) for summary
+          in lab_info_entity.host_update_state_summaries_by_version
+      ])
 
 
 class SnapshotJobResult(ndb.Model):

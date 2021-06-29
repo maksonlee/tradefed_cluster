@@ -426,6 +426,22 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual('RUNNING', host_collection.host_infos[0].host_state)
     self.assertEqual('KILLING', host_collection.host_infos[1].host_state)
 
+  def testListHosts_filterByHostUpdateStates(self):
+    """Tests ListHosts returns hosts the under host update states."""
+    datastore_test_util.CreateHostUpdateState(
+        'host_0', state=api_messages.HostUpdateState.SUCCEEDED)
+    datastore_test_util.CreateHostUpdateState(
+        'host_2', state=api_messages.HostUpdateState.ERRORED)
+    api_request = {'host_update_states': ['SUCCEEDED', 'ERRORED']}
+    api_response = self.testapp.post_json('/_ah/api/ClusterHostApi.ListHosts',
+                                          api_request)
+    host_collection = protojson.decode_message(api_messages.HostInfoCollection,
+                                               api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(2, len(host_collection.host_infos))
+    self.assertEqual('SUCCEEDED', host_collection.host_infos[0].update_state)
+    self.assertEqual('ERRORED', host_collection.host_infos[1].update_state)
+
   def testListHosts_filterByExtraInfo(self):
     """Tests ListHosts returns hosts the under extra info."""
     extra_info_0 = {}

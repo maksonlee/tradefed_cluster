@@ -82,7 +82,9 @@ class ClusterHostApi(remote.Service):
       timestamp=message_types.DateTimeField(16),
       recovery_states=messages.StringField(17, repeated=True),
       # TODO: Please use test_harnesses, this field is deprecated.
-      test_harness=messages.StringField(18, repeated=True))
+      test_harness=messages.StringField(18, repeated=True),
+      host_update_states=messages.EnumField(
+          api_messages.HostUpdateState, 19, repeated=True))
 
   @endpoints.method(
       HOST_LIST_RESOURCE,
@@ -147,6 +149,15 @@ class ClusterHostApi(remote.Service):
           datastore_entities.HostInfo.recovery_state
           == request.recovery_states[0])
 
+    hostnames_with_requested_update_states = set()
+    if request.host_update_states:
+      update_state_query = datastore_entities.HostUpdateState.query().filter(
+          datastore_entities.HostUpdateState.state.IN(
+              request.host_update_states))
+      hostnames_with_requested_update_states = set(
+          update_state.hostname for update_state in update_state_query.fetch(
+              projection=[datastore_entities.HostUpdateState.hostname]))
+
     def _PostFilter(host):
       if request.host_groups and host.host_group not in request.host_groups:
         return
@@ -155,8 +166,8 @@ class ClusterHostApi(remote.Service):
       if (test_harnesses and
           host.test_harness not in test_harnesses):
         return
-      if request.test_harness_versions and \
-          host.test_harness_version not in request.test_harness_versions:
+      if (request.test_harness_versions and
+          host.test_harness_version not in request.test_harness_versions):
         return
       if request.pools and not set(host.pools).intersection(set(request.pools)):
         return
@@ -170,6 +181,9 @@ class ClusterHostApi(remote.Service):
           return
         return _CheckTimestamp(
             host.timestamp, request.timestamp_operator, request.timestamp)
+      if request.host_update_states:
+        if host.hostname not in hostnames_with_requested_update_states:
+          return
       return True
 
     if request.timestamp:

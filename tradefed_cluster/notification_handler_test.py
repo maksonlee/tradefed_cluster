@@ -23,6 +23,7 @@ import mock
 
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
+from tradefed_cluster import datastore_test_util
 from tradefed_cluster import notification_handler
 from tradefed_cluster import request_manager
 from tradefed_cluster import testbed_dependent_test
@@ -37,11 +38,15 @@ class NotificationHandlerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(0, len(tasks))
 
   def testDoNotProcessRequest(self):
-    request = datastore_entities.Request(
-        id="1",
-        namespace=common.NAMESPACE,
+    request = datastore_test_util.CreateRequest(
+        request_id="1",
         user="user",
-        command_line="command_line",
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line="command_line",
+                cluster="cluster",
+                run_target="run_target")
+        ],
         state=common.RequestState.UNKNOWN,
         notify_state_change=False)
     request.put()
@@ -50,11 +55,15 @@ class NotificationHandlerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(0, len(tasks))
 
   def testProcessDirtyRequest(self):
-    request = datastore_entities.Request(
-        id="1",
-        namespace=common.NAMESPACE,
+    request = datastore_test_util.CreateRequest(
+        request_id="1",
         user="user",
-        command_line="command_line",
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line="command_line",
+                cluster="cluster",
+                run_target="run_target")
+        ],
         state=common.RequestState.UNKNOWN,
         notify_state_change=True)
     request.put()
@@ -63,11 +72,15 @@ class NotificationHandlerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(1, len(tasks))
 
   def testNotifyNoDirtyRequest(self):
-    request = datastore_entities.Request(
-        id="1",
-        namespace=common.NAMESPACE,
+    request = datastore_test_util.CreateRequest(
+        request_id="1",
         user="user",
-        command_line="command_line",
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line="command_line",
+                cluster="cluster",
+                run_target="run_target")
+        ],
         state=common.RequestState.UNKNOWN,
         notify_state_change=False)
     request.put()
@@ -77,11 +90,15 @@ class NotificationHandlerTest(testbed_dependent_test.TestbedDependentTest):
 
   @mock.patch.object(task_scheduler, "AddTask")
   def testNotifyNoDirtyRequest_force(self, mock_add_task):
-    request = datastore_entities.Request(
-        id="1",
-        namespace=common.NAMESPACE,
+    request = datastore_test_util.CreateRequest(
+        request_id="1",
         user="user",
-        command_line="command_line",
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line="command_line",
+                cluster="cluster",
+                run_target="run_target")
+        ],
         state=common.RequestState.UNKNOWN,
         notify_state_change=False)
     request.put()
@@ -96,11 +113,15 @@ class NotificationHandlerTest(testbed_dependent_test.TestbedDependentTest):
 
   @mock.patch.object(task_scheduler, "AddTask")
   def testNotifyDirtyRequest(self, mock_add_task):
-    request = datastore_entities.Request(
-        id="1",
-        namespace=common.NAMESPACE,
+    request = datastore_test_util.CreateRequest(
+        request_id="1",
         user="user",
-        command_line="command_line",
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line="command_line",
+                cluster="cluster",
+                run_target="run_target")
+        ],
         state=common.RequestState.UNKNOWN,
         notify_state_change=True)
     request.put()
@@ -118,11 +139,15 @@ class NotificationHandlerTest(testbed_dependent_test.TestbedDependentTest):
 
   @mock.patch.object(task_scheduler, "AddTask")
   def testNotifyDirtyRequest_Error(self, add):
-    request = datastore_entities.Request(
-        id="1",
-        namespace=common.NAMESPACE,
+    request = datastore_test_util.CreateRequest(
+        request_id="1",
         user="user",
-        command_line="command_line",
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line="command_line",
+                cluster="cluster",
+                run_target="run_target")
+        ],
         state=common.RequestState.UNKNOWN,
         notify_state_change=True)
     request.put()

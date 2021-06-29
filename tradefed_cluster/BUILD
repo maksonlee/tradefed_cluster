@@ -350,8 +350,25 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":api_test_lib",
+        ":datastore_test_util_lib",
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
+    ],
+)
+
+pytype_strict_library(
+    name = "command_attempt_monitor_lib",
+    srcs = [
+        "command_attempt_monitor.py",
+    ],
+    deps = [
+        ":command_event_lib",
+        ":command_lib",
+        ":commander_lib",
+        ":common_lib",
+        ":datastore_entities_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
+        third_party("flask"),
     ],
 )
 
@@ -363,8 +380,8 @@ py_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
+        ":command_attempt_monitor_lib",
         ":command_event_test_util",
-        ":command_lib",
         ":testbed_dependent_test_lib",
         third_party("hamcrest"),
         third_party("mock"),
@@ -437,6 +454,7 @@ pytype_strict_library(
     deps = [
         ":command_event_lib",
         ":command_lib",
+        ":commander_lib",
         ":common_lib",
         ":metric_lib",
         ":request_sync_monitor_lib",
@@ -509,7 +527,6 @@ pytype_strict_library(
 pytype_strict_library(
     name = "command_lib",
     srcs = [
-        "command_attempt_monitor.py",
         "command_file.py",
         "command_manager.py",
         "command_monitor.py",
@@ -547,6 +564,7 @@ py_test(
         ":command_task_store_lib",
         ":common_lib",
         ":datastore_entities_lib",
+        ":datastore_test_util_lib",
         ":env_config_lib",
         ":metric_lib",
         ":request_manager_lib",
@@ -710,6 +728,9 @@ pytype_strict_library(
     deps = [
         ":command_lib",
         ":common_lib",
+        ":datastore_entities_lib",
+        ":env_config_lib",
+        ":metric_lib",
         ":request_manager_lib",
         "//tradefed_cluster/util:command_util",
         third_party("flask"),
@@ -725,8 +746,11 @@ py_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
+        ":command_event_test_util",
         ":commander_lib",
+        ":datastore_test_util_lib",
         ":testbed_dependent_test_lib",
+        third_party("hamcrest"),
         third_party("mock"),
         third_party("webtest"),
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
@@ -832,6 +856,7 @@ pytype_strict_library(
     ],
     deps = [
         ":api_common_lib",
+        ":command_attempt_monitor_lib",
         ":command_lib",
         ":common_lib",
         ":datastore_entities_lib",
@@ -867,6 +892,7 @@ pytype_strict_library(
         ":api_messages_lib",
         ":common_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
+        "//tradefed_cluster/util:ndb_util_lib",
         third_party("six"),
     ],
 )
@@ -1375,6 +1401,7 @@ py_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
+        ":datastore_test_util_lib",
         ":notification_handler_lib",
         ":testbed_dependent_test_lib",
         third_party("mock"),
@@ -1407,6 +1434,7 @@ py_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
+        ":datastore_test_util_lib",
         ":env_config_lib",
         ":notifier_lib",
         ":testbed_dependent_test_lib",
@@ -1543,6 +1571,7 @@ py_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
+        ":datastore_test_util_lib",
         ":env_config_lib",
         ":request_manager_lib",
         ":testbed_dependent_test_lib",
@@ -1561,6 +1590,7 @@ pytype_strict_library(
     deps = [
         ":command_event_lib",
         ":command_lib",
+        ":commander_lib",
         ":common_lib",
         ":datastore_entities_lib",
         ":request_manager_lib",
@@ -1579,7 +1609,7 @@ py_test(
     python_version = "PY3",
     deps = [
         ":command_event_test_util",
-        ":request_manager_lib",
+        ":datastore_test_util_lib",
         ":request_sync_monitor_lib",
         ":testbed_dependent_test_lib",
         third_party("mock"),
@@ -1623,6 +1653,7 @@ pytype_strict_library(
     ],
     deps = [
         ":api_lib",
+        ":command_attempt_monitor_lib",
         ":command_event_handler_lib",
         ":command_lib",
         ":commander_lib",

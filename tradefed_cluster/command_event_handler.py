@@ -24,6 +24,7 @@ import six
 
 from tradefed_cluster import command_event
 from tradefed_cluster import command_manager
+from tradefed_cluster import commander
 from tradefed_cluster import common
 from tradefed_cluster import metric
 from tradefed_cluster import request_sync_monitor
@@ -134,7 +135,7 @@ def ProcessCommandEvent(event):
     # We keep the legacy processing as some use cases depend on having command
     # attempt data updated even after the request is final:
     # Eg: measuring fuzzing time
-    command_manager.ProcessCommandEvent(event)
+    commander.ProcessCommandEvent(event)
 
 
 # The below handler is served in frontend module.

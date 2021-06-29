@@ -374,7 +374,7 @@ def EnsureLeasable(command):
     raise CommandTaskNotFoundError("Command %s is not leasable" % command)
 
 
-def _UpdateState(
+def UpdateState(
     request_id, command_id, state=None, force=False, cancel_reason=None,
     attempt_state=None, task_id=None):
   """Updates state of the command based on state of the command attempts.
@@ -677,59 +677,6 @@ def _NotifyAttemptState(attempt_entity, old_state, event_time):
       queue_name=common.OBJECT_EVENT_QUEUE, payload=payload)
 
 
-def ProcessCommandEvent(event):
-  """Updates state of a command and coordinate command tasks.
-
-  Args:
-    event: a CommandEvent
-  """
-  command = GetCommand(event.request_id, event.command_id)
-  if not command:
-    logging.warning(
-        "unknown command %s %s; ignored", event.request_id, event.command_id)
-    return
-
-  is_updated = UpdateCommandAttempt(event)
-
-  # No need to coordinate if the event is old but continue if it is final.
-  # We continue if it is final as datastore update to the command and the
-  # attempt aren't done in the same transaction, so a failed command update
-  # should be retried in that event.
-  if not is_updated and not common.IsFinalCommandState(event.attempt_state):
-    logging.debug("Command attempt is not updated.")
-    return
-
-  if common.IsFinalCommandState(event.attempt_state):
-    metric.RecordCommandAttemptMetric(
-        cluster_id=command.cluster,
-        run_target=command.run_target,
-        hostname=event.hostname,
-        state=event.attempt_state.name)
-
-  # Update command.
-  command = _UpdateState(
-      event.request_id,
-      event.command_id,
-      attempt_state=event.attempt_state,
-      task_id=event.task_id)
-
-  if common.IsFinalCommandState(command.state):
-    # Deschedule command since the state indicates that it is not supposed
-    # to run anymore.
-    logging.debug("Command %r is finalized, delete all its tasks.",
-                  command.key)
-    DeleteTasks(command)
-
-  # Update AnTS.
-  env_config.CONFIG.plugin.OnProcessCommandEvent(
-      GetCommand(event.request_id, event.command_id),
-      GetCommandAttempt(event.request_id, event.command_id, event.attempt_id),
-      event_data=event.data)
-
-  # Update request.
-  request_manager.EvaluateState(event.request_id)
-
-
 def ScheduleTasks(commands):
   """Schedules command tasks to run.
 
@@ -762,8 +709,11 @@ def _DoScheduleTasks(commands):
         command.priority < 0 or MAX_PRIORITY < command.priority):
       raise ValueError("priority is out of range: %d" % command.priority)
     _ScheduleTasksToCommandTaskStore(command)
-    _UpdateState(command.request_id, command.key.id(),
-                 state=common.CommandState.QUEUED, force=True)
+    UpdateState(
+        command.request_id,
+        command.key.id(),
+        state=common.CommandState.QUEUED,
+        force=True)
   return request_ids
 
 
@@ -824,18 +774,15 @@ def _GetCommandTaskIds(command):
   return ["%s-%s-%s" % (request_id, command_id, i) for i in range(task_count)]
 
 
-def CreateCommands(request_id,
-                   run_target,
-                   run_count,
-                   cluster,
-                   request_plugin_data=None,
-                   state=None,
-                   priority=None,
-                   queue_timeout_seconds=None,
-                   request_type=None,
-                   command_lines=None,
-                   shard_count=None,
-                   shard_indexes=None):
+def CreateCommands(
+    request_id,
+    command_infos,
+    shard_indexes,
+    request_plugin_data=None,
+    state=None,
+    priority=None,
+    queue_timeout_seconds=None,
+    request_type=None):
   """Creates test commands for a request.
 
   Since IDs cannot be allocated within a transaction, this function acts as a
@@ -846,23 +793,18 @@ def CreateCommands(request_id,
 
   Args:
     request_id: a request ID, str
-    run_target: a run target device.
-    run_count: a run count.
-    cluster: the id of the cluster on which to run the following command.
+    command_infos: a list of datastore_entity.CommandInfo objects.
+    shard_indexes: the commands' corresponding shard index.
     request_plugin_data: a map of plugin data from request.
     state: the state of the command. Should only be used in tests.
     priority: a command priority.
     queue_timeout_seconds: a command timeout in seconds.
     request_type: a request type.
-    command_lines: a list of command line string,
-      all command lines are for the same request.
-    shard_count: the request's shard count
-    shard_indexes: the commands' corresponding shard index.
   Returns:
     a list of command entities, read only
   """
   request_id = str(request_id)
-  if not command_lines:
+  if not command_infos:
     return []
   request_key = ndb.Key(
       datastore_entities.Request, request_id,
@@ -870,72 +812,61 @@ def CreateCommands(request_id,
   command_ids = [
       command_id.id()
       for command_id in datastore_entities.Command.allocate_ids(
-          size=len(command_lines), parent=request_key)
+          size=len(command_infos), parent=request_key)
   ]
 
   command_plugin_data_map = {}
-  command_infos = []
-  for cid, cl, i in zip(command_ids, command_lines, shard_indexes):
-    command_infos.append(
+  plugin_command_infos = []
+  for cid, info, shard_index in zip(command_ids, command_infos, shard_indexes):
+    plugin_command_infos.append(
         plugin_base.CommandInfo(
             command_id=cid,
-            command_line=cl,
-            run_count=run_count,
-            shard_count=shard_count,
-            shard_index=i))
+            command_line=info.command_line,
+            run_count=info.run_count,
+            shard_count=info.shard_count,
+            shard_index=shard_index))
 
   env_config.CONFIG.plugin.OnCreateCommands(
-      command_infos,
+      plugin_command_infos,
       request_plugin_data,
       command_plugin_data_map)
 
-  return _DoCreateCommands(request_id,
-                           run_target,
-                           run_count,
-                           cluster,
-                           command_plugin_data_map=command_plugin_data_map,
-                           state=state,
-                           priority=priority,
-                           queue_timeout_seconds=queue_timeout_seconds,
-                           request_type=request_type,
-                           command_lines=command_lines,
-                           command_ids=command_ids,
-                           shard_count=shard_count,
-                           shard_indexes=shard_indexes)
+  return _DoCreateCommands(
+      request_id=request_id,
+      command_infos=command_infos,
+      shard_indexes=shard_indexes,
+      command_ids=command_ids,
+      command_plugin_data_map=command_plugin_data_map,
+      state=state,
+      priority=priority,
+      queue_timeout_seconds=queue_timeout_seconds,
+      request_type=request_type)
 
 
 @ndb.transactional()
-def _DoCreateCommands(request_id,
-                      run_target,
-                      run_count,
-                      cluster,
-                      command_plugin_data_map=None,
-                      state=None,
-                      priority=None,
-                      queue_timeout_seconds=None,
-                      request_type=None,
-                      command_lines=None,
-                      command_ids=None,
-                      shard_count=None,
-                      shard_indexes=None):
+def _DoCreateCommands(
+    request_id,
+    command_infos,
+    shard_indexes,
+    command_ids,
+    command_plugin_data_map=None,
+    state=None,
+    priority=None,
+    queue_timeout_seconds=None,
+    request_type=None):
   """Creates or return existing test commands for a request.
 
   Args:
     request_id: a request ID, str
-    run_target: a run target device.
-    run_count: a run count.
-    cluster: the id of the cluster on which to run the following command.
+    command_infos: a list of datastore_entity.CommandInfo objects.
+    shard_indexes: the commands' corresponding shard index.
+    command_ids: auto generate ids are integers, so we need to pre-allocate
+      some command id for commands.
     command_plugin_data_map: a map of plugin data for each command.
     state: the state of the command. Should only be used in tests.
     priority: a command priority.
     queue_timeout_seconds: a command timeout in seconds.
     request_type: a request type.
-    command_lines: a list of command line string,
-      all command lines are for the same request.
-    command_ids: auto generate ids are integers, so we need to pre-allocate
-      some command id for commands.
-    shard_count: the request's shard count
-    shard_indexes: the commands' corresponding shard index.
   Returns:
     a list of command entities, read only
   """
@@ -956,9 +887,8 @@ def _DoCreateCommands(request_id,
     return existing_commands
 
   new_commands = []
-
-  for command_line, command_id, shard_index in (list(
-      zip(command_lines, command_ids, shard_indexes))):
+  for command_info, command_id, shard_index in (list(
+      zip(command_infos, command_ids, shard_indexes))):
     command_key = ndb.Key(
         datastore_entities.Command, str(command_id),
         parent=request_key, namespace=common.NAMESPACE)
@@ -970,19 +900,21 @@ def _DoCreateCommands(request_id,
     command = datastore_entities.Command(
         key=command_key,
         request_id=request_id,
-        command_line=command_line,
-        cluster=cluster,
-        run_target=run_target,
-        run_count=run_count,
+        name=command_info.name,
+        command_line=command_info.command_line,
+        cluster=command_info.cluster,
+        run_target=command_info.run_target,
+        run_count=command_info.run_count,
         state=state or common.CommandState.UNKNOWN,
         priority=priority,
         queue_timeout_seconds=queue_timeout_seconds,
         request_type=request_type,
-        shard_count=shard_count if shard_count > 1 else None,
-        shard_index=shard_index if shard_count > 1 else None,
+        shard_count=(
+            command_info.shard_count if command_info.shard_count > 1 else None),
+        shard_index=shard_index if command_info.shard_count > 1 else None,
         plugin_data=plugin_data_)
     new_commands.append(command)
-  logging.info(new_commands)
+  logging.info("New commands created: %s", new_commands)
   ndb.put_multi(new_commands)
   return new_commands
 
@@ -1068,14 +1000,12 @@ def CancelCommands(request_id, cancel_reason=None):
     request_id: a request ID, str.
     cancel_reason: an optional enum cancel reason.
   """
+  request = request_manager.GetRequest(request_id)
   commands = GetCommands(request_id)
   for command in commands:
-    Cancel(
-        request_id, command.key.id(),
-        cancel_reason or common.CancelReason.UNKNOWN)
-  request_manager.CancelRequest(
-      request_id,
-      cancel_reason or common.CancelReason.UNKNOWN)
+    _DoCancelCommand(command, cancel_reason)
+  request.dirty = True
+  ndb.put_multi([request] + commands)
 
 
 def Cancel(request_id, command_id, cancel_reason=None):
@@ -1088,13 +1018,27 @@ def Cancel(request_id, command_id, cancel_reason=None):
   Returns:
     command: a command entity, read only
   """
+  request = request_manager.GetRequest(request_id)
   command = GetCommand(request_id, command_id)
-  command = _UpdateState(
-      request_id, command_id,
-      state=common.CommandState.CANCELED, force=True,
-      cancel_reason=cancel_reason)
-  DeleteTasks(command)
+  _DoCancelCommand(command, cancel_reason)
+  request.dirty = True
+  ndb.put_multi([request, command])
   return command
+
+
+def _DoCancelCommand(command, cancel_reason):
+  """Do cancel a command."""
+  if common.IsFinalCommandState(command.state):
+    logging.info(
+        "Cannot cancel command %s; already in a final state %s",
+        command.key, command.state)
+    return
+  if command.state != common.CommandState.UNKNOWN:
+    DeleteTasks(command)
+  command.state = common.CommandState.CANCELED
+  command.cancel_reason = cancel_reason or common.CancelReason.UNKNOWN
+
+  command.dirty = False
 
 
 def _GetCommandAttemptsFromCommandKey(command_key, state=None):

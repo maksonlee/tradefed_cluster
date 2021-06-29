@@ -46,9 +46,12 @@ class CoordinatorApiTest(api_test.ApiTest):
     self.request = request_manager.CreateRequest(
         request_id='1001',
         user='user1',
-        command_line='command_line',
-        cluster='cluster',
-        run_target='run_target')
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line='command_line',
+                cluster='cluster',
+                run_target='run_target')
+        ])
 
   def tearDown(self):
     self.plugin_patcher.stop()
@@ -58,16 +61,19 @@ class CoordinatorApiTest(api_test.ApiTest):
     # Helper to create an attempt
     command = command_manager.CreateCommands(
         request_id=self.request.key.id(),
-        command_lines=['long command line'],
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line='long command line',
+                run_target='foo',
+                run_count=1,
+                shard_count=1,
+                cluster='foobar')
+        ],
         shard_indexes=list(range(1)),
-        run_target='foo',
-        run_count=1,
-        shard_count=1,
         request_plugin_data={
             'ants_invocation_id': 'i123',
             'ants_work_unit_id': 'w123'
-        },
-        cluster='foobar')[0]
+        })[0]
     _, request_id, _, command_id = command.key.flat()
     attempt_key = ndb.Key(
         datastore_entities.Request, request_id,
@@ -87,16 +93,31 @@ class CoordinatorApiTest(api_test.ApiTest):
   def testBackfillCommands(self, mock_add):
     command_1, command_2, command_3 = command_manager.CreateCommands(
         request_id=self.request.key.id(),
-        command_lines=['long command line', 'longer_command_line', 'short_cmd'],
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line='long command line',
+                shard_count=3,
+                run_target='foo',
+                run_count=1,
+                cluster='foobar'),
+            datastore_entities.CommandInfo(
+                command_line='longer_command_line',
+                shard_count=3,
+                run_target='foo',
+                run_count=1,
+                cluster='foobar'),
+            datastore_entities.CommandInfo(
+                command_line='short_cmd',
+                shard_count=3,
+                run_target='foo',
+                run_count=1,
+                cluster='foobar'),
+        ],
         shard_indexes=list(range(3)),
-        shard_count=3,
         request_plugin_data={
             'ants_invocation_id': 'i123',
             'ants_work_unit_id': 'w123'
-        },
-        run_target='foo',
-        run_count=1,
-        cluster='foobar')
+        })
     command_1.state = common.CommandState.QUEUED
     command_1.put()
     command_2.state = common.CommandState.QUEUED
@@ -152,7 +173,9 @@ class CoordinatorApiTest(api_test.ApiTest):
   @mock.patch.object(request_sync_monitor, 'Monitor')
   def testBackfillRequestSyncs(self, mock_monitor):
     queued_request = request_manager.CreateRequest(
-        request_id='queued_id', user='user2', command_line='command_line2')
+        request_id='queued_id', user='user2', command_infos=[
+            datastore_entities.CommandInfo(command_line='command_line2')
+        ])
     queued_request.state = common.RequestState.QUEUED
     queued_request.put()
 

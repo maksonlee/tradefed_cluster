@@ -28,7 +28,6 @@ from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import env_config
 from tradefed_cluster.services import task_scheduler
-from tradefed_cluster.util import command_util
 from tradefed_cluster.util import ndb_shim as ndb
 
 REQUEST_QUEUE = "test-request-queue"
@@ -39,7 +38,9 @@ class RequestSummary(object):
   """Request summary from request's commands."""
 
   def __init__(self):
-    # set the default value to 0, so the value can be incement directly.
+    # set the default value to 0, so the value can be increment directly.
+    self.pending_count = 0
+    self.queued_count = 0
     self.running_count = 0
     self.canceled_count = 0
     self.completed_count = 0
@@ -58,10 +59,11 @@ def EvaluateState(request_id, force=False):
     request_id: a request's id, str
     force: Whether to force an update regardless of the dirty bit.
   Returns:
-    updated request, read only
+    (Request, RequestSummary)
   """
-  _UpdateState(request_id, force=force)
-  return NotifyRequestState(request_id)
+  request, request_summary = _UpdateState(request_id, force=force)
+  NotifyRequestState(request_id)
+  return request, request_summary
 
 
 def CancelRequest(request_id, cancel_reason=None):
@@ -74,16 +76,28 @@ def CancelRequest(request_id, cancel_reason=None):
   # TODO: Request manager should cancel all commands.
   request = GetRequest(request_id)
   if request:
-    _UpdateState(
-        request_id,
-        state=common.RequestState.CANCELED, force=True,
-        cancel_reason=cancel_reason or common.CancelReason.UNKNOWN)
+    _MarkRequestAsCanceled(request_id, cancel_reason)
     NotifyRequestState(request_id)
     DeleteFromQueue(request_id)
 
 
 @ndb.transactional()
-def _UpdateState(request_id, state=None, force=False, cancel_reason=None):
+def _MarkRequestAsCanceled(request_id, cancel_reason):
+  """Mark a request as canceled."""
+  request = GetRequest(request_id)
+  if common.IsFinalRequestState(request.state):
+    logging.warning(
+        "Cannot cancel request %s: already in a final state (%s)",
+        request_id, common.RequestState(request.state).name)
+    return
+  request.state = common.RequestState.CANCELED
+  request.cancel_reason = cancel_reason or common.CancelReason.UNKNOWN
+  request.notify_state_change = True
+  request.put()
+
+
+@ndb.transactional()
+def _UpdateState(request_id, force=False):
   """Attempts to update the state of a request.
 
   Attempts to update the state of a request based on the request's current
@@ -94,78 +108,50 @@ def _UpdateState(request_id, state=None, force=False, cancel_reason=None):
 
   Args:
     request_id: request id, str
-    state: The new state of the request.
     force: Whether to force an update regardless of the dirty bit.
-    cancel_reason: A machine readable enum cancel reason.
   Returns:
-    updated request, read only
+    (Request, RequestSummary)
   """
   request = GetRequest(request_id)
-  logging.info("Attempting to update %s from %s to %s",
-               request.key.id(),
-               common.RequestState(request.state).name,
-               state.name if state is not None else "")
+  logging.info("Attempting to update request %s", request.key.id())
   if not (force or request.dirty):
-    logging.info("%s doesn't need to be updated", request.key.id())
-    return request
-  if state is None:
-    state = request.state
+    logging.info("Request %s doesn't need to be updated", request.key.id())
+    return request, None
   summary = GetRequestSummary(request.key.id())
-  start_time = summary.start_time
-  end_time = summary.end_time
 
-  # COMPLETED, ERROR, and CANCELLED state transitions can be from any
-  # other state.
+  # Evaluate the next state
+  next_state = None
+  # The logic current allows state transitions between the final states.
+  # TODO: consider preventing state transitions between the final
+  # states.
   if (summary.total_count and
       summary.completed_count == summary.total_count):
-    state = common.RequestState.COMPLETED
+    next_state = common.RequestState.COMPLETED
   elif summary.error_count + summary.fatal_count > 0:
-    state = common.RequestState.ERROR
-  elif state != common.RequestState.CANCELED and summary.canceled_count > 0:
-    state = common.RequestState.CANCELED
-    if cancel_reason is None:
-      # propagate command's cancel_reason to request
-      cancel_reason = summary.cancel_reason
-    logging.debug(
-        "UpdateState request %s to CANCELED state with reason: %s.",
-        request_id, cancel_reason)
-
-  # UNKNOWN, RUNNING and QUEUED state transitions depend on the current
-  # state.
-  elif state in (
-      common.RequestState.UNKNOWN,
-      common.RequestState.RUNNING,
-      common.RequestState.QUEUED,
-      ):
+    next_state = common.RequestState.ERROR
+  elif summary.canceled_count > 0:
+    next_state = common.RequestState.CANCELED
+    # propagate command's cancel_reason to request
+    request.cancel_reason = summary.cancel_reason
+  elif not common.IsFinalRequestState(request.state):
     if summary.running_count > 0:
-      state = common.RequestState.RUNNING
-    elif summary.total_count > 0:
-      state = common.RequestState.QUEUED
-
-  if state in (common.RequestState.UNKNOWN, common.RequestState.QUEUED):
-    start_time = None
-  if state in (common.RequestState.UNKNOWN, common.RequestState.QUEUED,
-               common.RequestState.RUNNING):
-    end_time = None
-
-  if cancel_reason is not None:
-    logging.debug(
-        "updateState update request %s with cancel reason: %s.",
-        request_id, cancel_reason)
-  if state != request.state:
-    logging.info("Updating request %s in ds from %s to %s",
+      next_state = common.RequestState.RUNNING
+    elif summary.queued_count > 0:
+      next_state = common.RequestState.QUEUED
+  if next_state and request.state != next_state:
+    logging.info("Updating request %s from %s to %s",
                  request.key.id(),
                  common.RequestState(request.state).name,
-                 common.RequestState(state).name)
+                 common.RequestState(next_state).name)
     request.notify_state_change = True
-    request.state = state
-  request.start_time = start_time or request.start_time
-  request.end_time = end_time or request.end_time
-  if cancel_reason:
-    request.cancel_reason = cancel_reason
+    request.state = next_state
+
+  request.start_time = summary.start_time
+  if common.IsFinalRequestState(request.state):
+    request.end_time = summary.end_time
   request.dirty = False
   request.put()
-  return request
+  return request, summary
 
 
 def Poke(request_id):
@@ -187,7 +173,7 @@ def NotifyRequestState(request_id, force=False):
   if not request:
     logging.warning("Could not find request for request_id %s", request_id)
     return None
-  if not(force or request.notify_state_change):
+  if not (force or request.notify_state_change):
     logging.warning("Skipping notification for request_id %s because it is not"
                     " dirty and we are not forcing notification.",
                     request.key.id())
@@ -357,7 +343,11 @@ def GetRequestSummary(request_id):
   command_state_map = collections.defaultdict(list)
   for command in commands:
     command_state_map[command.state].append(command.key.id())
-    if command.state == common.CommandState.RUNNING:
+    if command.state == common.CommandState.UNKNOWN:
+      summary.pending_count += 1
+    elif command.state == common.CommandState.QUEUED:
+      summary.queued_count += 1
+    elif command.state == common.CommandState.RUNNING:
       summary.running_count += 1
     elif command.state == common.CommandState.CANCELED:
       summary.canceled_count += 1
@@ -419,77 +409,49 @@ def GetCommandAttempt(request_id, command_id, attempt_id):
 
 
 def CreateRequest(user,
-                  command_line,
+                  command_infos,
                   priority=None,
                   queue_timeout_seconds=None,
                   type_=None,
                   request_id=None,
-                  cluster=None,
-                  run_target=None,
-                  run_count=None,
-                  shard_count=None,
                   plugin_data=None,
                   max_retry_on_test_failures=None,
-                  prev_test_context=None):
+                  prev_test_context=None,
+                  max_concurrent_tasks=None):
   """Create a new request and add it to the request_queue.
 
   Args:
     user: a requesting user.
-    command_line: a command line string.
+    command_infos: a list of CommandInfo entities.
     priority: a request priority.
     queue_timeout_seconds: a request timeout in seconds.
     type_: a request type.
     request_id: request_id, used for easy testing.
-    cluster: the cluster to run the test.
-    run_target: the run target to run the test.
-    run_count: run count.
-    shard_count: shard count.
     plugin_data: a map that contains the plugin data.
     max_retry_on_test_failures: the max number of completed but failed attempts
         for each command.
     prev_test_context: a previous test context.
+    max_concurrent_tasks: the max number of concurrent tasks at any given time.
   Returns:
     a Request entity, read only.
   """
   if not request_id:
     request_id = _CreateRequestId()
-  if not type_:
-    # For an unmanaged request, parameters can passed via a command line.
-    command_line_obj = command_util.CommandLine(command_line)
-    cluster = cluster or command_line_obj.GetOption("--cluster")
-    run_target = run_target or command_line_obj.GetOption("--run-target")
-    run_count = (run_count or
-                 int(command_line_obj.GetOption("--run-count", 1)) or
-                 1)
-    # If shard_count field is set, use it, otherwise if it's local sharding
-    # fake one shard_count and the actual "shard-count" will let Tradefed shard
-    # the config
-    if not shard_count and command_line_obj.GetOption("--shard-index") is None:
-      shard_count = 1
-    else:
-      shard_count = (
-          shard_count or int(command_line_obj.GetOption("--shard-count", 1)) or
-          1)
-
   key = ndb.Key(
       datastore_entities.Request, request_id,
       namespace=common.NAMESPACE)
-
   request = datastore_entities.Request(
       key=key,
       user=user,
-      command_line=command_line,
-      state=common.RequestState.UNKNOWN,
+      command_infos=command_infos,
       priority=priority,
       queue_timeout_seconds=queue_timeout_seconds,
       type=type_,
-      cluster=cluster,
-      run_target=run_target,
-      run_count=run_count,
-      shard_count=shard_count,
       plugin_data=plugin_data,
       max_retry_on_test_failures=max_retry_on_test_failures,
-      prev_test_context=prev_test_context)
+      prev_test_context=prev_test_context,
+      max_concurrent_tasks=max_concurrent_tasks,
+      state=common.RequestState.UNKNOWN)
   request.put()
   return request
 
@@ -518,13 +480,7 @@ def AddToQueue(request):
     request: request entity, read only
   """
   task_name = str(request.key.id())
-  payload = json.dumps({
-      "id": request.key.id(),
-      "user": request.user,
-      "command_line": request.command_line,
-      "priority": request.priority,
-      "queue_timeout_seconds": request.queue_timeout_seconds
-  })
+  payload = json.dumps({"id": request.key.id()})
   compressed_payload = zlib.compress(six.ensure_binary(payload))
   task_scheduler.AddTask(
       queue_name=REQUEST_QUEUE, name=task_name, payload=compressed_payload)
@@ -587,7 +543,7 @@ def SetTestEnvironment(request_id, test_env):
 
   Args:
     request_id: a request ID.
-    test_env: a ndb_models.TestEnvironment object.
+    test_env: a datastore_entities.TestEnvironment object.
   """
   request_key = ndb.Key(
       datastore_entities.Request, request_id,
@@ -619,13 +575,13 @@ def AddTestResource(request_id, test_resource):
 
   Args:
     request_id: a request ID.
-    test_resource: a ndb_models.TestResource object.
+    test_resource: a datastore_entities.TestResource object.
   """
   request_key = ndb.Key(datastore_entities.Request, request_id,
                         namespace=common.NAMESPACE)
-  test_resource_to_put = datastore_entities.TestResource(parent=request_key)
-  test_resource_to_put.populate(**test_resource.to_dict())
-  test_resource_to_put.put()
+  resource_to_put = datastore_entities.TestResource(parent=request_key)
+  resource_to_put.CopyFrom(test_resource)
+  resource_to_put.put()
 
 
 def GetTestResources(request_id):

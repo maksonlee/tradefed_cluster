@@ -37,30 +37,6 @@ TIMESTAMP_NEW = datetime.datetime(2015, 9, 29)
 
 class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
 
-  def testRequest(self):
-    request_id = datastore_entities.Request.allocate_ids(1)[0].id()
-    key = ndb.Key(
-        datastore_entities.Request, str(request_id),
-        namespace=common.NAMESPACE)
-    datastore_entities.Request(
-        key=key,
-        user='user',
-        command_line='command_line',
-        state=common.RequestState.RUNNING,
-        start_time=TIMESTAMP_NEW,
-        end_time=TIMESTAMP_NEW).put()
-
-    request = key.get(use_cache=False)
-    self.assertEqual('user', request.user)
-    self.assertEqual('command_line', request.command_line)
-    self.assertEqual(common.RequestState.RUNNING, request.state)
-    self.assertEqual(TIMESTAMP_NEW, request.start_time)
-    self.assertEqual(TIMESTAMP_NEW, request.end_time)
-    self.assertIsNotNone(request.create_time)
-    self.assertIsNotNone(request.update_time)
-    self.assertFalse(request.dirty)
-    self.assertFalse(request.notify_state_change)
-
   def testClusterNote(self):
     cluster_note = datastore_entities.ClusterNote(cluster='free')
     key = ndb.Key(datastore_entities.Note,

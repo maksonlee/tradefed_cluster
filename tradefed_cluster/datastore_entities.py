@@ -25,6 +25,7 @@ import six
 from tradefed_cluster import api_messages
 from tradefed_cluster import common
 from tradefed_cluster.util import ndb_shim as ndb
+from tradefed_cluster.util import ndb_util
 
 
 
@@ -112,6 +113,19 @@ class TestResource(ndb.Model):
   mount_zip = ndb.BooleanProperty()
   params = ndb.LocalStructuredProperty(TestResourceParameters)
 
+  def CopyFrom(self, obj):
+    """Copy values from another TestResource object.
+
+    Args:
+      obj: a TestResource object to copy from.
+    """
+    self.populate(**obj.to_dict())
+    if obj.params is None:
+      self.params = None
+    else:
+      self.params = TestResourceParameters()
+      self.params.populate(**obj.params.to_dict())
+
   @classmethod
   def FromMessage(cls, msg):
     return cls(
@@ -153,6 +167,8 @@ class TestContext(ndb.Model):
 
   @classmethod
   def FromMessage(cls, msg):
+    if msg is None:
+      return None
     return cls(
         command_line=msg.command_line,
         env_vars={p.key: p.value for p in msg.env_vars},
@@ -185,24 +201,66 @@ def TestContextToMessage(entity):
       test_resources=test_resources)
 
 
-class Request(ndb.Model):
+class CommandInfo(ndb.Model):
+  """A command info."""
+  name = ndb.StringProperty()
+  command_line = ndb.TextProperty()
+  cluster = ndb.StringProperty()
+  run_target = ndb.StringProperty()
+  run_count = ndb.IntegerProperty(default=1)
+  shard_count = ndb.IntegerProperty(default=1)
+
+  @classmethod
+  def FromMessage(cls, msg):
+    if msg is None:
+      return None
+    return cls(
+        name=msg.name,
+        command_line=msg.command_line,
+        cluster=msg.cluster,
+        run_target=msg.run_target,
+        run_count=msg.run_count,
+        shard_count=msg.shard_count)
+
+
+@MessageConverter(CommandInfo)
+def CommandInfoToMessage(entity):
+  """Converts a CommandInfo entity to a message."""
+  return api_messages.CommandInfo(
+      name=entity.name,
+      command_line=entity.command_line,
+      cluster=entity.cluster,
+      run_target=entity.run_target,
+      run_count=entity.run_count,
+      shard_count=entity.shard_count)
+
+
+def _Request_AddCommandInfo(obj):    """Upgrade function for legacy Request objects."""
+  obj.command_infos = [
+      CommandInfo(
+          command_line=obj.depr_command_line,
+          cluster=obj.depr_cluster,
+          run_target=obj.depr_run_target,
+          run_count=obj.depr_run_count,
+          shard_count=obj.depr_shard_count)
+  ]
+
+
+class Request(ndb_util.UpgradableModel):
   """A test request entity.
 
   Attributes:
     type: a request type.
     user: email of an user who made the request.
-    command_line: a command line.
+    command_infos: a list of command infos.
     priority: a priority value. Should be in range [0-1000].
     queue_timeout_seconds: a queue timeout in seconds. A request will time out
         if it stays in QUEUED state longer than a given timeout.
     cancel_reason: a machine readable enum cancel reason.
-    cluster: a target cluster name.
-    run_target: a run target.
-    run_count: a run count.
-    shard_count: a shard count.
     max_retry_on_test_failures: the max number of retries on test failure per
         each command.
     prev_test_context: a previous test context.
+    max_concurrent_tasks: the max number of concurrent tasks.
 
     state: a state of the request.
     start_time: test execution start time.
@@ -217,18 +275,17 @@ class Request(ndb.Model):
   """
   type = ndb.EnumProperty(api_messages.RequestType)
   user = ndb.StringProperty()
-  command_line = ndb.TextProperty()
+  command_infos = ndb.LocalStructuredProperty(
+      CommandInfo, compressed=True, repeated=True)
+
   # priority should be an integer. The larger, the higher priority.
   # The lowest priority is 0, it's the default priority.
   priority = ndb.IntegerProperty()
   queue_timeout_seconds = ndb.IntegerProperty()
   cancel_reason = ndb.EnumProperty(common.CancelReason)
-  cluster = ndb.StringProperty()
-  run_target = ndb.StringProperty()
-  run_count = ndb.IntegerProperty()
-  shard_count = ndb.IntegerProperty()
   max_retry_on_test_failures = ndb.IntegerProperty()
   prev_test_context = ndb.LocalStructuredProperty(TestContext)
+  max_concurrent_tasks = ndb.IntegerProperty()
 
   state = ndb.EnumProperty(common.RequestState,
                            default=common.RequestState.UNKNOWN)
@@ -242,6 +299,17 @@ class Request(ndb.Model):
   # Whether we need to notify that the state has changed.
   notify_state_change = ndb.BooleanProperty(default=False)
   plugin_data = ndb.JsonProperty()
+
+  # Deprecated fields
+  depr_command_line = ndb.TextProperty('command_line')
+  depr_cluster = ndb.StringProperty('cluster')
+  depr_run_target = ndb.StringProperty('run_target')
+  depr_run_count = ndb.IntegerProperty('run_count')
+  depr_shard_count = ndb.IntegerProperty('shard_count')
+
+  _upgrade_steps = [
+      _Request_AddCommandInfo,
+  ]
 
 
 @MessageConverter(Request)
@@ -258,11 +326,16 @@ def RequestToMessage(request, command_attempts=None, commands=None):
   command_attempts = command_attempts or []
   commands = commands or []
   request_id = request.key.id()
+  first_command_info = (
+      request.command_infos[0] if request.command_infos else CommandInfo())
   return api_messages.RequestMessage(
       id=request_id,
       type=request.type,
       user=request.user,
-      command_line=request.command_line,
+      command_infos=[ToMessage(obj) for obj in request.command_infos or []],
+      max_retry_on_test_failures=request.max_retry_on_test_failures,
+      prev_test_context=ToMessage(request.prev_test_context),
+      max_concurrent_tasks=request.max_concurrent_tasks,
       state=request.state,
       start_time=request.start_time,
       end_time=request.end_time,
@@ -272,12 +345,11 @@ def RequestToMessage(request, command_attempts=None, commands=None):
       commands=[ToMessage(command) for command in commands],
       cancel_message=request.cancel_message,
       cancel_reason=request.cancel_reason,
-      cluster=request.cluster,
-      run_target=request.run_target,
-      run_count=request.run_count,
-      shard_count=request.shard_count,
-      max_retry_on_test_failures=request.max_retry_on_test_failures,
-      prev_test_context=ToMessage(request.prev_test_context))
+      command_line=first_command_info.command_line,
+      cluster=first_command_info.cluster,
+      run_target=first_command_info.run_target,
+      run_count=first_command_info.run_count,
+      shard_count=first_command_info.shard_count)
 
 
 class TradefedConfigObject(ndb.Model):
@@ -388,6 +460,7 @@ class Command(ndb.Model):
 
   Attributes:
     request_id: a request ID.
+    name: a human friendly name.
     command_hash: a hash of the command line.
     command_line: a command line.
     cluster: a target cluster ID.
@@ -410,6 +483,7 @@ class Command(ndb.Model):
     plugin_data: the plugin data.
   """
   request_id = ndb.StringProperty()
+  name = ndb.StringProperty()
   command_hash = ndb.StringProperty()
   command_line = ndb.TextProperty()
   cluster = ndb.StringProperty()
@@ -438,6 +512,7 @@ def CommandToMessage(command):
   return api_messages.CommandMessage(
       id=command_id,
       request_id=request_id,
+      name=command.name,
       command_line=command.command_line,
       cluster=command.cluster,
       run_target=command.run_target,

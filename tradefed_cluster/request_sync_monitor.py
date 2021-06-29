@@ -22,7 +22,7 @@ import logging
 import flask
 
 from tradefed_cluster import command_event
-from tradefed_cluster import command_manager
+from tradefed_cluster import commander
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import request_manager
@@ -56,10 +56,10 @@ def _AddRequestToQueue(request_id, countdown_secs=LONG_SYNC_COUNTDOWN_SECS):
   })
 
   next_sync = common.Now() + datetime.timedelta(seconds=countdown_secs)
-  logging.info('Queueing request %s to be synced at %s', request_id, next_sync)
+  logging.debug('Queueing request %s to be synced at %s', request_id, next_sync)
   task = task_scheduler.AddTask(
       queue_name=REQUEST_SYNC_QUEUE, payload=payload, eta=next_sync)
-  logging.info('Queued task: %s', task)
+  logging.debug('Queued task: %s', task)
 
 
 def GetRequestSyncStatusKey(request_id):
@@ -166,7 +166,7 @@ def _ProcessCommandEvents(request_id):
     event = command_event.CommandEvent(**raw_event.payload)
 
     try:
-      command_manager.ProcessCommandEvent(event)
+      commander.ProcessCommandEvent(event)
       raw_events_keys_to_delete.append(raw_event.key)
     except Exception as e:        logging.warning('Error while processing event: %s', event, exc_info=True)
       error = e
@@ -213,32 +213,38 @@ def SyncRequest(request_id):
   """
   should_sync = _UpdateSyncStatus(request_id)
   if not should_sync:
-    logging.info('Not syncing request %s', request_id)
+    logging.debug('Not syncing request %s', request_id)
     _AddRequestToQueue(request_id)
     return
 
+  sync_status_key = GetRequestSyncStatusKey(request_id)
+  sync_status = sync_status_key.get()
   request = request_manager.GetRequest(request_id)
   if not request:
     # This should not happen. Requires further debugging.
     logging.error('No request found with ID: %s', request_id)
-    key = GetRequestSyncStatusKey(request_id)
-    key.delete()
+    sync_status_key.delete()
     return
 
-  if common.IsFinalRequestState(request.state):
-    # TODO: Process or delete leftover RawCommandEvents
-    logging.info('Request %s is final and will no longer be synced', request_id)
-    key = GetRequestSyncStatusKey(request_id)
-    key.delete()
-    return
+  # If a request is in a final state, switch to on-demand event processing.
+  last_sync = common.IsFinalRequestState(request.state)
+  if last_sync:
+    # Stop new events from being queued.
+    sync_status_key.delete()
 
   logging.info('Syncing request %s', request_id)
   try:
     _ProcessCommandEvents(request_id)
   except:
     logging.exception('Failed to process events for %s', request_id)
+    # Recover sync status.
+    sync_status.put()
     _SetNewCommandEvents(request_id)
     raise
+
+  if last_sync:
+    logging.info('Request %s will no longer be synced', request_id)
+    return
 
   _AddRequestToQueue(request_id, countdown_secs=SHORT_SYNC_COUNTDOWN_SECS)
 

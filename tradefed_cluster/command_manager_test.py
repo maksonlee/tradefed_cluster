@@ -25,7 +25,6 @@ import logging
 import unittest
 import zlib
 
-import hamcrest
 import mock
 from protorpc import protojson
 from six.moves import range
@@ -36,11 +35,10 @@ from tradefed_cluster import command_manager
 from tradefed_cluster import command_task_store
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
+from tradefed_cluster import datastore_test_util
 from tradefed_cluster import env_config
-from tradefed_cluster import metric
 from tradefed_cluster import request_manager
 from tradefed_cluster import testbed_dependent_test
-from tradefed_cluster.plugins import base as plugin_base
 from tradefed_cluster.util import ndb_shim as ndb
 
 TIMESTAMP = datetime.datetime(2017, 3, 8)
@@ -53,9 +51,15 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
 
   def setUp(self):
     super(CommandManagerTest, self).setUp()
-    request_manager.CreateRequest(user="user1",
-                                  command_line="command_line",
-                                  request_id=REQUEST_ID)
+    datastore_test_util.CreateRequest(
+        user="user1",
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line="command_line",
+                cluster="cluster",
+                run_target="run_target")
+        ],
+        request_id=REQUEST_ID)
     self.plugin_patcher = mock.patch(
         "__main__.env_config.CONFIG.plugin")
     self.plugin_patcher.start()
@@ -70,27 +74,40 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     """Helper to create a command."""
     command = command_manager.CreateCommands(
         request_id=request_id,
-        run_target="run_target",
-        run_count=run_count,
-        cluster="cluster",
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line=command_line,
+                cluster="cluster",
+                run_target="run_target",
+                run_count=run_count,
+                shard_count=1),
+        ],
         priority=priority,
-        shard_count=1,
         shard_indexes=[0],
         request_plugin_data={
             "ants_invocation_id": "i123",
-            "command_ants_work_unit_id": "w123"},
-        command_lines=[command_line])[0]
+            "command_ants_work_unit_id": "w123"
+        })[0]
     return command
 
   def testCreateCommands(self):
     commands = command_manager.CreateCommands(
         request_id=REQUEST_ID,
-        command_lines=["foo bar1", "foo bar2"],
-        shard_count=2,
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line="foo bar1",
+                shard_count=2,
+                run_target="run_target",
+                run_count=1,
+                cluster="cluster"),
+            datastore_entities.CommandInfo(
+                command_line="foo bar2",
+                shard_count=2,
+                run_target="run_target",
+                run_count=1,
+                cluster="cluster"),
+        ],
         shard_indexes=list(range(2)),
-        run_target="run_target",
-        run_count=1,
-        cluster="cluster",
         priority=100,
         request_plugin_data={
             "ants_invocation_id": "i123",
@@ -122,12 +139,15 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     commands = command_manager.CreateCommands(
         request_id=REQUEST_ID,
         request_plugin_data={},
-        command_lines=["foo bar"],
-        shard_count=1,
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line="foo bar",
+                shard_count=1,
+                run_target="run_target",
+                run_count=1,
+                cluster="cluster"),
+        ],
         shard_indexes=list(range(1)),
-        run_target="run_target",
-        run_count=1,
-        cluster="cluster",
         priority=100,
         queue_timeout_seconds=1000)
 
@@ -180,11 +200,26 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
   @mock.patch.object(request_manager, "NotifyRequestState")
   def testScheduleTasks_withPriority(self, _):
     request_manager.CreateRequest(
-        user="user1", command_line="low priority command", request_id="1001")
+        user="user1", request_id="1001", command_infos=[
+            datastore_entities.CommandInfo(
+                command_line="low priority command",
+                cluster="cluster",
+                run_target="run_target")
+        ])
     request_manager.CreateRequest(
-        user="user1", command_line="medium priority command", request_id="1002")
+        user="user1", request_id="1002", command_infos=[
+            datastore_entities.CommandInfo(
+                command_line="medium priority command",
+                cluster="cluster",
+                run_target="run_target")
+        ])
     request_manager.CreateRequest(
-        user="user1", command_line="high priority command", request_id="1003")
+        user="user1", request_id="1003", command_infos=[
+            datastore_entities.CommandInfo(
+                command_line="high priority command",
+                cluster="cluster",
+                run_target="run_target")
+        ])
     commands = [
         self._CreateCommand(
             request_id="1001",
@@ -332,11 +367,20 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
 
     commands = command_manager.CreateCommands(
         REQUEST_ID,
-        run_target="foo",
-        run_count=1,
-        cluster="foobar",
-        command_lines=["command_line", "short command line"],
-        shard_count=2,
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line="command_line",
+                run_target="foo",
+                run_count=1,
+                cluster="foobar",
+                shard_count=2),
+            datastore_entities.CommandInfo(
+                command_line="short command line",
+                run_target="foo",
+                run_count=1,
+                cluster="foobar",
+                shard_count=2),
+        ],
         shard_indexes=list(range(2)))
     command_1 = commands[0]
     _, request_id1, _, command_id1 = command_1.key.flat()
@@ -400,7 +444,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.CommandState.QUEUED, command.state)
     self.assertTrue(command.dirty)
 
-    command = command_manager._UpdateState(
+    command = command_manager.UpdateState(
         request_id, command_id)
     self.assertEqual(common.CommandState.COMPLETED, command.state)
     self.assertEqual(datetime_0, command.start_time)
@@ -431,7 +475,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(common.CommandState.QUEUED, command.state)
     self.assertTrue(command.dirty)
 
-    command = command_manager._UpdateState(
+    command = command_manager.UpdateState(
         request_id, command_id)
     self.assertEqual(common.CommandState.RUNNING, command.state)
     self.assertEqual(start_time, command.start_time)
@@ -444,7 +488,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
         task=tasks[0], time=end_time)
     command_manager.UpdateCommandAttempt(event2)
 
-    command = command_manager._UpdateState(
+    command = command_manager.UpdateState(
         request_id, command_id)
     self.assertEqual(common.CommandState.COMPLETED, command.state)
     self.assertEqual(start_time, command.start_time)
@@ -482,7 +526,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
         task=tasks[0], time=end_time)
     command_manager.UpdateCommandAttempt(event1)
 
-    command = command_manager._UpdateState(request_id, command_id)
+    command = command_manager.UpdateState(request_id, command_id)
     self.assertEqual(common.CommandState.COMPLETED, command.state)
     self.assertEqual(end_time, command.end_time)
 
@@ -510,7 +554,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
         common.InvocationEventType.INVOCATION_STARTED,
         task=tasks[0], time=start_time)
     command_manager.UpdateCommandAttempt(event1)
-    command = command_manager._UpdateState(request_id, command_id)
+    command = command_manager.UpdateState(request_id, command_id)
     self.assertEqual(common.CommandState.RUNNING, command.state)
     self.assertEqual(start_time, command.start_time)
     self.assertIsNone(command.end_time)
@@ -526,7 +570,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
         common.InvocationEventType.INVOCATION_COMPLETED,
         task=tasks[0], time=end_time)
     command_manager.UpdateCommandAttempt(event2)
-    command = command_manager._UpdateState(request_id, command_id)
+    command = command_manager.UpdateState(request_id, command_id)
     self.assertEqual(common.CommandState.COMPLETED, command.state)
     self.assertEqual(start_time, command.start_time)
     self.assertEqual(end_time, command.end_time)
@@ -556,7 +600,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
           common.InvocationEventType.ALLOCATION_FAILED,
           task=tasks[0], time=start_time)
       command_manager.UpdateCommandAttempt(event)
-      command = command_manager._UpdateState(
+      command = command_manager.UpdateState(
           request_id, command_id, force=True, task_id=tasks[0].task_id)
 
     self.assertEqual(common.CommandState.CANCELED, command.state)
@@ -624,7 +668,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
         "Attempt update time %s was changed to before %s" %
         (attempts[0].update_time, update_time))
     # State should be queued because 1 (completed attempts) < 2 (run count)
-    command_manager._UpdateState(request_id, command_id)
+    command_manager.UpdateState(request_id, command_id)
     self.assertEqual(common.CommandState.QUEUED, command.key.get().state)
 
   def testCommandUpdateCommandAttempt_laterTimestamp(self):
@@ -818,25 +862,31 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertIsNone(command)
 
   def _CreateCommands(self):
+    command_infos = [
+        datastore_entities.CommandInfo(
+            command_line="command_line",
+            cluster="cluster",
+            run_target="run_target")
+    ]
     request_manager.CreateRequest(
-        user="user", request_id="1001", command_line="command_line1")
-    self._CreateCommand("1001", command_line="command_line1")
+        user="user", request_id="1001", command_infos=command_infos)
+    self._CreateCommand("1001", command_line=command_infos[0].command_line)
     request_manager.CreateRequest(
-        user="user", request_id="1002", command_line="command_line2")
-    self._CreateCommand("1002", command_line="command_line2")
+        user="user", request_id="1002", command_infos=command_infos)
+    self._CreateCommand("1002", command_line=command_infos[0].command_line)
     request_manager.CreateRequest(
-        user="user", request_id="1003", command_line="command_line3")
-    self._CreateCommand("1003", command_line="command_line3")
+        user="user", request_id="1003", command_infos=command_infos)
+    self._CreateCommand("1003", command_line=command_infos[0].command_line)
     request_manager.CreateRequest(
-        user="user", request_id="1004", command_line="command_line4")
-    self._CreateCommand("1004", command_line="command_line4")
+        user="user", request_id="1004", command_infos=command_infos)
+    self._CreateCommand("1004", command_line=command_infos[0].command_line)
 
   def testGetCommands_byExistingRequestId(self):
     """Tests getting all commands for given request id."""
     self._CreateCommands()
     commands = command_manager.GetCommands(request_id="1001")
     self.assertEqual(1, len(commands))
-    self.assertEqual("command_line1", commands[0].command_line)
+    self.assertEqual("command_line", commands[0].command_line)
 
   def testGetCommands_byNonExistingRequestId(self):
     """Tests getting all commands for a non existent request ID."""
@@ -855,7 +905,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
         request_id="1001",
         state=common.CommandState.RUNNING)
     self.assertEqual(1, len(commands))
-    self.assertEqual("command_line1", commands[0].command_line)
+    self.assertEqual("command_line", commands[0].command_line)
 
   def testGetCommands_byNonExistingState(self):
     """Tests getting all commands for given state with no commands."""
@@ -1009,8 +1059,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     last_active_time = command_manager.GetLastCommandActiveTime(command)
     self.assertEqual(command_update_time, last_active_time)
 
-  @mock.patch.object(request_manager, "CancelRequest")
-  def testCancelCommands(self, cancel_request):
+  def testCancelCommands(self):
     """Tests cancelling all commands for a request ID."""
     command = self._CreateCommand(run_count=2)
     self.assertNotEqual(common.CommandState.CANCELED, command.state)
@@ -1019,7 +1068,6 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(len(tasks), 0)
     command = command.key.get(use_cache=False)
     self.assertEqual(common.CommandState.CANCELED, command.state)
-    cancel_request.assert_called_once_with("1", common.CancelReason.UNKNOWN)
 
   @mock.patch.object(common, "Now")
   def testTouch(self, mock_now):
@@ -1067,240 +1115,6 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     }
     payload = json.loads(tasks[0].payload)
     self.assertEqual(expected_payload, payload)
-
-  @mock.patch.object(metric, "RecordCommandAttemptMetric")
-  @mock.patch.object(env_config.CONFIG, "plugin")
-  def testProcessCommandEvent_notUpdated(
-      self, plugin, attempt_metric):
-    """Test ProcessCommandEvent with no update."""
-    command = self._CreateCommand()
-    command_manager.ScheduleTasks([command])
-
-    tasks = command_manager.GetActiveTasks(command)
-    self.assertEqual(len(tasks), 1)
-    command_task_store.LeaseTask(tasks[0].task_id)
-    command = command.key.get(use_cache=False)
-    self.assertEqual(common.CommandState.QUEUED, command.state)
-    request = command.key.parent().get(use_cache=False)
-    self.assertEqual(common.RequestState.QUEUED, request.state)
-
-    _, request_id, _, command_id = command.key.flat()
-    event = command_event_test_util.CreateTestCommandEvent(
-        request_id, command_id, "attempt0",
-        common.InvocationEventType.INVOCATION_STARTED, time=TIMESTAMP)
-    command_manager.ProcessCommandEvent(event)
-
-    tasks = command_manager.GetActiveTasks(command)
-    self.assertEqual(len(tasks), 1)
-    self.assertEqual(tasks[0].leasable, False)
-    self.assertEqual(tasks[0].attempt_index, 0)
-    command = command.key.get(use_cache=False)
-    self.assertEqual(common.CommandState.QUEUED, command.state)
-    request = command.key.parent().get(use_cache=False)
-    self.assertEqual(common.RequestState.QUEUED, request.state)
-    attempt_metric.assert_not_called()
-    plugin.assert_has_calls([
-        mock.call.OnCreateCommands([
-            plugin_base.CommandInfo(
-                command_id=COMMAND_ID,
-                command_line="command_line1",
-                run_count=1,
-                shard_count=1,
-                shard_index=0)
-        ], {
-            "ants_invocation_id": "i123",
-            "command_ants_work_unit_id": "w123"
-        }, {}),
-    ])
-
-  @mock.patch.object(metric, "RecordCommandAttemptMetric")
-  @mock.patch.object(env_config.CONFIG, "plugin")
-  def testProcessCommandEvent_notUpdatedButFinal(self, plugin, attempt_metric):
-    command = self._CreateCommand()
-    command_manager.ScheduleTasks([command])
-    _, request_id, _, command_id = command.key.flat()
-    # Setup to ensure we are properly in the error state
-    for i in range(command_manager.MAX_ERROR_COUNT_BASE):
-      tasks = command_manager.GetActiveTasks(command)
-      self.assertEqual(len(tasks), 1)
-      command_task_store.LeaseTask(tasks[0].task_id)
-      attempt = command_event_test_util.CreateCommandAttempt(
-          command, str(i), common.CommandState.RUNNING, task=tasks[0])
-      event = command_event_test_util.CreateTestCommandEvent(
-          request_id, command_id, str(i),
-          common.InvocationEventType.INVOCATION_COMPLETED,
-          error="error", task=tasks[0], time=TIMESTAMP)
-      command_manager.ProcessCommandEvent(event)
-
-    tasks = command_manager.GetActiveTasks(command)
-    self.assertEqual(len(tasks), 0)
-    command = command.key.get(use_cache=False)
-    self.assertEqual(common.CommandState.ERROR, command.state)
-    request = command.key.parent().get(use_cache=False)
-    self.assertEqual(common.RequestState.ERROR, request.state)
-
-    attempt_metric.reset_mock()
-    plugin.reset_mock()
-
-    # Process last event again to ensure that we don't update
-    command_manager.ProcessCommandEvent(event)
-
-    tasks = command_manager.GetActiveTasks(command)
-    self.assertEqual(len(tasks), 0)
-    command = command.key.get(use_cache=False)
-    self.assertEqual(common.CommandState.ERROR, command.state)
-    request = command.key.parent().get(use_cache=False)
-    self.assertEqual(common.RequestState.ERROR, request.state)
-    attempt_metric.assert_called_once_with(
-        cluster_id=command.cluster,
-        run_target=command.run_target,
-        hostname="hostname",
-        state="ERROR")
-    plugin.assert_has_calls([
-        mock.call.OnProcessCommandEvent(
-            command,
-            hamcrest.match_equality(
-                hamcrest.all_of(
-                    hamcrest.has_property("command_id", attempt.command_id),
-                    hamcrest.has_property("attempt_id", attempt.attempt_id),
-                    hamcrest.has_property("task_id", attempt.task_id),
-                )),
-            event_data={
-                "summary": "summary",
-                "total_test_count": 1000,
-                "failed_test_count": 100,
-                "passed_test_count": 900,
-                "failed_test_run_count": 10,
-                "device_lost_detected": 0,
-                "error": "error"
-            }),
-    ])
-
-  @mock.patch.object(metric, "RecordCommandAttemptMetric")
-  def testProcessCommandEvent_nonFinal_reschedule(self, attempt_metric):
-    # Test ProcessCommandEvent for a non-final state with rescheduling
-    command = self._CreateCommand()
-    command_manager.ScheduleTasks([command])
-    _, request_id, _, command_id = command.key.flat()
-
-    tasks = command_manager.GetActiveTasks(command)
-    self.assertEqual(len(tasks), 1)
-    command_task_store.LeaseTask(tasks[0].task_id)
-    command_event_test_util.CreateCommandAttempt(
-        command, "attempt0", common.CommandState.UNKNOWN, task=tasks[0])
-    event = command_event_test_util.CreateTestCommandEvent(
-        request_id, command_id, "attempt0",
-        common.InvocationEventType.INVOCATION_COMPLETED,
-        error="error", task=tasks[0], time=TIMESTAMP)
-    command_manager.ProcessCommandEvent(event)
-
-    tasks = command_manager.GetActiveTasks(command)
-    self.assertEqual(len(tasks), 1)
-    self.assertEqual(tasks[0].leasable, True)
-    self.assertEqual(tasks[0].attempt_index, 1)
-    command = command.key.get(use_cache=False)
-    self.assertEqual(common.CommandState.QUEUED, command.state)
-    request = command.key.parent().get(use_cache=False)
-    self.assertEqual(common.RequestState.QUEUED, request.state)
-    attempt_metric.assert_called_once_with(
-        cluster_id=command.cluster,
-        run_target=command.run_target,
-        hostname="hostname",
-        state="ERROR")
-
-  @mock.patch.object(metric, "RecordCommandAttemptMetric")
-  def testProcessCommandEvent_nonFinal_delete(self, attempt_metric):
-    # Test ProcessCommandEvent for a non-final state with deletion
-    command = self._CreateCommand(run_count=2)
-    command_manager.ScheduleTasks([command])
-    _, request_id, _, command_id = command.key.flat()
-
-    tasks = command_manager.GetActiveTasks(command)
-    self.assertEqual(len(tasks), 2)
-    command_task_store.LeaseTask(tasks[0].task_id)
-    command_event_test_util.CreateCommandAttempt(
-        command, "attempt0", common.CommandState.UNKNOWN, task=tasks[0])
-    event = command_event_test_util.CreateTestCommandEvent(
-        request_id, command_id, "attempt0",
-        common.InvocationEventType.INVOCATION_COMPLETED,
-        task=tasks[0], time=TIMESTAMP)
-    command_manager.ProcessCommandEvent(event)
-
-    tasks = command_manager.GetActiveTasks(command)
-    self.assertEqual(len(tasks), 1)
-    self.assertEqual(tasks[0].task_id, "%s-%s-1" % (request_id, command_id))
-    self.assertEqual(tasks[0].leasable, True)
-    self.assertEqual(tasks[0].run_index, 1)
-    self.assertEqual(tasks[0].attempt_index, 0)
-    command = command.key.get(use_cache=False)
-    self.assertEqual(common.CommandState.QUEUED, command.state)
-    request = command.key.parent().get(use_cache=False)
-    self.assertEqual(common.RequestState.QUEUED, request.state)
-    attempt_metric.assert_called_once_with(
-        cluster_id=command.cluster,
-        run_target=command.run_target,
-        hostname="hostname",
-        state="COMPLETED")
-
-  @mock.patch.object(metric, "RecordCommandAttemptMetric")
-  @mock.patch.object(env_config.CONFIG, "plugin")
-  def testProcessCommandEvent_final(self, plugin, attempt_metric):
-    # Test ProcessCommandEvent for a final state
-    command = self._CreateCommand()
-    command_manager.ScheduleTasks([command])
-    _, request_id, _, command_id = command.key.flat()
-
-    tasks = command_manager.GetActiveTasks(command)
-    self.assertEqual(len(tasks), 1)
-    command_task_store.LeaseTask(tasks[0].task_id)
-    attempt = command_event_test_util.CreateCommandAttempt(
-        command, "attempt0", common.CommandState.UNKNOWN, task=tasks[0])
-    event = command_event_test_util.CreateTestCommandEvent(
-        request_id, command_id, "attempt0",
-        common.InvocationEventType.INVOCATION_COMPLETED,
-        task=tasks[0], time=TIMESTAMP)
-    command_manager.ProcessCommandEvent(event)
-
-    tasks = command_manager.GetActiveTasks(command)
-    self.assertEqual(len(tasks), 0)
-    command = command.key.get(use_cache=False)
-    self.assertEqual(common.CommandState.COMPLETED, command.state)
-    request = command.key.parent().get(use_cache=False)
-    self.assertEqual(common.RequestState.COMPLETED, request.state)
-    attempt_metric.assert_called_once_with(
-        cluster_id=command.cluster,
-        run_target=command.run_target,
-        hostname="hostname",
-        state="COMPLETED")
-    plugin.assert_has_calls([
-        mock.call.OnCreateCommands([
-            plugin_base.CommandInfo(
-                command_id=COMMAND_ID,
-                command_line="command_line1",
-                run_count=1,
-                shard_count=1,
-                shard_index=0)
-        ], {
-            "ants_invocation_id": "i123",
-            "command_ants_work_unit_id": "w123"
-        }, {}),
-        mock.call.OnProcessCommandEvent(
-            command,
-            hamcrest.match_equality(
-                hamcrest.all_of(
-                    hamcrest.has_property("command_id", attempt.command_id),
-                    hamcrest.has_property("attempt_id", attempt.attempt_id),
-                    hamcrest.has_property("task_id", attempt.task_id),
-                )),
-            event_data={
-                "total_test_count": 1000,
-                "device_lost_detected": 0,
-                "failed_test_run_count": 10,
-                "passed_test_count": 900,
-                "failed_test_count": 100,
-                "summary": "summary"
-            }),
-    ])
 
   def testNotifyAttemptState(self):
     env_config.CONFIG.object_event_filter = [

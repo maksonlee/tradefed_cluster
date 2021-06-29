@@ -21,6 +21,11 @@ indexes:
 
 - kind: Command
   properties:
+  - name: state
+  - name: create_time
+
+- kind: Command
+  properties:
     - name: state
     - name: cluster
     - name: run_target

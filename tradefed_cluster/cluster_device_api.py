@@ -85,7 +85,7 @@ class ClusterDeviceApi(remote.Service):
     Returns:
       a DeviceInfoCollection object.
     """
-    logging.info("ClusterDeviceApi.NDBListDevices request: %s", request)
+    logging.debug("ClusterDeviceApi.NDBListDevices request: %s", request)
     query = datastore_entities.DeviceInfo.query().order(
                 datastore_entities.DeviceInfo.key)
     if request.lab_name:

@@ -54,20 +54,29 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     self.plugin_patcher.start()
 
     self.request = request_manager.CreateRequest(
-        request_id="1001", user="user1", command_line="command_line",
-        cluster="cluster", run_target="run_target")
+        request_id="1001",
+        user="user1",
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line="command_line",
+                cluster="cluster",
+                run_target="run_target"),
+        ])
     self.command = command_manager.CreateCommands(
         request_id=self.request.key.id(),
-        command_lines=["long command line"],
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line="long command line",
+                cluster="foobar",
+                run_target="foo",
+                run_count=1,
+                shard_count=1),
+        ],
         shard_indexes=list(range(1)),
-        run_target="foo",
-        run_count=1,
-        shard_count=1,
         request_plugin_data={
             "ants_invocation_id": "i123",
             "ants_work_unit_id": "w123"
-        },
-        cluster="foobar")[0]
+        })[0]
     self.now_patcher = mock.patch.object(common, "Now")
     self.mock_now = self.now_patcher.start()
     self.mock_now.return_value = TIMESTAMP
@@ -122,16 +131,32 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
 
   def testEnqueueCommandEvents_multipleEvents(self):
     self.request = request_manager.CreateRequest(
-        request_id="9999", user="user1", command_line="command_line",
-        cluster="cluster", run_target="run_target", shard_count=2)
+        request_id="9999",
+        user="user1",
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line="command_line",
+                cluster="cluster",
+                run_target="run_target",
+                shard_count=2)
+        ])
     command_1, command_2 = command_manager.CreateCommands(
         request_id=self.request.key.id(),
-        command_lines=["long command line %d" % i for i in range(2)],
-        shard_indexes=list(range(2)),
-        run_target="foo",
-        run_count=1,
-        shard_count=2,
-        cluster="foobar")
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line="long command line 0",
+                cluster="foobar",
+                run_target="foo",
+                run_count=1,
+                shard_count=2),
+            datastore_entities.CommandInfo(
+                command_line="long command line 1",
+                cluster="foobar",
+                run_target="foo",
+                run_count=1,
+                shard_count=2)
+        ],
+        shard_indexes=list(range(2)))
     _, request_id, _, command_1_id = command_1.key.flat()
     _, _, _, command_2_id = command_2.key.flat()
     command_event_test_util.CreateCommandAttempt(

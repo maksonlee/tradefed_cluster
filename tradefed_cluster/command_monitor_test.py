@@ -50,15 +50,21 @@ class CommandMonitorTest(testbed_dependent_test.TestbedDependentTest):
     self.request = request_manager.CreateRequest(
         request_id='1001',
         user='user1',
-        command_line='command_line',
-        cluster='cluster',
-        run_target='run_target')
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line='command_line',
+                cluster='cluster',
+                run_target='run_target')
+        ])
     self.request_2 = request_manager.CreateRequest(
         request_id='1002',
         user='user1',
-        command_line='command_line',
-        cluster='cluster',
-        run_target='run_target')
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line='command_line',
+                cluster='cluster',
+                run_target='run_target')
+        ])
     # Clear Datastore cache
     ndb.get_context().clear_cache()
 
@@ -70,12 +76,21 @@ class CommandMonitorTest(testbed_dependent_test.TestbedDependentTest):
   def testMonitor(self, sync):
     commands = command_manager.CreateCommands(
         request_id=self.request_2.key.id(),
-        command_lines=['long command line', 'longer_command_line'],
-        shard_indexes=list(range(2)),
-        shard_count=2,
-        run_target='foo',
-        run_count=1,
-        cluster='foobar')
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line='long command line',
+                shard_count=2,
+                run_target='foo',
+                run_count=1,
+                cluster='foobar'),
+            datastore_entities.CommandInfo(
+                command_line='longer_command_line',
+                shard_count=2,
+                run_target='foo',
+                run_count=1,
+                cluster='foobar'),
+        ],
+        shard_indexes=list(range(2)))
     num_monitored = command_monitor.Monitor(commands)
     self.assertEqual(2, num_monitored)
     tasks = self.mock_task_scheduler.GetTasks()
@@ -100,12 +115,15 @@ class CommandMonitorTest(testbed_dependent_test.TestbedDependentTest):
     now = datetime.datetime.utcnow()
     command = command_manager.CreateCommands(
         request_id=self.request.key.id(),
-        command_lines=['long command line'],
-        shard_indexes=list(range(1)),
-        run_target='foo',
-        run_count=1,
-        shard_count=1,
-        cluster='foobar')[0]
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line='long command line',
+                cluster='foobar',
+                run_target='foo',
+                run_count=1,
+                shard_count=1)
+        ],
+        shard_indexes=list(range(1)))[0]
     command.state = common.CommandState.QUEUED
     command.update_time = (
         now - datetime.timedelta(
@@ -125,12 +143,15 @@ class CommandMonitorTest(testbed_dependent_test.TestbedDependentTest):
     now = datetime.datetime.utcnow()
     command = command_manager.CreateCommands(
         request_id=self.request.key.id(),
-        command_lines=['long command line'],
-        shard_indexes=list(range(1)),
-        run_target='foo',
-        run_count=1,
-        shard_count=1,
-        cluster='foobar')[0]
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line='long command line',
+                cluster='foobar',
+                run_target='foo',
+                run_count=1,
+                shard_count=1)
+        ],
+        shard_indexes=list(range(1)))[0]
     command.state = common.CommandState.RUNNING
     command.update_time = (
         now - datetime.timedelta(
@@ -148,12 +169,15 @@ class CommandMonitorTest(testbed_dependent_test.TestbedDependentTest):
     now = datetime.datetime.utcnow()
     command = command_manager.CreateCommands(
         request_id=self.request.key.id(),
-        command_lines=['long command line'],
-        shard_indexes=list(range(1)),
-        run_target='foo',
-        run_count=1,
-        shard_count=1,
-        cluster='foobar')[0]
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line='long command line',
+                cluster='foobar',
+                run_target='foo',
+                run_count=1,
+                shard_count=1)
+        ],
+        shard_indexes=list(range(1)))[0]
     command.state = common.CommandState.RUNNING
     command.update_time = (
         now - datetime.timedelta(
@@ -171,12 +195,21 @@ class CommandMonitorTest(testbed_dependent_test.TestbedDependentTest):
     now = datetime.datetime.utcnow()
     command_1, command_2 = command_manager.CreateCommands(
         request_id=self.request_2.key.id(),
-        command_lines=['long command line', 'longer_command_line'],
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line='long command line',
+                shard_count=2,
+                run_target='foo',
+                run_count=1,
+                cluster='foobar'),
+            datastore_entities.CommandInfo(
+                command_line='longer_command_line',
+                shard_count=2,
+                run_target='foo',
+                run_count=1,
+                cluster='foobar'),
+        ],
         shard_indexes=list(range(2)),
-        shard_count=2,
-        run_target='foo',
-        run_count=1,
-        cluster='foobar',
         queue_timeout_seconds=command_monitor.MAX_COMMAND_INACTIVE_TIME_MIN *
         2 * 60)
     # Change update times. command_1 should ensure leasable, command_2 should
@@ -218,12 +251,15 @@ class CommandMonitorTest(testbed_dependent_test.TestbedDependentTest):
     mock_now.return_value = now
     command = command_manager.CreateCommands(
         request_id=self.request.key.id(),
-        command_lines=['command line'],
-        shard_indexes=list(range(1)),
-        run_target='run_target',
-        run_count=1,
-        shard_count=1,
-        cluster='cluster')[0]
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line='command line',
+                run_target='run_target',
+                run_count=1,
+                shard_count=1,
+                cluster='cluster')
+        ],
+        shard_indexes=list(range(1)))[0]
     _, request_id, _, command_id = command.key.flat()
     command.state = common.CommandState.QUEUED
     command.update_time = now - datetime.timedelta(minutes=5)
@@ -250,12 +286,15 @@ class CommandMonitorTest(testbed_dependent_test.TestbedDependentTest):
     now = datetime.datetime.utcnow()
     command = command_manager.CreateCommands(
         request_id=self.request.key.id(),
-        command_lines=['command line'],
-        shard_indexes=list(range(1)),
-        run_target='run_target',
-        run_count=1,
-        shard_count=1,
-        cluster='cluster')[0]
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line='command line',
+                run_target='run_target',
+                run_count=1,
+                shard_count=1,
+                cluster='cluster')
+        ],
+        shard_indexes=list(range(1)))[0]
     _, request_id, _, command_id = command.key.flat()
     command.state = common.CommandState.QUEUED
     command.update_time = now - datetime.timedelta(
@@ -283,12 +322,15 @@ class CommandMonitorTest(testbed_dependent_test.TestbedDependentTest):
     custom_timeout = 10 * 3600
     command = command_manager.CreateCommands(
         request_id=self.request.key.id(),
-        command_lines=['command line'],
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line='command line',
+                run_target='run_target',
+                run_count=1,
+                shard_count=1,
+                cluster='cluster')
+        ],
         shard_indexes=list(range(1)),
-        run_target='run_target',
-        run_count=1,
-        shard_count=1,
-        cluster='cluster',
         queue_timeout_seconds=custom_timeout)[0]
     _, request_id, _, command_id = command.key.flat()
     command.state = common.CommandState.QUEUED
@@ -316,12 +358,15 @@ class CommandMonitorTest(testbed_dependent_test.TestbedDependentTest):
     mock_now.return_value = now
     command = command_manager.CreateCommands(
         request_id=self.request.key.id(),
-        command_lines=['command line'],
-        shard_indexes=list(range(1)),
-        run_target='run_target',
-        run_count=1,
-        shard_count=1,
-        cluster='cluster')[0]
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line='command line',
+                run_target='run_target',
+                run_count=1,
+                shard_count=1,
+                cluster='cluster')
+        ],
+        shard_indexes=list(range(1)))[0]
     _, request_id, _, command_id = command.key.flat()
     command.state = common.CommandState.RUNNING
     command.update_time = now - datetime.timedelta(hours=3)

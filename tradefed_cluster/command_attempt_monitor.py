@@ -22,6 +22,7 @@ import flask
 
 from tradefed_cluster import command_event
 from tradefed_cluster import command_manager
+from tradefed_cluster import commander
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster.util import ndb_shim as ndb
@@ -90,7 +91,7 @@ def SyncCommandAttempt(request_id, command_id, attempt_id):
         type=common.InvocationEventType.INVOCATION_COMPLETED,
         data={'error': common.TASK_RESET_ERROR_MESSAGE},
         time=now)
-    command_manager.ProcessCommandEvent(event)
+    commander.ProcessCommandEvent(event)
     return
 
   # Add to the sync queue to check again later.

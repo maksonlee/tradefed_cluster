@@ -45,10 +45,15 @@ class CommandTaskApiTest(api_test.ApiTest):
     request_key = ndb.Key(
         datastore_entities.Request, REQUEST_ID,
         namespace=common.NAMESPACE)
-    self.request = datastore_entities.Request(
-        key=request_key,
+    self.request = datastore_test_util.CreateRequest(
+        request_id=request_key.id(),
         user='user1',
-        command_line='command_line')
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line='command_line',
+                cluster='cluster',
+                run_target='run_target')
+        ])
     self.request.put()
     self.command = self._AddCommand(
         REQUEST_ID,

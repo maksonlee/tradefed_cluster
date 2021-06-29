@@ -7,10 +7,10 @@ import unittest
 import mock
 
 from tradefed_cluster import command_event_test_util
-from tradefed_cluster import command_manager
+from tradefed_cluster import commander
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
-from tradefed_cluster import request_manager
+from tradefed_cluster import datastore_test_util
 from tradefed_cluster import request_sync_monitor
 from tradefed_cluster import testbed_dependent_test
 
@@ -106,8 +106,15 @@ class RequestMonitorTest(testbed_dependent_test.TestbedDependentTest):
   @mock.patch.object(request_sync_monitor, '_UpdateSyncStatus')
   def testSyncRequest(self, mock_update, mock_queue, mock_process):
     mock_update.return_value = True
-    request_manager.CreateRequest(
-        request_id=REQUEST_ID, user='user2', command_line='command_line2')
+    datastore_test_util.CreateRequest(
+        request_id=REQUEST_ID,
+        user='user2',
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line='command_line2',
+                cluster='cluster',
+                run_target='run_target')
+        ])
 
     request_sync_monitor.SyncRequest(REQUEST_ID)
 
@@ -149,8 +156,15 @@ class RequestMonitorTest(testbed_dependent_test.TestbedDependentTest):
   @mock.patch.object(request_sync_monitor, '_UpdateSyncStatus')
   def testSyncRequest_finalRequest(self, mock_update, mock_queue, mock_process):
     mock_update.return_value = True
-    request = request_manager.CreateRequest(
-        request_id=REQUEST_ID, user='user2', command_line='command_line2')
+    request = datastore_test_util.CreateRequest(
+        request_id=REQUEST_ID,
+        user='user2',
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line='command_line2',
+                cluster='cluster',
+                run_target='run_target')
+        ])
     request.state = common.RequestState.COMPLETED
     request.put()
 
@@ -158,8 +172,8 @@ class RequestMonitorTest(testbed_dependent_test.TestbedDependentTest):
 
     sync_key = request_sync_monitor.GetRequestSyncStatusKey(REQUEST_ID)
     self.assertIsNone(sync_key.get())
+    mock_process.assert_called_once_with(REQUEST_ID)
     mock_queue.assert_not_called()
-    mock_process.assert_not_called()
 
   @mock.patch.object(request_sync_monitor, '_ProcessCommandEvents')
   @mock.patch.object(request_sync_monitor, '_AddRequestToQueue')
@@ -171,8 +185,15 @@ class RequestMonitorTest(testbed_dependent_test.TestbedDependentTest):
     sync_status.put()
 
     mock_process.side_effect = RuntimeError
-    request_manager.CreateRequest(
-        request_id=REQUEST_ID, user='user2', command_line='command_line2')
+    datastore_test_util.CreateRequest(
+        request_id=REQUEST_ID,
+        user='user2',
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line='command_line2',
+                cluster='cluster',
+                run_target='run_target')
+        ])
 
     with self.assertRaises(RuntimeError):
       request_sync_monitor.SyncRequest(REQUEST_ID)
@@ -196,7 +217,7 @@ class RequestMonitorTest(testbed_dependent_test.TestbedDependentTest):
     sync_key = request_sync_monitor.GetRequestSyncStatusKey(REQUEST_ID)
     self.assertTrue(sync_key.get().has_new_command_events)
 
-  @mock.patch.object(command_manager, 'ProcessCommandEvent')
+  @mock.patch.object(commander, 'ProcessCommandEvent')
   def testProcessCommandEvents_singleEvent(self, mock_process):
     request_sync_monitor.Monitor(REQUEST_ID)
     event = _AddCommandEvent()
@@ -209,7 +230,7 @@ class RequestMonitorTest(testbed_dependent_test.TestbedDependentTest):
     self.assertLen(raw_events, 1)  # only another_request event should remain
     mock_process.assert_called_once_with(event)
 
-  @mock.patch.object(command_manager, 'ProcessCommandEvent')
+  @mock.patch.object(commander, 'ProcessCommandEvent')
   def testProcessCommandEvents_multipleEvents(self, mock_process):
     event_1 = _AddCommandEvent(time=1)
     event_3 = _AddCommandEvent(time=3)
@@ -227,12 +248,12 @@ class RequestMonitorTest(testbed_dependent_test.TestbedDependentTest):
          mock.call(event_3)],
         any_order=False)
 
-  @mock.patch.object(command_manager, 'ProcessCommandEvent')
+  @mock.patch.object(commander, 'ProcessCommandEvent')
   def testProcessCommandEvents_noEvents(self, mock_process):
     request_sync_monitor._ProcessCommandEvents(REQUEST_ID)
     mock_process.assert_not_called()
 
-  @mock.patch.object(command_manager, 'ProcessCommandEvent')
+  @mock.patch.object(commander, 'ProcessCommandEvent')
   def testProcessCommandEvents_withErrors(self, mock_process):
     mock_process.side_effect = [None, RuntimeError, None]
 

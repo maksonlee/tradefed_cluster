@@ -31,6 +31,7 @@ import webtest
 from tradefed_cluster import command_attempt_monitor
 from tradefed_cluster import command_event_test_util
 from tradefed_cluster import command_manager
+from tradefed_cluster import commander
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import env_config  from tradefed_cluster import request_manager
@@ -50,21 +51,27 @@ class CommandAttemptMonitorTest(testbed_dependent_test.TestbedDependentTest):
     self.request = request_manager.CreateRequest(
         request_id='1001',
         user='user1',
-        command_line='command_line',
-        cluster='cluster',
-        run_target='run_target')
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line='command_line',
+                cluster='cluster',
+                run_target='run_target'),
+        ])
     self.command = command_manager.CreateCommands(
         request_id=self.request.key.id(),
-        command_lines=['long command line'],
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line='long command line',
+                cluster='foobar',
+                run_target='foo',
+                run_count=1,
+                shard_count=1),
+        ],
         shard_indexes=list(range(1)),
-        run_target='foo',
-        run_count=1,
-        shard_count=1,
         request_plugin_data={
             'ants_invocation_id': 'i123',
             'ants_work_unit_id': 'w123'
-        },
-        cluster='foobar')[0]
+        })[0]
     # Clear Datastore cache
     ndb.get_context().clear_cache()
 
@@ -72,8 +79,7 @@ class CommandAttemptMonitorTest(testbed_dependent_test.TestbedDependentTest):
     self.plugin_patcher.stop()
     super(CommandAttemptMonitorTest, self).tearDown()
 
-  @mock.patch.object(
-      command_manager, 'ProcessCommandEvent', autospec=True)
+  @mock.patch.object(commander, 'ProcessCommandEvent', autospec=True)
   def testSyncCommandAttempt_reset(self, mock_update):
     now = datetime.datetime.utcnow()
     update_time = (
@@ -111,7 +117,7 @@ class CommandAttemptMonitorTest(testbed_dependent_test.TestbedDependentTest):
   @mock.patch.object(command_attempt_monitor, 'Now', autospec=True)
   @mock.patch.object(
       command_manager, 'AddToSyncCommandAttemptQueue', autospec=True)
-  @mock.patch.object(command_manager, 'ProcessCommandEvent', autospec=True)
+  @mock.patch.object(commander, 'ProcessCommandEvent', autospec=True)
   def testSyncCommandAttempt_resync(self, mock_update, sync, mock_now):
     now = datetime.datetime.utcnow()
     mock_now.return_value = now
@@ -140,8 +146,7 @@ class CommandAttemptMonitorTest(testbed_dependent_test.TestbedDependentTest):
 
   @mock.patch.object(
       command_manager, 'AddToSyncCommandAttemptQueue', autospec=True)
-  @mock.patch.object(
-      command_manager, 'ProcessCommandEvent', autospec=True)
+  @mock.patch.object(commander, 'ProcessCommandEvent', autospec=True)
   def testSyncCommandAttempt_noAttempt(self, mock_update, sync):
     _, request_id, _, command_id = self.command.key.flat()
     command_attempt_monitor.SyncCommandAttempt(request_id, command_id,
@@ -152,8 +157,7 @@ class CommandAttemptMonitorTest(testbed_dependent_test.TestbedDependentTest):
   @mock.patch.object(command_attempt_monitor, 'Now', autospec=True)
   @mock.patch.object(
       command_manager, 'AddToSyncCommandAttemptQueue', autospec=True)
-  @mock.patch.object(
-      command_manager, 'ProcessCommandEvent', autospec=True)
+  @mock.patch.object(commander, 'ProcessCommandEvent', autospec=True)
   def testSyncCommandAttempt_nonFinalState(self, mock_update, sync, mock_now):
     now = datetime.datetime.utcnow()
     mock_now.return_value = now
@@ -180,8 +184,7 @@ class CommandAttemptMonitorTest(testbed_dependent_test.TestbedDependentTest):
     mock_update.assert_not_called()
     sync.assert_has_calls([mock.call(attempt)])
 
-  @mock.patch.object(
-      command_manager, 'ProcessCommandEvent', autospec=True)
+  @mock.patch.object(commander, 'ProcessCommandEvent', autospec=True)
   def testSyncCommandAttempt_finalState(self, mock_update):
     now = datetime.datetime.utcnow()
     update_time = (

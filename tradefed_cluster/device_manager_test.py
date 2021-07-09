@@ -1375,6 +1375,50 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(0, host.allocated_devices)
     self.assertEqual(0, host.offline_devices)
 
+  def testCountDeviceForHost_mhHost(self):
+    datastore_test_util.CreateHost(
+        "free", "mh_host", test_harness="MOBILEHARNESS")
+    datastore_test_util.CreateDevice(
+        "free", "mh_host", "s1",
+        run_target="run_target1",
+        state=common.DeviceState.IDLE)
+    datastore_test_util.CreateDevice(
+        "free", "mh_host", "s2",
+        run_target="run_target1",
+        state=common.DeviceState.IDLE)
+    datastore_test_util.CreateDevice(
+        "free", "mh_host", "s3",
+        run_target="run_target2",
+        state=common.DeviceState.BUSY)
+    datastore_test_util.CreateDevice(
+        "free", "mh_host", "s4",
+        run_target="run_target2",
+        state=common.DeviceState.OFFLINE)
+    datastore_test_util.CreateDevice(
+        "free", "mh_host", "s5",
+        run_target="run_target1",
+        state=common.DeviceState.GONE, hidden=True)
+    device_manager._CountDeviceForHost("mh_host")
+    host = device_manager.GetHost("mh_host")
+    self.assertEqual(4, host.total_devices)
+    self.assertEqual(2, host.available_devices)
+    self.assertEqual(1, host.allocated_devices)
+    self.assertEqual(1, host.offline_devices)
+    self.assertEqual(2, len(host.device_count_summaries))
+    for device_count_summary in host.device_count_summaries:
+      if device_count_summary.run_target == "run_target1":
+        self.assertEqual(2, device_count_summary.total)
+        self.assertEqual(2, device_count_summary.available)
+        self.assertEqual(0, device_count_summary.allocated)
+        self.assertEqual(0, device_count_summary.offline)
+      elif device_count_summary.run_target == "run_target2":
+        self.assertEqual(2, device_count_summary.total)
+        self.assertEqual(0, device_count_summary.available)
+        self.assertEqual(1, device_count_summary.allocated)
+        self.assertEqual(1, device_count_summary.offline)
+      else:
+        self.assertFalse(True)
+
   def _AssertHostSyncTask(self, hostname):
     tasks = self.mock_task_scheduler.GetTasks()
     self.assertEqual(1, len(tasks))

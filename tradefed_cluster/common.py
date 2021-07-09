@@ -185,6 +185,9 @@ class DeviceState(object):
   PREPPING = "Prepping"
   DIRTY = "Dirty"
   LAMEDUCK = "Lameduck"
+  IDLE = "Idle"
+  BUSY = "Busy"
+  OFFLINE = "Offline"
 
 DEVICE_ALL_STATES = (
     DeviceState.ALLOCATED,
@@ -201,22 +204,33 @@ DEVICE_ALL_STATES = (
     DeviceState.PREPPING,
     DeviceState.DIRTY,
     DeviceState.LAMEDUCK,
+    DeviceState.IDLE,
+    DeviceState.BUSY,
+    DeviceState.OFFLINE,
+)
+
+DEVICE_AVAILABLE_STATES = (
+    DeviceState.AVAILABLE,
+    DeviceState.IDLE,
+)
+
+DEVICE_ALLOCATED_STATES = (
+    DeviceState.ALLOCATED,
+    DeviceState.BUSY,
 )
 
 DEVICE_ONLINE_STATES = (
     DeviceState.ALLOCATED,
     DeviceState.AVAILABLE,
-    DeviceState.CHECKING
+    DeviceState.CHECKING,
+    DeviceState.INIT,
+    DeviceState.PREPPING,
+    DeviceState.IDLE,
+    DeviceState.BUSY,
 )
 
 
-DEVICE_OFFLINE_STATES = (
-    DeviceState.FASTBOOT,
-    DeviceState.GONE,
-    DeviceState.IGNORED,
-    DeviceState.UNAVAILABLE,
-    DeviceState.UNKNOWN
-)
+DEVICE_OFFLINE_STATES = set(DEVICE_ALL_STATES).difference(DEVICE_ONLINE_STATES)
 
 
 class TestHarness(object):

@@ -346,10 +346,10 @@ def _DoCountDeviceForHost(host, devices):
       device_counts[device.run_target] = device_count
     device_count.total += 1
     host.total_devices += 1
-    if device.state == common.DeviceState.AVAILABLE:
+    if device.state in common.DEVICE_AVAILABLE_STATES:
       host.available_devices += 1
       device_count.available += 1
-    elif device.state == common.DeviceState.ALLOCATED:
+    elif device.state in common.DEVICE_ALLOCATED_STATES:
       host.allocated_devices += 1
       device_count.allocated += 1
     else:

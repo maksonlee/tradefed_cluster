@@ -222,7 +222,7 @@ class FilterHintApiTest(api_test.ApiTest):
     device_state_collection = protojson.decode_message(
         api_messages.FilterHintCollection, api_response.body)
     self.assertEqual('200 OK', api_response.status)
-    self.assertEqual(14, len(device_state_collection.filter_hints))
+    self.assertEqual(17, len(device_state_collection.filter_hints))
     states = list(device_state_collection.filter_hints)
     self.assertEqual(
         [s.value for s in states],
@@ -239,7 +239,11 @@ class FilterHintApiTest(api_test.ApiTest):
          common.DeviceState.MISSING,
          common.DeviceState.PREPPING,
          common.DeviceState.DIRTY,
-         common.DeviceState.LAMEDUCK])
+         common.DeviceState.LAMEDUCK,
+         common.DeviceState.IDLE,
+         common.DeviceState.BUSY,
+         common.DeviceState.OFFLINE,
+         ])
 
   def testListHostGroup(self):
     """Tests ListHostGroup."""

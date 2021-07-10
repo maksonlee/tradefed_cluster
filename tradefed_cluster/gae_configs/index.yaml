@@ -211,8 +211,8 @@ indexes:
 
 - kind: HostUpdateState
   properties:
-  - name: hostname
   - name: state
+  - name: hostname
 
 - kind: HostUpdateStateHistory
   properties:

@@ -15,13 +15,10 @@
 """Sync Cluster or Host configs from google cloud storage to TFC NDB."""
 
 import logging
+import os
 import re
 
-from ansible.inventory import data as inventory_data
-from ansible.parsing import dataloader
-from ansible.plugins.inventory import ini
 import flask
-
 
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
@@ -30,6 +27,12 @@ from tradefed_cluster.configs import lab_config as lab_config_util
 from tradefed_cluster.plugins import base as plugins_base
 from tradefed_cluster.services import file_storage
 from tradefed_cluster.util import ndb_shim as ndb
+
+# Ansible package depends on certain environment variable.
+os.environ['ANSIBLE_LOCAL_TEMP'] = '/tmp'
+from ansible.inventory import data as inventory_data
+from ansible.parsing import dataloader
+from ansible.plugins.inventory import ini
 
 
 BUCKET_NAME = 'tradefed_lab_configs'

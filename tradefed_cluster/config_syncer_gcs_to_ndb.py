@@ -29,10 +29,14 @@ from tradefed_cluster.services import file_storage
 from tradefed_cluster.util import ndb_shim as ndb
 
 # Ansible package depends on certain environment variable.
-os.environ['ANSIBLE_LOCAL_TEMP'] = '/tmp'
-from ansible.inventory import data as inventory_data
-from ansible.parsing import dataloader
-from ansible.plugins.inventory import ini
+ansible_import_error = None
+try:
+  os.environ['ANSIBLE_LOCAL_TEMP'] = '/tmp'
+  from ansible.inventory import data as inventory_data
+  from ansible.parsing import dataloader
+  from ansible.plugins.inventory import ini
+except Exception as e:    logging.warning('Fail to import ansible package:\n%s', e)
+  ansible_import_error = e
 
 
 BUCKET_NAME = 'tradefed_lab_configs'
@@ -405,6 +409,11 @@ def SyncGCSToNDB():
   """Task to sync cluster and host config from gcs to ndb."""
   if env_config.CONFIG.should_sync_lab_config:
     logging.debug('"should_sync_lab_config" is enabled.')
+    global ansible_import_error
+    if ansible_import_error:
+      logging.error('Failed to import ansible package:\n%s',
+                    ansible_import_error)
+      raise ansible_import_error
     SyncToNDB()
     SyncInventoryGroupsToNDB()
     SyncInventoryGroupVarAccountsToNDB()

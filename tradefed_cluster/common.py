@@ -179,15 +179,16 @@ class DeviceState(object):
   UNAVAILABLE = "Unavailable"
   UNKNOWN = "Unknown"
   # MH device state
-  INIT = "Init"
-  DYING = "Dying"
-  MISSING = "Missing"
-  PREPPING = "Prepping"
-  DIRTY = "Dirty"
-  LAMEDUCK = "Lameduck"
-  IDLE = "Idle"
-  BUSY = "Busy"
-  OFFLINE = "Offline"
+  # https://source.corp.example.com/piper///depot/google3/devtools/mobileharness/api/model/proto/device.proto;rcl=326952115;l=13
+  INIT = "INIT"
+  IDLE = "IDLE"
+  BUSY = "BUSY"
+  DYING = "DYING"
+  PREPPING = "PREPPING"
+  DIRTY = "DIRTY"
+  LAMEDUCK = "LAMEDUCK"
+  MISSING = "MISSING"
+  OFFLINE = "OFFLINE"
 
 DEVICE_ALL_STATES = (
     DeviceState.ALLOCATED,
@@ -252,7 +253,9 @@ class CancelReason(messages.Enum):
   COMMAND_NOT_EXECUTABLE = 5
   INVALID_REQUEST = 6
 
-
+#     //depot/google3/third_party/py/tradefed_cluster/api_messages.py,
+#     //depot/google3/wireless/android/test_tools/tradefed_cluster/plugins/ants_errors.py
+# )
 
 
 class ErrorReason(messages.Enum):

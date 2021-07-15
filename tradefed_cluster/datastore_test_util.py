@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test util for datastore related tests."""
+import datetime
 import six
 
 from tradefed_cluster import api_messages
@@ -20,6 +21,7 @@ from tradefed_cluster import datastore_entities
 from tradefed_cluster.util import ndb_shim as ndb
 
 OWNERS = (six.ensure_str('owner1'), six.ensure_str('owner2'))
+_TIMESTAMP = datetime.datetime(2015, 10, 9)
 
 
 def CreateCluster(cluster,
@@ -249,18 +251,20 @@ def CreateDeviceBlocklist(lab_name, user='user@example.com'):
 
 
 def CreateTestHarnessImageMetadata(repo_name='test_repo',
-                                   digest=None,
-                                   test_harness_version=None,
+                                   digest='test_digest',
+                                   test_harness_version='test_version',
                                    current_tags=None,
-                                   create_time=None):
+                                   create_time=None,
+                                   sync_time=None):
   """Create a test harness image metadata entity."""
   image_metadata = datastore_entities.TestHarnessImageMetadata(
       repo_name=repo_name,
       digest=digest,
       test_harness='tradefed',
       test_harness_version=test_harness_version,
-      current_tags=current_tags,
-      create_time=create_time)
+      current_tags=current_tags or [],
+      create_time=create_time or _TIMESTAMP,
+      sync_time=sync_time or _TIMESTAMP)
   image_metadata.put()
   return image_metadata
 

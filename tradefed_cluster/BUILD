@@ -796,6 +796,7 @@ pytype_strict_library(
     deps = [
         ":common_lib",
         ":datastore_entities_lib",
+        ":datastore_util_lib",
         ":env_config_lib",
         "//tradefed_cluster/configs:lab_config_lib",
         "//tradefed_cluster/plugins:base_lib",
@@ -814,6 +815,7 @@ pytype_strict_library(
     deps = [
         ":common_lib",
         ":datastore_entities_lib",
+        ":datastore_util_lib",
         ":env_config_lib",
         "//tradefed_cluster/util:auth_lib",
         "//tradefed_cluster/util:ndb_shim_lib",

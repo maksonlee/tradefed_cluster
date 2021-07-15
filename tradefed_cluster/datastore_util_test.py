@@ -23,6 +23,8 @@ import datetime
 import re
 import unittest
 
+import mock
+
 from six.moves import range
 
 from tradefed_cluster import api_messages
@@ -217,6 +219,30 @@ class DatastoreUtilTest(testbed_dependent_test.TestbedDependentTest):
     host_info_dict.pop('flated_extra_info')
     return datastore_entities.HostInfoHistory(
         parent=host_info.key, **host_info_dict)
+
+  @mock.patch('tradefed_cluster.datastore_util.datetime')
+  def testDeleteEntitiesUpdatedEarlyThanSomeTimeAgo(self, mock_datetime):
+    time_now = datetime.datetime(2000, 7, 14)
+    mock_datetime.datetime.utcnow.return_value = time_now
+
+    datastore_test_util.CreateTestHarnessImageMetadata(
+        digest='d1', sync_time=datetime.datetime(1999, 12, 10))
+    datastore_test_util.CreateTestHarnessImageMetadata(
+        digest='d2', sync_time=datetime.datetime(2000, 7, 10))
+    datastore_test_util.CreateTestHarnessImageMetadata(
+        digest='d3', sync_time=datetime.datetime(2000, 5, 10))
+
+    datastore_util.DeleteEntitiesUpdatedEarlyThanSomeTimeAgo(
+        datastore_entities.TestHarnessImageMetadata,
+        datastore_entities.TestHarnessImageMetadata.sync_time,
+        datetime.timedelta(days=7))
+
+    remaining_entities = datastore_entities.TestHarnessImageMetadata.query(
+        ).fetch()
+
+    self.assertCountEqual(
+        ['d2'], [entity.digest for entity in remaining_entities])
+
 
 if __name__ == '__main__':
   unittest.main()

@@ -21,6 +21,7 @@ import requests
 
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
+from tradefed_cluster import datastore_util
 from tradefed_cluster import env_config
 from tradefed_cluster.util import auth
 from tradefed_cluster.util import ndb_shim as ndb
@@ -45,6 +46,8 @@ _DEFAULT_TRADEFED_REPO = 'gcr.io/dockerized-tradefed/tradefed'
 _TRADEFED_HARNESS_NAME = 'tradefed'
 # Template to create image metadata datastore key
 _IMAGE_METADATA_KEY_TMPL = '{}:{}'
+# Delete image metadata older than the period
+_STALE_METADATA_MAX_AGE = datetime.timedelta(days=180)
 
 
 @APP.route(r'/cron/syncer/sync_harness_image_metadata')
@@ -95,6 +98,12 @@ def SyncHarnessImageMetadata():
     entities_to_update.append(entity)
 
   ndb.put_multi(entities_to_update)
+
+  # Delete stale image metadata
+  datastore_util.DeleteEntitiesUpdatedEarlyThanSomeTimeAgo(
+      datastore_entities.TestHarnessImageMetadata,
+      datastore_entities.TestHarnessImageMetadata.sync_time,
+      _STALE_METADATA_MAX_AGE)
 
   return common.HTTP_OK
 

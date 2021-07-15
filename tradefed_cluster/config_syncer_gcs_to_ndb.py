@@ -14,6 +14,7 @@
 
 """Sync Cluster or Host configs from google cloud storage to TFC NDB."""
 
+import datetime
 import logging
 import os
 import re
@@ -22,6 +23,7 @@ import flask
 
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
+from tradefed_cluster import datastore_util
 from tradefed_cluster import env_config
 from tradefed_cluster.configs import lab_config as lab_config_util
 from tradefed_cluster.plugins import base as plugins_base
@@ -56,6 +58,7 @@ _INVENTORY_GROUP_VAR_PATTERN = re.compile(
 )
 _INVENTORY_GROUP_KEY = 'inventory_group'
 _GROUP_VAR_ACCOUNTS = 'accounts'
+_STATLE_CONFIG_MAX_AGE = datetime.timedelta(days=7)
 
 APP = flask.Flask(__name__)
 
@@ -195,6 +198,20 @@ def SyncToNDB():
       for cluster_config_pb in lab_config_pb.cluster_configs:  # pytype: disable=attribute-error
         _UpdateHostConfigs(cluster_config_pb.host_configs, cluster_config_pb,
                            lab_config_pb)
+
+  # TODO: change to delete host config entities based on existence.
+  datastore_util.DeleteEntitiesUpdatedEarlyThanSomeTimeAgo(
+      datastore_entities.LabConfig,
+      datastore_entities.LabConfig.update_time,
+      _STATLE_CONFIG_MAX_AGE)
+  datastore_util.DeleteEntitiesUpdatedEarlyThanSomeTimeAgo(
+      datastore_entities.ClusterConfig,
+      datastore_entities.ClusterConfig.update_time,
+      _STATLE_CONFIG_MAX_AGE)
+  datastore_util.DeleteEntitiesUpdatedEarlyThanSomeTimeAgo(
+      datastore_entities.HostConfig,
+      datastore_entities.HostConfig.update_time,
+      _STATLE_CONFIG_MAX_AGE)
 
 
 class _GcsDataLoader(dataloader.DataLoader):

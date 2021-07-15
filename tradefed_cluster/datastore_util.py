@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Util for datastore query."""
+import datetime
 import logging
 import six
 
@@ -152,3 +153,20 @@ def GetOrCreateEntity(entity_type, entity_id=None, **kwargs):
     logging.debug('Could not find the datastore entity by (%s, %s).',
                   entity_type, entity_id)
   return entity_type(**kwargs)
+
+
+def DeleteEntitiesUpdatedEarlyThanSomeTimeAgo(
+    entity_type, timestamp_field, time_ago):
+  """Delete all entities in a type that are updated earlier than given time ago.
+
+  Args:
+    entity_type: a class name, which is a subclass of ndb.model, for the entity
+      type.
+    timestamp_field: a datastore model property type, to specify which field to
+      read the update_timestamp.
+    time_ago: datetime.timedelta, entities from how long ago to delete.
+  """
+  time_now = datetime.datetime.utcnow()
+  query = entity_type.query().filter(timestamp_field < time_now - time_ago)
+  keys = query.fetch(keys_only=True)
+  ndb.delete_multi(keys)

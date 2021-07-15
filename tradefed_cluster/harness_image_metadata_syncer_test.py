@@ -33,9 +33,11 @@ class HarnessImageMetadataSyncerTest(parameterized.TestCase,
 
   @mock.patch('tradefed_cluster.harness_image_metadata_syncer.auth')
   @mock.patch('tradefed_cluster.harness_image_metadata_syncer.datetime')
+  @mock.patch('tradefed_cluster.harness_image_metadata_syncer.'
+              'datastore_util.datetime')
   @mock.patch('tradefed_cluster.harness_image_metadata_syncer.requests')
-  def testSyncHarnessImageMetadata_NoExistingEntity(self, mock_requests,
-                                                    mock_datetime, mock_auth):
+  def testSyncHarnessImageMetadata_NoExistingEntity(
+      self, mock_requests, mock_util_datetime, mock_syncer_datetime, mock_auth):
     """Test sync harness image metadata."""
     time_now = datetime.datetime(2020, 12, 24)
     time_created = datetime.datetime(2020, 12, 10)
@@ -43,8 +45,10 @@ class HarnessImageMetadataSyncerTest(parameterized.TestCase,
         int((time_created - datetime.datetime(1970, 1, 1)).total_seconds() *
             1000))
 
-    mock_datetime.datetime.utcnow.return_value = time_now
-    mock_datetime.datetime.utcfromtimestamp = datetime.datetime.utcfromtimestamp
+    mock_util_datetime.datetime.utcnow.return_value = time_now
+    mock_syncer_datetime.datetime.utcnow.return_value = time_now
+    mock_syncer_datetime.datetime.utcfromtimestamp = (
+        datetime.datetime.utcfromtimestamp)
     mock_requests.get().json.return_value = {
         'manifest': {
             'sha1': {
@@ -113,9 +117,11 @@ class HarnessImageMetadataSyncerTest(parameterized.TestCase,
 
   @mock.patch('tradefed_cluster.harness_image_metadata_syncer.auth')
   @mock.patch('tradefed_cluster.harness_image_metadata_syncer.datetime')
+  @mock.patch('tradefed_cluster.harness_image_metadata_syncer.'
+              'datastore_util.datetime')
   @mock.patch('tradefed_cluster.harness_image_metadata_syncer.requests')
   def testSyncHarnessImageMetadata_OverwriteExistingEntities(
-      self, mock_requests, mock_datetime, mock_auth):
+      self, mock_requests, mock_util_datetime, mock_syncer_datetime, mock_auth):
     """Test sync harness image metadata."""
     time_now = datetime.datetime(2020, 12, 24)
     time_created = datetime.datetime(2020, 12, 10)
@@ -123,8 +129,10 @@ class HarnessImageMetadataSyncerTest(parameterized.TestCase,
         int((time_created - datetime.datetime(1970, 1, 1)).total_seconds() *
             1000))
 
-    mock_datetime.datetime.utcnow.return_value = time_now
-    mock_datetime.datetime.utcfromtimestamp = datetime.datetime.utcfromtimestamp
+    mock_util_datetime.datetime.utcnow.return_value = time_now
+    mock_syncer_datetime.datetime.utcnow.return_value = time_now
+    mock_syncer_datetime.datetime.utcfromtimestamp = (
+        datetime.datetime.utcfromtimestamp)
     mock_requests.get().json.return_value = {
         'manifest': {
             'sha1': {

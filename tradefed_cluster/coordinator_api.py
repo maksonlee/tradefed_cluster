@@ -82,6 +82,9 @@ class CoordinatorApi(remote.Service):
       requests = datastore_entities.Request.query(
           datastore_entities.Request.state == state, namespace=common.NAMESPACE)
       for request in requests:
+        logging.info(
+            "Backfilling request sync for request %s (state=%s)",
+            request.key.id(), request.state)
         request_sync_monitor.Monitor(request.key.id())
 
     return message_types.VoidMessage()

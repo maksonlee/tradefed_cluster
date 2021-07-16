@@ -226,6 +226,12 @@ def SyncRequest(request_id):
     sync_status_key.delete()
     return
 
+  if request.state == common.RequestState.UNKNOWN:
+    logging.debug(
+        'Request %s is being scheduled; delaying sync', request_id)
+    _AddRequestToQueue(request_id)
+    return
+
   # If a request is in a final state, switch to on-demand event processing.
   last_sync = common.IsFinalRequestState(request.state)
   if last_sync:
@@ -254,7 +260,7 @@ def HandleRequestTask():
   """Request sync queue handler."""
   payload = flask.request.get_data()
   request_info = json.loads(payload)
-  logging.debug('RequestTaskHandler syncing %s', request_info)
+  logging.info('RequestTaskHandler syncing %s', request_info)
   try:
     SyncRequest(request_info[REQUEST_ID_KEY])
   except RequestSyncStatusNotFoundError:

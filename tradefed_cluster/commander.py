@@ -245,7 +245,8 @@ def _CheckPendingCommands(request, request_summary):
       request_summary.queued_count + request_summary.running_count)
   logging.info(
       "active_command_count = %d, pending_command_count = %d",
-      request_summary.pending_count, active_command_count)
+
+      active_command_count, request_summary.pending_count)
   next_command_count = min(
       request.max_concurrent_tasks - active_command_count,
       request_summary.pending_count)

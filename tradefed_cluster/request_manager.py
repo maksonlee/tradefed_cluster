@@ -124,10 +124,15 @@ def _UpdateState(request_id, force=False):
   # The logic current allows state transitions between the final states.
   # TODO: consider preventing state transitions between the final
   # states.
-  if (summary.total_count and
-      summary.completed_count == summary.total_count):
+  finished_count = (
+      summary.canceled_count +
+      summary.completed_count +
+      summary.error_count +
+      summary.fatal_count)
+  is_finished = summary.total_count and finished_count == summary.total_count
+  if is_finished and summary.completed_count == summary.total_count:
     next_state = common.RequestState.COMPLETED
-  elif summary.error_count + summary.fatal_count > 0:
+  elif is_finished and summary.error_count + summary.fatal_count > 0:
     next_state = common.RequestState.ERROR
   elif summary.canceled_count > 0:
     next_state = common.RequestState.CANCELED

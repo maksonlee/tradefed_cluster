@@ -114,7 +114,8 @@ class RequestMonitorTest(testbed_dependent_test.TestbedDependentTest):
                 command_line='command_line2',
                 cluster='cluster',
                 run_target='run_target')
-        ])
+        ],
+        state=common.RequestState.QUEUED)
 
     request_sync_monitor.SyncRequest(REQUEST_ID)
 
@@ -164,8 +165,8 @@ class RequestMonitorTest(testbed_dependent_test.TestbedDependentTest):
                 command_line='command_line2',
                 cluster='cluster',
                 run_target='run_target')
-        ])
-    request.state = common.RequestState.COMPLETED
+        ],
+        state=common.RequestState.COMPLETED)
     request.put()
 
     request_sync_monitor.SyncRequest(REQUEST_ID)
@@ -193,7 +194,8 @@ class RequestMonitorTest(testbed_dependent_test.TestbedDependentTest):
                 command_line='command_line2',
                 cluster='cluster',
                 run_target='run_target')
-        ])
+        ],
+        state=common.RequestState.QUEUED)
 
     with self.assertRaises(RuntimeError):
       request_sync_monitor.SyncRequest(REQUEST_ID)

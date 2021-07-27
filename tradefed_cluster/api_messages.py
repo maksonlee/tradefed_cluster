@@ -333,6 +333,8 @@ class CommandInfo(messages.Message):
     run_target: a run target.
     run_count: a run count.
     shard_count: a shard count.
+    allow_partial_device_match: a boolean field indicating whether partial
+        device match is supported or not.
   """
   name = messages.StringField(1)
   command_line = NonEmptyStringField(2)
@@ -340,6 +342,7 @@ class CommandInfo(messages.Message):
   run_target = NonEmptyStringField(4)
   run_count = messages.IntegerField(5, default=1)
   shard_count = messages.IntegerField(6, default=1)
+  allow_partial_device_match = messages.BooleanField(7, default=False)
 
 
 class CommandMessage(messages.Message):

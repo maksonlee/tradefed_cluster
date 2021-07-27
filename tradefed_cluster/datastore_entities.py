@@ -209,6 +209,7 @@ class CommandInfo(ndb.Model):
   run_target = ndb.StringProperty()
   run_count = ndb.IntegerProperty(default=1)
   shard_count = ndb.IntegerProperty(default=1)
+  allow_partial_device_match = ndb.BooleanProperty(default=False)
 
   @classmethod
   def FromMessage(cls, msg):
@@ -220,7 +221,8 @@ class CommandInfo(ndb.Model):
         cluster=msg.cluster,
         run_target=msg.run_target,
         run_count=msg.run_count,
-        shard_count=msg.shard_count)
+        shard_count=msg.shard_count,
+        allow_partial_device_match=msg.allow_partial_device_match)
 
 
 @MessageConverter(CommandInfo)

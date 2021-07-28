@@ -139,7 +139,9 @@ def _CreateCommands(request):
               cluster=command_info.cluster,
               run_target=command_info.run_target,
               run_count=command_info.run_count,
-              shard_count=command_info.shard_count))
+              shard_count=command_info.shard_count,
+              allow_partial_device_match=command_info.allow_partial_device_match
+              ))
       shard_indexes.append(shard_index)
 
   commands = command_manager.CreateCommands(

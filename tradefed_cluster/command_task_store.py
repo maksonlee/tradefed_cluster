@@ -42,7 +42,8 @@ CommandTaskArgs = collections.namedtuple(
      'cluster',
      'run_target',
      'priority',
-     'request_type'])
+     'request_type',
+     'allow_partial_device_match'])
 
 
 def _Now():
@@ -168,7 +169,8 @@ def CreateTask(command_task_args):
       priority=command_task_args.priority or 0,
       leasable=True,
       request_type=command_task_args.request_type,
-      schedule_timestamp=common.Now())
+      schedule_timestamp=common.Now(),
+      allow_partial_device_match=command_task_args.allow_partial_device_match)
   return _DoCreateTask(task)
 
 

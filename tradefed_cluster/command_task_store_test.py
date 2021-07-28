@@ -167,7 +167,8 @@ class TaskStoreTest(testbed_dependent_test.TestbedDependentTest):
         run_target='run_target1,run_target2;run_target3,run_target4',
         priority=1,
         request_type=None,
-        plugin_data={'ants_invocation_id': 'i123', 'ants_work_unit_id': 'w123'})
+        plugin_data={'ants_invocation_id': 'i123', 'ants_work_unit_id': 'w123'},
+        allow_partial_device_match=False)
     self.command_task_args2 = command_task_store.CommandTaskArgs(
         request_id='request_id2',
         command_id='command_id2',
@@ -182,7 +183,8 @@ class TaskStoreTest(testbed_dependent_test.TestbedDependentTest):
         run_target='run_target5',
         priority=None,
         request_type=None,
-        plugin_data={'ants_invocation_id': 'i123', 'ants_work_unit_id': 'w123'})
+        plugin_data={'ants_invocation_id': 'i123', 'ants_work_unit_id': 'w123'},
+        allow_partial_device_match=False)
     command_task_store.CreateTask(self.command_task_args1)
     command_task_store.CreateTask(self.command_task_args2)
 
@@ -248,13 +250,15 @@ class TaskStoreTest(testbed_dependent_test.TestbedDependentTest):
         run_target='run_target5',
         priority=1,
         request_type=None,
-        plugin_data={'ants_invocation_id': 'i123', 'ants_work_unit_id': 'w123'})
+        plugin_data={'ants_invocation_id': 'i123', 'ants_work_unit_id': 'w123'},
+        allow_partial_device_match=True)
     command_task_store.CreateTask(command_task_args)
     task = command_task_store._Key('task_id3').get()
     self.assertTrue(task.leasable)
     self.assertEqual('task_id3', task.task_id)
     self.assertEqual(command_line, task.command_line)
     self.assertIsNotNone(task.schedule_timestamp)
+    self.assertTrue(task.allow_partial_device_match)
 
   def testGetLeasableTasks(self):
     tasks = list(command_task_store.GetLeasableTasks(

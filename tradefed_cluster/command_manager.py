@@ -738,7 +738,8 @@ def _ScheduleTasksToCommandTaskStore(command):
         run_target=command.run_target,
         priority=command.priority,
         request_type=command.request_type,
-        plugin_data=command.plugin_data)
+        plugin_data=command.plugin_data,
+        allow_partial_device_match=command.allow_partial_device_match)
     if not command_task_store.CreateTask(command_task_args):
       logging.warning("task %s already exists", task_id)
 
@@ -903,6 +904,7 @@ def _DoCreateCommands(
         name=command_info.name,
         command_line=command_info.command_line,
         cluster=command_info.cluster,
+        allow_partial_device_match=command_info.allow_partial_device_match,
         run_target=command_info.run_target,
         run_count=command_info.run_count,
         state=state or common.CommandState.UNKNOWN,

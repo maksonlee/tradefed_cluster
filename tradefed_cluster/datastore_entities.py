@@ -234,7 +234,8 @@ def CommandInfoToMessage(entity):
       cluster=entity.cluster,
       run_target=entity.run_target,
       run_count=entity.run_count,
-      shard_count=entity.shard_count)
+      shard_count=entity.shard_count,
+      allow_partial_device_match=entity.allow_partial_device_match)
 
 
 def _Request_AddCommandInfo(obj):    """Upgrade function for legacy Request objects."""
@@ -483,6 +484,8 @@ class Command(ndb.Model):
     shard_count: a shard count.
     shard_index: a shard index.
     plugin_data: the plugin data.
+    allow_partial_device_match: a boolean field indicating whether partial
+         device match is allowed or not
   """
   request_id = ndb.StringProperty()
   name = ndb.StringProperty()
@@ -506,6 +509,7 @@ class Command(ndb.Model):
   shard_count = ndb.IntegerProperty()
   shard_index = ndb.IntegerProperty()
   plugin_data = ndb.JsonProperty()
+  allow_partial_device_match = ndb.BooleanProperty(default=False)
 
 
 @MessageConverter(Command)
@@ -527,7 +531,8 @@ def CommandToMessage(command):
       cancel_reason=command.cancel_reason,
       shard_count=command.shard_count,
       shard_index=command.shard_index,
-      error_reason=command.error_reason)
+      error_reason=command.error_reason,
+      allow_partial_device_match=command.allow_partial_device_match)
 
 
 class TestGroupStatus(ndb.Model):
@@ -1655,6 +1660,8 @@ class CommandTask(ndb.Model):
     lease_timestamp: the last timestamp the task is leased.
     request_type: a request type
     plugin_data: the plugin data.
+    allow_partial_device_match: a boolean field indicating whether partial
+         device match is allowed or not
   """
   request_id = ndb.StringProperty()
   command_id = ndb.StringProperty()
@@ -1694,6 +1701,7 @@ class CommandTask(ndb.Model):
   lease_timestamp = ndb.DateTimeProperty()
   request_type = ndb.EnumProperty(api_messages.RequestType)
   plugin_data = ndb.JsonProperty()
+  allow_partial_device_match = ndb.BooleanProperty(default=False)
 
 
 class CommandErrorConfigMapping(ndb.Model):

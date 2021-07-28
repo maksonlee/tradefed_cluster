@@ -363,6 +363,7 @@ class CommandMessage(messages.Message):
   cancel_reason = messages.EnumField(common.CancelReason, 14)
   error_reason = messages.EnumField(common.ErrorReason, 15)
   name = messages.StringField(16)
+  allow_partial_device_match = messages.BooleanField(17, default=False)
 
 
 class RequestType(messages.Enum):

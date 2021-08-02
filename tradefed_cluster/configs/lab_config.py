@@ -177,7 +177,9 @@ class HostConfig(object):
   @property
   def graceful_shutdown(self):
     """Graceful shutdown or not."""
-    return self.cluster_config_pb.graceful_shutdown or False
+    return (self.host_config_pb.graceful_shutdown or
+            self.cluster_config_pb.graceful_shutdown or
+            False)
 
   @property
   def shutdown_timeout_sec(self):

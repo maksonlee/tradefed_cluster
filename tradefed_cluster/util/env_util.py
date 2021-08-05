@@ -58,27 +58,39 @@ class EnvConfig(object):
 ENV_TO_CONFIG = {
     ENV_PROD: EnvConfig(
         env_suffix='',
-        zanzibar_server=ZANZIBAR_SERVER_PROD
+        zanzibar_server=ZANZIBAR_SERVER_PROD,
+        use_elasticsearch=False,
+        elasticsearch_server=''
     ),
     ENV_STAGING: EnvConfig(
         env_suffix='-' + ENV_STAGING,
-        zanzibar_server=ZANZIBAR_SERVER_PROD
+        zanzibar_server=ZANZIBAR_SERVER_PROD,
+        use_elasticsearch=False,
+        elasticsearch_server=''
     ),
     ENV_ALPHA: EnvConfig(
         env_suffix='-' + ENV_ALPHA,
-        zanzibar_server=ZANZIBAR_SERVER_DEV
+        zanzibar_server=ZANZIBAR_SERVER_DEV,
+        use_elasticsearch=False,
+        elasticsearch_server=''
     ),
     ENV_BUILD_QA: EnvConfig(
         env_suffix='-' + ENV_BUILD_QA,
-        zanzibar_server=ZANZIBAR_SERVER_DEV
+        zanzibar_server=ZANZIBAR_SERVER_DEV,
+        use_elasticsearch=False,
+        elasticsearch_server=''
     ),
     ENV_QA: EnvConfig(
         env_suffix='-' + ENV_QA,
-        zanzibar_server=ZANZIBAR_SERVER_DEV
+        zanzibar_server=ZANZIBAR_SERVER_DEV,
+        use_elasticsearch=False,
+        elasticsearch_server=''
     ),
     ENV_DEV: EnvConfig(
         env_suffix='-' + ENV_ALPHA,
-        zanzibar_server=ZANZIBAR_SERVER_DEV
+        zanzibar_server=ZANZIBAR_SERVER_DEV,
+        use_elasticsearch=True,
+        elasticsearch_server='http://localhost:9200'
     ),
 }
 

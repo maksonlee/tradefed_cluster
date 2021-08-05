@@ -321,7 +321,8 @@ class CommandTaskMatcher(object):
         allocated_groups.add(group.name)
       else:
         # for some group requirement there is no matching in this host.
-        logging.debug('Failed to match')
+        if command_task.allow_partial_device_match:
+          continue
         return None
     return matched_devices
 

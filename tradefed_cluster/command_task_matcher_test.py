@@ -292,6 +292,49 @@ class CommandTaskMatcherTest(unittest.TestCase):
         set(['d1', 'd3']),
         set([d1.device_serial, d2.device_serial]))
 
+  def testMatchType3Test_withAllowPartialDeviceMatchFlagTurnedOff(self):
+    host = self._CreateHostInfo(
+        [self._CreateDeviceInfo('d1', 'run_target1', 'g1'),
+         self._CreateDeviceInfo('d2', 'run_target2', 'g2'),
+         self._CreateDeviceInfo('d3', 'run_target3', 'g3')])
+    matcher = command_task_matcher.CommandTaskMatcher(host)
+    task = self._CreateCommandTask(
+        '1',
+        [[datastore_entities.RunTarget(name='run_target1')],
+         [datastore_entities.RunTarget(name='run_target2')],
+         [datastore_entities.RunTarget(name='run_target3')],
+         [datastore_entities.RunTarget(name='run_target4')],
+         ])
+
+    self.assertFalse(task.allow_partial_device_match)
+    matched_devices = matcher.Match(task)
+    self.assertIsNone(matched_devices)
+
+  def testMatchType3Test_withAllowPartialDeviceMatchFlagTurnedOn(self):
+    host = self._CreateHostInfo(
+        [self._CreateDeviceInfo('d1', 'run_target1', 'g1'),
+         self._CreateDeviceInfo('d2', 'run_target2', 'g2'),
+         self._CreateDeviceInfo('d3', 'run_target3', 'g3')])
+    matcher = command_task_matcher.CommandTaskMatcher(host)
+    task = self._CreateCommandTask(
+        '1',
+        [[datastore_entities.RunTarget(name='run_target1')],
+         [datastore_entities.RunTarget(name='run_target2')],
+         [datastore_entities.RunTarget(name='run_target3')],
+         [datastore_entities.RunTarget(name='run_target4')],
+         ])
+
+    task.allow_partial_device_match = True
+    self.assertTrue(task.allow_partial_device_match)
+    matched_devices = matcher.Match(task)
+    self.assertEqual(3, len(matched_devices))
+    d1 = matched_devices[0]
+    d2 = matched_devices[1]
+    d3 = matched_devices[2]
+    self.assertEqual(
+        set(['d1', 'd2', 'd3']),
+        set([d1.device_serial, d2.device_serial, d3.device_serial]))
+
   def testMatchType3Test_exclusive(self):
     host = self._CreateHostInfo(
         [self._CreateDeviceInfo('d1', 'run_target1', 'g1'),

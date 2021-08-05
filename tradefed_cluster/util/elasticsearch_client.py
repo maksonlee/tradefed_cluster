@@ -43,3 +43,16 @@ class ElasticsearchClient(object):
       document: an entity
     """
     self._GetEsClient().index(index_name, id=doc_id, body=document)
+
+  def Search(self, index_name, query):
+    """Fetches a page of results based on the provided query.
+
+    Args:
+      index_name: the index
+      query: query to apply
+
+    Returns:
+     tuple(list of elements).
+    """
+    results = self._GetEsClient().search(index=index_name, body=query)
+    return [hit['_source'] for hit in results['hits']['hits']]

@@ -21,6 +21,7 @@ from __future__ import print_function
 
 import datetime
 
+import dateutil.parser
 import six
 from tradefed_cluster import api_messages
 from tradefed_cluster import common
@@ -1307,6 +1308,37 @@ def HostStateHistoryToMessage(host_state_history_entity):
       hostname=host_state_history_entity.hostname,
       timestamp=host_state_history_entity.timestamp,
       state=host_state_history_entity.state.name)
+
+
+class HostResource(ndb.Expando):
+  """Host resource entity. Key should be hostname.
+
+  Attributes:
+    hostname: hostname
+    resource: josn object of the host resource.
+    update_time: when the  object is updated.
+    event_timestamp: last host resource event timestamp.
+  """
+  hostname = ndb.StringProperty()
+  resource = ndb.JsonProperty(compressed=True)
+  update_timestamp = ndb.DateTimeProperty(auto_now=True)
+  event_timestamp = ndb.DateTimeProperty()
+
+  @classmethod
+  def FromJson(cls, d):
+    hostname = d['identifier']['hostname']
+    key = ndb.Key(cls, hostname)
+    event_timestamp = None
+    for resource in d.get('resource', []):
+      timestamp = dateutil.parser.parse(
+          resource['timestamp']).replace(tzinfo=None)
+      if not event_timestamp or timestamp > event_timestamp:
+        event_timestamp = timestamp
+    return HostResource(
+        key=key,
+        hostname=hostname,
+        resource=d,
+        event_timestamp=event_timestamp or datetime.datetime.utcnow())
 
 
 class HostUpdateState(ndb.Model):

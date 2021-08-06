@@ -358,6 +358,36 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
     self.assertSameTestResource(
         entity, datastore_entities.TestResourceToMessage(entity))
 
+  def testHostResourceFromJson(self):
+    host_resource_dict = {
+        'identifier': {'hostname': 'ahost'},
+        'attribute': [{'name': 'harness_version', 'value': '4.148.0'}],
+        'resource': [{
+            'resource_name': 'disk_space',
+            'resource_instance': '$EXTERNAL_STORAGE',
+            'metric': [
+                {'tag': 'avail', 'value': 100.0},
+                {'tag': 'used', 'value': 9.051264}
+            ],
+            'timestamp': '2021-08-04T23:16:00.000Z'
+        }, {
+            'resource_name': 'memory_usage',
+            'metric': [
+                {'tag': 'avail', 'value': 100.0},
+                {'tag': 'used', 'value': 9.051264}
+            ],
+            'timestamp': '2021-08-04T23:18:00.000Z'
+        }]
+    }
+    entity = datastore_entities.HostResource.FromJson(host_resource_dict)
+    entity.put()
+    self.assertEqual('ahost', entity.hostname)
+    self.assertEqual('ahost', entity.resource['identifier']['hostname'])
+    self.assertEqual(
+        datetime.datetime(2021, 8, 4, 23, 18),
+        entity.event_timestamp)
+    self.assertIsNotNone(entity.update_timestamp)
+
 
 if __name__ == '__main__':
   unittest.main()

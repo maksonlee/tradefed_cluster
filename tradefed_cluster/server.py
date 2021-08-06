@@ -25,6 +25,7 @@ from tradefed_cluster import device_history_cleaner
 from tradefed_cluster import device_info_reporter
 from tradefed_cluster import device_monitor
 from tradefed_cluster import harness_image_metadata_syncer
+from tradefed_cluster import lab_resource_monitor
 from tradefed_cluster import notification_handler
 from tradefed_cluster import notifier
 from tradefed_cluster import request_sync_monitor
@@ -70,6 +71,7 @@ TFC = RegexDispatcher([
     (r'/_ah/queue/test-request-queue', commander.APP),
     # Cron handlers
     (r'/cron/monitor/devices/ndb', device_monitor.APP),
+    (r'/cron/monitor/lab_resource', lab_resource_monitor.APP),
     (r'/cron/report/devices', device_info_reporter.APP),
     (r'/cron/cleanup/device_history', device_history_cleaner.APP),
     (r'/cron/notifier_update_request_status', notification_handler.APP),

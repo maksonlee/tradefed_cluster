@@ -49,6 +49,7 @@ class EnvConfig(env_util.EnvConfig):
         'email_templates',
         'device_report_template.html')
     self.plugin = registry.GetNoOpPlugin()
+    self.lab_resource_pubsub_topic = None
 
     # Service providers
     self.acl_plugin = None

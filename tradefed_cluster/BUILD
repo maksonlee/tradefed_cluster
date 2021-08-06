@@ -895,6 +895,7 @@ pytype_strict_library(
         ":common_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
         "//tradefed_cluster/util:ndb_util_lib",
+        third_party("dateutil"),
         third_party("six"),
     ],
 )
@@ -1320,6 +1321,36 @@ py_test(
 )
 
 pytype_strict_library(
+    name = "lab_resource_monitor_lib",
+    srcs = [
+        "lab_resource_monitor.py",
+    ],
+    deps = [
+        ":common_lib",
+        ":datastore_entities_lib",
+        ":env_config_lib",
+        "//tradefed_cluster/util:pubsub_client_lib",
+        third_party("flask"),
+        third_party("six"),
+    ],
+)
+
+py_test(
+    name = "lab_resource_monitor_test",
+    srcs = [
+        "lab_resource_monitor_test.py",
+    ],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":lab_resource_monitor_lib",
+        ":testbed_dependent_test_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
+        third_party("mock"),
+    ],
+)
+
+pytype_strict_library(
     name = "metric_lib",
     srcs = [
         "metric.py",
@@ -1664,6 +1695,7 @@ pytype_strict_library(
         ":device_info_reporter_lib",
         ":device_monitor_lib",
         ":harness_image_metadata_syncer_lib",
+        ":lab_resource_monitor_lib",
         ":notification_handler_lib",
         ":notifier_lib",
         ":request_sync_monitor_lib",

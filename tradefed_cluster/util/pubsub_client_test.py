@@ -25,6 +25,8 @@ from tradefed_cluster.util import pubsub_client
 
 HTTP_ERROR_409 = errors.HttpError(
     resp=mock.MagicMock(status=409), content='')
+HTTP_ERROR_404 = errors.HttpError(
+    resp=mock.MagicMock(status=404), content='')
 
 
 class PubsubClientTest(testbed_dependent_test.TestbedDependentTest):
@@ -73,6 +75,104 @@ class PubsubClientTest(testbed_dependent_test.TestbedDependentTest):
             topic='topic',
             body={'messages': []}),
         mock.call.projects().topics().publish().execute()])
+
+  def testGetSubscription(self):
+    self.pubsub_client.GetSubscription('subscription')
+
+    self.mock_api_client.assert_has_calls([
+        mock.call.projects(),
+        mock.call.projects().subscriptions(),
+        mock.call.projects().subscriptions().get(
+            subscription='subscription'),
+        mock.call.projects().subscriptions().get().execute()])
+
+  def testGetSubscription_noExist(self):
+    self.mock_api_client.projects().subscriptions().get(
+        ).execute.side_effect = [HTTP_ERROR_404]
+
+    sub = self.pubsub_client.GetSubscription('subscription')
+
+    self.mock_api_client.assert_has_calls([
+        mock.call.projects(),
+        mock.call.projects().subscriptions(),
+        mock.call.projects().subscriptions().get(
+            subscription='subscription'),
+        mock.call.projects().subscriptions().get().execute()])
+    self.assertIsNone(sub)
+
+  def testCreateSubscription(self):
+    """Tests whether the method makes a correct API request."""
+    self.mock_api_client.projects().subscriptions().get(
+        ).execute.side_effect = [HTTP_ERROR_404]
+
+    self.pubsub_client.CreateSubscription('subscription', 'topic')
+
+    self.mock_api_client.assert_has_calls([
+        mock.call.projects(),
+        mock.call.projects().subscriptions(),
+        mock.call.projects().subscriptions().get(
+            subscription='subscription'),
+        mock.call.projects().subscriptions().get().execute(),
+        mock.call.projects(),
+        mock.call.projects().subscriptions(),
+        mock.call.projects().subscriptions().create(
+            name='subscription',
+            body={
+                'topic': 'topic',
+                'ackDeadlineSeconds': pubsub_client.DEFAULT_ACK_DEADLINE_SECONDS
+            }),
+        mock.call.projects().subscriptions().create().execute()])
+
+  def testCreateSubscription_alreadyExists(self):
+    """Tests whether the method makes a correct API request."""
+    self.mock_api_client.projects().subscriptions().get(
+        ).execute.side_effect = [{
+            'name': 'subscription',
+            'topic': 'topic'}]
+
+    self.pubsub_client.CreateSubscription('subscription', 'topic')
+
+    self.mock_api_client.assert_has_calls([
+        mock.call.projects(),
+        mock.call.projects().subscriptions(),
+        mock.call.projects().subscriptions().get(
+            subscription='subscription'),
+        mock.call.projects().subscriptions().get().execute()])
+
+  def testPullMessages(self):
+    """Tests whether the method makes a correct API request."""
+    (self.mock_api_client.projects.return_value.subscriptions.return_value
+     .pull.return_value.execute.return_value) = {
+         'receivedMessages': []
+     }
+
+    messages = self.pubsub_client.PullMessages('subscription', 999)
+
+    self.assertEmpty(messages)
+    self.mock_api_client.assert_has_calls([
+        mock.call.projects(),
+        mock.call.projects().subscriptions(),
+        mock.call.projects().subscriptions().pull(
+            subscription='subscription',
+            body={
+                'returnImmediately': False,
+                'maxMessages': 999
+            }),
+        mock.call.projects().subscriptions().pull().execute()])
+
+  def testAcknowledgeMessages(self):
+    """Tests whether the method makes a correct API request."""
+    ack_ids = [1, 2, 3, 4, 5]
+
+    self.pubsub_client.AcknowledgeMessages('subscription', ack_ids)
+
+    self.mock_api_client.assert_has_calls([
+        mock.call.projects(),
+        mock.call.projects().subscriptions(),
+        mock.call.projects().subscriptions().acknowledge(
+            subscription='subscription',
+            body={'ackIds': ack_ids}),
+        mock.call.projects().subscriptions().acknowledge().execute()])
 
 
 if __name__ == '__main__':

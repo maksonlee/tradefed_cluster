@@ -40,8 +40,10 @@ from tradefed_cluster.util import email_sender
 
 PRODUCT_AGGREGATION = 'product'
 CLUSTER_AGGREGATION = 'cluster'
+UNKNOWN_KEY = 'unknown'
 DEVICE_OFFLINE_STATES = [
-    'Fastboot', 'Gone', 'Ignored', 'Unavailable', 'Unknown']
+    'Fastboot', 'Gone', 'Ignored', 'Unavailable', UNKNOWN_KEY
+]
 DEVICE_REPORT_TEMPLATE = 'device_report_template.html'
 DEFAULT_SENDER = 'Tradefed Cluster <noreply@example.com>'
 DEFAULT_REPLY_TO = 'android-test-infra@example.com'
@@ -162,9 +164,11 @@ class DeviceReport(object):
       self.state_count_map[state] = 0
     for device in self.devices:
       self.total += 1
-      self.count_map[getattr(device, self.aggregation, 'unknown')].total += 1
+      aggregation_key = (
+          getattr(device, self.aggregation, UNKNOWN_KEY) or UNKNOWN_KEY)
+      self.count_map[aggregation_key].total += 1
       if device.state in self.states:
-        self.count_map[getattr(device, self.aggregation, 'unknown')].count += 1
+        self.count_map[aggregation_key].count += 1
         self.state_count_map[device.state] += 1
         self.state_total += 1
 

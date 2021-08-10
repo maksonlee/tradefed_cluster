@@ -238,6 +238,16 @@ class DeviceInfoReporterTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(1, counts['flounder'].total)
     self.assertEqual(0, counts['flounder'].count)
 
+  def testDeviceReport_unknownKeys(self):
+    # Test DeviceReport class with missing key values
+    devices = [datastore_entities.DeviceInfo(state='Allocated')]
+    report = device_info_reporter.DeviceReport(
+        devices=devices, aggregation='product', states=['Allocated'])
+    counts = report.GetReportCounts()
+    self.assertLen(counts, 1)
+    self.assertEqual(1, counts['unknown'].total)
+    self.assertEqual(1, counts['unknown'].count)
+
   def testReportCount(self):
     # Test ReportCount class
     target = device_info_reporter.ReportCount()

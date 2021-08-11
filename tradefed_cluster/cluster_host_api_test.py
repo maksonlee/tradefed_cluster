@@ -14,6 +14,7 @@
 """Tests for cluster_host_api."""
 
 import datetime
+import json
 import unittest
 
 import mock
@@ -2360,6 +2361,33 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertIn(expected_error_msg, api_response.body)
     self.assertIsNone(datastore_entities.HostUpdateState.get_by_id(hostname1))
     self.assertIsNone(datastore_entities.HostUpdateState.get_by_id(hostname2))
+
+  def testGetHostResource(self):
+    """Tests GetHostResource."""
+    entity = datastore_test_util.CreateHostResource('ahost')
+    api_request = {'hostname': 'ahost'}
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.GetHostResource',
+        api_request)
+    self.assertEqual('200 OK', api_response.status)
+    host_resource = protojson.decode_message(
+        api_messages.HostResource, api_response.body)
+    self.assertEqual('ahost', host_resource.hostname)
+    self.assertEqual(entity.resource, json.loads(host_resource.resource))
+    self.assertEqual(entity.update_timestamp, host_resource.update_timestamp)
+    self.assertEqual(entity.event_timestamp, host_resource.event_timestamp)
+
+  def testGetHostResource_notExist(self):
+    """Tests GetHostResource with no host resource."""
+    api_request = {'hostname': 'ahost'}
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.GetHostResource',
+        api_request)
+    self.assertEqual('200 OK', api_response.status)
+    host_resource = protojson.decode_message(
+        api_messages.HostResource, api_response.body)
+    self.assertEqual('ahost', host_resource.hostname)
+    self.assertEqual('{}', host_resource.resource)
 
 
 if __name__ == '__main__':

@@ -57,6 +57,11 @@ def _CheckTimestamp(t1, operator, t2):
   raise ValueError('Operator "%s" is not supported.' % operator)
 
 
+_HOSTNAME_RESOURCE = endpoints.ResourceContainer(
+    hostname=messages.StringField(1, required=True),
+)
+
+
 @api_common.tradefed_cluster_api.api_class(resource_name="hosts", path="hosts")
 class ClusterHostApi(remote.Service):
   """A class for cluster host API service."""
@@ -810,12 +815,8 @@ class ClusterHostApi(remote.Service):
     return api_messages.HostConfigCollection(
         host_configs=host_config_msgs, next_cursor=next_cursor)
 
-  METADATA_GET_RESOURCE = endpoints.ResourceContainer(
-      hostname=messages.StringField(1, required=True),
-  )
-
   @endpoints.method(
-      METADATA_GET_RESOURCE,
+      _HOSTNAME_RESOURCE,
       api_messages.HostMetadata,
       path="{hostname}/metadata",
       http_method="GET",
@@ -944,3 +945,26 @@ class ClusterHostApi(remote.Service):
       error_message += ("Hosts [%s] are not enabled to be updated from UI. "
                         % ", ".join(hosts_not_enabled))
     raise endpoints.BadRequestException(error_message)
+
+  @endpoints.method(
+      _HOSTNAME_RESOURCE,
+      api_messages.HostResource,
+      path="{hostname}/resource",
+      http_method="GET",
+      name="getHostResource")
+  @api_common.with_ndb_context
+  def GetHostResource(self, request):
+    """Get a host resource.
+
+    Args:
+      request: an API request with hostname
+
+    Returns:
+      an api_messages.HostResource object.
+    """
+    host_resource = datastore_entities.HostResource.get_by_id(request.hostname)
+    if not host_resource:
+      host_resource = datastore_entities.HostResource(
+          hostname=request.hostname,
+          resource={})
+    return datastore_entities.ToMessage(host_resource)

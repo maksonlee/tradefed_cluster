@@ -680,6 +680,14 @@ class HostMetadata(messages.Message):
   update_time = message_types.DateTimeField(3)
 
 
+class HostResource(messages.Message):
+  """Host resource."""
+  hostname = messages.StringField(1)
+  resource = messages.StringField(2)
+  update_timestamp = message_types.DateTimeField(3)
+  event_timestamp = message_types.DateTimeField(4)
+
+
 class DeviceCountSummary(messages.Message):
   """Information of device count for a host."""
   run_target = messages.StringField(1)

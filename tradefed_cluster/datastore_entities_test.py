@@ -20,6 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 import datetime
+import json
 import unittest
 
 from six.moves import range
@@ -387,6 +388,14 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
         datetime.datetime(2021, 8, 4, 23, 18),
         entity.event_timestamp)
     self.assertIsNotNone(entity.update_timestamp)
+
+  def testHostResourceToMessage(self):
+    entity = datastore_test_util.CreateHostResource('ahost')
+    msg = datastore_entities.ToMessage(entity)
+    self.assertEqual('ahost', msg.hostname)
+    self.assertEqual(entity.resource, json.loads(msg.resource))
+    self.assertEqual(entity.update_timestamp, entity.update_timestamp)
+    self.assertEqual(entity.event_timestamp, entity.event_timestamp)
 
 
 if __name__ == '__main__':

@@ -346,3 +346,25 @@ def CreateRequest(
       max_concurrent_tasks=max_concurrent_tasks)
   entity.put()
   return entity
+
+
+def CreateHostResource(hostname):
+  """Create a mock HostResource entity."""
+  host_resource_dict = {
+      'identifier': {'hostname': hostname},
+      'attribute': [{'name': 'harness_version', 'value': '4.148.0'}],
+      'resource': [{
+          'resource_name': 'disk_space',
+          'resource_instance': '$EXTERNAL_STORAGE',
+          'metric': [{'tag': 'avail', 'value': 100.0}],
+          'timestamp': '2021-08-04T23:16:00.000Z'
+      }]
+  }
+  entity = datastore_entities.HostResource(
+      key=ndb.Key(datastore_entities.HostResource, hostname),
+      hostname=hostname,
+      resource=host_resource_dict,
+      update_timestamp=datetime.datetime(2021, 8, 4, 23, 18),
+      event_timestamp=datetime.datetime(2021, 8, 4, 23, 18))
+  entity.put()
+  return entity

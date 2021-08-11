@@ -20,6 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 import datetime
+import json
 
 import dateutil.parser
 import six
@@ -1339,6 +1340,16 @@ class HostResource(ndb.Expando):
         hostname=hostname,
         resource=d,
         event_timestamp=event_timestamp or datetime.datetime.utcnow())
+
+
+@MessageConverter(HostResource)
+def HostResourceToMessage(host_resource_entity):
+  """Convert a HostResource entity into a HostResource message."""
+  return api_messages.HostResource(
+      hostname=host_resource_entity.hostname,
+      resource=json.dumps(host_resource_entity.resource),
+      update_timestamp=host_resource_entity.update_timestamp,
+      event_timestamp=host_resource_entity.event_timestamp)
 
 
 class HostUpdateState(ndb.Model):

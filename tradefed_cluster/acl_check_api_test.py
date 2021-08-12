@@ -156,6 +156,39 @@ class AclCheckApiTest(api_test.ApiTest):
     self.assertFalse(account_principals.has_access)
     acl_service.CheckMembership.assert_not_called()
 
+  def testAuthAccountPrinciples_noHost(self):
+    with self.assertRaisesRegex(
+        Exception, 'mock.host.google.com host config not found'):
+      self.testapp.post_json(
+          '/_ah/api/AclApi.CheckSshAccessible',
+          {
+              'hostname': 'mock.host.google.com',
+              'host_account': 'bar-admin',
+              'user_name': 'mock-user'
+          })
+
+  def testAuthAccountPrinciples_noUser(self):
+    datastore_test_util.CreateHostConfig(
+        'mock.host.google.com', 'foo-lab', inventory_groups=['bar', 'jump'])
+    datastore_test_util.CreateHostGroupConfig(
+        'bar',
+        'foo-lab',
+        account_principals={
+            'bar-admin': {
+                'principals': ['principalA', 'principalB']
+            }
+        })
+    acl_service.CheckMembership = mock.MagicMock(
+        side_effect=acl_service.UserNotFoundError('mock error message'))
+    with self.assertRaisesRegex(Exception, 'mock error message'):
+      self.testapp.post_json(
+          '/_ah/api/AclApi.CheckSshAccessible',
+          {
+              'hostname': 'mock.host.google.com',
+              'host_account': 'bar-admin',
+              'user_name': 'mock-user'
+          })
+
 
 if __name__ == '__main__':
   unittest.main()

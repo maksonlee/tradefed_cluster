@@ -52,7 +52,8 @@ class AclApi(remote.Service):
     host_config = datastore_entities.HostConfig.get_by_id(request.hostname)
     if not host_config:
       logging.debug("no host config found for hostname: %s", request.hostname)
-      return api_messages.AclCheckResult(has_access=False)
+      raise endpoints.NotFoundException(
+          f"{request.hostname} host config not found")
     try:
       if (request.host_account == _JUMP_HOST_ACCOUNT and
           _JUMP_GROUP_NAME in host_config.inventory_groups):

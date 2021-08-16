@@ -26,6 +26,18 @@ py_library(
     ],
 )
 
+py_library(
+    name = "unified_lab_config_lib",
+    srcs = [
+        "unified_lab_config.py",
+    ],
+    srcs_version = "PY2AND3",
+    visibility = ["//visibility:public"],
+    deps = [
+        third_party("ansible"),
+    ],
+)
+
 proto_library(
     name = "lab_config_proto",
     srcs = [
@@ -56,6 +68,21 @@ py_test(
         ":lab_config_lib",
         third_party("six"),
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
+    ],
+)
+
+py_test(
+    name = "unified_lab_config_test",
+    srcs = [
+        "unified_lab_config_test.py",
+    ],
+    data = [
+        ":testdata",
+    ],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":unified_lab_config_lib",
     ],
 )
 

@@ -1,0 +1,74 @@
+[all:vars]
+lab_name=atc
+domain=atc.google.com
+enable_stackdriver=True
+ssh_arg="-F path/to/ssh/config"
+
+owners=['mdb-group:some_owner', 'foo', 'bar']
+executors=['mdb-group:some_executor', 'zar']
+readers=['reader_a', 'mdb-group:some_reader']
+
+[jump]
+jump1.atc.google.com ip=10.0.0.13 mac=54:bf:64:a5:60:b5
+jump2.atc.google.com ip=10.0.0.14 mac=54:bf:64:a5:62:65
+
+[dhcp]
+dhcp1.atc.google.com ip=10.0.0.11 mac=24:6e:96:53:7d:90
+dhcp2.atc.google.com ip=10.0.0.12 mac=24:6e:96:53:71:e8
+
+[dhcp:vars]
+dhcp_config_path="path/to/dhcp/config"
+router="10.0.0.1"
+subnet="10.0.0.0/24"
+pool="10.0.0.100 - 10.0.0.255"
+
+[dns]
+dhcp1.atc.google.com
+dhcp2.atc.google.com
+
+[dns:vars]
+reverse_domain="0.0.1.in-addr.arpa"
+addition_dns="8.8.8.8"
+
+[pxe]
+dhcp1.atc.google.com
+
+[server:children]
+dhcp
+dns
+pxe
+
+[tf:children]
+postsubmit
+crystalball
+
+[tf:vars]
+docker_envs=["TF_GLOBAL_CONFIG=host-config.xml"]
+docker_shutdown_command="/tradefed/tradefed_kill.sh'
+
+[postsubmit]
+postsubmit1.atc.google.com ip=10.0.16.13 mac=54:bf:64:a5:d4:6c
+postsubmit2.atc.google.com ip=10.0.16.14 mac=54:bf:64:a4:ac:dc
+
+[postsubmit:vars]
+docker_envs=["TF_GLOBAL_CONFIG=ramdisk-host-config.xml"]
+docker_volumes=["type=tmpfs,destination=/fastboot-ramdisk,tmpfs-size=16G"]
+
+[crystalball]
+crystalball1.atc.google.com ip=10.0.18.137 mac=a4:bb:6d:c3:be:28
+crystalball2.atc.google.com ip=10.0.22.74 mac=54:bf:64:a3:d2:dd
+
+[crystalball:vars]
+owners=['mdb-group:crystalball-team','user10']
+
+[crystalball:children]
+crystalball-power
+
+[crystalball-power]
+cp1.atc.google.com ip=10.0.18.137 mac=a4:bb:6d:c3:be:28
+cp2.atc.google.com ip=10.0.22.74 mac=54:bf:64:a3:d2:dd
+
+[crystalball-power:vars]
+docker_envs=["TF_GLOBAL_CONFIG=configs/cluster/atc/crystalball/power.xml"]
+docker_volumes=['/dev:/dev', '/dev/U16S:/dev/U16S']
+docker_extra_args=['--device-cgroup-rule', '"c 188:* rwm"']

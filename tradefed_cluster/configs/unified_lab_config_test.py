@@ -32,7 +32,7 @@ class UnifiedLabConfigTest(unittest.TestCase):
             'root': 'android-test-root',
             'accounts': {
                 'android-test-admin': {
-                    'sudo': 'True',
+                    'sudo': True,
                     'principals': ['user1', 'mdb-group:group1'],
                 },
                 'android-test': {
@@ -52,7 +52,7 @@ class UnifiedLabConfigTest(unittest.TestCase):
     self.assertEqual(
         {
             'android-test-admin': {
-                'sudo': 'True',
+                'sudo': True,
                 'principals': ['user1', 'mdb-group:group1'],
             },
             'android-test': {
@@ -93,7 +93,7 @@ class UnifiedLabConfigTest(unittest.TestCase):
             'docker_volumes': ['/dev:/dev'],
             'accounts': {
                 'android-test-admin': {
-                    'sudo': 'True',
+                    'sudo': True,
                     'principals': ['tf_user1', 'mdb-group:tf_group1'],
                 },
                 'android-test': {

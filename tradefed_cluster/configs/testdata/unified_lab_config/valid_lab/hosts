@@ -44,7 +44,7 @@ crystalball
 
 [tf:vars]
 docker_envs=["TF_GLOBAL_CONFIG=host-config.xml"]
-docker_shutdown_command="/tradefed/tradefed_kill.sh'
+docker_shutdown_command="/tradefed/tradefed_kill.sh"
 
 [postsubmit]
 postsubmit1.atc.google.com ip=10.0.16.13 mac=54:bf:64:a5:d4:6c

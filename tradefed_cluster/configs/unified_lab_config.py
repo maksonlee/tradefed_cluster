@@ -1,10 +1,15 @@
 """Unified lab config parser."""
+import logging
+import os
+
 from ansible.inventory import data as inventory_data
 from ansible.inventory import helpers
 from ansible.plugins.inventory import ini
+import strictyaml as syaml
 
 _ROOT_GROUP = 'all'
 _UNGROUPED_GROUP = 'ungrouped'
+_YAML_EXTS = ('.yaml', '.yml')
 
 
 def Parse(file_path):
@@ -17,6 +22,20 @@ def Parse(file_path):
   """
   data = inventory_data.InventoryData()
   ini.InventoryModule().parse(data, None, file_path)
+  base_dir = os.path.join(os.path.dirname(file_path), 'group_vars')
+  for filename in os.listdir(base_dir):
+    group_name, ext = os.path.splitext(filename)
+    if ext not in _YAML_EXTS:
+      continue
+    if group_name not in data.groups:
+      logging.debug(
+          'Group %s has group_vars but not defined in inventory.',
+          group_name)
+      continue
+    with open(os.path.join(base_dir, filename)) as f:
+      d = syaml.dirty_load(f.read(), allow_flow_style=True).data
+    for k, v in d.items():
+      data.groups[group_name].set_variable(k, v)
   return UnifiedLabConfig(data)
 
 

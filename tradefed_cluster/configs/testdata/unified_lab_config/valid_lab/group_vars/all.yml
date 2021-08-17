@@ -1,0 +1,12 @@
+---
+root: android-test-root
+accounts:
+  android-test-admin:
+    sudo: True
+    principals:
+      - user1
+      - mdb-group:group1
+  android-test:
+    principals:
+      - user2
+      - mdb-group:group2

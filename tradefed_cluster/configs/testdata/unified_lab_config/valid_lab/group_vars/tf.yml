@@ -1,0 +1,12 @@
+---
+docker_volumes: ['/dev:/dev']
+accounts:
+  android-test-admin:
+    sudo: True
+    principals:
+      - tf_user1
+      - mdb-group:tf_group1
+  android-test:
+    principals:
+      - tf_user2
+      - mdb-group:tf_group2

@@ -28,6 +28,17 @@ class UnifiedLabConfigTest(unittest.TestCase):
             'owners': ['mdb-group:some_owner', 'foo', 'bar'],
             'executors': ['mdb-group:some_executor', 'zar'],
             'readers': ['reader_a', 'mdb-group:some_reader'],
+            # Should include vars from group_vars/all.yml file.
+            'root': 'android-test-root',
+            'accounts': {
+                'android-test-admin': {
+                    'sudo': 'True',
+                    'principals': ['user1', 'mdb-group:group1'],
+                },
+                'android-test': {
+                    'principals': ['user2', 'mdb-group:group2'],
+                }
+            }
         },
         config.ListGlobalVars())
 
@@ -36,6 +47,19 @@ class UnifiedLabConfigTest(unittest.TestCase):
     self.assertEqual('atc', config.GetGlobalVar('lab_name'))
     self.assertEqual('atc.google.com', config.GetGlobalVar('domain'))
     self.assertEqual('-F path/to/ssh/config', config.GetGlobalVar('ssh_arg'))
+    # Should include vars from group_vars/all.yml as well.
+    self.assertEqual('android-test-root', config.GetGlobalVar('root'))
+    self.assertEqual(
+        {
+            'android-test-admin': {
+                'sudo': 'True',
+                'principals': ['user1', 'mdb-group:group1'],
+            },
+            'android-test': {
+                'principals': ['user2', 'mdb-group:group2'],
+            }
+        },
+        config.GetGlobalVar('accounts'))
 
   def testListGroups(self):
     config = unified_lab_config.Parse(_GetTestFilePath('valid_lab/hosts'))
@@ -54,6 +78,28 @@ class UnifiedLabConfigTest(unittest.TestCase):
             'pool': '10.0.0.100 - 10.0.0.255',
             'router': '10.0.0.1',
             'subnet': '10.0.0.0/24'
+        },
+        group.direct_vars)
+
+  def testGetGroup_withGroupVarFile(self):
+    config = unified_lab_config.Parse(_GetTestFilePath('valid_lab/hosts'))
+    group = config.GetGroup('tf')
+    self.assertEqual('tf', group.name)
+    self.assertEqual(
+        {
+            'docker_envs': ['TF_GLOBAL_CONFIG=host-config.xml'],
+            'docker_shutdown_command': '/tradefed/tradefed_kill.sh',
+            # Should include vars from group_vars file as well.
+            'docker_volumes': ['/dev:/dev'],
+            'accounts': {
+                'android-test-admin': {
+                    'sudo': 'True',
+                    'principals': ['tf_user1', 'mdb-group:tf_group1'],
+                },
+                'android-test': {
+                    'principals': ['tf_user2', 'mdb-group:tf_group2'],
+                }
+            }
         },
         group.direct_vars)
 

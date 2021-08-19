@@ -799,6 +799,7 @@ pytype_strict_library(
         ":datastore_util_lib",
         ":env_config_lib",
         "//tradefed_cluster/configs:lab_config_lib",
+        "//tradefed_cluster/configs:unified_lab_config_lib",
         "//tradefed_cluster/plugins:base_lib",
         "//tradefed_cluster/services:file_storage_lib",
         "//tradefed_cluster/util:ndb_shim_lib",

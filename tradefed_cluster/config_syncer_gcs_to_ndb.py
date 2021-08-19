@@ -34,9 +34,9 @@ from tradefed_cluster.util import ndb_shim as ndb
 ansible_import_error = None
 try:
   os.environ['ANSIBLE_LOCAL_TEMP'] = '/tmp'
-  from ansible.inventory import data as inventory_data
   from ansible.parsing import dataloader
-  from ansible.plugins.inventory import ini
+  # unified_lab_config depends on ansible, so need to import after ansible.
+  from tradefed_cluster.configs import unified_lab_config as unified_lab_config_util
 except Exception as e:    logging.warning('Fail to import ansible package:\n%s', e)
   ansible_import_error = e
 
@@ -44,19 +44,13 @@ except Exception as e:    logging.warning('Fail to import ansible package:\n%s',
 BUCKET_NAME = 'tradefed_lab_configs'
 LAB_CONFIG_DIR_PATH = '/{}/lab_configs/'.format(BUCKET_NAME)
 _LAB_INVENTORY_DIR_PATH = '/{}/lab_inventory/'.format(BUCKET_NAME)
-_INVENTORY_GROUPS = 'inventory_groups'
 _FileInfo = plugins_base.FileInfo
 _APP = flask.Flask(__name__)
 _LAB_NAME_PATTERN = re.compile(r'.*\/lab_inventory\/(?P<lab_name>.*)')
 _INVENTORY_FILE_PATTERN = re.compile(
     r'.*\/lab_inventory\/(?P<lab_name>.*)\/hosts')
-_LAB_GROUP_KEY = 'lab_name'
+_LAB_NAME_KEY = 'lab_name'
 _INVENTORY_FILE_FORMAT = '{}/hosts'
-_INVENTORY_GROUP_VAR_DIR_FORMAT = '{}{}/group_vars/'
-_INVENTORY_GROUP_VAR_PATTERN = re.compile(
-    r'.*\/lab_inventory\/(?P<lab_name>.*)\/group_vars\/(?P<inventory_group>.*)\.(yml|yaml)'
-)
-_INVENTORY_GROUP_KEY = 'inventory_group'
 _GROUP_VAR_ACCOUNTS = 'accounts'
 _STATLE_CONFIG_MAX_AGE = datetime.timedelta(days=7)
 
@@ -96,8 +90,6 @@ def _CheckConfigEntitiesEqual(entity, new_entity):
   entity_dict.pop('update_time', None)
   new_entity_dict = new_entity.to_dict()
   new_entity_dict.pop('update_time', None)
-  entity_dict.pop(_INVENTORY_GROUPS, None)
-  new_entity_dict.pop(_INVENTORY_GROUPS, None)
   return entity_dict == new_entity_dict
 
 
@@ -229,18 +221,10 @@ class _GcsDataLoader(dataloader.DataLoader):
     with file_storage.OpenFile(file_name) as f:
       return f.read(), False
 
-
-def _LoadInventoryData(path):
-  """Loads inventory data from given path.
-
-  Args:
-    path: the inentory file path.
-  Returns:
-    the ansible InventoryData object.
-  """
-  data = inventory_data.InventoryData()
-  ini.InventoryModule().parse(data, _GcsDataLoader(), path)
-  return data
+  def list_directory(self, path):
+    """Get filenames under a directory in gcs."""
+    return [os.path.basename(file_info.filename)
+            for file_info in file_storage.ListFiles(path)]
 
 
 def _CreateHostConfigEntityFromHostInventory(lab_name, host):
@@ -248,7 +232,7 @@ def _CreateHostConfigEntityFromHostInventory(lab_name, host):
 
   Args:
     lab_name: the lab name.
-    host: the ansible inventory Host object.
+    host: unified_lab_config._Host object.
   Returns:
     the HostConfig entity.
   """
@@ -256,7 +240,7 @@ def _CreateHostConfigEntityFromHostInventory(lab_name, host):
       id=host.name,
       lab_name=lab_name,
       hostname=host.name,
-      inventory_groups=sorted(set([g.name for g in host.groups])))
+      inventory_groups=[g.name for g in host.groups])
 
 
 def _CreateHostGroupConfigEntityFromGroupInventory(lab_name, group):
@@ -264,7 +248,7 @@ def _CreateHostGroupConfigEntityFromGroupInventory(lab_name, group):
 
   Args:
     lab_name: the lab name.
-    group: the ansible inventory Group object.
+    group: unified_lab_config._Group object.
   Returns:
     the HostGroupConfig entity.
   """
@@ -272,7 +256,8 @@ def _CreateHostGroupConfigEntityFromGroupInventory(lab_name, group):
       id=datastore_entities.HostGroupConfig.CreateId(lab_name, group.name),
       name=group.name,
       lab_name=lab_name,
-      parent_groups=[g.name for g in group.parent_groups])
+      parent_groups=[g.name for g in group.parent_groups],
+      account_principals=group.direct_vars.get(_GROUP_VAR_ACCOUNTS))
 
 
 def _SyncInventoryHostGroup(lab_name, file_name):
@@ -282,12 +267,12 @@ def _SyncInventoryHostGroup(lab_name, file_name):
     lab_name: the lab name.
     file_name: the inventory file name.
   """
-  data = _LoadInventoryData(file_name)
-  _UpdateHostGroupConfigByInventoryData(lab_name, data)
-  _UpdateHostConfigByInventoryData(lab_name, data)
+  config = unified_lab_config_util.Parse(file_name, _GcsDataLoader())
+  _UpdateHostGroupConfigByInventoryData(lab_name, config)
+  _UpdateHostConfigByInventoryData(lab_name, config)
 
 
-def _UpdateHostGroupConfigByInventoryData(lab_name, data):
+def _UpdateHostGroupConfigByInventoryData(lab_name, lab_config):
   """Updates HostGroupConfig.
 
   The methods load new HostGroupConfig from inventory file, creates new
@@ -295,13 +280,16 @@ def _UpdateHostGroupConfigByInventoryData(lab_name, data):
   HostGroupConfig.
 
   Args:
-    lab_name: the lab name.
-    data: inventory data which was parsed by the ansible inventory module.
+    lab_name: the lab name from path.
+    lab_config: a UnifiedLabConfig object.
   """
+  # Use the configued lab name first, only use the lab name from
+  # file path if no lab name is configured.
+  lab_name = lab_config.GetGlobalVar(_LAB_NAME_KEY) or lab_name
   entity_from_file = {
       group.key: group for group in [
           _CreateHostGroupConfigEntityFromGroupInventory(lab_name, group)
-          for group in data.groups.values()
+          for group in lab_config.ListGroups()
       ]
   }
   logging.debug('Loaded %d HostGroupConfigs of lab %s',
@@ -321,17 +309,18 @@ def _UpdateHostGroupConfigByInventoryData(lab_name, data):
   logging.debug('Removed %d HostGroupConfigs', len(need_delete))
 
 
-def _UpdateHostConfigByInventoryData(lab_name, data):
+def _UpdateHostConfigByInventoryData(lab_name, lab_config):
   """Updates HostConfig inventory_groups.
 
   Args:
     lab_name: the lab name.
-    data: the InventoryData object.
+    lab_config: a UnifiedLabConfig object.
   """
+  lab_name = lab_config.GetGlobalVar(_LAB_NAME_KEY) or lab_name
   keys = []
   entities_from_file = {
       host.name: _CreateHostConfigEntityFromHostInventory(lab_name, host)
-      for host in data.hosts.values()
+      for host in lab_config.ListHosts()
   }
   for hostname in entities_from_file:
     keys.append(ndb.Key(datastore_entities.HostConfig, hostname))
@@ -363,62 +352,20 @@ def _GetLabInventoryFiles():
   for file in file_storage.ListFiles(_LAB_INVENTORY_DIR_PATH):
     if file.is_dir:
       lab_dir_match = _LAB_NAME_PATTERN.match(file.filename)
-      if lab_dir_match and lab_dir_match.group(_LAB_GROUP_KEY):
-        yield (lab_dir_match.group(_LAB_GROUP_KEY),
+      if lab_dir_match and lab_dir_match.group(_LAB_NAME_KEY):
+        yield (lab_dir_match.group(_LAB_NAME_KEY),
                _INVENTORY_FILE_FORMAT.format(file.filename))
     else:
       inventory_file_match = _INVENTORY_FILE_PATTERN.match(file.filename)
-      if inventory_file_match and inventory_file_match.group(_LAB_GROUP_KEY):
+      if inventory_file_match and inventory_file_match.group(_LAB_NAME_KEY):
         logging.debug('Gets inventory from lab dir: %s', file.filename)
-        yield (inventory_file_match.group(_LAB_GROUP_KEY), file.filename)
+        yield (inventory_file_match.group(_LAB_NAME_KEY), file.filename)
 
 
 def SyncInventoryGroupsToNDB():
   """Task to sync lab inventory to NDB."""
   for lab_name, inventory_file_name in _GetLabInventoryFiles():
     _SyncInventoryHostGroup(lab_name, inventory_file_name)
-
-
-def _GetLabInventoryGroupVarFiles(lab_name):
-  """Loads all group_var files for given lab.
-
-  Args:
-    lab_name: the lab name.
-  Yields:
-    A tuple contains lab name, group name and the group_var file object.
-  """
-  logging.debug('list group vars in %s',
-                _INVENTORY_GROUP_VAR_DIR_FORMAT.format(
-                    _LAB_INVENTORY_DIR_PATH, lab_name))
-  for group_var in file_storage.ListFiles(
-      _INVENTORY_GROUP_VAR_DIR_FORMAT.format(
-          _LAB_INVENTORY_DIR_PATH, lab_name)):
-    m = _INVENTORY_GROUP_VAR_PATTERN.match(group_var.filename)
-    if not m or not m.group(_LAB_GROUP_KEY) or not m.group(
-        _INVENTORY_GROUP_KEY):
-      continue
-    try:
-      with file_storage.OpenFile(group_var.filename) as f:
-        logging.debug('Reading group var file %s', group_var.filename)
-        yield (m.group(_LAB_GROUP_KEY), m.group(_INVENTORY_GROUP_KEY), f)
-    except plugins_base.ObjectNotFoundError:
-      logging.error('group_var file not found in %s', group_var.filename)
-      continue
-
-
-def SyncInventoryGroupVarAccountsToNDB():
-  """Task to sync lab inventory group_vars to NDB."""
-  labs = datastore_entities.LabConfig.query().fetch()
-  for lab in labs:
-    for lab_name, group_name, group_var_file in _GetLabInventoryGroupVarFiles(
-        lab.lab_name):
-      group_var_dict = lab_config_util.ParseGroupVar(group_var_file)
-      group = datastore_entities.HostGroupConfig.get_by_id(
-          datastore_entities.HostGroupConfig.CreateId(lab_name, group_name))
-      if not group:
-        continue
-      group.account_principals = group_var_dict.get(_GROUP_VAR_ACCOUNTS)
-      group.put()
 
 
 @APP.route('/cron/syncer/sync_gcs_ndb')
@@ -433,5 +380,4 @@ def SyncGCSToNDB():
       raise ansible_import_error
     SyncToNDB()
     SyncInventoryGroupsToNDB()
-    SyncInventoryGroupVarAccountsToNDB()
   return common.HTTP_OK

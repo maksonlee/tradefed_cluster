@@ -1,30 +1,42 @@
 """Unified lab config parser."""
+import logging
+import os
+
 from ansible.inventory import data as inventory_data
 from ansible.inventory import helpers
 from ansible.parsing import dataloader
 from ansible.plugins.inventory import ini
-from ansible.plugins.vars import host_group_vars
 
 _ROOT_GROUP = 'all'
 _UNGROUPED_GROUP = 'ungrouped'
+_YAML_EXTS = ('.yaml', '.yml')
 
 
-def Parse(file_path):
+def Parse(file_path, loader=None):
   """Parse unified lab config.
 
   Args:
     file_path: file path to the config.
+    loader: dataloader to load inventory and group var files.
   Returns:
     a UnifiedLabConfig object.
   """
-  loader = dataloader.DataLoader()
+  loader = loader or dataloader.DataLoader()
   data = inventory_data.InventoryData()
   ini.InventoryModule().parse(data, loader, file_path)
-  var_module = host_group_vars.VarsModule()
-  for group in data.groups.values():
-    extra_vars = var_module.get_vars(loader, file_path, group)
+  group_vars_dir = os.path.join(os.path.dirname(file_path), 'group_vars')
+  for filename in loader.list_directory(group_vars_dir):
+    group_name, ext = os.path.splitext(filename)
+    if ext not in _YAML_EXTS:
+      continue
+    if group_name not in data.groups:
+      logging.debug('Group %s is not in inventory.', group_name)
+      continue
+    extra_vars = loader.load_from_file(
+        os.path.join(group_vars_dir, filename), unsafe=True)
+    print(extra_vars)
     for k, v in extra_vars.items():
-      group.set_variable(k, v)
+      data.groups[group_name].set_variable(k, v)
   return UnifiedLabConfig(data)
 
 
@@ -46,6 +58,11 @@ class _Group(object):
   def direct_vars(self):
     """Vars defined directly in the group."""
     return self._inventory_group.get_vars()
+
+  @property
+  def parent_groups(self):
+    """Parent groups of this group."""
+    return self._inventory_group.parent_groups
 
 
 class _Host(object):

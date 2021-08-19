@@ -21,6 +21,7 @@ import six
 from tradefed_cluster import config_syncer_gcs_to_ndb
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import testbed_dependent_test
+from tradefed_cluster.configs import unified_lab_config as unified_lab_config_util
 from tradefed_cluster.util import ndb_shim as ndb
 
 TEST_DATA_PATH = 'test_yaml'
@@ -199,24 +200,44 @@ class ConfigSyncerGCSToNdbTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual('homer-atc4', res.hostname)
 
   def testLoadInventoryData(self):
-    data = config_syncer_gcs_to_ndb._LoadInventoryData(
-        config_syncer_gcs_to_ndb._LAB_INVENTORY_DIR_PATH + 'foo/' +
-        LAB_INV_FILE)
-    self.assertSameElements(
-        ['jump', 'dhcp', 'pxe', 'server'],
-        [g.name for g in data.get_host('dhcp1.ntc-tpkd.google.com').groups])
-    self.assertSameElements(
-        ['jump', 'dhcp', 'pxe', 'server'],
-        [g.name for g in data.get_host('dhcp2.ntc-tpkd.google.com').groups])
-    self.assertSameElements(
-        ['pixellab'],
-        [g.name for g in data.get_host('tim-test.ntc-tpkd.google.com').groups])
-    self.assertSameElements(
-        ['dtf', 'tf'],
-        [g.name for g in data.get_host('tfpu00101.ntc-tpkd.google.com').groups])
-    self.assertSameElements(
-        ['tf', 'storage_tf'],
-        [g.name for g in data.get_host('tfpu00201.ntc-tpkd.google.com').groups])
+    config = unified_lab_config_util.Parse(
+        os.path.join(config_syncer_gcs_to_ndb._LAB_INVENTORY_DIR_PATH, 'foo/',
+                     LAB_INV_FILE),
+        config_syncer_gcs_to_ndb._GcsDataLoader())
+
+    dhcp_group = config.GetGroup('dhcp')
+    self.assertEqual(
+        {
+            'android-test-admin': {
+                'enable_sudo': True,
+                'principals': [
+                    'group/group-one', 'group/group-two', 'user1', 'user2']
+            },
+            'android-test': {
+                'principals': [
+                    'group/group-three', 'user3', 'user4'
+                ]
+            }
+        },
+        dhcp_group.direct_vars['accounts'])
+    dhcp1 = config.GetHost('dhcp1.ntc-tpkd.google.com')
+    self.assertEqual(
+        ['all', 'server', 'dhcp', 'jump', 'pxe'],
+        [g.name for g in dhcp1.groups])
+    self.assertEqual(
+        ['all', 'server', 'dhcp', 'jump', 'pxe'],
+        [g.name for g in config.GetHost('dhcp1.ntc-tpkd.google.com').groups])
+    self.assertEqual(
+        ['all', 'pixellab'],
+        [g.name for g in config.GetHost('tim-test.ntc-tpkd.google.com').groups])
+    self.assertEqual(
+        ['all', 'tf', 'dtf'],
+        [g.name for g in
+         config.GetHost('tfpu00101.ntc-tpkd.google.com').groups])
+    self.assertEqual(
+        ['all', 'tf', 'storage_tf'],
+        [g.name for g in
+         config.GetHost('tfpu00201.ntc-tpkd.google.com').groups])
 
   def testSyncInventoryGroupsToNdbHostConfig(self):
     config_syncer_gcs_to_ndb.SyncInventoryGroupsToNDB()
@@ -224,20 +245,22 @@ class ConfigSyncerGCSToNdbTest(testbed_dependent_test.TestbedDependentTest):
     res = datastore_entities.HostConfig.get_by_id('dhcp1.ntc-tpkd.google.com')
     self.assertEqual(res.lab_name, 'foo')
     self.assertEqual(res.hostname, 'dhcp1.ntc-tpkd.google.com')
-    self.assertSetEqual(
-        set(res.inventory_groups), set(('jump', 'dhcp', 'pxe', 'server')))
+    self.assertEqual(
+        ['all', 'server', 'dhcp', 'jump', 'pxe'],
+        res.inventory_groups)
     res = datastore_entities.HostConfig.get_by_id('dhcp2.ntc-tpkd.google.com')
-    self.assertSetEqual(
-        set(res.inventory_groups), set(('jump', 'dhcp', 'pxe', 'server')))
+    self.assertEqual(
+        ['all', 'server', 'dhcp', 'jump', 'pxe'],
+        res.inventory_groups)
     res = datastore_entities.HostConfig.get_by_id(
         'tim-test.ntc-tpkd.google.com')
-    self.assertSetEqual(set(res.inventory_groups), set(('pixellab',)))
+    self.assertEqual(['all', 'pixellab'], res.inventory_groups)
     res = datastore_entities.HostConfig.get_by_id(
         'tfpu00101.ntc-tpkd.google.com')
-    self.assertSetEqual(set(res.inventory_groups), set(('dtf', 'tf')))
+    self.assertEqual(['all', 'tf', 'dtf'], res.inventory_groups)
     res = datastore_entities.HostConfig.get_by_id(
         'tfpu00201.ntc-tpkd.google.com')
-    self.assertSetEqual(set(res.inventory_groups), set(('storage_tf', 'tf')))
+    self.assertEqual(['all', 'tf', 'storage_tf'], res.inventory_groups)
 
   def testSyncInventoryGroupsToNdbHostGroupConfig(self):
     ndb.put_multi([
@@ -258,6 +281,21 @@ class ConfigSyncerGCSToNdbTest(testbed_dependent_test.TestbedDependentTest):
         self.assertIsNone(g)
     group_map = {g.name: g for g in res}
     self.assertLen(group_map, 10)
+    dhcp_group = datastore_entities.HostGroupConfig.get_by_id('foo_dhcp')
+    self.assertEqual(
+        {
+            'android-test-admin': {
+                'enable_sudo': True,
+                'principals': [
+                    'group/group-one', 'group/group-two', 'user1', 'user2']
+            },
+            'android-test': {
+                'principals': [
+                    'group/group-three', 'user3', 'user4'
+                ]
+            }
+        },
+        dhcp_group.account_principals)
     self.assertSameElements(group_map['all'].parent_groups, [])
     self.assertSameElements(group_map['jump'].parent_groups, ['server'])
     self.assertSameElements(group_map['dhcp'].parent_groups, ['server'])
@@ -265,36 +303,6 @@ class ConfigSyncerGCSToNdbTest(testbed_dependent_test.TestbedDependentTest):
     self.assertSameElements(group_map['server'].parent_groups, [])
     self.assertSameElements(group_map['dtf'].parent_groups, ['tf'])
     self.assertSameElements(group_map['storage_tf'].parent_groups, ['tf'])
-
-  def testSyncInventoryGroupVarAccountsToNDB(self):
-    datastore_entities.LabConfig(
-        id='foo',
-        lab_name='foo',
-        owners=['foo-admin']).put()
-    datastore_entities.HostGroupConfig(
-        id='foo_dhcp',
-        name='dhcp',
-        lab_name='foo',
-        account_principals={
-            'foo': {
-                'principals': ['user1', 'user2']
-            }
-        }).put()
-    config_syncer_gcs_to_ndb.SyncInventoryGroupVarAccountsToNDB()
-    ndb.get_context().clear_cache()
-    group = datastore_entities.HostGroupConfig.get_by_id('foo_dhcp')
-    self.assertEqual(
-        group.account_principals, {
-            'android-test-admin': {
-                'enable_sudo':
-                    'true',
-                'principals':
-                    ['group/group-one', 'group/group-two', 'user1', 'user2']
-            },
-            'android-test': {
-                'principals': ['group/group-three', 'user3', 'user4']
-            }
-        })
 
 
 if __name__ == '__main__':

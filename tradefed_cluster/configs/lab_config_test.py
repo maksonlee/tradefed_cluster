@@ -250,9 +250,9 @@ class LabConfigPoolTest(unittest.TestCase):
     pool = lab_config.LabConfigPool(
         lab_config.LocalFileEnumerator(config_path, lab_config.IsYaml))
     pool.LoadConfigs()
-    self.assertIsNotNone(pool._lab_to_lab_config_pb.get('lab1'))
-    self.assertIsNotNone(pool._cluster_to_cluster_config_pb.get('cluster1'))
-    self.assertIsNotNone(pool._cluster_to_cluster_config_pb.get('cluster2'))
+    self.assertIsNotNone(pool.GetLabConfig())
+    self.assertIsNotNone(pool.GetHostConfigs('cluster1'))
+    self.assertIsNotNone(pool.GetHostConfigs('cluster2'))
 
   def testLoadConfigs_loadMultipleLab(self):
     """Test LabConfigPool LoadConfigs can load configs in a folder."""
@@ -261,7 +261,7 @@ class LabConfigPoolTest(unittest.TestCase):
         lab_config.LocalFileEnumerator(
             os.path.dirname(config_path), lab_config.IsYaml))
     with self.assertRaisesRegex(
-        lab_config.ConfigError, r'There are multiple labs configured.*'):
+        lab_config.ConfigError, r'There are multiple config files.'):
       pool.LoadConfigs()
 
   def testLoadConfigs_notExist(self):
@@ -289,7 +289,7 @@ class LabConfigPoolTest(unittest.TestCase):
     pool = lab_config.LabConfigPool(
         lab_config.LocalFileEnumerator(config_path, lab_config.IsYaml))
     pool.LoadConfigs()
-    self.assertIsNotNone(pool._lab_to_lab_config_pb.get('lab1'))
+    self.assertIsNotNone(pool.GetLabConfig())
     config = pool.GetLabConfig()
     self.assertEqual('lab1', config.lab_name)
     self.assertEqual('lab_user1', config.host_login_name)
@@ -403,72 +403,6 @@ class LabConfigPoolTest(unittest.TestCase):
     pool.LoadConfigs()
     host = pool.GetHostConfig('not_exist')
     self.assertIsNone(host)
-
-  def testBuildHostConfig(self):
-    """Test build host config from LabConfigPool works."""
-    config_path = GetTestFilePath('valid/config.yaml')
-    pool = lab_config.LabConfigPool(
-        lab_config.LocalFileEnumerator(config_path, lab_config.IsYaml))
-    pool.LoadConfigs()
-    host = pool.BuildHostConfig('host1')
-    self.assertEqual('host1', host.hostname)
-    self.assertEqual('user1', host.host_login_name)
-    self.assertEqual('cluster1', host.cluster_name)
-    self.assertEqual('lab1', host.lab_name)
-    self.assertEqual('path/to/config.xml', host.tf_global_config_path)
-
-  def testBuildHostConfig_useCluster(self):
-    """Test build host config with cluster from LabConfigPool works."""
-    config_path = GetTestFilePath('valid/config.yaml')
-    pool = lab_config.LabConfigPool(
-        lab_config.LocalFileEnumerator(config_path, lab_config.IsYaml))
-    pool.LoadConfigs()
-    host = pool.BuildHostConfig('new_host', cluster_name='cluster1')
-    self.assertEqual('new_host', host.hostname)
-    self.assertEqual('user1', host.host_login_name)
-    self.assertEqual('cluster1', host.cluster_name)
-    self.assertEqual('lab1', host.lab_name)
-    self.assertEqual('path/to/config.xml', host.tf_global_config_path)
-
-  def testBuildHostConfig_newHostNewCluster(self):
-    """Test build new host config from LabConfigPool works."""
-    config_path = GetTestFilePath('valid/config.yaml')
-    pool = lab_config.LabConfigPool(
-        lab_config.LocalFileEnumerator(config_path, lab_config.IsYaml))
-    pool.LoadConfigs()
-    host = pool.BuildHostConfig(
-        'new_host', cluster_name='new_cluster', host_login_name='new_user')
-    self.assertEqual('new_user', host.host_login_name)
-    self.assertEqual('new_host', host.hostname)
-    self.assertEqual('new_cluster', host.cluster_name)
-    self.assertEqual('', host.tf_global_config_path)
-    self.assertEqual('', host.lab_name)
-
-  def testBuildHostConfig_newHostNewClusterNewLab(self):
-    """Test build new host config from LabConfigPool works."""
-    config_path = GetTestFilePath('valid/config.yaml')
-    pool = lab_config.LabConfigPool(
-        lab_config.LocalFileEnumerator(config_path, lab_config.IsYaml))
-    pool.LoadConfigs()
-    host = pool.BuildHostConfig(
-        'new_host', cluster_name='new_cluster', host_login_name='new_user',
-        lab_name='new_lab')
-    self.assertEqual('new_user', host.host_login_name)
-    self.assertEqual('new_host', host.hostname)
-    self.assertEqual('new_cluster', host.cluster_name)
-    self.assertEqual('new_lab', host.lab_name)
-    self.assertEqual('', host.tf_global_config_path)
-
-  def testBuildHostConfig_emptyConfigPool(self):
-    """Test build new host config from LabConfigPool works."""
-    pool = lab_config.LabConfigPool()
-    pool.LoadConfigs()
-    host = pool.BuildHostConfig(
-        'new_host', cluster_name='new_cluster', host_login_name='new_user')
-    self.assertEqual('new_user', host.host_login_name)
-    self.assertEqual('new_host', host.hostname)
-    self.assertEqual('new_cluster', host.cluster_name)
-    self.assertEqual('', host.tf_global_config_path)
 
 
 class HostConfigTest(unittest.TestCase):

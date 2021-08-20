@@ -456,44 +456,36 @@ class LabConfigPool(object):
   """A config pool that can query configs for host and cluster."""
 
   def __init__(self, file_enumerator=None):
-    self.file_enumerator = file_enumerator
-    self._lab_to_lab_config_pb = {}
-    self._cluster_to_cluster_config_pb = {}
-    self._cluster_to_lab_config_pb = {}
+    self._file_enumerator = file_enumerator
+    self._lab_config_pb = None
     self._host_to_host_config = {}
     self._cluster_to_host_configs = collections.defaultdict(list)
     self._all_host_configs = []
 
   def LoadConfigs(self):
     """Load configs in the given path."""
-    if not self.file_enumerator:
+    if not self._file_enumerator:
       logging.debug('Lab config is not set.')
       return
     has_config = False
-    for file_obj in self.file_enumerator:
-      has_config = True
-      self._LoadConfig(file_obj)
+    for file_obj in self._file_enumerator:
+      if not has_config:
+        has_config = True
+        self._LoadConfig(file_obj)
+      else:
+        raise ConfigError('There are multiple config files.')
     if not has_config:
       raise ConfigError(
           'Lab config path is set, '
           'but there is no lab config files under the path.')
-    if len(self._lab_to_lab_config_pb.keys()) > 1:
-      raise ConfigError(
-          'There are multiple labs configured: %s.' %
-          self._lab_to_lab_config_pb.keys())
 
   def _LoadConfig(self, file_obj):
     """Load one config file."""
-    lab_config_pb = Parse(file_obj)
-    self._lab_to_lab_config_pb[lab_config_pb.lab_name] = lab_config_pb
-    for cluster_config_pb in lab_config_pb.cluster_configs:
-      self._cluster_to_cluster_config_pb[cluster_config_pb.cluster_name] = (
-          cluster_config_pb)
-      self._cluster_to_lab_config_pb[cluster_config_pb.cluster_name] = (
-          lab_config_pb)
+    self._lab_config_pb = Parse(file_obj)
+    for cluster_config_pb in self._lab_config_pb.cluster_configs:
       for host_config_pb in cluster_config_pb.host_configs:
         host_config = HostConfig(
-            host_config_pb, cluster_config_pb, lab_config_pb)
+            host_config_pb, cluster_config_pb, self._lab_config_pb)
         self._host_to_host_config[host_config_pb.hostname] = host_config
         self._cluster_to_host_configs[cluster_config_pb.cluster_name].append(
             host_config)
@@ -505,7 +497,7 @@ class LabConfigPool(object):
     Returns:
       a lab_config_pb2.LabConfig.
     """
-    return list(self._lab_to_lab_config_pb.values())[0]
+    return self._lab_config_pb
 
   def GetHostConfigs(self, cluster_name=None):
     """Get hosts for under a certain cluster.
@@ -528,67 +520,3 @@ class LabConfigPool(object):
       a HostConfig
     """
     return self._host_to_host_config.get(hostname)
-
-  def BuildHostConfig(
-      self,
-      hostname,
-      cluster_name=None,
-      host_login_name=None,
-      lab_name=None):
-    """Build host config.
-
-    1. If host is configured, return the host's config.
-    2. If cluster is configured, build a host config with the cluster config.
-    3. If lab is configured, build a host config with the lab config.
-    4. Build a host config with the given information.
-
-    Args:
-      hostname: the host's name
-      cluster_name: cluster for the host
-      host_login_name: host's login name
-      lab_name: host's lab name
-    Returns:
-      a HostConfig
-    """
-    host_config = self._host_to_host_config.get(hostname)
-    if host_config:
-      return host_config
-    logger.debug('No host config for %s.', hostname)
-    host_config_pb = lab_config_pb2.HostConfig(hostname=hostname)
-    cluster_config_pb = None
-    if cluster_name:
-      cluster_config_pb = self._cluster_to_cluster_config_pb.get(cluster_name)
-      if cluster_config_pb:
-        return HostConfig(
-            host_config_pb, cluster_config_pb,
-            self._cluster_to_lab_config_pb[cluster_name])
-      else:
-        logger.debug('No cluster config for %s.', cluster_name)
-    cluster_config_pb = lab_config_pb2.ClusterConfig(
-        cluster_name=cluster_name or '',
-        host_configs=[host_config_pb],
-        host_login_name=host_login_name or '')
-    if lab_name:
-      lab_config_pb = self._lab_to_lab_config_pb.get(lab_name)
-      if lab_config_pb:
-        return HostConfig(host_config_pb, cluster_config_pb, lab_config_pb)
-      else:
-        logger.debug('No lab config for %s.', lab_name)
-    lab_config_pb = lab_config_pb2.LabConfig(
-        lab_name=lab_name or '')
-    return HostConfig(host_config_pb, cluster_config_pb, lab_config_pb)
-
-
-def ParseGroupVar(group_var_file):
-  """Parses yml file and returns the parsed mapping.
-
-  Args:
-    group_var_file: the group_var file object.
-  Returns:
-    the parsed yml mapping.
-  """
-  try:
-    content = six.ensure_str(group_var_file.read())
-    return syaml.load(content).data
-  except syaml.YAMLError as e:
-    raise ConfigError(e)

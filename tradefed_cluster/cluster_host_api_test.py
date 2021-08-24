@@ -2130,7 +2130,7 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertIsNone(host_metadata.test_harness_image)
 
   def testPatchHostMetadata_previouslyNotExist(self):
-    """Tests PatchHostMetadata previously not exist."""
+    """Tests PatchHostMetadata previously does not exist."""
     api_request = {
         'hostname': 'host1',
         'test_harness_image': 'image_a',
@@ -2144,7 +2144,7 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual('image_a', metadata_entity.test_harness_image)
 
   def testPatchHostMetadata_patchExisting(self):
-    """Tests PatchHostMetadata previously not exist."""
+    """Tests PatchHostMetadata previously exists."""
     datastore_test_util.CreateHostMetadata(
         'host1', test_harness_image='image_a')
     api_request = {
@@ -2158,6 +2158,25 @@ class ClusterHostApiTest(api_test.ApiTest):
 
     metadata_entity = datastore_entities.HostMetadata.get_by_id('host1')
     self.assertEqual('image_b', metadata_entity.test_harness_image)
+
+  def testPatchHostMetadata_withShaFound(self):
+    """Tests PatchHostMetadata previously exists."""
+    datastore_test_util.CreateTestHarnessImageMetadata(
+        repo_name='image_a',
+        digest='sha256:d1',
+        current_tags=['tag_a'])
+
+    api_request = {
+        'hostname': 'host1',
+        'test_harness_image': 'image_a:tag_a',
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterHostApi.PatchMetadata',
+        api_request)
+    self.assertEqual('200 OK', api_response.status)
+
+    metadata_entity = datastore_entities.HostMetadata.get_by_id('host1')
+    self.assertEqual('image_a@sha256:d1', metadata_entity.test_harness_image)
 
   def testBatchUpdateHostMetadata_succeedsWithNoExistingMetadata(self):
     """Test batch set test_harness_image for hosts."""

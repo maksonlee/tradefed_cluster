@@ -865,7 +865,11 @@ class ClusterHostApi(remote.Service):
           id=request.hostname,
           hostname=request.hostname)
     if request.test_harness_image:
-      metadata.populate(test_harness_image=request.test_harness_image)
+      image_url = (harness_image_metadata_syncer
+                   .GetHarnessImageWithShaFromImageUrlWithTag(
+                       request.test_harness_image) or
+                   request.test_harness_image)
+      metadata.populate(test_harness_image=image_url)
     metadata.put()
     metadata_msg = datastore_entities.ToMessage(metadata)
 

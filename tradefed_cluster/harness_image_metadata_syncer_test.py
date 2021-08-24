@@ -264,6 +264,23 @@ class HarnessImageMetadataSyncerTest(parameterized.TestCase,
         expected_version,
         harness_image_metadata_syncer.GetHarnessVersionFromImageUrl(image_url))
 
+  @parameterized.named_parameters(
+      ('Image URL found.', 'test_repo_1:t1_1', 'test_repo_1@sha256:d1'),
+      ('Image URL not found.', 'test_repo_1:t1_3', None),
+  )
+  def testGetHarnessImageWithShaFromImageUrlWithTag(
+      self, image_url, expected_image_url_with_sha):
+    datastore_test_util.CreateTestHarnessImageMetadata(
+        repo_name='test_repo_1',
+        digest='sha256:d1',
+        current_tags=['t1_1', 't1_2', 'latest'],
+        test_harness_version='v1_1')
+
+    self.assertEqual(
+        expected_image_url_with_sha,
+        harness_image_metadata_syncer.GetHarnessImageWithShaFromImageUrlWithTag(
+            image_url))
+
 
 if __name__ == '__main__':
   unittest.main()

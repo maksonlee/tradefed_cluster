@@ -46,6 +46,8 @@ _DEFAULT_TRADEFED_REPO = 'gcr.io/dockerized-tradefed/tradefed'
 _TRADEFED_HARNESS_NAME = 'tradefed'
 # Template to create image metadata datastore key
 _IMAGE_METADATA_KEY_TMPL = '{}:{}'
+# Template to create image url with SHA
+_IMAGE_WITH_SHA_TMPL = '{}@{}'
 # Delete image metadata older than the period
 _STALE_METADATA_MAX_AGE = datetime.timedelta(days=180)
 
@@ -212,3 +214,19 @@ def GetHarnessVersionFromImageUrl(image_url):
   if image_metadata and image_metadata.test_harness_version:
     version = image_metadata.test_harness_version
   return version
+
+
+def GetHarnessImageWithShaFromImageUrlWithTag(image_url):
+  """Helpler funtion to get <image>@<sha> from <image>:<tag>.
+
+  Args:
+    image_url: string, url to the image with tag name.
+
+  Returns:
+    A optional string, the url to image with SHA; None, if SHA is not found.
+  """
+  repo, tag = _SplitImageUrlIntoRepoAndTag(image_url)
+  image_metadata = _GetTestHarnessImageMetadata(repo, tag)
+  if image_metadata and image_metadata.digest:
+    return _IMAGE_WITH_SHA_TMPL.format(repo, image_metadata.digest)
+  return None

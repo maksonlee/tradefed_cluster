@@ -28,7 +28,15 @@ except ImportError:
   from google3.net.proto2.python.public import json_format
 
 from tradefed_cluster.configs import lab_config_pb2
-from tradefed_cluster.configs import unified_lab_config as unified_lab_config_util
+
+# Ansible package depends on certain environment variable.
+ansible_import_error = None
+try:
+  os.environ['ANSIBLE_LOCAL_TEMP'] = '/tmp'
+  # unified_lab_config depends on ansible.
+  from tradefed_cluster.configs import unified_lab_config as unified_lab_config_util
+except Exception as e:    logging.warning('Fail to import ansible package:\n%s', e)
+  ansible_import_error = e
 
 logger = logging.getLogger(__name__)
 
@@ -558,6 +566,8 @@ class UnifiedLabConfigPool(_AbstractLabConfigPool):
       return
     if not os.path.exists(self._file_path):
       raise ConfigError('Config %s doesn\'t exist.' % self._file_path)
+    if ansible_import_error:
+      raise ansible_import_error
     unified_config_lab = unified_lab_config_util.Parse(self._file_path)
     self._lab_config_pb = json_format.ParseDict(
         unified_config_lab.ListGlobalVars(), lab_config_pb2.LabConfig(),

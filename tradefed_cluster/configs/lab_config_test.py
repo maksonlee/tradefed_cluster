@@ -490,5 +490,117 @@ class HostConfigTest(unittest.TestCase):
     self.assertNotEqual(host_config_1, host_config_2)
 
 
+class UnifiedLabConfigPoolTest(unittest.TestCase):
+  """Unit test for UnifiledLabConfigPool."""
+
+  def testLoadConfigs(self):
+    """Test ConfigPool LoadConfigs can load one config file."""
+    config_path = GetTestFilePath('unified_lab_config/valid_lab/hosts')
+    pool = lab_config.UnifiedLabConfigPool(config_path)
+    pool.LoadConfigs()
+    self.assertIsNotNone(pool.GetLabConfig())
+    self.assertIsNotNone(pool.GetHostConfigs('postsubmit'))
+    self.assertIsNotNone(pool.GetHostConfigs('crystalball'))
+    self.assertIsNotNone(pool.GetHostConfigs('crystalball-power'))
+
+  def testLoadConfigs_notExist(self):
+    """Test LabConfigPool LoadConfigs fail when config doesn't exist."""
+    config_path = GetTestFilePath('unified_lab_config/invalid_lab/hosts')
+    with six.assertRaisesRegex(
+        self, lab_config.ConfigError, r'.* doesn\'t exist.'):
+      pool = lab_config.UnifiedLabConfigPool(config_path)
+      pool.LoadConfigs()
+
+  def testGetLabConfig(self):
+    """Test ConfigPool LoadConfigs can load one config file."""
+    config_path = GetTestFilePath('unified_lab_config/valid_lab/hosts')
+    pool = lab_config.UnifiedLabConfigPool(config_path)
+    pool.LoadConfigs()
+    self.assertIsNotNone(pool.GetLabConfig())
+    config = pool.GetLabConfig()
+    self.assertEqual('atc', config.lab_name)
+    self.assertEqual('lab_user1', config.host_login_name)
+    self.assertEqual(['mdb-group:some_owner', 'foo', 'bar'], config.owners)
+
+  def testGetHostConfigs(self):
+    """Test get hosts from LabConfigPool works."""
+    config_path = GetTestFilePath('unified_lab_config/valid_lab/hosts')
+    pool = lab_config.UnifiedLabConfigPool(config_path)
+    pool.LoadConfigs()
+    hosts = pool.GetHostConfigs('postsubmit')
+    self.assertEqual(2, len(hosts))
+    self.assertEqual('atc', hosts[0].lab_name)
+    self.assertEqual('postsubmit1.atc.google.com', hosts[0].hostname)
+    self.assertEqual('lab_user1', hosts[0].host_login_name)
+    self.assertEqual('postsubmit', hosts[0].cluster_name)
+    self.assertEqual('ramdisk-host-config.xml', hosts[0].tf_global_config_path)
+    self.assertEqual('tfc_url', hosts[0].control_server_url)
+    self.assertEqual(['mdb-group:some_owner', 'foo', 'bar'], hosts[0].owners)
+    self.assertEqual('gcr.io/dockerized-tradefed/tradefed:golden',
+                     hosts[0].docker_image)
+    self.assertEqual('docker_server_2', hosts[0].docker_server)
+    self.assertEqual('postsubmit2.atc.google.com', hosts[1].hostname)
+    hosts = pool.GetHostConfigs('crystalball-power')
+    self.assertEqual(2, len(hosts))
+    self.assertEqual('atc', hosts[0].lab_name)
+    self.assertEqual('lab_docker_image', hosts[0].docker_image)
+    self.assertEqual('docker_server_1', hosts[0].docker_server)
+    self.assertEqual('cp1.atc.google.com', hosts[0].hostname)
+    self.assertEqual(
+        ['--device-cgroup-rule', '"c 188:* rwm"'],
+        hosts[0].extra_docker_args)
+    self.assertEqual('cp2.atc.google.com', hosts[1].hostname)
+
+  def testGetHostConfigs_all(self):
+    """Test get hosts from LabConfigPool works."""
+    config_path = GetTestFilePath('unified_lab_config/valid_lab/hosts')
+    pool = lab_config.UnifiedLabConfigPool(config_path)
+    pool.LoadConfigs()
+    hosts = pool.GetHostConfigs()
+    self.assertEqual(6, len(hosts))
+
+  def testGetHostConfig(self):
+    """Test get host config from LabConfigPool works."""
+    config_path = GetTestFilePath('unified_lab_config/valid_lab/hosts')
+    pool = lab_config.UnifiedLabConfigPool(config_path)
+    pool.LoadConfigs()
+    host = pool.GetHostConfig('crystalball1.atc.google.com')
+    self.assertEqual('crystalball1.atc.google.com', host.hostname)
+    self.assertEqual('lab_user1', host.host_login_name)
+    self.assertEqual('crystalball', host.cluster_name)
+    self.assertEqual('path/to/config.xml', host.tf_global_config_path)
+    self.assertEqual('-F path/to/ssh/config', host.ssh_arg)
+
+  def testGetHostConfig_inSubSubGroup(self):
+    """Test get host config in subsubgroup from LabConfigPool works."""
+    config_path = GetTestFilePath('unified_lab_config/valid_lab/hosts')
+    pool = lab_config.UnifiedLabConfigPool(config_path)
+    pool.LoadConfigs()
+    host = pool.GetHostConfig('cp1.atc.google.com')
+    self.assertEqual('cp1.atc.google.com', host.hostname)
+    # Can get the lab parameters.
+    self.assertEqual('-F path/to/ssh/config', host.ssh_arg)
+    self.assertEqual('lab_user1', host.host_login_name)
+    # Can get parent group parameters.
+    self.assertEqual('crystalball', host.cluster_name)
+    self.assertEqual(
+        ['mdb-group:some_owner', 'foo', 'bar',
+         'mdb-group:crystalball-team', 'user10'],
+        host.owners)
+    # Child group will override parent group parameters.
+    self.assertEqual(['--device-cgroup-rule', '"c 188:* rwm"'],
+                     host.extra_docker_args)
+    self.assertEqual('configs/cluster/atc/crystalball/power.xml',
+                     host.tf_global_config_path)
+
+  def testGetHostConfig_notExist(self):
+    """Test get host config for not exist host from LabConfigPool works."""
+    config_path = GetTestFilePath('unified_lab_config/valid_lab/hosts')
+    pool = lab_config.UnifiedLabConfigPool(config_path)
+    pool.LoadConfigs()
+    host = pool.GetHostConfig('not_exist')
+    self.assertIsNone(host)
+
+
 if __name__ == '__main__':
   unittest.main()

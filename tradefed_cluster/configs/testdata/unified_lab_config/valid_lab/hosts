@@ -3,6 +3,7 @@ lab_name=atc
 domain=atc.google.com
 enable_stackdriver=True
 ssh_arg="-F path/to/ssh/config"
+host_login_name="lab_user1"
 
 owners=['mdb-group:some_owner', 'foo', 'bar']
 executors=['mdb-group:some_executor', 'zar']
@@ -43,7 +44,11 @@ postsubmit
 crystalball
 
 [tf:vars]
-docker_envs=["TF_GLOBAL_CONFIG=host-config.xml"]
+control_server_url="tfc_url"
+docker_image="lab_docker_image"
+docker_server="docker_server_1"
+tf_global_config_path=path/to/config.xml
+docker_envs=["TF_GLOBAL_CONFIG=path/to/config.xml"]
 docker_shutdown_command="/tradefed/tradefed_kill.sh"
 
 [postsubmit]
@@ -51,6 +56,9 @@ postsubmit1.atc.google.com ip=10.0.16.13 mac=54:bf:64:a5:d4:6c
 postsubmit2.atc.google.com ip=10.0.16.14 mac=54:bf:64:a4:ac:dc
 
 [postsubmit:vars]
+tf_global_config_path=ramdisk-host-config.xml
+docker_image=gcr.io/dockerized-tradefed/tradefed:golden
+docker_server=docker_server_2
 docker_envs=["TF_GLOBAL_CONFIG=ramdisk-host-config.xml"]
 docker_volumes=["type=tmpfs,destination=/fastboot-ramdisk,tmpfs-size=16G"]
 
@@ -59,6 +67,7 @@ crystalball1.atc.google.com ip=10.0.18.137 mac=a4:bb:6d:c3:be:28
 crystalball2.atc.google.com ip=10.0.22.74 mac=54:bf:64:a3:d2:dd
 
 [crystalball:vars]
+cluster_name=crystalball
 owners=['mdb-group:crystalball-team','user10']
 
 [crystalball:children]
@@ -69,6 +78,7 @@ cp1.atc.google.com ip=10.0.18.137 mac=a4:bb:6d:c3:be:28
 cp2.atc.google.com ip=10.0.22.74 mac=54:bf:64:a3:d2:dd
 
 [crystalball-power:vars]
+tf_global_config_path=configs/cluster/atc/crystalball/power.xml
 docker_envs=["TF_GLOBAL_CONFIG=configs/cluster/atc/crystalball/power.xml"]
 docker_volumes=['/dev:/dev', '/dev/U16S:/dev/U16S']
-docker_extra_args=['--device-cgroup-rule', '"c 188:* rwm"']
+extra_docker_args=['--device-cgroup-rule', '"c 188:* rwm"']

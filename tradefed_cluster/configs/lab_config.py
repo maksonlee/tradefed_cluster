@@ -13,8 +13,8 @@
 # limitations under the License.
 
 """Tools for tradefed satellite lab configs."""
+import abc
 import collections
-import itertools
 import logging
 import os
 
@@ -28,10 +28,12 @@ except ImportError:
   from google3.net.proto2.python.public import json_format
 
 from tradefed_cluster.configs import lab_config_pb2
+from tradefed_cluster.configs import unified_lab_config as unified_lab_config_util
 
 logger = logging.getLogger(__name__)
 
 _DEFAULT_SHUTDOWN_TIMEOUT_SEC = 3600
+_TF_GROUP = 'tf'
 
 
 class ConfigError(Exception):
@@ -267,8 +269,11 @@ class HostConfig(object):
   @property
   def owners(self):
     """Inherit the owners field from parent cluster or lab."""
-    return list(set(owner for owner in itertools.chain(
-        self.cluster_config_pb.owners, self.lab_config_pb.owners)))
+    owners = list(self.lab_config_pb.owners)
+    for owner in self.cluster_config_pb.owners:
+      if owner not in owners:
+        owners.append(owner)
+    return owners
 
   @property
   def engprod_api_key(self):
@@ -420,6 +425,11 @@ def IsYaml(path):
   return path.endswith('.yaml')
 
 
+def IsUnifiedLabConfig(path):
+  """Is path a yaml file or not."""
+  return path.endswith('hosts') or path.endswith('.ini')
+
+
 def LocalFileEnumerator(root_path, filename_filter=None):
   """Enumerator files from local path.
 
@@ -452,44 +462,19 @@ def LocalFileEnumerator(root_path, filename_filter=None):
           paths.append(subpath)
 
 
-class LabConfigPool(object):
-  """A config pool that can query configs for host and cluster."""
+class _AbstractLabConfigPool(abc.ABC):
+  """Abstract lab config pool interface."""
 
-  def __init__(self, file_enumerator=None):
-    self._file_enumerator = file_enumerator
+  def __init__(self):
     self._lab_config_pb = None
     self._host_to_host_config = {}
     self._cluster_to_host_configs = collections.defaultdict(list)
     self._all_host_configs = []
 
+  @abc.abstractmethod
   def LoadConfigs(self):
     """Load configs in the given path."""
-    if not self._file_enumerator:
-      logging.debug('Lab config is not set.')
-      return
-    has_config = False
-    for file_obj in self._file_enumerator:
-      if not has_config:
-        has_config = True
-        self._LoadConfig(file_obj)
-      else:
-        raise ConfigError('There are multiple config files.')
-    if not has_config:
-      raise ConfigError(
-          'Lab config path is set, '
-          'but there is no lab config files under the path.')
-
-  def _LoadConfig(self, file_obj):
-    """Load one config file."""
-    self._lab_config_pb = Parse(file_obj)
-    for cluster_config_pb in self._lab_config_pb.cluster_configs:
-      for host_config_pb in cluster_config_pb.host_configs:
-        host_config = HostConfig(
-            host_config_pb, cluster_config_pb, self._lab_config_pb)
-        self._host_to_host_config[host_config_pb.hostname] = host_config
-        self._cluster_to_host_configs[cluster_config_pb.cluster_name].append(
-            host_config)
-        self._all_host_configs.append(host_config)
+    raise NotImplementedError()
 
   def GetLabConfig(self):
     """Get the lab config.
@@ -520,3 +505,81 @@ class LabConfigPool(object):
       a HostConfig
     """
     return self._host_to_host_config.get(hostname)
+
+
+class LabConfigPool(_AbstractLabConfigPool):
+  """A config pool that can query configs for host and cluster."""
+
+  def __init__(self, file_enumerator=None):
+    super().__init__()
+    self._file_enumerator = file_enumerator
+
+  def LoadConfigs(self):
+    """Load configs in the given path."""
+    if not self._file_enumerator:
+      logging.debug('Lab config is not set.')
+      return
+    has_config = False
+    for file_obj in self._file_enumerator:
+      if not has_config:
+        has_config = True
+        self._LoadConfig(file_obj)
+      else:
+        raise ConfigError('There are multiple config files.')
+    if not has_config:
+      raise ConfigError(
+          'Lab config path is set, '
+          'but there is no lab config files under the path.')
+
+  def _LoadConfig(self, file_obj):
+    """Load one config file."""
+    self._lab_config_pb = Parse(file_obj)
+    for cluster_config_pb in self._lab_config_pb.cluster_configs:
+      for host_config_pb in cluster_config_pb.host_configs:
+        host_config = HostConfig(
+            host_config_pb, cluster_config_pb, self._lab_config_pb)
+        self._host_to_host_config[host_config_pb.hostname] = host_config
+        self._cluster_to_host_configs[cluster_config_pb.cluster_name].append(
+            host_config)
+        self._all_host_configs.append(host_config)
+
+
+class UnifiedLabConfigPool(_AbstractLabConfigPool):
+  """A config pool based on unified lab config."""
+
+  def __init__(self, file_path):
+    super().__init__()
+    self._file_path = file_path
+
+  def LoadConfigs(self):
+    """Load configs in the given path."""
+    if not self._file_path:
+      logging.debug('Lab config is not set.')
+      return
+    if not os.path.exists(self._file_path):
+      raise ConfigError('Config %s doesn\'t exist.' % self._file_path)
+    unified_config_lab = unified_lab_config_util.Parse(self._file_path)
+    self._lab_config_pb = json_format.ParseDict(
+        unified_config_lab.ListGlobalVars(), lab_config_pb2.LabConfig(),
+        ignore_unknown_fields=True)
+    for h in unified_config_lab.ListHosts():
+      if _TF_GROUP not in [g.name for g in h.groups]:
+        continue
+      host_config_pb = json_format.ParseDict(
+          h.direct_vars, lab_config_pb2.HostConfig(),
+          ignore_unknown_fields=True)
+      host_config_pb.hostname = h.name
+      cluster_config_dict = {}
+      for g in h.groups:
+        cluster_config_dict.update(g.direct_vars)
+      cluster_config_dict['cluster_name'] = cluster_config_dict.get(
+          'cluster_name', h.groups[-1].name)
+      cluster_config_pb = json_format.ParseDict(
+          cluster_config_dict, lab_config_pb2.ClusterConfig(),
+          ignore_unknown_fields=True)
+      host_config = HostConfig(
+          host_config_pb, cluster_config_pb, self._lab_config_pb)
+      self._host_to_host_config[host_config.hostname] = host_config
+      for g in h.groups:
+        self._cluster_to_host_configs[g.name].append(host_config)
+      self._all_host_configs.append(host_config)

@@ -21,6 +21,7 @@ py_library(
     visibility = ["//visibility:public"],
     deps = [
         ":lab_config_py_pb2",
+        ":unified_lab_config_lib",
         third_party("strictyaml"),
         "//net/proto2/python/public",
     ],

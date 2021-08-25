@@ -25,6 +25,7 @@ class UnifiedLabConfigTest(unittest.TestCase):
             'domain': 'atc.google.com',
             'enable_stackdriver': True,
             'ssh_arg': '-F path/to/ssh/config',
+            'host_login_name': 'lab_user1',
             'owners': ['mdb-group:some_owner', 'foo', 'bar'],
             'executors': ['mdb-group:some_executor', 'zar'],
             'readers': ['reader_a', 'mdb-group:some_reader'],
@@ -87,7 +88,11 @@ class UnifiedLabConfigTest(unittest.TestCase):
     self.assertEqual('tf', group.name)
     self.assertEqual(
         {
-            'docker_envs': ['TF_GLOBAL_CONFIG=host-config.xml'],
+            'control_server_url': 'tfc_url',
+            'docker_image': 'lab_docker_image',
+            'docker_server': 'docker_server_1',
+            'tf_global_config_path': 'path/to/config.xml',
+            'docker_envs': ['TF_GLOBAL_CONFIG=path/to/config.xml'],
             'docker_shutdown_command': '/tradefed/tradefed_kill.sh',
             # Should include vars from group_vars file as well.
             'docker_volumes': ['/dev:/dev'],

@@ -13,7 +13,6 @@
 # limitations under the License.
 
 """Sync Cluster or Host configs from google cloud storage to TFC NDB."""
-
 import datetime
 import logging
 import os
@@ -149,28 +148,50 @@ def _UpdateClusterConfigs(cluster_configs):
   logging.debug('Cluster configs updated.')
 
 
-def _UpdateHostConfigs(host_config_pbs, cluster_config_pb, lab_config_pb):
+def _UpdateHostConfigs(host_config_pbs, cluster_config_pb, lab_config_pb,
+                       lab_config):
   """Update host configs in HostInfo entities to ndb.
 
   Args:
     host_config_pbs: a list of host config protos.
     cluster_config_pb: the cluster config proto.
     lab_config_pb: the lab config proto.
+    lab_config: a UnifiedLabConfig object.
   """
   logging.debug('Updating host configs for <lab: %s, cluster: %s.>',
-                lab_config_pb.lab_name, cluster_config_pb.cluster_name)
-  host_config_keys = []
-  for host_config_pb in host_config_pbs:
-    host_config_keys.append(
-        ndb.Key(datastore_entities.HostConfig, host_config_pb.hostname))
-  entities = ndb.get_multi(host_config_keys)
+                lab_config_pb.lab_name, cluster_config_pb.cluster_name)  # pytype: disable=attribute-error
+  host_config_pb_map = {
+      host_config.hostname: host_config for host_config in host_config_pbs}
+  entities_from_lab_config = {}
+  if lab_config:
+    entities_from_lab_config = {
+        host.name: _CreateHostConfigEntityFromHostInventory(
+            lab_config_pb.lab_name, host)  # pytype: disable=attribute-error
+        for host in lab_config.ListHosts()}
+  # Unique hostname from lab_config and host_config_pbs
+  hostnames = list(
+      set(host_config_pb_map.keys()).union(
+          set(entities_from_lab_config.keys())))
+  entities = ndb.get_multi([
+      ndb.Key(datastore_entities.HostConfig,
+              hostname) for hostname in hostnames])
   entities_to_update = []
   # Update the exist host config entity.
-  for entity, host_config_pb in zip(entities, host_config_pbs):
-    host_config_msg = lab_config_util.HostConfig(
-        host_config_pb, cluster_config_pb, lab_config_pb)
-    new_host_config_entity = datastore_entities.HostConfig.FromMessage(
-        host_config_msg)
+  for hostname, entity in zip(hostnames, entities):
+    # if the hostname was covered by host_config_pbs, create new entity based
+    # on host_config_pb
+    if hostname in host_config_pb_map:
+      host_config_msg = lab_config_util.HostConfig(
+          host_config_pb_map[hostname], cluster_config_pb, lab_config_pb)
+      new_host_config_entity = datastore_entities.HostConfig.FromMessage(
+          host_config_msg)
+    else:
+    # otherwise the hostname should be covered by lab_config, then create
+    # new entity from lab_config.
+      new_host_config_entity = entities_from_lab_config[hostname]
+    if hostname in entities_from_lab_config:
+      new_host_config_entity.inventory_groups = entities_from_lab_config[
+          hostname].inventory_groups
     if not _CheckConfigEntitiesEqual(entity, new_host_config_entity):
       logging.debug('Updating host config entity: %s.', new_host_config_entity)
       entities_to_update.append(new_host_config_entity)
@@ -181,16 +202,25 @@ def _UpdateHostConfigs(host_config_pbs, cluster_config_pb, lab_config_pb):
 def SyncToNDB():
   """Sync file from gcs to ndb."""
   stats = file_storage.ListFiles(LAB_CONFIG_DIR_PATH)
+  inventories = {
+      lab_name: inventory_file
+      for lab_name, inventory_file in _GetLabInventoryFiles()
+  }
   for stat in stats:
     if stat.filename.endswith('.yaml'):
       logging.debug('Processing cloudstorage file: %s', stat.filename)
       lab_config_pb = GetLabConfigFromGCS(stat.filename)
       _UpdateLabConfig(lab_config_pb)
       _UpdateClusterConfigs(lab_config_pb.cluster_configs)  # pytype: disable=attribute-error
+      lab_name = lab_config_pb.lab_name  # pytype: disable=attribute-error
+      inventory = inventories.get(lab_name)
+      lab_config = unified_lab_config_util.Parse(
+          inventory, _GcsDataLoader()) if inventory else None
       for cluster_config_pb in lab_config_pb.cluster_configs:  # pytype: disable=attribute-error
         _UpdateHostConfigs(cluster_config_pb.host_configs, cluster_config_pb,
-                           lab_config_pb)
-
+                           lab_config_pb, lab_config)
+      if lab_config:
+        _UpdateHostGroupConfigByInventoryData(lab_name, lab_config)
   # TODO: change to delete host config entities based on existence.
   datastore_util.DeleteEntitiesUpdatedEarlyThanSomeTimeAgo(
       datastore_entities.LabConfig,
@@ -202,6 +232,10 @@ def SyncToNDB():
       _STATLE_CONFIG_MAX_AGE)
   datastore_util.DeleteEntitiesUpdatedEarlyThanSomeTimeAgo(
       datastore_entities.HostConfig,
+      datastore_entities.HostConfig.update_time,
+      _STATLE_CONFIG_MAX_AGE)
+  datastore_util.DeleteEntitiesUpdatedEarlyThanSomeTimeAgo(
+      datastore_entities.HostGroupConfig,
       datastore_entities.HostConfig.update_time,
       _STATLE_CONFIG_MAX_AGE)
 
@@ -260,18 +294,6 @@ def _CreateHostGroupConfigEntityFromGroupInventory(lab_name, group):
       account_principals=group.direct_vars.get(_GROUP_VAR_ACCOUNTS))
 
 
-def _SyncInventoryHostGroup(lab_name, file_name):
-  """Loads inventory file to updates HostConfig and HostGroupConfig.
-
-  Args:
-    lab_name: the lab name.
-    file_name: the inventory file name.
-  """
-  config = unified_lab_config_util.Parse(file_name, _GcsDataLoader())
-  _UpdateHostGroupConfigByInventoryData(lab_name, config)
-  _UpdateHostConfigByInventoryData(lab_name, config)
-
-
 def _UpdateHostGroupConfigByInventoryData(lab_name, lab_config):
   """Updates HostGroupConfig.
 
@@ -295,8 +317,7 @@ def _UpdateHostGroupConfigByInventoryData(lab_name, lab_config):
   logging.debug('Loaded %d HostGroupConfigs of lab %s',
                 len(entity_from_file), lab_name)
   entity_from_ndb = {
-      g.key: g for g in datastore_entities.HostGroupConfig.query(
-          datastore_entities.HostGroupConfig.lab_name == lab_name).fetch()
+      g.key: g for g in ndb.get_multi(entity_from_file.keys()) if g
   }
   need_update = []
   for key, group in entity_from_file.items():
@@ -304,42 +325,6 @@ def _UpdateHostGroupConfigByInventoryData(lab_name, lab_config):
       need_update.append(group)
   ndb.put_multi(need_update)
   logging.debug('Updated %d HostGroupConfigs.', len(need_update))
-  need_delete = set(entity_from_ndb.keys()).difference(entity_from_file.keys())
-  ndb.delete_multi(need_delete)
-  logging.debug('Removed %d HostGroupConfigs', len(need_delete))
-
-
-def _UpdateHostConfigByInventoryData(lab_name, lab_config):
-  """Updates HostConfig inventory_groups.
-
-  Args:
-    lab_name: the lab name.
-    lab_config: a UnifiedLabConfig object.
-  """
-  lab_name = lab_config.GetGlobalVar(_LAB_NAME_KEY) or lab_name
-  keys = []
-  entities_from_file = {
-      host.name: _CreateHostConfigEntityFromHostInventory(lab_name, host)
-      for host in lab_config.ListHosts()
-  }
-  for hostname in entities_from_file:
-    keys.append(ndb.Key(datastore_entities.HostConfig, hostname))
-  entities_from_ndb = {}
-  for entity in ndb.get_multi(keys):
-    if entity:
-      entities_from_ndb[entity.hostname] = entity
-  need_update = {}
-  for hostname in entities_from_file:
-    old = entities_from_ndb.get(hostname)
-    new = entities_from_file[hostname]
-    if not old:
-      logging.debug('Creating host config %s', new)
-      need_update[hostname] = new
-    elif old.inventory_groups != new.inventory_groups:
-      old.inventory_groups = new.inventory_groups
-      logging.debug('Updating host config %s', old)
-      need_update[hostname] = old
-  ndb.put_multi(need_update.values())
 
 
 def _GetLabInventoryFiles():
@@ -362,12 +347,6 @@ def _GetLabInventoryFiles():
         yield (inventory_file_match.group(_LAB_NAME_KEY), file.filename)
 
 
-def SyncInventoryGroupsToNDB():
-  """Task to sync lab inventory to NDB."""
-  for lab_name, inventory_file_name in _GetLabInventoryFiles():
-    _SyncInventoryHostGroup(lab_name, inventory_file_name)
-
-
 @APP.route('/cron/syncer/sync_gcs_ndb')
 def SyncGCSToNDB():
   """Task to sync cluster and host config from gcs to ndb."""
@@ -379,5 +358,4 @@ def SyncGCSToNDB():
                     ansible_import_error)
       raise ansible_import_error
     SyncToNDB()
-    SyncInventoryGroupsToNDB()
   return common.HTTP_OK

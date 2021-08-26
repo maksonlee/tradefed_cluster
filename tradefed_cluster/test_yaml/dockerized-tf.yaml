@@ -38,10 +38,10 @@ cluster_configs:
   graceful_shutdown: True
   shutdown_timeout_sec: 1000
   host_configs:
-  - hostname: homer-atc1
+  - hostname: homer-atc1.lab1.google.com
     tf_global_config_path: configs/homer-atc1/config.xml
     enable_ui_update: True
-  - hostname: homer-atc2
+  - hostname: homer-atc2.lab1.google.com
     tf_global_config_path: configs/homer-atc2/config.xml
 
 - cluster_name: cluster2
@@ -50,6 +50,6 @@ cluster_configs:
   - owner1
   tf_global_config_path: configs/cluster2/config.xml
   host_configs:
-  - hostname: homer-atc3
+  - hostname: homer-atc3.lab1.google.com
     tf_global_config_path: configs/homer-atc4/config.xml
-  - hostname: homer-atc4
+  - hostname: homer-atc4.lab1.google.com

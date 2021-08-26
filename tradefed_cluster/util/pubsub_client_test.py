@@ -14,6 +14,7 @@
 
 """Tests for pubsub_client."""
 
+import threading
 import unittest
 
 from googleapiclient import errors
@@ -36,6 +37,40 @@ class PubsubClientTest(testbed_dependent_test.TestbedDependentTest):
     self.mock_api_client = mock.MagicMock()
     self.pubsub_client = pubsub_client.PubSubClient(
         api_client=self.mock_api_client)
+
+  @mock.patch.object(pubsub_client, 'discovery')
+  def testCreatePubsubClient(self, mock_discovery):
+    """Tests use pubsub client from multiple thread."""
+    api_client1 = mock.MagicMock()
+    api_client2 = mock.MagicMock()
+    mock_discovery.build.side_effect = [api_client1, api_client2]
+
+    client = pubsub_client.PubSubClient()
+    client.CreateTopic('topic')
+    # In another thread, it would create another api_client.
+    t = threading.Thread(
+        target=lambda: client.GetSubscription('subscription'))
+    t.start()
+    t.join(timeout=1)
+
+    mock_discovery.assert_has_calls([
+        mock.call.build('pubsub', 'v1'),
+        mock.call.build('pubsub', 'v1')
+    ])
+
+    api_client1.assert_has_calls([
+        mock.call.projects(),
+        mock.call.projects().topics(),
+        mock.call.projects().topics().create(
+            name='topic',
+            body={}),
+        mock.call.projects().topics().create().execute()])
+    api_client2.assert_has_calls([
+        mock.call.projects(),
+        mock.call.projects().subscriptions(),
+        mock.call.projects().subscriptions().get(
+            subscription='subscription'),
+        mock.call.projects().subscriptions().get().execute()])
 
   def testCreateTopic(self):
     """Tests whether the method makes a correct API request."""
@@ -108,11 +143,13 @@ class PubsubClientTest(testbed_dependent_test.TestbedDependentTest):
     self.pubsub_client.CreateSubscription('subscription', 'topic')
 
     self.mock_api_client.assert_has_calls([
+        mock.call.__bool__(),
         mock.call.projects(),
         mock.call.projects().subscriptions(),
         mock.call.projects().subscriptions().get(
             subscription='subscription'),
         mock.call.projects().subscriptions().get().execute(),
+        mock.call.__bool__(),
         mock.call.projects(),
         mock.call.projects().subscriptions(),
         mock.call.projects().subscriptions().create(

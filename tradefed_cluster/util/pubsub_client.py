@@ -15,6 +15,7 @@
 """A utiliy module for Google Cloud Pub/Sub API."""
 
 import logging
+import threading
 
 from googleapiclient import discovery
 from googleapiclient import errors
@@ -25,6 +26,9 @@ PUBSUB_API_VERSION = 'v1'
 DEFAULT_ACK_DEADLINE_SECONDS = 120
 
 
+_thread_local = threading.local()
+
+
 class PubSubClient(object):
   """A wrapper class for Cloud Pub/Sub API client."""
 
@@ -32,12 +36,15 @@ class PubSubClient(object):
     """Creates a PubSubClient instance.
 
     Args:
-      api_client: an API client instance. New instance will be created if not
-        given.
+      api_client: an API client instance. Used for unit test.
     """
-    self._api_client = api_client
-    if not self._api_client:
-      self._api_client = discovery.build(PUBSUB_API_NAME, PUBSUB_API_VERSION)
+    _thread_local.api_client = api_client
+
+  def _GetApiClient(self):
+    if not getattr(_thread_local, 'api_client', None):
+      _thread_local.api_client = discovery.build(
+          PUBSUB_API_NAME, PUBSUB_API_VERSION)
+    return _thread_local.api_client
 
   def CreateTopic(self, topic):
     """Create the topic if it does not exist.
@@ -48,7 +55,7 @@ class PubSubClient(object):
       HttpError: fail to create topic
     """
     try:
-      self._api_client.projects().topics().create(
+      self._GetApiClient().projects().topics().create(
           name=topic, body={}
       ).execute()
     except errors.HttpError as e:
@@ -66,7 +73,7 @@ class PubSubClient(object):
     Returns:
       a list of the message ids of each published message.
     """
-    resp = self._api_client.projects().topics().publish(
+    resp = self._GetApiClient().projects().topics().publish(
         topic=topic,
         body={
             'messages': messages
@@ -85,7 +92,7 @@ class PubSubClient(object):
       HttpError: fail to get subscription
     """
     try:
-      return self._api_client.projects().subscriptions().get(
+      return self._GetApiClient().projects().subscriptions().get(
           subscription=subscription).execute()
     except errors.HttpError as e:
       # 404 means the subscription doesn't exist.
@@ -116,7 +123,7 @@ class PubSubClient(object):
     request_body = {'topic': topic}
     if ack_deadline_seconds:
       request_body['ackDeadlineSeconds'] = ack_deadline_seconds
-    self._api_client.projects().subscriptions().create(
+    self._GetApiClient().projects().subscriptions().create(
         name=subscription, body=request_body
     ).execute()
 
@@ -129,7 +136,7 @@ class PubSubClient(object):
     Returns:
       a list of messages pulled from a subscription.
     """
-    resp = self._api_client.projects().subscriptions().pull(
+    resp = self._GetApiClient().projects().subscriptions().pull(
         subscription=subscription,
         body={
             # Based on https://b.corp.example.com/issues/155128069#comment7,
@@ -147,7 +154,7 @@ class PubSubClient(object):
       subscription: the name of a subscription.
       ack_ids: the ack IDs of messages to acknowledge.
     """
-    self._api_client.projects().subscriptions().acknowledge(
+    self._GetApiClient().projects().subscriptions().acknowledge(
         subscription=subscription,
         body={
             'ackIds': ack_ids

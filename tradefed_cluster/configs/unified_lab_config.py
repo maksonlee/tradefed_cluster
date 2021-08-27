@@ -34,7 +34,6 @@ def Parse(file_path, loader=None):
       continue
     extra_vars = loader.load_from_file(
         os.path.join(group_vars_dir, filename), unsafe=True)
-    print(extra_vars)
     for k, v in extra_vars.items():
       data.groups[group_name].set_variable(k, v)
   return UnifiedLabConfig(data)

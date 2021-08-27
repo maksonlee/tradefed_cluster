@@ -13,6 +13,7 @@
 # limitations under the License.
 
 """Sync Cluster or Host configs from google cloud storage to TFC NDB."""
+import collections
 import datetime
 import logging
 import os
@@ -92,27 +93,41 @@ def _CheckConfigEntitiesEqual(entity, new_entity):
   return entity_dict == new_entity_dict
 
 
-def _UpdateLabConfig(lab_config):
+def _UpdateLabConfig(lab_name, lab_config_pbs, unified_lab_config):
   """Update Lab config to ndb."""
-  logging.debug('Updating lab config entity.')
-  if not lab_config.lab_name:
-    logging.error('Lab has no name: %s.', lab_config)
-    return
-  lab_info_entity = datastore_entities.LabInfo.get_by_id(lab_config.lab_name)
+  logging.debug('Updating lab config entity for %s.', lab_name)
+  owners = set()
+  if lab_config_pbs:
+    for lab_config_pb in lab_config_pbs:
+      owners = owners.union(lab_config_pb.owners)
+  # TODO: Get owners information from unified_lab_config.
+  del unified_lab_config
+  owners = sorted(owners)
+  lab_info_entity = datastore_entities.LabInfo.get_by_id(lab_name)
   if not lab_info_entity:
     logging.debug(
-        'No lab info entity for %s, creating one.', lab_config.lab_name)
+        'No lab info entity for %s, creating one.', lab_name)
     lab_info_entity = datastore_entities.LabInfo(
-        id=lab_config.lab_name,
-        lab_name=lab_config.lab_name)
+        id=lab_name,
+        lab_name=lab_name)
     lab_info_entity.put()
   lab_config_entity = datastore_entities.LabConfig.get_by_id(
-      lab_config.lab_name)
-  new_lab_config_entity = datastore_entities.LabConfig.FromMessage(lab_config)
-  if not _CheckConfigEntitiesEqual(lab_config_entity, new_lab_config_entity):
-    logging.debug('Update lab config entity: %s.',
-                  new_lab_config_entity.lab_name)
-    new_lab_config_entity.put()
+      lab_name)
+  if not lab_config_entity:
+    logging.debug(
+        'No lab config entity for %s, creating one.', lab_name)
+    lab_config_entity = datastore_entities.LabConfig(
+        id=lab_name,
+        lab_name=lab_name,
+        owners=owners)
+    lab_config_entity.put()
+    return
+  if lab_config_entity.owners == owners:
+    return
+  # TODO: Add other informations.
+  logging.debug('Update lab info entity for %s.', lab_name)
+  lab_info_entity.owners = owners
+  lab_info_entity.put()
   logging.debug('Lab config updated.')
 
 
@@ -148,79 +163,81 @@ def _UpdateClusterConfigs(cluster_configs):
   logging.debug('Cluster configs updated.')
 
 
-def _UpdateHostConfigs(host_config_pbs, cluster_config_pb, lab_config_pb,
-                       lab_config):
+def _UpdateHostConfigs(host_to_host_config, host_to_unified_host_config):
   """Update host configs in HostInfo entities to ndb.
 
   Args:
-    host_config_pbs: a list of host config protos.
-    cluster_config_pb: the cluster config proto.
-    lab_config_pb: the lab config proto.
-    lab_config: a UnifiedLabConfig object.
+    host_to_host_config: host to HostConfig mapping.
+    host_to_unified_host_config: host to unified host config mapping.
   """
-  logging.debug('Updating host configs for <lab: %s, cluster: %s.>',
-                lab_config_pb.lab_name, cluster_config_pb.cluster_name)  # pytype: disable=attribute-error
-  host_config_pb_map = {
-      host_config.hostname: host_config for host_config in host_config_pbs}
-  entities_from_lab_config = {}
-  if lab_config:
-    entities_from_lab_config = {
-        host.name: _CreateHostConfigEntityFromHostInventory(
-            lab_config_pb.lab_name, host)  # pytype: disable=attribute-error
-        for host in lab_config.ListHosts()}
-  # Unique hostname from lab_config and host_config_pbs
-  hostnames = list(
-      set(host_config_pb_map.keys()).union(
-          set(entities_from_lab_config.keys())))
+  logging.debug('Updating host configs.')
+  hostnames = set(host_to_host_config.keys()).union(
+      host_to_unified_host_config.keys())
+
+  entities_from_config = []
+  for hostname in hostnames:
+    host_config = host_to_host_config.get(hostname)
+    unified_host_config = host_to_unified_host_config.get(hostname)
+    entities_from_config.append(_HostConfigEntityFromHostConfig(
+        host_config, unified_host_config))
+
   entities = ndb.get_multi([
       ndb.Key(datastore_entities.HostConfig,
               hostname) for hostname in hostnames])
   entities_to_update = []
   # Update the exist host config entity.
-  for hostname, entity in zip(hostnames, entities):
-    # if the hostname was covered by host_config_pbs, create new entity based
-    # on host_config_pb
-    if hostname in host_config_pb_map:
-      host_config_msg = lab_config_util.HostConfig(
-          host_config_pb_map[hostname], cluster_config_pb, lab_config_pb)
-      new_host_config_entity = datastore_entities.HostConfig.FromMessage(
-          host_config_msg)
-    else:
-    # otherwise the hostname should be covered by lab_config, then create
-    # new entity from lab_config.
-      new_host_config_entity = entities_from_lab_config[hostname]
-    if hostname in entities_from_lab_config:
-      new_host_config_entity.inventory_groups = entities_from_lab_config[
-          hostname].inventory_groups
-    if not _CheckConfigEntitiesEqual(entity, new_host_config_entity):
-      logging.debug('Updating host config entity: %s.', new_host_config_entity)
-      entities_to_update.append(new_host_config_entity)
+  for entity_from_config, entity in zip(entities_from_config, entities):
+    if not _CheckConfigEntitiesEqual(entity, entity_from_config):
+      logging.debug('Updating host config entity: %s.', entity_from_config)
+      entities_to_update.append(entity_from_config)
   ndb.put_multi(entities_to_update)
   logging.debug('Host configs updated.')
 
 
 def SyncToNDB():
   """Sync file from gcs to ndb."""
-  stats = file_storage.ListFiles(LAB_CONFIG_DIR_PATH)
-  inventories = {
-      lab_name: inventory_file
+  lab_to_unified_lab_config = {
+      lab_name: unified_lab_config_util.Parse(inventory_file, _GcsDataLoader())
       for lab_name, inventory_file in _GetLabInventoryFiles()
   }
+
+  stats = file_storage.ListFiles(LAB_CONFIG_DIR_PATH)
+  # A lab can splited into multiple mtt lab config.
+  lab_to_lab_pbs = collections.defaultdict(list)
   for stat in stats:
     if stat.filename.endswith('.yaml'):
       logging.debug('Processing cloudstorage file: %s', stat.filename)
       lab_config_pb = GetLabConfigFromGCS(stat.filename)
-      _UpdateLabConfig(lab_config_pb)
-      _UpdateClusterConfigs(lab_config_pb.cluster_configs)  # pytype: disable=attribute-error
-      lab_name = lab_config_pb.lab_name  # pytype: disable=attribute-error
-      inventory = inventories.get(lab_name)
-      lab_config = unified_lab_config_util.Parse(
-          inventory, _GcsDataLoader()) if inventory else None
-      for cluster_config_pb in lab_config_pb.cluster_configs:  # pytype: disable=attribute-error
-        _UpdateHostConfigs(cluster_config_pb.host_configs, cluster_config_pb,
-                           lab_config_pb, lab_config)
-      if lab_config:
-        _UpdateHostGroupConfigByInventoryData(lab_name, lab_config)
+      if not lab_config_pb:
+        continue
+      lab_name = lab_config_pb.lab_name or common.UNKNOWN_LAB_NAME
+      lab_to_lab_pbs[lab_name].append(lab_config_pb)
+
+  lab_names = set(lab_to_unified_lab_config.keys()).union(lab_to_lab_pbs.keys())
+  for lab_name in lab_names:
+    _UpdateLabConfig(
+        lab_name, lab_to_lab_pbs.get(lab_name),
+        lab_to_unified_lab_config.get(lab_name))
+
+  host_to_host_config = {}
+  for lab_name, lab_config_pbs in lab_to_lab_pbs.items():
+    for lab_config_pb in lab_config_pbs:
+      _UpdateClusterConfigs(lab_config_pb.cluster_configs)
+      for cluster_config_pb in lab_config_pb.cluster_configs:
+        for host_config_pb in cluster_config_pb.host_configs:
+          host_to_host_config[host_config_pb.hostname] = (
+              lab_config_util.HostConfig(
+                  host_config_pb, cluster_config_pb, lab_config_pb))
+
+  for lab_name, unified_lab_config in lab_to_unified_lab_config.items():
+    _UpdateHostGroupConfigByInventoryData(lab_name, unified_lab_config)
+
+  host_to_unified_host_config = {}
+  for lab_name, unified_lab_config in lab_to_unified_lab_config.items():
+    for host in unified_lab_config.ListHosts():
+      host_to_unified_host_config[host.name] = host
+  _UpdateHostConfigs(host_to_host_config, host_to_unified_host_config)
+
   # TODO: change to delete host config entities based on existence.
   datastore_util.DeleteEntitiesUpdatedEarlyThanSomeTimeAgo(
       datastore_entities.LabConfig,
@@ -261,20 +278,26 @@ class _GcsDataLoader(dataloader.DataLoader):
             for file_info in file_storage.ListFiles(path)]
 
 
-def _CreateHostConfigEntityFromHostInventory(lab_name, host):
-  """Creates HostConfig from HostInventory.
+def _HostConfigEntityFromHostConfig(host_config, unified_host_config):
+  """Creates HostConfig entity from HostConfig and unified host config.
 
   Args:
-    lab_name: the lab name.
-    host: unified_lab_config._Host object.
+    host_config: a HostConfig object.
+    unified_host_config: a unified_host_config object.
   Returns:
     the HostConfig entity.
   """
-  return datastore_entities.HostConfig(
-      id=host.name,
-      lab_name=lab_name,
-      hostname=host.name,
-      inventory_groups=[g.name for g in host.groups])
+  if host_config:
+    entity = datastore_entities.HostConfig.FromMessage(host_config)
+  else:
+    entity = datastore_entities.HostConfig(
+        id=unified_host_config.name,
+        lab_name=(unified_host_config.GetVar('lab_name')
+                  or common.UNKNOWN_LAB_NAME),
+        hostname=unified_host_config.name)
+  if unified_host_config:
+    entity.inventory_groups = [g.name for g in unified_host_config.groups]
+  return entity
 
 
 def _CreateHostGroupConfigEntityFromGroupInventory(lab_name, group):

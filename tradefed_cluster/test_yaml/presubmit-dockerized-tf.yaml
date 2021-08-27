@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ lab_name: lab1
 host_login_name: lab_user1
 owners:
   - lab_user1
-  - user1
+  - user2
 control_server_url: tfc_url
 docker_image: lab_docker_image
 docker_server: docker_server_1
@@ -29,27 +29,8 @@ service_account_key_secret_id: lab_sv_key
 service_account: sa@project.google.com
 
 cluster_configs:
-- cluster_name: cluster1
-  host_login_name: login_user1
-  owners:
-  - owner1
-  - owner2
-  tf_global_config_path: configs/cluster1/config.xml
-  graceful_shutdown: True
-  shutdown_timeout_sec: 1000
+- cluster_name: presubmit_cluster
+  tf_global_config_path: configs/presubmit-cluster/config.xml
   host_configs:
-  - hostname: homer-atc1.lab1.google.com
-    tf_global_config_path: configs/homer-atc1/config.xml
-    enable_ui_update: True
-  - hostname: homer-atc2.lab1.google.com
-    tf_global_config_path: configs/homer-atc2/config.xml
-
-- cluster_name: cluster2
-  host_login_name: login_user2
-  owners:
-  - owner1
-  tf_global_config_path: configs/cluster2/config.xml
-  host_configs:
-  - hostname: homer-atc3.lab1.google.com
-    tf_global_config_path: configs/homer-atc3/config.xml
-  - hostname: homer-atc4.lab1.google.com
+  - hostname: presubmit1.lab1.google.com
+  - hostname: presubmit2.lab1.google.com

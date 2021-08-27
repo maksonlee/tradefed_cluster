@@ -837,6 +837,7 @@ py_test(
         "test_yaml/dockerized-tf.yaml",
         "test_yaml/hosts",
         "test_yaml/lab-config-with-duplicated-cluster.yaml",
+        "test_yaml/presubmit-dockerized-tf.yaml",
     ],
     python_version = "PY3",
     srcs_version = "PY3",

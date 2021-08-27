@@ -18,7 +18,17 @@ cron:
   schedule: every 10 minutes
   target: tfc
 
-- description: fetch lab resource message from pubsub.
+- description: job1 to fetch lab resource message from pubsub.
+  url: /cron/monitor/lab_resource
+  schedule: every 1 minutes
+  target: tfc
+
+- description: job2 to fetch lab resource message from pubsub.
+  url: /cron/monitor/lab_resource
+  schedule: every 1 minutes
+  target: tfc
+
+- description: job3 to fetch lab resource message from pubsub.
   url: /cron/monitor/lab_resource
   schedule: every 1 minutes
   target: tfc

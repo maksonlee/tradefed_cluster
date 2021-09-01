@@ -52,6 +52,7 @@ _INVENTORY_FILE_PATTERN = re.compile(
 _LAB_NAME_KEY = 'lab_name'
 _INVENTORY_FILE_FORMAT = '{}/hosts'
 _GROUP_VAR_ACCOUNTS = 'accounts'
+_GROUP_VAR_LAB_NAME = 'lab_name'
 _STATLE_CONFIG_MAX_AGE = datetime.timedelta(days=7)
 
 APP = flask.Flask(__name__)
@@ -287,14 +288,21 @@ def _HostConfigEntityFromHostConfig(host_config, unified_host_config):
   Returns:
     the HostConfig entity.
   """
+  lab_name = common.UNKNOWN_LAB_NAME
+  if host_config and host_config.lab_name:
+    lab_name = host_config.lab_name
+  if (unified_host_config and
+      unified_host_config.GetVar(_GROUP_VAR_LAB_NAME) and
+      lab_name == common.UNKNOWN_LAB_NAME):
+    lab_name = unified_host_config.GetVar(_GROUP_VAR_LAB_NAME)
+
   if host_config:
     entity = datastore_entities.HostConfig.FromMessage(host_config)
   else:
     entity = datastore_entities.HostConfig(
         id=unified_host_config.name,
-        lab_name=(unified_host_config.GetVar('lab_name')
-                  or common.UNKNOWN_LAB_NAME),
         hostname=unified_host_config.name)
+  entity.lab_name = lab_name
   if unified_host_config:
     entity.inventory_groups = [g.name for g in unified_host_config.groups]
   return entity

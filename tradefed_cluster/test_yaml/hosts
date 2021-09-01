@@ -1,3 +1,6 @@
+[all:vars]
+lab_name=lab1
+
 [jump]
 dhcp1.lab1.google.com
 dhcp2.lab1.google.com

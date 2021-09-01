@@ -261,10 +261,12 @@ class ConfigSyncerGCSToNdbTest(testbed_dependent_test.TestbedDependentTest):
     self.assertSameElements(['all', 'mh'], res.inventory_groups)
     self.assertIsNone(res.tf_global_config_path)
     res = datastore_entities.HostConfig.get_by_id('dhcp1.lab1.google.com')
+    self.assertEqual('lab1', res.lab_name)
     self.assertSameElements(
         ['all', 'server', 'jump', 'dhcp', 'pxe'],
         res.inventory_groups)
     res = datastore_entities.HostConfig.get_by_id('dhcp2.lab1.google.com')
+    self.assertEqual('lab1', res.lab_name)
     self.assertSameElements(
         ['all', 'server', 'jump', 'dhcp', 'pxe'],
         res.inventory_groups)

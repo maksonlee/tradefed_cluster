@@ -13,11 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """A host account validator service."""
+import enum
 from tradefed_cluster import env_config
 
 
 class UserNotFoundError(Exception):
   """The error indicating the user doesn't exist."""
+
+
+class AuthenticationError(Exception):
+  """Raises when failed to find user authentication."""
+
+
+class ForbiddenError(Exception):
+  """Raised when user has no permission to access resources."""
+
+
+class Permission(enum.Enum):
+  owner = 'owner'
+  reader = 'reader'
 
 
 def _GetPlugin():

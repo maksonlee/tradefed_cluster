@@ -146,7 +146,8 @@ class AclApi(remote.Service):
     Returns:
       a boolean indicates whether the user can access the host group or not.
     """
-    if not host_group.account_principals:
+    if (not host_group.account_principals or
+        not host_group.account_principals.values()):
       return False
     for account_info in host_group.account_principals.values():
       for principal in account_info.get(_PRINCIPALS_KEY, []):

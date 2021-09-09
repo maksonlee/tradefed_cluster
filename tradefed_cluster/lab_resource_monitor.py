@@ -12,7 +12,7 @@ from tradefed_cluster import datastore_entities
 from tradefed_cluster import env_config
 from tradefed_cluster.util import pubsub_client as pubsub_client_lib
 
-BATCH_SIZE = 100
+BATCH_SIZE = 300
 PUBSUB_SUBSCRIPTION = ('projects/%s/subscriptions/lab_resource'
                        % env_config.CONFIG.app_id)
 POLL_TIMEOUT_MINS = 5  # Cron jobs have a 10m deadline
@@ -37,7 +37,6 @@ def _ProcessMessage(message):
     logging.debug('No timestamp in message, ignore.')
     return
   if old_entity.event_timestamp > entity.event_timestamp:
-    logging.debug('Ignore out dated message.')
     return
   entity.put()
 

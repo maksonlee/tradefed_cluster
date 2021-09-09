@@ -86,7 +86,7 @@ class LabResourceMonitorTest(testbed_dependent_test.TestbedDependentTest):
     lab_resource_monitor._Pull('atopic')
     mock_pubsub_client.assert_has_calls([
         mock.call.CreateSubscription('asubscription', 'atopic'),
-        mock.call.PullMessages('asubscription', 100),
+        mock.call.PullMessages('asubscription', 300),
         mock.call.AcknowledgeMessages('asubscription', ['123']),
     ])
     host_resource = ndb.Key(datastore_entities.HostResource, 'ahost').get()
@@ -130,7 +130,7 @@ class LabResourceMonitorTest(testbed_dependent_test.TestbedDependentTest):
     lab_resource_monitor._Pull('atopic')
     mock_pubsub_client.assert_has_calls([
         mock.call.CreateSubscription('asubscription', 'atopic'),
-        mock.call.PullMessages('asubscription', 100),
+        mock.call.PullMessages('asubscription', 300),
         mock.call.AcknowledgeMessages('asubscription', ['124']),
     ])
     mock_process.assert_has_calls([

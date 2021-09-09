@@ -33,6 +33,26 @@ cron:
   schedule: every 1 minutes
   target: tfc
 
+- description: job4 to fetch lab resource message from pubsub.
+  url: /cron/monitor/lab_resource
+  schedule: every 1 minutes
+  target: tfc
+
+- description: job5 to fetch lab resource message from pubsub.
+  url: /cron/monitor/lab_resource
+  schedule: every 1 minutes
+  target: tfc
+
+- description: job6 to fetch lab resource message from pubsub.
+  url: /cron/monitor/lab_resource
+  schedule: every 1 minutes
+  target: tfc
+
+- description: job7 to fetch lab resource message from pubsub.
+  url: /cron/monitor/lab_resource
+  schedule: every 1 minutes
+  target: tfc
+
 - description: update device report
   url: /cron/report/devices
   schedule: every day 06:00

@@ -219,6 +219,13 @@ class Attribute(ndb.Model):
   def FromMessage(cls, msg):
     return Attribute(name=msg.name, value=msg.value, operator=msg.operator)
 
+  @classmethod
+  def FromJson(cls, attribute_json):
+    return Attribute(
+        name=attribute_json[common.TestBenchKey.ATTRIBUTE_NAME],
+        value=attribute_json[common.TestBenchKey.ATTRIBUTE_VALUE],
+        operator=attribute_json.get(common.TestBenchKey.ATTRIBUTE_OPERATOR))
+
 
 class RunTarget(ndb.Model):
   """RunTarget model.
@@ -240,6 +247,18 @@ class RunTarget(ndb.Model):
         device_attributes=[
             Attribute.FromMessage(a) for a in msg.device_attributes])
 
+  @classmethod
+  def FromJson(cls, run_target_json):
+    return RunTarget(
+        name=run_target_json.get(common.TestBenchKey.RUN_TARGET_NAME),
+        device_attributes=[
+            Attribute.FromJson(a) for a in run_target_json.get(
+                common.TestBenchKey.DEVICE_ATTRIBUTES, [])])
+
+  @classmethod
+  def FromLegacyString(cls, run_target_str):
+    return RunTarget(name=run_target_str)
+
 
 class Group(ndb.Model):
   """Group model.
@@ -256,6 +275,18 @@ class Group(ndb.Model):
     return Group(
         run_targets=[RunTarget.FromMessage(rt) for rt in msg.run_targets])
 
+  @classmethod
+  def FromJson(cls, group_json):
+    return  Group(
+        run_targets=[RunTarget.FromJson(rt) for rt in group_json.get(
+            common.TestBenchKey.RUN_TARGETS)])
+
+  @classmethod
+  def FromLegacyString(cls, group_str):
+    return Group(
+        run_targets=[RunTarget.FromLegacyString(rt)
+                     for rt in group_str.split(',')])
+
 
 class Host(ndb.Model):
   """Host entity.
@@ -271,6 +302,18 @@ class Host(ndb.Model):
   def FromMessage(cls, msg):
     return Host(
         groups=[Group.FromMessage(group) for group in msg.groups])
+
+  @classmethod
+  def FromJson(cls, host_json):
+    return Host(
+        groups=[Group.FromJson(group)
+                for group in host_json.get(common.TestBenchKey.GROUPS, [])])
+
+  @classmethod
+  def FromLegacyString(cls, run_target):
+    return Host(
+        groups=[Group.FromLegacyString(g)
+                for g in run_target.split(';')])
 
 
 class TestBench(ndb.Model):
@@ -289,6 +332,17 @@ class TestBench(ndb.Model):
   @classmethod
   def FromMessage(cls, msg):
     return TestBench(cluster=msg.cluster, host=Host.FromMessage(msg.host))
+
+  @classmethod
+  def FromJson(cls, test_bench_json, cluster):
+    return TestBench(
+        cluster=cluster,
+        host=Host.FromJson(test_bench_json.get(common.TestBenchKey.HOST, {})))
+
+  @classmethod
+  def FromLegacyString(cls, run_target, cluster):
+    return TestBench(
+        cluster=cluster, host=Host.FromLegacyString(run_target))
 
 
 class CommandInfo(ndb.Model):

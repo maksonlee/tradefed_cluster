@@ -56,7 +56,7 @@ def _Now():
   return datetime.datetime.utcnow()
 
 
-def _GetTestBench(cluster, run_target):
+def _GetTestBench(cluster=None, run_target=None, test_bench=None):
   """Parse the run target, and create a test bench.
 
   Test bench info is encoded in run_target. Run target will have json format.
@@ -77,73 +77,17 @@ def _GetTestBench(cluster, run_target):
   Args:
     cluster: cluster name
     run_target: encoded run_target
+    test_bench: a test bench oject, this have highest priority.
   Returns:
     a TestBench entity.
   """
-  # TODO: move this logic to common util if other parts need this.
+  if test_bench:
+    return test_bench
   run_target = run_target.strip()
   if not run_target.startswith('{'):
-    return _GetLegacyTestBench(cluster, run_target)
-
+    return datastore_entities.TestBench.FromLegacyString(run_target, cluster)
   test_bench_json = json.loads(run_target)
-  host_json = test_bench_json.get(common.TestBenchKey.HOST, {})
-  groups = []
-  for group_json in host_json.get(common.TestBenchKey.GROUPS, []):
-    run_targets = []
-    for run_target_json in group_json.get(common.TestBenchKey.RUN_TARGETS, []):
-      run_target_name = run_target_json.get(
-          common.TestBenchKey.RUN_TARGET_NAME)
-      attributes = []
-      for attribute_json in run_target_json.get(
-          common.TestBenchKey.DEVICE_ATTRIBUTES, []):
-        attributes.append(
-            datastore_entities.Attribute(
-                name=attribute_json[common.TestBenchKey.ATTRIBUTE_NAME],
-                value=attribute_json[common.TestBenchKey.ATTRIBUTE_VALUE],
-                operator=attribute_json.get(
-                    common.TestBenchKey.ATTRIBUTE_OPERATOR)
-            ))
-      run_targets.append(
-          datastore_entities.RunTarget(
-              name=run_target_name,
-              device_attributes=attributes))
-    groups.append(datastore_entities.Group(run_targets=run_targets))
-  host = datastore_entities.Host(groups=groups)
-  test_bench = datastore_entities.TestBench(
-      cluster=cluster,
-      host=host)
-  return test_bench
-
-
-def _GetLegacyTestBench(cluster, run_target):
-  """Parse the run target, and create a test bench.
-
-  Test bench info is encoded in run_target. Run target will have format:
-  run_target1,run_target2;run_target3,run_target4
-  There are two groups.
-  Run_target1 and run_target2 are in the same group.
-  Run_target3 and run_target4 are in the same group.
-
-  Args:
-    cluster: cluster name
-    run_target: encoded run_target
-  Returns:
-    a TestBench entity.
-  """
-  test_bench = datastore_entities.TestBench(
-      cluster=cluster,
-      host=datastore_entities.Host(
-          groups=[]))
-  group_strs = run_target.split(';')
-  for group_str in group_strs:
-    group = datastore_entities.Group(
-        run_targets=[])
-    run_target_strs = group_str.split(',')
-    for run_target_str in run_target_strs:
-      run_target = datastore_entities.RunTarget(
-          name=run_target_str)
-      group.run_targets.append(run_target)
-    test_bench.host.groups.append(group)
+  test_bench = datastore_entities.TestBench.FromJson(test_bench_json, cluster)
   return test_bench
 
 
@@ -155,10 +99,10 @@ def CreateTask(command_task_args):
   Returns:
     true if created a new task, false if the task already exists.
   """
-  test_bench = command_task_args.test_bench
-  if not test_bench:
-    test_bench = _GetTestBench(
-        command_task_args.cluster, command_task_args.run_target)
+  test_bench = _GetTestBench(
+      cluster=command_task_args.cluster,
+      run_target=command_task_args.run_target,
+      test_bench=command_task_args.test_bench)
 
   task = datastore_entities.CommandTask(
       request_id=str(command_task_args.request_id),

@@ -202,13 +202,12 @@ class TaskStoreTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual('task_id1', tasks[0].key.id())
     self.assertEqual('task_id2', tasks[1].key.id())
 
-  def testGetLegacyTestBench(self):
-    test_bench = command_task_store._GetLegacyTestBench(
-        'cluster', 'run_target5')
+  def testGetTestBench_legacy(self):
+    test_bench = command_task_store._GetTestBench('cluster', 'run_target5')
     self.assertEqual(self.test_bench2, test_bench)
 
-  def testGetLegacyTestBench_multipleRunTargets(self):
-    test_bench = command_task_store._GetLegacyTestBench(
+  def testGetTestBench_legacyWithMultipleRunTargets(self):
+    test_bench = command_task_store._GetTestBench(
         'cluster', 'run_target1,run_target2;run_target3,run_target4')
     self.assertEqual(self.test_bench1, test_bench)
 

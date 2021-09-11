@@ -445,6 +445,84 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual('10', device_attribute.value)
     self.assertEqual('>', device_attribute.operator)
 
+  def testTestBenchFromMessage(self):
+    test_bench = datastore_entities.TestBench.FromMessage(
+        api_messages._TestBenchRequirement(
+            cluster='acluster',
+            host=api_messages._HostRequirement(
+                groups=[api_messages._GroupRequirement(
+                    run_targets=[api_messages._RunTargetRequirement(
+                        name='arun_target',
+                        device_attributes=[
+                            api_messages._DeviceAttributeRequirement(
+                                name='battery',
+                                value='10',
+                                operator='>',
+                                )])])])))
+    self.assertEqual('acluster', test_bench.cluster)
+    self.assertEqual(1, len(test_bench.host.groups))
+    group = test_bench.host.groups[0]
+    self.assertEqual(1, len(group.run_targets))
+    run_target = group.run_targets[0]
+    self.assertEqual('arun_target', run_target.name)
+    self.assertEqual(1, len(run_target.device_attributes))
+    device_attribute = run_target.device_attributes[0]
+    self.assertEqual('battery', device_attribute.name)
+    self.assertEqual('10', device_attribute.value)
+    self.assertEqual('>', device_attribute.operator)
+
+  def testTestBenchFromLegacy(self):
+    test_bench = datastore_entities.TestBench.FromLegacyString(
+        'rt1,rt2;rt3,rt4', 'acluster')
+    self.assertEqual('acluster', test_bench.cluster)
+    self.assertEqual(2, len(test_bench.host.groups))
+    group = test_bench.host.groups[0]
+    self.assertEqual(2, len(group.run_targets))
+    run_target = group.run_targets[0]
+    self.assertEqual('rt1', run_target.name)
+    run_target = group.run_targets[1]
+    self.assertEqual('rt2', run_target.name)
+    group = test_bench.host.groups[1]
+    run_target = group.run_targets[0]
+    self.assertEqual('rt3', run_target.name)
+    run_target = group.run_targets[1]
+    self.assertEqual('rt4', run_target.name)
+
+  def testTestBenchFromJson(self):
+    test_bench = datastore_entities.TestBench.FromJson(
+        {
+            'host': {
+                'groups': [{
+                    'run_targets': [{
+                        'name': 'run_target6',
+                        'device_attributes': [
+                            {'name': 'sim_state', 'value': 'READY',
+                             'operator': '='},
+                            {'name': 'battery_level', 'value': '60',
+                             'operator': '>='}
+                        ]
+                    }]
+                }]
+            }
+        },
+        'acluster',
+    )
+    self.assertEqual('acluster', test_bench.cluster)
+    self.assertEqual(1, len(test_bench.host.groups))
+    group = test_bench.host.groups[0]
+    self.assertEqual(1, len(group.run_targets))
+    run_target = group.run_targets[0]
+    self.assertEqual('run_target6', run_target.name)
+    self.assertEqual(2, len(run_target.device_attributes))
+    device_attribute = run_target.device_attributes[0]
+    self.assertEqual('sim_state', device_attribute.name)
+    self.assertEqual('READY', device_attribute.value)
+    self.assertEqual('=', device_attribute.operator)
+    device_attribute = run_target.device_attributes[1]
+    self.assertEqual('battery_level', device_attribute.name)
+    self.assertEqual('60', device_attribute.value)
+    self.assertEqual('>=', device_attribute.operator)
+
 
 if __name__ == '__main__':
   unittest.main()

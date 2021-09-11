@@ -699,6 +699,7 @@ pytype_strict_library(
         "command_task_store.py",
     ],
     deps = [
+        ":api_messages_lib",
         ":common_lib",
         ":datastore_entities_lib",
         "//tradefed_cluster/util:ndb_shim_lib",

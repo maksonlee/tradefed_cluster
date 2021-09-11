@@ -739,7 +739,8 @@ def _ScheduleTasksToCommandTaskStore(command):
         priority=command.priority,
         request_type=command.request_type,
         plugin_data=command.plugin_data,
-        allow_partial_device_match=command.allow_partial_device_match)
+        allow_partial_device_match=command.allow_partial_device_match,
+        test_bench=command.test_bench)
     if not command_task_store.CreateTask(command_task_args):
       logging.warning("task %s already exists", task_id)
 
@@ -914,7 +915,8 @@ def _DoCreateCommands(
         shard_count=(
             command_info.shard_count if command_info.shard_count > 1 else None),
         shard_index=shard_index if command_info.shard_count > 1 else None,
-        plugin_data=plugin_data_)
+        plugin_data=plugin_data_,
+        test_bench=command_info.test_bench)
     new_commands.append(command)
   logging.info("New commands created: %s", new_commands)
   ndb.put_multi(new_commands)

@@ -123,7 +123,8 @@ class RequestApi(remote.Service):
                 cluster=request.cluster,
                 run_target=run_target,
                 run_count=request.run_count,
-                shard_count=request.shard_count)
+                shard_count=request.shard_count,
+                test_bench=request.test_bench)
         ],
         priority=request.priority,
         queue_timeout_seconds=request.queue_timeout_seconds,

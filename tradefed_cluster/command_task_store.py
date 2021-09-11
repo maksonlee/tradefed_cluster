@@ -14,36 +14,41 @@
 
 """TaskStore to store tasks, get tasks and lease tasks."""
 
-import collections
+import dataclasses
 import datetime
 import json
 import logging
 
+from typing import Dict, Optional, Any
+
 from tradefed_cluster.util import ndb_shim as ndb
 
+from tradefed_cluster import api_messages
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 
 DEFAULT_COMMAND_ATTEMPT_HEARTBEAT = datetime.timedelta(hours=24)
 
 
-CommandTaskArgs = collections.namedtuple(
-    'CommandTaskArgs',
-    ['request_id',
-     'command_id',
-     'task_id',
-     'plugin_data',
-     'command_line',
-     'run_count',
-     'run_index',
-     'attempt_index',
-     'shard_count',
-     'shard_index',
-     'cluster',
-     'run_target',
-     'priority',
-     'request_type',
-     'allow_partial_device_match'])
+@dataclasses.dataclass
+class CommandTaskArgs(object):
+  """CommandTask arguments."""
+  request_id: str
+  command_id: str
+  task_id: str
+  command_line: str
+  cluster: str
+  run_target: str
+  plugin_data: Optional[Dict[str, Any]] = None
+  run_count: int = 1
+  run_index: int = 0
+  attempt_index: int = 0
+  shard_count: Optional[int] = None
+  shard_index: Optional[int] = None
+  priority: Optional[int] = None
+  request_type: Optional[api_messages.RequestType] = None
+  allow_partial_device_match: bool = False
+  test_bench: Optional[datastore_entities.TestBench] = None
 
 
 def _Now():
@@ -150,8 +155,10 @@ def CreateTask(command_task_args):
   Returns:
     true if created a new task, false if the task already exists.
   """
-  test_bench = _GetTestBench(
-      command_task_args.cluster, command_task_args.run_target)
+  test_bench = command_task_args.test_bench
+  if not test_bench:
+    test_bench = _GetTestBench(
+        command_task_args.cluster, command_task_args.run_target)
 
   task = datastore_entities.CommandTask(
       request_id=str(command_task_args.request_id),

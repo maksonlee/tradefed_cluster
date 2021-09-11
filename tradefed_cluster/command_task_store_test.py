@@ -234,6 +234,23 @@ class TaskStoreTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(1, task.priority)
     self.assertIsNotNone(task.schedule_timestamp)
 
+  def testCreateTask_withTestBench(self):
+    command_task_args = command_task_store.CommandTaskArgs(
+        request_id='request_id3',
+        command_id='command_id3',
+        task_id='task_id3',
+        command_line='command_line',
+        cluster='cluster',
+        run_target='run_target5',
+        test_bench=self.test_bench1)
+    command_task_store.CreateTask(command_task_args)
+    task = command_task_store._Key('task_id3').get()
+    self.assertTrue(task.leasable)
+    self.assertEqual('task_id3', task.task_id)
+    self.assertEqual('command_line', task.command_line)
+    self.assertIsNotNone(task.schedule_timestamp)
+    self.assertEqual(self.test_bench1, task.test_bench)
+
   def testCreateTask_largeTextCommandLine(self):
     command_line = 'command_line ' + 'arg ' * 10000
     command_task_args = command_task_store.CommandTaskArgs(

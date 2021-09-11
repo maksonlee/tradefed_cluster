@@ -370,6 +370,45 @@ class RequestApiTest(api_test.ApiTest):
     self.assertEqual('attr2', run_target_json['device_attributes'][1]['name'])
     self.assertEqual('val2', run_target_json['device_attributes'][1]['value'])
 
+  def testNewRequest_withTestBench(self):
+    api_request = {
+        'user': 'user1',
+        'command_line': 'command_line1',
+        'cluster': 'cluster',
+        'run_target': 'run_target',
+        'test_bench': {
+            'cluster': 'cluster',
+            'host': {
+                'groups': [{
+                    'run_targets': [{
+                        'name': 'run_target',
+                        'device_attributes': [{
+                            'name': 'battery',
+                            'value': '10',
+                            'operator': '>',
+                        }]}]}]}}}
+
+    api_response = self.testapp.post_json('/_ah/api/RequestApi.NewRequest',
+                                          api_request)
+
+    return_request = protojson.decode_message(api_messages.RequestMessage,
+                                              api_response.body)
+    self.assertIsNotNone(return_request.id)
+    request_entity = request_manager.GetRequest(return_request.id)
+    self.assertEqual(1, len(request_entity.command_infos))
+    test_bench = request_entity.command_infos[0].test_bench
+    self.assertEqual('cluster', test_bench.cluster)
+    self.assertEqual(1, len(test_bench.host.groups))
+    group = test_bench.host.groups[0]
+    self.assertEqual(1, len(group.run_targets))
+    run_target = group.run_targets[0]
+    self.assertEqual('run_target', run_target.name)
+    self.assertEqual(1, len(run_target.device_attributes))
+    device_attribute = run_target.device_attributes[0]
+    self.assertEqual('battery', device_attribute.name)
+    self.assertEqual('10', device_attribute.value)
+    self.assertEqual('>', device_attribute.operator)
+
   def testNewMultiCommandRequest(self):
     api_request = {
         'user': 'user1',

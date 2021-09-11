@@ -89,7 +89,7 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
         datastore_entities.DeviceNote.device_serial == 'serial_0')
     self.assertEqual(count, query.count())
 
-  def testCommandErrorConfigMapping(self):
+  def testtestCommandErrorConfigMapping(self):
     """Test error config map between error and reason type map."""
     config = datastore_entities.CommandErrorConfigMapping(
         error_message='error1', reason='reason1',
@@ -396,6 +396,54 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(entity.resource, json.loads(msg.resource))
     self.assertEqual(entity.update_timestamp, entity.update_timestamp)
     self.assertEqual(entity.event_timestamp, entity.event_timestamp)
+
+  def testCommandInfoFromMessage(self):
+    entity = datastore_entities.CommandInfo.FromMessage(
+        api_messages.CommandInfo(
+            name='acommand',
+            command_line='command line',
+            cluster='acluster',
+            run_target='arun_target'))
+    self.assertEqual('acommand', entity.name)
+    self.assertEqual('command line', entity.command_line)
+    self.assertEqual('acluster', entity.cluster)
+    self.assertEqual('arun_target', entity.run_target)
+
+  def testCommandInfoFromMessage_withTestBench(self):
+    entity = datastore_entities.CommandInfo.FromMessage(
+        api_messages.CommandInfo(
+            name='acommand',
+            command_line='command line',
+            cluster='acluster',
+            run_target='arun_target',
+            test_bench=api_messages._TestBenchRequirement(
+                cluster='acluster',
+                host=api_messages._HostRequirement(
+                    groups=[api_messages._GroupRequirement(
+                        run_targets=[api_messages._RunTargetRequirement(
+                            name='arun_target',
+                            device_attributes=[
+                                api_messages._DeviceAttributeRequirement(
+                                    name='battery',
+                                    value='10',
+                                    operator='>',
+                                    )])])]))))
+    self.assertEqual('acommand', entity.name)
+    self.assertEqual('command line', entity.command_line)
+    self.assertEqual('acluster', entity.cluster)
+    self.assertEqual('arun_target', entity.run_target)
+    test_bench = entity.test_bench
+    self.assertEqual('acluster', test_bench.cluster)
+    self.assertEqual(1, len(test_bench.host.groups))
+    group = test_bench.host.groups[0]
+    self.assertEqual(1, len(group.run_targets))
+    run_target = group.run_targets[0]
+    self.assertEqual('arun_target', run_target.name)
+    self.assertEqual(1, len(run_target.device_attributes))
+    device_attribute = run_target.device_attributes[0]
+    self.assertEqual('battery', device_attribute.name)
+    self.assertEqual('10', device_attribute.value)
+    self.assertEqual('>', device_attribute.operator)
 
 
 if __name__ == '__main__':

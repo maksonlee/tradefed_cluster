@@ -203,6 +203,94 @@ def TestContextToMessage(entity):
       test_resources=test_resources)
 
 
+class Attribute(ndb.Model):
+  """Device attribute requirement.
+
+  Attributes:
+    name: attribute's name.
+    value: attribute's value.
+    operator: attribute's operator
+  """
+  name = ndb.StringProperty()
+  value = ndb.StringProperty()
+  operator = ndb.StringProperty()
+
+  @classmethod
+  def FromMessage(cls, msg):
+    return Attribute(name=msg.name, value=msg.value, operator=msg.operator)
+
+
+class RunTarget(ndb.Model):
+  """RunTarget model.
+
+  The run target will be embedded in Group. It is stored within Group.
+
+  Attributes:
+    name: run target's name
+    device_attributes: other than run target what device attribute the test task
+        requires.
+  """
+  name = ndb.StringProperty()
+  device_attributes = ndb.LocalStructuredProperty(Attribute, repeated=True)
+
+  @classmethod
+  def FromMessage(cls, msg):
+    return RunTarget(
+        name=msg.name,
+        device_attributes=[
+            Attribute.FromMessage(a) for a in msg.device_attributes])
+
+
+class Group(ndb.Model):
+  """Group model.
+
+  The group will be embedded in Host. It is stored within Host
+
+  Attributes:
+    run_targets: the run_targets in the group.
+  """
+  run_targets = ndb.LocalStructuredProperty(RunTarget, repeated=True)
+
+  @classmethod
+  def FromMessage(cls, msg):
+    return Group(
+        run_targets=[RunTarget.FromMessage(rt) for rt in msg.run_targets])
+
+
+class Host(ndb.Model):
+  """Host entity.
+
+  The host will be embedded in TestBench. It is stored within TestBench.
+
+  Attributes:
+    groups: the groups in the host.
+  """
+  groups = ndb.LocalStructuredProperty(Group, repeated=True)
+
+  @classmethod
+  def FromMessage(cls, msg):
+    return Host(
+        groups=[Group.FromMessage(group) for group in msg.groups])
+
+
+class TestBench(ndb.Model):
+  """TestBench model.
+
+  This TestBench is a ndb model and it's also the object we use
+  inside ATP.
+
+  Attributes:
+    cluster: cluster id for the test bench
+    host: host structure for the test bench
+  """
+  cluster = ndb.StringProperty()
+  host = ndb.LocalStructuredProperty(Host)
+
+  @classmethod
+  def FromMessage(cls, msg):
+    return TestBench(cluster=msg.cluster, host=Host.FromMessage(msg.host))
+
+
 class CommandInfo(ndb.Model):
   """A command info."""
   name = ndb.StringProperty()
@@ -212,11 +300,15 @@ class CommandInfo(ndb.Model):
   run_count = ndb.IntegerProperty(default=1)
   shard_count = ndb.IntegerProperty(default=1)
   allow_partial_device_match = ndb.BooleanProperty(default=False)
+  test_bench = ndb.LocalStructuredProperty(TestBench)
 
   @classmethod
   def FromMessage(cls, msg):
     if msg is None:
       return None
+    test_bench = None
+    if msg.test_bench:
+      test_bench = TestBench.FromMessage(msg.test_bench)
     return cls(
         name=msg.name,
         command_line=msg.command_line,
@@ -224,7 +316,8 @@ class CommandInfo(ndb.Model):
         run_target=msg.run_target,
         run_count=msg.run_count,
         shard_count=msg.shard_count,
-        allow_partial_device_match=msg.allow_partial_device_match)
+        allow_partial_device_match=msg.allow_partial_device_match,
+        test_bench=test_bench)
 
 
 @MessageConverter(CommandInfo)
@@ -488,6 +581,7 @@ class Command(ndb.Model):
     plugin_data: the plugin data.
     allow_partial_device_match: a boolean field indicating whether partial
          device match is allowed or not
+    test_bench: a TestBench object.
   """
   request_id = ndb.StringProperty()
   name = ndb.StringProperty()
@@ -512,6 +606,7 @@ class Command(ndb.Model):
   shard_index = ndb.IntegerProperty()
   plugin_data = ndb.JsonProperty()
   allow_partial_device_match = ndb.BooleanProperty(default=False)
+  test_bench = ndb.LocalStructuredProperty(TestBench)
 
 
 @MessageConverter(Command)
@@ -1593,69 +1688,6 @@ class SnapshotJobResult(ndb.Model):
     """Get the SnapshotJobResult for the given date."""
     report_date = datetime.datetime.combine(date, ZERO_TIME)
     return cls.query().filter(cls.report_date == report_date).get()
-
-
-class Attribute(ndb.Model):
-  """Device attribute requirement.
-
-  Attributes:
-    name: attribute's name.
-    value: attribute's value.
-    operator: attribute's operator
-  """
-  name = ndb.StringProperty()
-  value = ndb.StringProperty()
-  operator = ndb.StringProperty()
-
-
-class RunTarget(ndb.Model):
-  """RunTarget model.
-
-  The run target will be embedded in Group. It is stored within Group.
-
-  Attributes:
-    name: run target's name
-    device_attributes: other than run target what device attribute the test task
-        requires.
-  """
-  name = ndb.StringProperty()
-  device_attributes = ndb.LocalStructuredProperty(Attribute, repeated=True)
-
-
-class Group(ndb.Model):
-  """Group model.
-
-  The group will be embedded in Host. It is stored within Host
-
-  Attributes:
-    run_targets: the run_targets in the group.
-  """
-  run_targets = ndb.LocalStructuredProperty(RunTarget, repeated=True)
-
-
-class Host(ndb.Model):
-  """Host entity.
-
-  The host will be embedded in TestBench. It is stored within TestBench.
-
-  Attributes:
-    groups: the groups in the host.
-  """
-  groups = ndb.LocalStructuredProperty(Group, repeated=True)
-
-
-class TestBench(ndb.Model):
-  """TestBench model.
-
-  This TestBench is a ndb model and it's also the object we use
-  inside ATP.
-
-  Attributes:
-    cluster: cluster id for the test bench
-    host: host structure for the test bench
-  """
-  cluster = ndb.StringProperty()
-  host = ndb.LocalStructuredProperty(Host)
 
 
 def _ListRunTargets(test_bench):

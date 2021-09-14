@@ -21,6 +21,7 @@ from __future__ import print_function
 
 import datetime
 import json
+import re
 
 import dateutil.parser
 import six
@@ -42,6 +43,8 @@ _CONVERTER_DISPATCH_DICT = {}
 _HOST_EXTRA_INFO_INDEX_ALLOWLIST = ('host_ip', 'label')
 _DEVICE_EXTRA_INFO_INDEX_ALLOWLIST = ('product', 'sim_state', 'mac_address')
 _EXTRA_INFO_INDEXED_VALUE_SIZE = 80
+_ATTRIBUTE_REQUIREMENT_PATTERN = re.compile(
+    r'(?P<name>[^><=]+)(?P<operator>=|>|>=|<|<=)(?P<value>[^><=]+)')
 
 
 def MessageConverter(entity_cls):
@@ -226,6 +229,29 @@ class Attribute(ndb.Model):
         value=attribute_json[common.TestBenchKey.ATTRIBUTE_VALUE],
         operator=attribute_json.get(common.TestBenchKey.ATTRIBUTE_OPERATOR))
 
+  @classmethod
+  def FromString(cls, attribute):
+    """Parse the attribute requirement.
+
+    Args:
+      attribute: a string represents attribute requirement.
+    Returns:
+      a Attribute object
+    """
+    m = _ATTRIBUTE_REQUIREMENT_PATTERN.match(attribute)
+    if not m:
+      raise ValueError(
+          "Only 'name[=|>|>=|<|<=]value' format attribute is supported. "
+          "%s is not supported." % attribute)
+    name = m.group(common.TestBenchKey.ATTRIBUTE_NAME)
+    value = m.group(common.TestBenchKey.ATTRIBUTE_VALUE)
+    operator = m.group(common.TestBenchKey.ATTRIBUTE_OPERATOR)
+    if name in common.NUMBER_DEVICE_ATTRIBUTES:
+      if common.ParseFloat(value) is None:
+        raise ValueError(
+            "%s can not compare to a non-number value '%s'" % (name, value))
+    return Attribute(name=name, value=value, operator=operator)
+
 
 class RunTarget(ndb.Model):
   """RunTarget model.
@@ -256,8 +282,12 @@ class RunTarget(ndb.Model):
                 common.TestBenchKey.DEVICE_ATTRIBUTES, [])])
 
   @classmethod
-  def FromLegacyString(cls, run_target_str):
-    return RunTarget(name=run_target_str)
+  def FromLegacyString(cls, run_target_str, test_bench_attributes):
+    return RunTarget(
+        name=run_target_str,
+        device_attributes=[
+            Attribute.FromString(a)
+            for a in (test_bench_attributes or ())])
 
 
 class Group(ndb.Model):
@@ -282,9 +312,9 @@ class Group(ndb.Model):
             common.TestBenchKey.RUN_TARGETS)])
 
   @classmethod
-  def FromLegacyString(cls, group_str):
+  def FromLegacyString(cls, group_str, test_bench_attributes):
     return Group(
-        run_targets=[RunTarget.FromLegacyString(rt)
+        run_targets=[RunTarget.FromLegacyString(rt, test_bench_attributes)
                      for rt in group_str.split(',')])
 
 
@@ -310,9 +340,9 @@ class Host(ndb.Model):
                 for group in host_json.get(common.TestBenchKey.GROUPS, [])])
 
   @classmethod
-  def FromLegacyString(cls, run_target):
+  def FromLegacyString(cls, run_target, test_bench_attributes):
     return Host(
-        groups=[Group.FromLegacyString(g)
+        groups=[Group.FromLegacyString(g, test_bench_attributes)
                 for g in run_target.split(';')])
 
 
@@ -340,9 +370,59 @@ class TestBench(ndb.Model):
         host=Host.FromJson(test_bench_json.get(common.TestBenchKey.HOST, {})))
 
   @classmethod
-  def FromLegacyString(cls, run_target, cluster):
+  def FromLegacyString(cls, run_target, cluster, test_bench_attributes=None):
     return TestBench(
-        cluster=cluster, host=Host.FromLegacyString(run_target))
+        cluster=cluster,
+        host=Host.FromLegacyString(
+            run_target,
+            test_bench_attributes=test_bench_attributes))
+
+
+def _TestBenchToLegacyRunTarget(test_bench):
+  """Transform a test bench to a legacy run target."""
+  group_strs = []
+  for group in test_bench.host.groups:
+    group_strs.append(','.join(rt.name for rt in group.run_targets))
+  return ';'.join(group_strs)
+
+
+def BuildTestBench(
+    cluster=None, run_target=None,
+    test_bench_attributes=None,
+    test_bench=None):
+  """Build test bench object from given information.
+
+    There are 3 types of input right now:
+    1. cluster, legacy run target.
+    2. cluster, json format run target.
+    3. test bench object.
+    Going forward we will keep maintaining 1, but we are going to
+    deprecate 2. 3 will be used for complicated use cases.
+    This is becasue of b/198413277, there is a limitation on the length
+    of a field.
+    We will still keep cluster and run target fields for querying
+    (not for scheduling tests) and the run target will always be legacy format.
+  Args:
+    cluster: cluster to schedule the test to.
+    run_target: a run target.
+    test_bench_attributes: device attribute requirements.
+    test_bench: a TestBenchRequirement message or TestBench entity
+  Returns:
+    test_bench object
+  """
+  if test_bench:
+    if not isinstance(test_bench, TestBench):
+      test_bench = TestBench.FromMessage(test_bench)
+  else:
+    run_target = run_target.strip()
+    if not run_target.startswith('{'):
+      test_bench = TestBench.FromLegacyString(
+          run_target, cluster, test_bench_attributes)
+    else:
+      test_bench = TestBench.FromJson(
+          json.loads(run_target), cluster)
+
+  return test_bench
 
 
 class CommandInfo(ndb.Model):
@@ -360,14 +440,15 @@ class CommandInfo(ndb.Model):
   def FromMessage(cls, msg):
     if msg is None:
       return None
-    test_bench = None
-    if msg.test_bench:
-      test_bench = TestBench.FromMessage(msg.test_bench)
+    test_bench = BuildTestBench(
+        cluster=msg.cluster, run_target=msg.run_target,
+        test_bench_attributes=msg.test_bench_attributes,
+        test_bench=msg.test_bench)
     return cls(
         name=msg.name,
         command_line=msg.command_line,
-        cluster=msg.cluster,
-        run_target=msg.run_target,
+        cluster=test_bench.cluster,
+        run_target=_TestBenchToLegacyRunTarget(test_bench),
         run_count=msg.run_count,
         shard_count=msg.shard_count,
         allow_partial_device_match=msg.allow_partial_device_match,

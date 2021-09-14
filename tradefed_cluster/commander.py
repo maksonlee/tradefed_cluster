@@ -140,7 +140,9 @@ def _CreateCommands(request):
               run_target=command_info.run_target,
               run_count=command_info.run_count,
               shard_count=command_info.shard_count,
-              allow_partial_device_match=command_info.allow_partial_device_match
+              allow_partial_device_match=(
+                  command_info.allow_partial_device_match),
+              test_bench=command_info.test_bench
               ))
       shard_indexes.append(shard_index)
 

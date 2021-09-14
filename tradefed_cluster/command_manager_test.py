@@ -185,7 +185,9 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(tasks[0].cluster, command.cluster)
     self.assertEqual(
         tasks[0].test_bench,
-        command_task_store._GetTestBench(command.cluster, command.run_target))
+        datastore_entities.BuildTestBench(
+            cluster=command.cluster,
+            run_target=command.run_target))
     self.assertEqual(tasks[0].priority, 0)
     self.assertEqual(tasks[0].request_type, command.request_type)
     self.assertEqual(tasks[0].plugin_data, command.plugin_data)
@@ -250,7 +252,9 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
       self.assertEqual(tasks[0].cluster, command.cluster)
       self.assertEqual(
           tasks[0].test_bench,
-          command_task_store._GetTestBench(command.cluster, command.run_target))
+          datastore_entities.BuildTestBench(
+              cluster=command.cluster,
+              run_target=command.run_target))
       self.assertEqual(tasks[0].priority, command.priority)
       self.assertEqual(tasks[0].request_type, command.request_type)
       self.assertEqual(tasks[0].plugin_data, command.plugin_data)

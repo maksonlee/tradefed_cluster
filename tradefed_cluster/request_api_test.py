@@ -24,7 +24,6 @@ import json
 import unittest
 import zlib
 
-import endpoints
 import mock
 from protorpc import protojson
 from six.moves import range
@@ -36,7 +35,6 @@ from tradefed_cluster import command_manager
 from tradefed_cluster import command_monitor
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
-from tradefed_cluster import request_api
 from tradefed_cluster import request_manager
 from tradefed_cluster import request_sync_monitor
 from tradefed_cluster.util import ndb_shim as ndb
@@ -276,6 +274,8 @@ class RequestApiTest(api_test.ApiTest):
     api_request = {
         'user': 'user',
         'command_line': command_line,
+        'cluster': 'cluster',
+        'run_target': 'run_target',
         'type': 'MANAGED',
         'test_environment': {
             'env_vars': [
@@ -362,13 +362,26 @@ class RequestApiTest(api_test.ApiTest):
                                               api_response.body)
     self.assertIsNotNone(return_request.id)
     request_entity = request_manager.GetRequest(return_request.id)
-    run_target_json = json.loads(request_entity.command_infos[0].run_target)
-    run_target_json = run_target_json['host']['groups'][0]['run_targets'][0]
-    self.assertEqual('run_target', run_target_json['name'])
-    self.assertEqual('attr1', run_target_json['device_attributes'][0]['name'])
-    self.assertEqual('val1', run_target_json['device_attributes'][0]['value'])
-    self.assertEqual('attr2', run_target_json['device_attributes'][1]['name'])
-    self.assertEqual('val2', run_target_json['device_attributes'][1]['value'])
+    self.assertEqual(1, len(request_entity.command_infos))
+    command_info = request_entity.command_infos[0]
+    self.assertEqual('cluster', command_info.cluster)
+    self.assertEqual('run_target', command_info.run_target)
+    test_bench = command_info.test_bench
+    self.assertEqual('cluster', test_bench.cluster)
+    self.assertEqual(1, len(test_bench.host.groups))
+    group = test_bench.host.groups[0]
+    self.assertEqual(1, len(group.run_targets))
+    run_target = group.run_targets[0]
+    self.assertEqual('run_target', run_target.name)
+    self.assertEqual(2, len(run_target.device_attributes))
+    device_attribute = run_target.device_attributes[0]
+    self.assertEqual('attr1', device_attribute.name)
+    self.assertEqual('val1', device_attribute.value)
+    self.assertEqual('=', device_attribute.operator)
+    device_attribute = run_target.device_attributes[1]
+    self.assertEqual('attr2', device_attribute.name)
+    self.assertEqual('val2', device_attribute.value)
+    self.assertEqual('=', device_attribute.operator)
 
   def testNewRequest_withTestBench(self):
     api_request = {
@@ -396,7 +409,10 @@ class RequestApiTest(api_test.ApiTest):
     self.assertIsNotNone(return_request.id)
     request_entity = request_manager.GetRequest(return_request.id)
     self.assertEqual(1, len(request_entity.command_infos))
-    test_bench = request_entity.command_infos[0].test_bench
+    command_info = request_entity.command_infos[0]
+    self.assertEqual('cluster', command_info.cluster)
+    self.assertEqual('run_target', command_info.run_target)
+    test_bench = command_info.test_bench
     self.assertEqual('cluster', test_bench.cluster)
     self.assertEqual(1, len(test_bench.host.groups))
     group = test_bench.host.groups[0]
@@ -829,44 +845,6 @@ class RequestApiTest(api_test.ApiTest):
         },
         expect_errors=True)
     self.assertEqual('404 Not Found', api_response.status)
-
-  def testBuildRunTarget(self):
-    run_target = request_api._BuildRunTarget(
-        'a_run_target', ['attr1=val1', 'attr2>=val2'])
-    run_target_json = json.loads(run_target)
-    run_target_json = run_target_json['host']['groups'][0]['run_targets'][0]
-    self.assertEqual('a_run_target', run_target_json['name'])
-    self.assertEqual('attr1', run_target_json['device_attributes'][0]['name'])
-    self.assertEqual('val1', run_target_json['device_attributes'][0]['value'])
-    self.assertEqual('=', run_target_json['device_attributes'][0]['operator'])
-    self.assertEqual('attr2', run_target_json['device_attributes'][1]['name'])
-    self.assertEqual('val2', run_target_json['device_attributes'][1]['value'])
-    self.assertEqual('>=', run_target_json['device_attributes'][1]['operator'])
-
-  def testParseAttributeRequirement(self):
-    self.assertEqual(
-        {'name': 'attr1', 'value': 'val1', 'operator': '='},
-        request_api._ParseAttributeRequirement('attr1=val1'))
-    self.assertEqual(
-        {'name': 'attr1', 'value': 'val1', 'operator': '>'},
-        request_api._ParseAttributeRequirement('attr1>val1'))
-    self.assertEqual(
-        {'name': 'attr1', 'value': 'val1', 'operator': '>='},
-        request_api._ParseAttributeRequirement('attr1>=val1'))
-    self.assertEqual(
-        {'name': 'attr1', 'value': 'val1', 'operator': '<'},
-        request_api._ParseAttributeRequirement('attr1<val1'))
-    self.assertEqual(
-        {'name': 'attr1', 'value': 'val1', 'operator': '<='},
-        request_api._ParseAttributeRequirement('attr1<=val1'))
-
-  def testParseAttributeRequirement_invalidFormat(self):
-    with self.assertRaises(endpoints.BadRequestException):
-      request_api._ParseAttributeRequirement('attr1')
-
-  def testParseAttributeRequirement_nonNumberForNumberAttribute(self):
-    with self.assertRaises(endpoints.BadRequestException):
-      request_api._ParseAttributeRequirement('battery_level>unknown')
 
 
 if __name__ == '__main__':

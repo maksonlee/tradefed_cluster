@@ -348,6 +348,38 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
     monitor.assert_called_once_with(
         commands[:request.max_concurrent_tasks])
 
+  @mock.patch.object(command_monitor, "Monitor")
+  @mock.patch.object(command_manager, "ScheduleTasks")
+  @mock.patch.object(env_config.CONFIG, "plugin")
+  def testProcessRequest_withTestBench(self, plugin, schedule_tasks, monitor):
+    request_id = "1001"
+    test_bench = datastore_test_util.CreateTestBench("cluster", "run_target")
+    datastore_test_util.CreateRequest(
+        user="user",
+        command_infos=[
+            datastore_entities.CommandInfo(
+                command_line=(
+                    "command_line0"),
+                cluster="cluster",
+                run_target="run_target",
+                test_bench=test_bench)
+        ],
+        request_id=request_id,
+        plugin_data={"ants_invocation_id": "i123",
+                     "ants_work_unit_id": "w123"})
+    commander._ProcessRequest(request_id)
+    self.assertEqual(1, schedule_tasks.call_count)
+    self.assertEqual(1, monitor.call_count)
+
+    commands = request_manager.GetCommands(request_id)
+    self.assertEqual(1, len(commands))
+    command = commands[0]
+    self.assertEqual("command_line0", command.command_line)
+    self.assertEqual("run_target", command.run_target)
+    self.assertEqual(1, command.run_count)
+    self.assertEqual("cluster", command.cluster)
+    self.assertEqual(test_bench, command.test_bench)
+
   def _CreateCommand(
       self, request_id=REQUEST_ID, run_count=1, priority=None,
       command_line="command_line1"):

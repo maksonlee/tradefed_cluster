@@ -13,7 +13,6 @@
 # limitations under the License.
 
 """API module to serve request service calls."""
-import json
 import logging
 import re
 
@@ -111,19 +110,16 @@ class RequestApi(remote.Service):
     """
     # TODO: figure a better way for auth.
     # self._CheckAuth()
-    run_target = request.run_target
-    if request.test_bench_attributes:
-      run_target = _BuildRunTarget(
-          request.run_target, request.test_bench_attributes)
     new_request = self._CreateRequest(
         user=request.user,
         command_infos=[
             api_messages.CommandInfo(
                 command_line=request.command_line,
                 cluster=request.cluster,
-                run_target=run_target,
+                run_target=request.run_target,
                 run_count=request.run_count,
                 shard_count=request.shard_count,
+                test_bench_attributes=request.test_bench_attributes,
                 test_bench=request.test_bench)
         ],
         priority=request.priority,
@@ -502,61 +498,3 @@ def _SyncCommands(request_id):
   for command in request_manager.GetCommands(request_id):
     command_monitor.SyncCommand(
         request_id, command.key.id(), add_to_sync_queue=False)
-
-
-def _BuildRunTarget(run_target, test_bench_attributes):
-  """Build run target from test_bench_message.
-
-  For test bench with attributes, the run target should match format in
-  command_task_store._GetTestBench, which is a structured json format.
-  For test bench without attributes, the run target should match format in
-  command_task_store._GetLegacyTestBench.
-
-  Args:
-    run_target: simple run target represent a device type.
-    test_bench_attributes: a list of string represent device attribute
-        requirements.
-  Returns:
-    a string represent the run target.
-  """
-  json_attributes = []
-  for attribute in test_bench_attributes:
-    json_attributes.append(_ParseAttributeRequirement(attribute))
-  run_target_json = {
-      common.TestBenchKey.HOST: {
-          common.TestBenchKey.GROUPS: [{
-              common.TestBenchKey.RUN_TARGETS: [{
-                  common.TestBenchKey.RUN_TARGET_NAME: run_target,
-                  common.TestBenchKey.DEVICE_ATTRIBUTES: json_attributes
-              }]
-          }]
-      }
-  }
-  return json.dumps(run_target_json)
-
-
-def _ParseAttributeRequirement(attribute):
-  """Parse the attribute requirement.
-
-  Args:
-    attribute: a string represents attribute requirement.
-  Returns:
-    a dict with name, value and operator.
-  """
-  m = ATTRIBUTE_REQUIREMENT_PATTERN.match(attribute)
-  if not m:
-    raise endpoints.BadRequestException(
-        "Only 'name[=|>|>=|<|<=]value' format attribute is supported. "
-        "%s is not supported." % attribute)
-  name = m.group(common.TestBenchKey.ATTRIBUTE_NAME)
-  value = m.group(common.TestBenchKey.ATTRIBUTE_VALUE)
-  if name in common.NUMBER_DEVICE_ATTRIBUTES:
-    if common.ParseFloat(value) is None:
-      raise endpoints.BadRequestException(
-          "%s can not compare to a non-number value '%s'" % (name, value))
-  return {
-      common.TestBenchKey.ATTRIBUTE_NAME: name,
-      common.TestBenchKey.ATTRIBUTE_VALUE: value,
-      common.TestBenchKey.ATTRIBUTE_OPERATOR: m.group(
-          common.TestBenchKey.ATTRIBUTE_OPERATOR),
-  }

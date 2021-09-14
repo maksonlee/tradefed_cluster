@@ -16,7 +16,6 @@
 
 import dataclasses
 import datetime
-import json
 import logging
 
 from typing import Dict, Optional, Any
@@ -56,41 +55,6 @@ def _Now():
   return datetime.datetime.utcnow()
 
 
-def _GetTestBench(cluster=None, run_target=None, test_bench=None):
-  """Parse the run target, and create a test bench.
-
-  Test bench info is encoded in run_target. Run target will have json format.
-  The structure is the same as datastore_entities.TestBench:
-  {
-    "host": {
-      "groups": [{
-        "run_targets": [{
-          "name": "run_target6",
-            "device_attributes": [
-              {"name": "sim_state", "value": "READY"}
-            ]
-          }]
-        }]
-    }
-  }
-
-  Args:
-    cluster: cluster name
-    run_target: encoded run_target
-    test_bench: a test bench oject, this have highest priority.
-  Returns:
-    a TestBench entity.
-  """
-  if test_bench:
-    return test_bench
-  run_target = run_target.strip()
-  if not run_target.startswith('{'):
-    return datastore_entities.TestBench.FromLegacyString(run_target, cluster)
-  test_bench_json = json.loads(run_target)
-  test_bench = datastore_entities.TestBench.FromJson(test_bench_json, cluster)
-  return test_bench
-
-
 def CreateTask(command_task_args):
   """Save the command task in datastore.
 
@@ -99,7 +63,7 @@ def CreateTask(command_task_args):
   Returns:
     true if created a new task, false if the task already exists.
   """
-  test_bench = _GetTestBench(
+  test_bench = datastore_entities.BuildTestBench(
       cluster=command_task_args.cluster,
       run_target=command_task_args.run_target,
       test_bench=command_task_args.test_bench)

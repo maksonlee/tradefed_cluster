@@ -368,3 +368,27 @@ def CreateHostResource(hostname):
       event_timestamp=datetime.datetime(2021, 8, 4, 23, 18))
   entity.put()
   return entity
+
+
+def CreateTestBench(cluster, run_target):
+  """Create a mock TestBench entity."""
+  return datastore_entities.TestBench(
+      cluster=cluster,
+      host=datastore_entities.Host(
+          groups=[
+              datastore_entities.Group(
+                  run_targets=[
+                      datastore_entities.RunTarget(
+                          name=run_target,
+                          device_attributes=[
+                              datastore_entities.Attribute(
+                                  name='sim_state',
+                                  value='READY',
+                                  operator='=')]),
+                      datastore_entities.RunTarget(
+                          name=run_target,
+                          device_attributes=[
+                              datastore_entities.Attribute(
+                                  name='sim_state',
+                                  value='ABSENT',
+                                  operator='=')])])]))

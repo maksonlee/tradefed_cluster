@@ -374,6 +374,7 @@ class CommandInfo(messages.Message):
   shard_count = messages.IntegerField(6, default=1)
   allow_partial_device_match = messages.BooleanField(7, default=False)
   test_bench = messages.MessageField(_TestBenchRequirement, 8)
+  test_bench_attributes = messages.StringField(9, repeated=True)
 
 
 class CommandMessage(messages.Message):

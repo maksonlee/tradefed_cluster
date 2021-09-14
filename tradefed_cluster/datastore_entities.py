@@ -253,6 +253,15 @@ class Attribute(ndb.Model):
     return Attribute(name=name, value=value, operator=operator)
 
 
+@MessageConverter(Attribute)
+def AttributeToMessage(entity):
+  """Attribute entity to api_messages.DeviceAttributeRequirement."""
+  return api_messages.DeviceAttributeRequirement(
+      name=entity.name,
+      value=entity.value,
+      operator=entity.operator)
+
+
 class RunTarget(ndb.Model):
   """RunTarget model.
 
@@ -290,6 +299,14 @@ class RunTarget(ndb.Model):
             for a in (test_bench_attributes or ())])
 
 
+@MessageConverter(RunTarget)
+def RunTargetToMessage(entity):
+  """RunTarget entity to api_messages.RunTargetRequirement."""
+  return api_messages.RunTargetRequirement(
+      name=entity.name,
+      device_attributes=[ToMessage(a) for a in entity.device_attributes])
+
+
 class Group(ndb.Model):
   """Group model.
 
@@ -318,6 +335,13 @@ class Group(ndb.Model):
                      for rt in group_str.split(',')])
 
 
+@MessageConverter(Group)
+def GroupToMessage(entity):
+  """Group entity to api_messages.GroupRequirement."""
+  return api_messages.GroupRequirement(
+      run_targets=[ToMessage(rt) for rt in entity.run_targets])
+
+
 class Host(ndb.Model):
   """Host entity.
 
@@ -344,6 +368,13 @@ class Host(ndb.Model):
     return Host(
         groups=[Group.FromLegacyString(g, test_bench_attributes)
                 for g in run_target.split(';')])
+
+
+@MessageConverter(Host)
+def HostToMessage(entity):
+  """Host entity to api_messages.HostRequirement."""
+  return api_messages.HostRequirement(
+      groups=[ToMessage(g) for g in entity.groups])
 
 
 class TestBench(ndb.Model):
@@ -378,6 +409,15 @@ class TestBench(ndb.Model):
             test_bench_attributes=test_bench_attributes))
 
 
+@MessageConverter(TestBench)
+def TestBenchToMessage(entity):
+  """TestBench entity to api_messages.TestBenchRequirement."""
+  if not entity:
+    return None
+  return api_messages.TestBenchRequirement(
+      cluster=entity.cluster, host=ToMessage(entity.host))
+
+
 def _TestBenchToLegacyRunTarget(test_bench):
   """Transform a test bench to a legacy run target."""
   group_strs = []
@@ -398,7 +438,7 @@ def BuildTestBench(
     3. test bench object.
     Going forward we will keep maintaining 1, but we are going to
     deprecate 2. 3 will be used for complicated use cases.
-    This is becasue of b/198413277, there is a limitation on the length
+    This is because of b/198413277, there is a limitation on the length
     of a field.
     We will still keep cluster and run target fields for querying
     (not for scheduling tests) and the run target will always be legacy format.
@@ -465,7 +505,8 @@ def CommandInfoToMessage(entity):
       run_target=entity.run_target,
       run_count=entity.run_count,
       shard_count=entity.shard_count,
-      allow_partial_device_match=entity.allow_partial_device_match)
+      allow_partial_device_match=entity.allow_partial_device_match,
+      test_bench=ToMessage(entity.test_bench))
 
 
 def _Request_AddCommandInfo(obj):    """Upgrade function for legacy Request objects."""
@@ -764,7 +805,8 @@ def CommandToMessage(command):
       shard_count=command.shard_count,
       shard_index=command.shard_index,
       error_reason=command.error_reason,
-      allow_partial_device_match=command.allow_partial_device_match)
+      allow_partial_device_match=command.allow_partial_device_match,
+      test_bench=ToMessage(command.test_bench))
 
 
 class TestGroupStatus(ndb.Model):

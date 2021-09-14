@@ -64,39 +64,39 @@ _TEST_BENCH_JSON = """
   }
 }
 """
-_TEST_BENCH_MESSAGE = api_messages._TestBenchRequirement(
+_TEST_BENCH_MESSAGE = api_messages.TestBenchRequirement(
     cluster='acluster',
-    host=api_messages._HostRequirement(
+    host=api_messages.HostRequirement(
         groups=[
-            api_messages._GroupRequirement(
+            api_messages.GroupRequirement(
                 run_targets=[
-                    api_messages._RunTargetRequirement(
+                    api_messages.RunTargetRequirement(
                         name='rt1',
                         device_attributes=[
-                            api_messages._DeviceAttributeRequirement(
+                            api_messages.DeviceAttributeRequirement(
                                 name='sim_state',
                                 value='READY',
                                 operator='=')]),
-                    api_messages._RunTargetRequirement(
+                    api_messages.RunTargetRequirement(
                         name='rt2',
                         device_attributes=[
-                            api_messages._DeviceAttributeRequirement(
+                            api_messages.DeviceAttributeRequirement(
                                 name='sim_state',
                                 value='ABSENT',
                                 operator='=')])]),
-            api_messages._GroupRequirement(
+            api_messages.GroupRequirement(
                 run_targets=[
-                    api_messages._RunTargetRequirement(
+                    api_messages.RunTargetRequirement(
                         name='rt3',
                         device_attributes=[
-                            api_messages._DeviceAttributeRequirement(
+                            api_messages.DeviceAttributeRequirement(
                                 name='sim_state',
                                 value='READY',
                                 operator='=')]),
-                    api_messages._RunTargetRequirement(
+                    api_messages.RunTargetRequirement(
                         name='rt4',
                         device_attributes=[
-                            api_messages._DeviceAttributeRequirement(
+                            api_messages.DeviceAttributeRequirement(
                                 name='sim_state',
                                 value='ABSENT',
                                 operator='=')])])]))
@@ -662,6 +662,11 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
   def testAttributeFromString_nonNumberForNumberAttribute(self):
     with self.assertRaises(ValueError):
       datastore_entities.Attribute.FromString('battery_level>unknown')
+
+  def testTestBenchToMessage(self):
+    self.assertEqual(
+        _TEST_BENCH_MESSAGE,
+        datastore_entities.ToMessage(_TEST_BENCH_ENTITY))
 
 
 if __name__ == '__main__':

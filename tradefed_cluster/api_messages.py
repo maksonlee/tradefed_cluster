@@ -323,34 +323,34 @@ class CommandAttemptEventMessage(messages.Message):
   event_time = message_types.DateTimeField(5)
 
 
-class _DeviceAttributeRequirement(messages.Message):
+class DeviceAttributeRequirement(messages.Message):
   """Device attribute requirement."""
   name = messages.StringField(1)
   value = messages.StringField(2)
   operator = messages.StringField(3)
 
 
-class _RunTargetRequirement(messages.Message):
+class RunTargetRequirement(messages.Message):
   """Run target requirement."""
   name = messages.StringField(1)
   device_attributes = messages.MessageField(
-      _DeviceAttributeRequirement, 2, repeated=True)
+      DeviceAttributeRequirement, 2, repeated=True)
 
 
-class _GroupRequirement(messages.Message):
+class GroupRequirement(messages.Message):
   """A mutual exclusive group defined on TF hosts."""
-  run_targets = messages.MessageField(_RunTargetRequirement, 1, repeated=True)
+  run_targets = messages.MessageField(RunTargetRequirement, 1, repeated=True)
 
 
-class _HostRequirement(messages.Message):
+class HostRequirement(messages.Message):
   """Host requirement."""
-  groups = messages.MessageField(_GroupRequirement, 1, repeated=True)
+  groups = messages.MessageField(GroupRequirement, 1, repeated=True)
 
 
-class _TestBenchRequirement(messages.Message):
+class TestBenchRequirement(messages.Message):
   """Test bench requirement for a test."""
   cluster = messages.StringField(1)
-  host = messages.MessageField(_HostRequirement, 2)
+  host = messages.MessageField(HostRequirement, 2)
 
 
 class CommandInfo(messages.Message):
@@ -373,7 +373,7 @@ class CommandInfo(messages.Message):
   run_count = messages.IntegerField(5, default=1)
   shard_count = messages.IntegerField(6, default=1)
   allow_partial_device_match = messages.BooleanField(7, default=False)
-  test_bench = messages.MessageField(_TestBenchRequirement, 8)
+  test_bench = messages.MessageField(TestBenchRequirement, 8)
   test_bench_attributes = messages.StringField(9, repeated=True)
 
 
@@ -396,6 +396,7 @@ class CommandMessage(messages.Message):
   error_reason = messages.EnumField(common.ErrorReason, 15)
   name = messages.StringField(16)
   allow_partial_device_match = messages.BooleanField(17, default=False)
+  test_bench = messages.MessageField(TestBenchRequirement, 18)
 
 
 class RequestType(messages.Enum):
@@ -873,7 +874,9 @@ class NewRequestMessage(messages.Message):
   test_resources = messages.MessageField(TestResource, 14, repeated=True)
   plugin_data = messages.MessageField(KeyValuePair, 15, repeated=True)
   test_bench_attributes = messages.StringField(16, repeated=True)
-  test_bench = messages.MessageField(_TestBenchRequirement, 17)
+  # TODO: deprecated cluster, run target and test_bench_attributes
+  # use test_bench object instead.
+  test_bench = messages.MessageField(TestBenchRequirement, 17)
 
 
 class NewMultiCommandRequestMessage(messages.Message):

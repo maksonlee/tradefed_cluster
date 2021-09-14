@@ -123,6 +123,8 @@ def RescheduleTask(task_id, run_index, attempt_index):
       # Ignore leasable tasks
       logging.info('%s is leasable, don\'t reschedule', str(task_id))
       return
+
+    logging.debug('Making task %s leasable', task_id)
     task.leasable = True
     task.schedule_timestamp = common.Now()
     task.run_index = run_index
@@ -166,6 +168,7 @@ def LeaseTask(task_id):
     None if the task is not leasable, otherwise the task.
   """
   task = _Key(task_id).get()
+  logging.debug('Attempting to lease task: %s', task)
   if not task or not task.leasable:
     return None
   task.leasable = False

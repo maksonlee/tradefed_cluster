@@ -567,6 +567,8 @@ def UpdateCommandAttempt(event):
     True if the command attempt state is updated, otherwise False
   """
   entities_to_update = []
+  logging.debug("Updating command attempt for request %s command %s attempt %s",
+                event.request_id, event.command_id, event.attempt_id)
   attempt_entity = GetCommandAttempt(event.request_id, event.command_id,
                                      event.attempt_id)
 

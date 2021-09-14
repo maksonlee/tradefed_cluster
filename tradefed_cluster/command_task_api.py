@@ -198,8 +198,9 @@ class CommandTaskApi(remote.Service):
 
       matcher.RemoveDeviceGroups(matched_devices)
 
-      logging.debug("lease task %s to run on %s",
+      logging.debug("lease task %s to run on %s %s",
                     str(leased_task.task_id),
+                    host.hostname,
                     tuple(m.device_serial for m in matched_devices))
       plugin_data_dict = copy.copy(leased_task.plugin_data)
       plugin_data_dict[_HOSTNAME_KEY] = host.hostname

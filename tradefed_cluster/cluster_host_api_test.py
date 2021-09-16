@@ -2146,6 +2146,7 @@ class ClusterHostApiTest(api_test.ApiTest):
 
     metadata_entity = datastore_entities.HostMetadata.get_by_id('host1')
     self.assertEqual('image_a', metadata_entity.test_harness_image)
+    self.assertFalse(metadata_entity.allow_to_update)
 
   def testPatchHostMetadata_patchExisting(self):
     """Tests PatchHostMetadata previously exists."""
@@ -2154,6 +2155,7 @@ class ClusterHostApiTest(api_test.ApiTest):
     api_request = {
         'hostname': 'host1',
         'test_harness_image': 'image_b',
+        'allow_to_update': True,
     }
     api_response = self.testapp.post_json(
         '/_ah/api/ClusterHostApi.PatchMetadata',
@@ -2162,6 +2164,7 @@ class ClusterHostApiTest(api_test.ApiTest):
 
     metadata_entity = datastore_entities.HostMetadata.get_by_id('host1')
     self.assertEqual('image_b', metadata_entity.test_harness_image)
+    self.assertTrue(metadata_entity.allow_to_update)
 
   def testPatchHostMetadata_withShaFound(self):
     """Tests PatchHostMetadata previously exists."""
@@ -2211,6 +2214,7 @@ class ClusterHostApiTest(api_test.ApiTest):
     host_metadata = datastore_entities.HostMetadata.get_by_id(hostname1)
     self.assertEqual(hostname1, host_metadata.hostname)
     self.assertEqual(image_name_new, host_metadata.test_harness_image)
+    self.assertFalse(host_metadata.allow_to_update)
     host_update_state = datastore_entities.HostUpdateState.get_by_id(hostname1)
     self.assertEqual(hostname1, host_update_state.hostname)
     self.assertEqual(api_messages.HostUpdateState.PENDING,
@@ -2218,6 +2222,7 @@ class ClusterHostApiTest(api_test.ApiTest):
     host_metadata = datastore_entities.HostMetadata.get_by_id(hostname2)
     self.assertEqual(hostname2, host_metadata.hostname)
     self.assertEqual(image_name_new, host_metadata.test_harness_image)
+    self.assertFalse(host_metadata.allow_to_update)
     host_update_state = datastore_entities.HostUpdateState.get_by_id(hostname2)
     self.assertEqual(hostname2, host_update_state.hostname)
     self.assertEqual(api_messages.HostUpdateState.PENDING,

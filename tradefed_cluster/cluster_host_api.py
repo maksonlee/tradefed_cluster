@@ -841,6 +841,7 @@ class ClusterHostApi(remote.Service):
   METADATA_PATCH_RESOURCE = endpoints.ResourceContainer(
       hostname=messages.StringField(1, required=True),
       test_harness_image=messages.StringField(2),
+      allow_to_update=messages.BooleanField(3, default=False),
   )
 
   @endpoints.method(
@@ -869,7 +870,8 @@ class ClusterHostApi(remote.Service):
                    .GetHarnessImageWithShaFromImageUrlWithTag(
                        request.test_harness_image) or
                    request.test_harness_image)
-      metadata.populate(test_harness_image=image_url)
+      metadata.populate(test_harness_image=image_url,
+                        allow_to_update=request.allow_to_update)
     metadata.put()
     metadata_msg = datastore_entities.ToMessage(metadata)
 
@@ -879,6 +881,7 @@ class ClusterHostApi(remote.Service):
       hostnames=messages.StringField(1, repeated=True),
       test_harness_image=messages.StringField(2),
       user=messages.StringField(3),
+      allow_to_update=messages.BooleanField(4, default=False),
   )
 
   @endpoints.method(
@@ -933,7 +936,8 @@ class ClusterHostApi(remote.Service):
             host_update_state=_HOST_UPDATE_STATE_PENDING,
             data={"host_update_target_image": request.test_harness_image})
         device_manager.HandleDeviceSnapshotWithNDB(event)
-      metadata.populate(test_harness_image=request.test_harness_image)
+      metadata.populate(test_harness_image=request.test_harness_image,
+                        allow_to_update=request.allow_to_update)
       metadatas_to_update.append(metadata)
     ndb.put_multi(metadatas_to_update)
 

@@ -54,14 +54,11 @@ class AclApi(remote.Service):
       logging.debug("no host config found for hostname: %s", request.hostname)
       raise endpoints.NotFoundException(
           f"{request.hostname} host config not found")
-    try:
-      if (request.host_account == _JUMP_HOST_ACCOUNT and
-          _JUMP_GROUP_NAME in host_config.inventory_groups):
-        return self._CheckAccessibilityForJump(request.user_name, host_config)
-      return self._CheckAccessibilityForHost(request.user_name, host_config,
-                                             request.host_account)
-    except acl_service.UserNotFoundError as e:
-      raise endpoints.NotFoundException(str(e))
+    if (request.host_account == _JUMP_HOST_ACCOUNT and
+        _JUMP_GROUP_NAME in host_config.inventory_groups):
+      return self._CheckAccessibilityForJump(request.user_name, host_config)
+    return self._CheckAccessibilityForHost(request.user_name, host_config,
+                                           request.host_account)
 
   def _CheckAccessibilityForJump(self, user_name, host_config):
     """Checks if the user can pass through ssh jump hosts.

@@ -20,6 +20,7 @@ from __future__ import print_function
 import unittest
 from unittest import mock
 
+import endpoints
 from protorpc import protojson
 
 from tradefed_cluster import api_messages
@@ -179,7 +180,7 @@ class AclCheckApiTest(api_test.ApiTest):
             }
         })
     acl_service.CheckMembership = mock.MagicMock(
-        side_effect=acl_service.UserNotFoundError('mock error message'))
+        side_effect=endpoints.NotFoundException('mock error message'))
     with self.assertRaisesRegex(Exception, 'mock error message'):
       self.testapp.post_json(
           '/_ah/api/AclApi.CheckSshAccessible',

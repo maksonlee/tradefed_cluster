@@ -68,6 +68,12 @@ pytype_strict_library(
     ],
     srcs_version = "PY2AND3",
     deps = [
+        "//third_party/py/endpoints:api_request",
+        "//third_party/py/endpoints:endpoints_dispatcher",
+        "//third_party/py/endpoints:endpoints_library",
+        "//third_party/py/enum",
+        "//tradefed_cluster:datastore_entities_lib",
+        "//tradefed_cluster:device_manager_lib",
         "//tradefed_cluster:env_config_lib",
     ],
 )
@@ -82,7 +88,13 @@ py_test(
     deps = [
         ":acl_service_lib",
         third_party("absl/testing:absltest"),
+        "//third_party/py/endpoints:endpoints_library",
+        "//third_party/py/protorpc:protorpc_all",
+        "//tradefed_cluster:api_common_lib",
+        "//tradefed_cluster:datastore_test_util_lib",
         "//tradefed_cluster:env_config_lib",
+        "//tradefed_cluster:testbed_dependent_test_lib",
+        "//third_party/py/webtest",
     ],
 )
 

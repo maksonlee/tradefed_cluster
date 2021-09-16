@@ -309,14 +309,18 @@ def CreateHostMetadata(
 def CreateHostGroupConfig(name,
                           lab_name,
                           parent_groups=tuple(),
-                          account_principals=tuple()):
+                          account_principals=tuple(),
+                          owners=tuple(),
+                          readers=tuple(),):
   """Creates a HostGroupConfig entity."""
   group_config = datastore_entities.HostGroupConfig(
       id=datastore_entities.HostGroupConfig.CreateId(lab_name, name),
       lab_name=lab_name,
       name=name,
       parent_groups=parent_groups,
-      account_principals=account_principals)
+      account_principals=account_principals,
+      owners=owners,
+      readers=readers,)
   group_config.put()
   return group_config
 

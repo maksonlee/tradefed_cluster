@@ -1240,12 +1240,16 @@ class HostGroupConfig(ndb.Model):
     parent_groups: the parent goup name list.
     account_principals: the account to account principals map.
     update_time: the time the config is update.
+    owners: the owner user/group names.
+    readers: the reader user/group names.
   """
   name = ndb.StringProperty()
   lab_name = ndb.StringProperty()
   parent_groups = ndb.StringProperty(repeated=True)
   account_principals = ndb.JsonProperty()
   update_time = ndb.DateTimeProperty(auto_now=True)
+  owners = ndb.StringProperty(repeated=True)
+  readers = ndb.StringProperty(repeated=True)
 
   @classmethod
   def CreateId(cls, lab_name, name):

@@ -30,7 +30,9 @@ _OPERATOR_TO_PREDICTOR = {
     '>=': lambda a, b: a >= b,
     '<': lambda a, b: a < b,
     '<=': lambda a, b: a <= b,
+    'IN': lambda a, b: a in b,
 }
+_LIST_OPERATORS = ['IN']
 
 
 Device = namedtuple('Device', ['device_serial', 'run_target', 'attributes'])
@@ -378,8 +380,13 @@ def _MatchDeviceAttribute(required_attr, device_attrs):
 
   device_attr_value = device_attrs[required_attr.name]
   required_value = required_attr.value
+  if required_attr.operator in _LIST_OPERATORS:
+    required_value = required_value.split(',')
   if required_attr.name in common.NUMBER_DEVICE_ATTRIBUTES:
-    required_value = common.ParseFloat(required_value)
+    if isinstance(required_value, list):
+      required_value = map(common.ParseFloat, required_value)
+    else:
+      required_value = common.ParseFloat(required_value)
     if required_value is None:
       # This should never happen, since we check the expression in
       # request_api._ParseAttributeRequirement.

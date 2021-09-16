@@ -537,6 +537,19 @@ class CommandTaskMatcherTest(unittest.TestCase):
     self.assertFalse(
         command_task_matcher._MatchDeviceAttribute(required_attr, device_attrs))
 
+  def testMatchDeviceAttribute_listOperator(self):
+    required_attr = datastore_entities.Attribute(
+        name='sim_state', value='READY,MISSING', operator='IN')
+    self.assertTrue(
+        command_task_matcher._MatchDeviceAttribute(
+            required_attr, {'sim_state': 'READY'}))
+    self.assertTrue(
+        command_task_matcher._MatchDeviceAttribute(
+            required_attr, {'sim_state': 'MISSING'}))
+    self.assertFalse(
+        command_task_matcher._MatchDeviceAttribute(
+            required_attr, {'sim_state': 'LOADED'}))
+
 
 if __name__ == '__main__':
   unittest.main()

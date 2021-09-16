@@ -1,7 +1,7 @@
 load("//tools/build_defs/testing:bzl_library.bzl", "bzl_library")
 
 # A test infra software for Android testing labs.
-load("//tradefed_cluster:adapter.bzl", "py_appengine_binary", "py_library", "pytype_strict_library", "third_party")
+load("//tradefed_cluster:adapter.bzl", "py_library", "pytype_strict_library", "third_party")
 
 package(default_visibility = [":tradefed_cluster_clients"])
 
@@ -167,14 +167,6 @@ pytype_strict_library(
         third_party("mock"),
         third_party("webtest"),
     ],
-)
-
-py_appengine_binary(
-    name = "app",
-    configs = [
-        "//tradefed_cluster/gae_configs",
-    ],
-    deps = [":app_lib"],
 )
 
 pytype_strict_library(

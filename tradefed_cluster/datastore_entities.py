@@ -1194,12 +1194,15 @@ class ClusterConfig(ndb.Model):
     owners: a list of owners of the cluster.
     tf_global_config_path: a string of the global path of clsuter configs.
     update_time: the time the config is update.
+    max_concurrent_update_percentage: int from 1 to 100, the percentage of hosts
+      that can be updated concurrently in the cluster.
   """
   cluster_name = ndb.StringProperty()
   host_login_name = ndb.StringProperty()
   owners = ndb.StringProperty(repeated=True)
   tf_global_config_path = ndb.StringProperty()
   update_time = ndb.DateTimeProperty(auto_now=True)
+  max_concurrent_update_percentage = ndb.IntegerProperty()
 
   @classmethod
   def FromMessage(cls, msg):
@@ -1208,6 +1211,7 @@ class ClusterConfig(ndb.Model):
         cluster_name=msg.cluster_name,
         host_login_name=msg.host_login_name,
         owners=list(msg.owners),
+        max_concurrent_update_percentage=msg.max_concurrent_update_percentage,
         tf_global_config_path=msg.tf_global_config_path)
 
 

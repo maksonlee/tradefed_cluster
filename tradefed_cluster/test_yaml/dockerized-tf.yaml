@@ -49,6 +49,7 @@ cluster_configs:
   owners:
   - owner1
   tf_global_config_path: configs/cluster2/config.xml
+  max_concurrent_update_percentage: 10
   host_configs:
   - hostname: homer-atc3.lab1.google.com
     tf_global_config_path: configs/homer-atc3/config.xml

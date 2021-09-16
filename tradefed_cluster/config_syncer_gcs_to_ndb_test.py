@@ -80,14 +80,16 @@ class ConfigSyncerGCSToNdbTest(testbed_dependent_test.TestbedDependentTest):
 
   def _CreateClusterConfigEntity(
       self, cluster_name, host_login_user='login_user',
-      owners=('owner1', 'owner2'), tf_global_config_path='cluster_config.xml'):
+      owners=('owner1', 'owner2'), tf_global_config_path='cluster_config.xml',
+      max_concurrent_update_percentage=100):
     """Create ClusterConfig entity, store in datastore and return."""
     cluster_config_entity = datastore_entities.ClusterConfig(
         id=cluster_name,
         cluster_name=cluster_name,
         host_login_name=host_login_user,
         owners=list(owners),
-        tf_global_config_path=tf_global_config_path)
+        tf_global_config_path=tf_global_config_path,
+        max_concurrent_update_percentage=max_concurrent_update_percentage)
     cluster_config_entity.put()
     return cluster_config_entity
 
@@ -136,11 +138,12 @@ class ConfigSyncerGCSToNdbTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual('login_user1', res.host_login_name)
     self.assertEqual(['owner1', 'owner2'], res.owners)
     self.assertEqual('configs/cluster1/config.xml', res.tf_global_config_path)
+    self.assertEqual(0, res.max_concurrent_update_percentage)
     res = datastore_entities.ClusterConfig.get_by_id('cluster2')
     self.assertEqual('cluster2', res.cluster_name)
     self.assertEqual('login_user2', res.host_login_name)
     self.assertEqual(['owner1'], res.owners)
-    self.assertEqual('configs/cluster2/config.xml', res.tf_global_config_path)
+    self.assertEqual(10, res.max_concurrent_update_percentage)
 
   def testUpdateClusterConfigs_withDuplicateClusterConfig(self):
     """Tests that check lab configs with duplicated clusters are updated."""

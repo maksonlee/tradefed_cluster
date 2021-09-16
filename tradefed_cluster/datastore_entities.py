@@ -1171,18 +1171,23 @@ class HostMetadata(ndb.Model):
     hostname: string, a host name.
     test_harness_image: string, url to test harness docker image.
     update_time: time when the host metadata is changed.
+    allow_to_update: bool, whether the harness update is allowed based on
+      the cluster-level concurrency control.
   """
   hostname = ndb.StringProperty()
   test_harness_image = ndb.StringProperty()
   update_time = ndb.DateTimeProperty(auto_now=True)
+  allow_to_update = ndb.BooleanProperty(default=False)
 
 
 @MessageConverter(HostMetadata)
 def HostMetadataToMessage(entity):
   """Convert host metadata entity to host metadata api message."""
   return api_messages.HostMetadata(
-      hostname=entity.hostname, test_harness_image=entity.test_harness_image,
-      update_time=entity.update_time)
+      hostname=entity.hostname,
+      test_harness_image=entity.test_harness_image,
+      update_time=entity.update_time,
+      allow_to_update=entity.allow_to_update)
 
 
 class ClusterConfig(ndb.Model):

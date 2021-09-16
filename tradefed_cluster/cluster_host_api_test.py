@@ -2102,7 +2102,9 @@ class ClusterHostApiTest(api_test.ApiTest):
   def testGetHostMetadata(self):
     """Tests GetHostMetadata."""
     datastore_test_util.CreateHostMetadata(
-        'host1', test_harness_image='a_test_harness_image')
+        'host1',
+        test_harness_image='a_test_harness_image',
+        allow_to_update=True)
     api_request = {
         'hostname': 'host1',
     }
@@ -2114,6 +2116,7 @@ class ClusterHostApiTest(api_test.ApiTest):
         api_messages.HostMetadata, api_response.body)
     self.assertEqual('host1', host_metadata.hostname)
     self.assertEqual('a_test_harness_image', host_metadata.test_harness_image)
+    self.assertTrue(host_metadata.allow_to_update)
 
   def testGetHostMetadata_noHostMetadata(self):
     """Tests GetHostMetadata with no metadata."""
@@ -2128,6 +2131,7 @@ class ClusterHostApiTest(api_test.ApiTest):
         api_messages.HostMetadata, api_response.body)
     self.assertEqual('host1', host_metadata.hostname)
     self.assertIsNone(host_metadata.test_harness_image)
+    self.assertFalse(host_metadata.allow_to_update)
 
   def testPatchHostMetadata_previouslyNotExist(self):
     """Tests PatchHostMetadata previously does not exist."""

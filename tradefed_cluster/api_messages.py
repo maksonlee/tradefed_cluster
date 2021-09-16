@@ -711,6 +711,7 @@ class HostMetadata(messages.Message):
   hostname = messages.StringField(1)
   test_harness_image = messages.StringField(2)
   update_time = message_types.DateTimeField(3)
+  allow_to_update = messages.BooleanField(4)
 
 
 class HostResource(messages.Message):

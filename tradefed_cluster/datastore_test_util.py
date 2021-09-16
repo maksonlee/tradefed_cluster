@@ -296,12 +296,15 @@ def CreateHostConfig(
 
 
 def CreateHostMetadata(
-    hostname, test_harness_image=None, update_time=None):
+    hostname, test_harness_image=None, update_time=None,
+    allow_to_update=False):
   """Create a HostMetadata entity."""
   host_metadata = datastore_entities.HostMetadata(
       id=hostname,
-      hostname=hostname, test_harness_image=test_harness_image,
-      update_time=update_time)
+      hostname=hostname,
+      test_harness_image=test_harness_image,
+      update_time=update_time,
+      allow_to_update=allow_to_update)
   host_metadata.put()
   return host_metadata
 

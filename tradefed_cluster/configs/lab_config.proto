@@ -100,6 +100,10 @@ message ClusterConfig {
   optional uint64 shutdown_timeout_sec = 15 [default = 3600];
   // Enable host update from UI.
   optional bool enable_ui_update = 16;
+  // The percentage of hosts being updated concurrently in the cluster.
+  // The actual number of hosts is rounded up to the closest positive integer.
+  // And it will be ignored if not falling into the range of [1, 100].
+  optional uint32 max_concurrent_update_percentage = 17;
 }
 
 // Config for a host.

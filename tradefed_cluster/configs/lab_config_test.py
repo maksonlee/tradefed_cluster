@@ -82,6 +82,7 @@ class ConfigTest(unittest.TestCase):
     self.assertEqual(1000, cluster.tmpfs_configs[0].size)
     self.assertEqual('/btmpfs', cluster.tmpfs_configs[1].path)
     self.assertEqual(3, len(cluster.host_configs))
+    self.assertEqual(20, cluster.max_concurrent_update_percentage)
     host = cluster.host_configs[0]
     self.assertEqual('host1', host.hostname)
     self.assertEqual(5, host.max_local_virtual_devices)
@@ -182,7 +183,8 @@ class ConfigTest(unittest.TestCase):
         secret_project_id='secret_project',
         service_account_key_secret_id='sa_key',
         service_account='sa@project.google.com',
-        operation_mode='ON_PREMISE')
+        operation_mode='ON_PREMISE',
+        max_concurrent_update_percentage=12)
     self.assertEqual('alab', host_config.lab_name)
     self.assertEqual('acluster', host_config.cluster_name)
     self.assertEqual('ahost', host_config.hostname)
@@ -201,6 +203,7 @@ class ConfigTest(unittest.TestCase):
     self.assertEqual('sa@project.google.com', host_config.service_account)
     self.assertEqual(lab_config_pb2.OperationMode.ON_PREMISE,
                      host_config.operation_mode)
+    self.assertEqual(12, host_config.max_concurrent_update_percentage)
 
   def testCreateHostConfig_noLabName(self):
     host_config = lab_config.CreateHostConfig(

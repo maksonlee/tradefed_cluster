@@ -301,6 +301,11 @@ class HostConfig(object):
     """Get host's ssh arg."""
     return self.lab_config_pb.ssh_arg
 
+  @property
+  def max_concurrent_update_percentage(self):
+    """Max concurrent update percentage in cluster level."""
+    return self.cluster_config_pb.max_concurrent_update_percentage
+
   def Save(self, output_file_path):
     """Save the config to a file."""
     lab_config_pb = lab_config_pb2.LabConfig()
@@ -359,6 +364,7 @@ def CreateHostConfig(
     ssh_arg=None,
     operation_mode=None,
     max_local_virtual_devices=None,
+    max_concurrent_update_percentage=None,
 ):
   """Create a host config from raw data.
 
@@ -387,6 +393,8 @@ def CreateHostConfig(
     ssh_arg: string, ssh args to the host.
     operation_mode: string, host operation mode.
     max_local_virtual_devices: int, maximum number of virtual devices
+    max_concurrent_update_percentage: int, maximum percentage of cluster level
+      hosts being updated concurrently.
   Returns:
     a HostConfig have all those data.
   """
@@ -408,7 +416,8 @@ def CreateHostConfig(
       graceful_shutdown=graceful_shutdown,
       shutdown_timeout_sec=shutdown_timeout_sec,
       enable_stackdriver=enable_stackdriver,
-      control_server_url=control_server_url)
+      control_server_url=control_server_url,
+      max_concurrent_update_percentage=max_concurrent_update_percentage)
   lab_config_pb = lab_config_pb2.LabConfig(
       lab_name=lab_name,
       cluster_configs=[cluster_config_pb],

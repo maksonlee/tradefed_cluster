@@ -47,6 +47,7 @@ cluster_configs:
   enable_stackdriver: True
   enable_autoupdate: True
   extra_docker_args: ['--arg1', 'value1']
+  max_concurrent_update_percentage: 20
   tmpfs_configs:
   - path: /atmpfs
     size: 1000

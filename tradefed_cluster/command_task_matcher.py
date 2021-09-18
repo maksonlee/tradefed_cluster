@@ -59,8 +59,32 @@ class CommandTaskMatcher(object):
     """
     # A group name to group map. It represents the device tree.
     self._groups = self._BuildGroupTrees(host_info.device_infos)
-    # A run target to {device serial: device} map. It's an index for run target.
-    self._run_target_index = self._BuildRunTargetIndex(self._groups)
+
+    # Build device indexes for faster lookup.
+    self._device_serial_index = {}
+    self._run_target_index = {}
+    for group in six.itervalues(self._groups):
+      for d in self._ListGroupDevices(group):
+        self._device_serial_index[d.device_serial] = d
+        self._run_target_index.setdefault(
+            d.run_target.name, {})[d.device_serial] = d
+
+  def GetDeviceSerials(self):
+    """Return all device serials.
+
+    Returns:
+      a list of device serials.
+    """
+    return self._device_serial_index.keys()
+
+  def AddDeviceAttributes(self, device_serial, **kwargs):
+    """Add additional device attributes to be used for matching.
+
+    Args:
+      device_serial: a device serial.
+      **kwargs: attributes to add.
+    """
+    self._device_serial_index[device_serial].attributes.update(kwargs)
 
   def _BuildGroupTrees(self, devices):
     """Build device trees for groups.
@@ -143,23 +167,6 @@ class CommandTaskMatcher(object):
     attributes['battery_level'] = device.battery_level
     return attributes
 
-  def _BuildRunTargetIndex(self, groups):
-    """Build run target to devices map.
-
-    It's like an index from run target to devices.
-
-    Args:
-      groups: a map from group name to Group objects
-    Returns:
-      run target to device list
-    """
-    run_target_to_devices = {}
-    for group in six.itervalues(groups):
-      for d in self._ListGroupDevices(group):
-        run_target_to_devices.setdefault(
-            d.run_target.name, {})[d.device_serial] = d
-    return run_target_to_devices
-
   def _ListGroupDevices(self, group):
     """Get all devices under a group.
 
@@ -172,32 +179,35 @@ class CommandTaskMatcher(object):
       for d in six.itervalues(run_target.devices):
         yield d
 
-  def Match(self, command_task):
+  def Match(self, command_task, extra_required_attrs=None):
     """Match a command task against.
 
     Args:
       command_task: a CommandTask object
+      extra_required_attrs: a list of extra required device attributes.
     Returns:
       a list of matched devices
     """
+    extra_required_attrs = extra_required_attrs or []
     if len(command_task.test_bench.host.groups) == 1:
       if len(command_task.test_bench.host.groups[0].run_targets) == 1:
         # type1 test
-        return self._MatchType1(command_task)
+        return self._MatchType1(command_task, extra_required_attrs)
       else:
         # type2 test
-        return self._MatchType2(command_task)
+        return self._MatchType2(command_task, extra_required_attrs)
     else:
       # type3 test
-      return self._MatchType3(command_task)
+      return self._MatchType3(command_task, extra_required_attrs)
 
-  def _MatchType1(self, command_task):
+  def _MatchType1(self, command_task, extra_required_attrs):
     """Match type1 test.
 
     Type1 tests have only one run target.
 
     Args:
       command_task: a CommandTask object
+      extra_required_attrs: a list of extra required device attributes.
     Returns:
       a list of matched devices
     """
@@ -206,7 +216,7 @@ class CommandTaskMatcher(object):
     for device in six.itervalues(devices):
       if self._MatchDeviceAttributes(
           (command_task.test_bench.host.groups[0].run_targets[0]
-           .device_attributes),
+           .device_attributes) + extra_required_attrs,
           device.attributes):
         return [device]
     return None
@@ -227,7 +237,7 @@ class CommandTaskMatcher(object):
         return False
     return True
 
-  def _MatchType2(self, command_task):
+  def _MatchType2(self, command_task, extra_required_attrs):
     """Match type2 test.
 
     type2 tests require multiple devices and
@@ -235,22 +245,27 @@ class CommandTaskMatcher(object):
 
     Args:
       command_task: a CommandTask object
+      extra_required_attrs: a list of extra required device attributes.
     Returns:
       a list of matched devices
     """
     for group in six.itervalues(self._groups):
       matched_devices = self._MatchGroup(
-          group, command_task.test_bench.host.groups[0])
+          group,
+          command_task.test_bench.host.groups[0],
+          extra_required_attrs)
       if matched_devices:
         return matched_devices
     return None
 
-  def _MatchGroup(self, device_group, group_requirements):
+  def _MatchGroup(
+      self, device_group, group_requirements, extra_required_attr):
     """Match a device group against a group requirements.
 
     Args:
       device_group: the device group
       group_requirements: the expect group
+      extra_required_attr: extra required device attributes.
     Returns:
       a list of matched devices
     """
@@ -269,7 +284,7 @@ class CommandTaskMatcher(object):
         if device_candidate.device_serial in matched_device_serials:
           continue
         if self._MatchDeviceAttributes(
-            run_target_requirement.device_attributes,
+            run_target_requirement.device_attributes + extra_required_attr,
             device_candidate.attributes):
           matched_devices.append(device_candidate)
           matched_device_serials.add(device_candidate.device_serial)
@@ -284,7 +299,7 @@ class CommandTaskMatcher(object):
                   [d.device_serial for d in matched_devices])
     return matched_devices
 
-  def _MatchType3(self, command_task):
+  def _MatchType3(self, command_task, extra_required_attrs):
     """Match type3 test.
 
     type3 tests require multiple devices and
@@ -293,6 +308,7 @@ class CommandTaskMatcher(object):
 
     Args:
       command_task: a CommandTask object
+      extra_required_attrs: a list of extra required device attributes.
     Returns:
       a list of matched devices
     """
@@ -315,7 +331,8 @@ class CommandTaskMatcher(object):
       for group in six.itervalues(self._groups):
         if group.name in allocated_groups:
           continue
-        group_matched_devices = self._MatchGroup(group, group_requirement)
+        group_matched_devices = self._MatchGroup(
+            group, group_requirement, extra_required_attrs)
         if group_matched_devices:
           break
       if group_matched_devices and group:

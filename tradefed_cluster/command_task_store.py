@@ -22,6 +22,7 @@ from typing import Dict, Optional, Any
 
 from tradefed_cluster.util import ndb_shim as ndb
 
+from tradefed_cluster import affinity_manager
 from tradefed_cluster import api_messages
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
@@ -48,6 +49,7 @@ class CommandTaskArgs(object):
   request_type: Optional[api_messages.RequestType] = None
   allow_partial_device_match: bool = False
   test_bench: Optional[datastore_entities.TestBench] = None
+  affinity_tag: Optional[str] = None
 
 
 def _Now():
@@ -86,7 +88,11 @@ def CreateTask(command_task_args):
       request_type=command_task_args.request_type,
       schedule_timestamp=common.Now(),
       allow_partial_device_match=command_task_args.allow_partial_device_match)
-  return _DoCreateTask(task)
+  created_new = _DoCreateTask(task)
+  if command_task_args.affinity_tag:
+    affinity_manager.SetTaskAffinity(
+        task.task_id, command_task_args.affinity_tag, len(task.run_targets))
+  return created_new
 
 
 def _DoCreateTask(command_task):
@@ -196,6 +202,8 @@ def DeleteTasks(task_ids):
   Args:
     task_ids: a list of task ids
   """
+  for task_id in task_ids:
+    affinity_manager.ResetTaskAffinity(task_id)
   keys = [_Key(task_id) for task_id in task_ids]
   ndb.delete_multi(keys)
 

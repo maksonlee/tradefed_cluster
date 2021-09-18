@@ -17,6 +17,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+import functools
 from six.moves import map
 
 import tradefed_cluster.util.google_import_fixer  from google.cloud import ndb
@@ -51,7 +52,6 @@ put_multi_async = ndb.put_multi_async
 QueryOptions = ndb.QueryOptions
 toplevel = ndb.toplevel
 transaction = ndb.transaction
-transactional = ndb.transactional
 in_transaction = ndb.in_transaction
 
 exceptions = ndb.exceptions
@@ -59,6 +59,18 @@ exceptions = ndb.exceptions
 UnprojectedPropertyError = ndb.UnprojectedPropertyError
 
 Client = ndb.Client
+
+
+def transactional(*targs, **tkwargs):
+  """A ndb transactional decorator with ALLOWED propagation mode."""
+  def decorator(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+      if ndb.in_transaction():
+        return func(*args, **kwargs)
+      return ndb.transaction(lambda: func(*args, **kwargs), *targs, **tkwargs)
+    return wrapper
+  return decorator
 
 
 # Enum Property hasn't been implemented by google.cloud ndb yet.

@@ -23,6 +23,7 @@ import mock
 
 from tradefed_cluster.util import ndb_shim as ndb
 
+from tradefed_cluster import affinity_manager
 from tradefed_cluster import api_messages
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
@@ -581,6 +582,26 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     # Missing device should have been marked as gone
     device_2 = device_manager.GetDevice(device_serial=self.EMULATOR_SERIAL)
     self.assertEqual(common.DeviceState.GONE, device_2.state)
+
+  def testHandleDeviceSnapshot_unavailableDevice_withAffinityInfo(self):
+    """Tests HandleDeviceSnapshot for unavailable devices with affinity info."""
+    device_serials = ["HT4A1JT01250", self.EMULATOR_SERIAL]
+    affinity_tag = "affinity_tag"
+    for serial in device_serials:
+      affinity_manager.SetDeviceAffinity(serial, affinity_tag)
+    some_host_event = host_event.HostEvent(**self.HOST_EVENT)
+    device_manager.HandleDeviceSnapshotWithNDB(some_host_event)
+    some_host_event = host_event.HostEvent(**self.HOST_EVENT_UPDATE_UNAVAILABLE)
+    device_manager.HandleDeviceSnapshotWithNDB(some_host_event)
+
+    device_1 = device_manager.GetDevice(device_serial=device_serials[0])
+    self.assertEqual("Unavailable", device_1.state)
+    # Missing device should have been marked as gone
+    device_2 = device_manager.GetDevice(device_serial=device_serials[1])
+    self.assertEqual(common.DeviceState.GONE, device_2.state)
+    infos = affinity_manager.GetDeviceAffinityInfos(device_serials)
+    self.assertIsNone(infos[0])
+    self.assertIsNone(infos[1])
 
   def testHandleDeviceSnapshot_noDevices(self):
     """Tests that HandleDeviceSnapshot() handles hosts with no devices."""

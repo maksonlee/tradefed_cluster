@@ -60,6 +60,31 @@ py_test(
 )
 
 pytype_strict_library(
+    name = "affinity_manager_lib",
+    srcs = [
+        "affinity_manager.py",
+    ],
+    deps = [
+        ":common_lib",
+        ":datastore_entities_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
+    ],
+)
+
+py_test(
+    name = "affinity_manager_test",
+    srcs = [
+        "affinity_manager_test.py",
+    ],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":affinity_manager_lib",
+        ":testbed_dependent_test_lib",
+    ],
+)
+
+pytype_strict_library(
     name = "api_common_lib",
     srcs = [
         "api_common.py",
@@ -592,6 +617,7 @@ pytype_strict_library(
         "command_task_api.py",
     ],
     deps = [
+        ":affinity_manager_lib",
         ":api_common_lib",
         ":api_messages_lib",
         ":command_lib",
@@ -620,6 +646,7 @@ py_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
+        ":affinity_manager_lib",
         ":api_test_lib",
         ":datastore_test_util_lib",
         "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
@@ -691,6 +718,7 @@ pytype_strict_library(
         "command_task_store.py",
     ],
     deps = [
+        ":affinity_manager_lib",
         ":api_messages_lib",
         ":common_lib",
         ":datastore_entities_lib",
@@ -1031,6 +1059,7 @@ pytype_strict_library(
         "device_manager.py",
     ],
     deps = [
+        ":affinity_manager_lib",
         ":api_messages_lib",
         ":common_lib",
         ":datastore_entities_lib",

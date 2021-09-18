@@ -337,7 +337,8 @@ def CreateRequest(
     plugin_data=None,
     max_concurrent_tasks=None,
     state=common.RequestState.UNKNOWN,
-    notify_state_change=False):
+    notify_state_change=False,
+    affinity_tag=None):
   """Creates a mock Request entity."""
   key = ndb.Key(
       datastore_entities.Request, str(request_id), namespace=common.NAMESPACE)
@@ -350,7 +351,8 @@ def CreateRequest(
       plugin_data=plugin_data,
       state=state,
       notify_state_change=notify_state_change,
-      max_concurrent_tasks=max_concurrent_tasks)
+      max_concurrent_tasks=max_concurrent_tasks,
+      affinity_tag=affinity_tag)
   entity.put()
   return entity
 

@@ -422,7 +422,8 @@ def CreateRequest(user,
                   plugin_data=None,
                   max_retry_on_test_failures=None,
                   prev_test_context=None,
-                  max_concurrent_tasks=None):
+                  max_concurrent_tasks=None,
+                  affinity_tag=None):
   """Create a new request and add it to the request_queue.
 
   Args:
@@ -437,6 +438,7 @@ def CreateRequest(user,
         for each command.
     prev_test_context: a previous test context.
     max_concurrent_tasks: the max number of concurrent tasks at any given time.
+    affinity_tag: an affinity tag.
   Returns:
     a Request entity, read only.
   """
@@ -456,6 +458,7 @@ def CreateRequest(user,
       max_retry_on_test_failures=max_retry_on_test_failures,
       prev_test_context=prev_test_context,
       max_concurrent_tasks=max_concurrent_tasks,
+      affinity_tag=affinity_tag,
       state=common.RequestState.UNKNOWN)
   request.put()
   return request

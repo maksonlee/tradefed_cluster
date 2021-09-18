@@ -74,6 +74,57 @@ def ToMessage(entity, *args, **kwargs):
     return _CONVERTER_DISPATCH_DICT[type(entity)](entity, *args, **kwargs)
 
 
+class AffinityStatus(ndb.Model):
+  """Affinity status.
+
+  Attributes:
+    affinity_tag: an affinity tag.
+    device_count: the number of devices with this affinity tag.
+    task_count: the number of command tasks with this affinity tag.
+    needed_device_count: the number of devices needed for this affinity tag.
+    create_timestamp: the time this record was created.
+    update_timestamp: the time this record was updated.
+  """
+  affinity_tag = ndb.StringProperty()  # Key
+  device_count = ndb.IntegerProperty(default=0)
+  task_count = ndb.IntegerProperty(default=0)
+  needed_device_count = ndb.IntegerProperty(default=0)
+  create_timestamp = ndb.DateTimeProperty(auto_now_add=True)
+  update_timestamp = ndb.DateTimeProperty(auto_now=True)
+
+
+class DeviceAffinityInfo(ndb.Model):
+  """A device's affinity info.
+
+  Attributes:
+    device_serial: a device serial.
+    affinity_tag: an affinity tag.
+    create_timestamp: the time this record was created.
+    update_timestamp: the time this record was updated.
+  """
+  device_serial = ndb.StringProperty()  # Key
+  affinity_tag = ndb.StringProperty()
+  create_timestamp = ndb.DateTimeProperty(auto_now_add=True)
+  update_timestamp = ndb.DateTimeProperty(auto_now=True)
+
+
+class TaskAffinityInfo(ndb.Model):
+  """A command task's affinity info.
+
+  Attributes:
+    task_id: a command task ID.
+    affinity_tag: an affinity tag.
+    needed_device_count: the number of devices needed for this task.
+    create_timestamp: the time this record was created.
+    update_timestamp: the time this record was updated.
+  """
+  task_id = ndb.StringProperty()  # Key
+  affinity_tag = ndb.StringProperty()
+  needed_device_count = ndb.IntegerProperty(default=0)
+  create_timestamp = ndb.DateTimeProperty(auto_now_add=True)
+  update_timestamp = ndb.DateTimeProperty(auto_now=True)
+
+
 class TestResourceParameters(ndb.Model):
   """Repeated properties of TestResource.
 
@@ -535,6 +586,9 @@ class Request(ndb_util.UpgradableModel):
         each command.
     prev_test_context: a previous test context.
     max_concurrent_tasks: the max number of concurrent tasks.
+    affinity_tag: (Optional) an affinity tag to attach to this request's tasks.
+        If given, TFC will try to schedule tasks with the same affinity tag
+        (including their retries) on a same set of devices.
 
     state: a state of the request.
     start_time: test execution start time.
@@ -560,6 +614,7 @@ class Request(ndb_util.UpgradableModel):
   max_retry_on_test_failures = ndb.IntegerProperty()
   prev_test_context = ndb.LocalStructuredProperty(TestContext)
   max_concurrent_tasks = ndb.IntegerProperty()
+  affinity_tag = ndb.StringProperty()
 
   state = ndb.EnumProperty(common.RequestState,
                            default=common.RequestState.UNKNOWN)
@@ -610,6 +665,7 @@ def RequestToMessage(request, command_attempts=None, commands=None):
       max_retry_on_test_failures=request.max_retry_on_test_failures,
       prev_test_context=ToMessage(request.prev_test_context),
       max_concurrent_tasks=request.max_concurrent_tasks,
+      affinity_tag=request.affinity_tag,
       state=request.state,
       start_time=request.start_time,
       end_time=request.end_time,
@@ -758,6 +814,7 @@ class Command(ndb.Model):
     allow_partial_device_match: a boolean field indicating whether partial
          device match is allowed or not
     test_bench: a TestBench object.
+    affinity_tag: an affinity tag.
   """
   request_id = ndb.StringProperty()
   name = ndb.StringProperty()
@@ -783,6 +840,7 @@ class Command(ndb.Model):
   plugin_data = ndb.JsonProperty()
   allow_partial_device_match = ndb.BooleanProperty(default=False)
   test_bench = ndb.LocalStructuredProperty(TestBench)
+  affinity_tag = ndb.StringProperty()
 
 
 @MessageConverter(Command)
@@ -806,7 +864,8 @@ def CommandToMessage(command):
       shard_index=command.shard_index,
       error_reason=command.error_reason,
       allow_partial_device_match=command.allow_partial_device_match,
-      test_bench=ToMessage(command.test_bench))
+      test_bench=ToMessage(command.test_bench),
+      affinity_tag=command.affinity_tag)
 
 
 class TestGroupStatus(ndb.Model):
@@ -1926,7 +1985,7 @@ class CommandTask(ndb.Model):
     request_type: a request type
     plugin_data: the plugin data.
     allow_partial_device_match: a boolean field indicating whether partial
-         device match is allowed or not
+         device match is allowed or not.
   """
   request_id = ndb.StringProperty()
   command_id = ndb.StringProperty()

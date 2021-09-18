@@ -25,6 +25,7 @@ from protorpc import remote
 
 from tradefed_cluster.util import ndb_shim as ndb
 
+from tradefed_cluster import affinity_manager
 from tradefed_cluster import api_common
 from tradefed_cluster import api_messages
 from tradefed_cluster import command_manager
@@ -44,6 +45,7 @@ _TFC_COMMAND_ATTEMPT_QUEUE_START_TIMESTAMP_KEY = (
     "tfc_command_attempt_queue_start_timestamp")
 _TFC_COMMAND_ATTEMPT_QUEUE_END_TIMESTAMP_KEY = (
     "tfc_command_attempt_queue_end_timestamp")
+_AFFINITY_TAG = "affinity_tag"
 
 
 class CommandTask(messages.Message):
@@ -112,6 +114,7 @@ class CommandTaskApi(remote.Service):
           hostname=request.hostname,
           host_group=request.cluster)
     matcher = command_task_matcher.CommandTaskMatcher(request)
+    self._ApplyDeviceAffinityInfos(matcher)
     run_targets = matcher.GetRunTargets()
     if not run_targets:
       return CommandTaskList(tasks=[])
@@ -138,6 +141,45 @@ class CommandTaskApi(remote.Service):
     env_config.CONFIG.plugin.OnCommandTasksLease(leased_tasks)
     self._CreateCommandAttempt(leased_tasks)
     return CommandTaskList(tasks=leased_tasks)
+
+  def _ApplyDeviceAffinityInfos(self, matcher):
+    """Apply device affinity infos to a matcher.
+
+    This adds a "affinity_tag" attribute to devices with affinity infos.
+
+    Args:
+      matcher: a CommandTaskMatcher object.
+    """
+    serials = matcher.GetDeviceSerials()
+    infos = affinity_manager.GetDeviceAffinityInfos(serials)
+    for serial, info in zip(serials, infos):
+      affinity_tag = info.affinity_tag if info else None
+      # Try reset device affinity if we have more than enough devices for its
+      # affinity tag.
+      if affinity_tag and affinity_manager.ResetDeviceAffinity(
+          serial, only_if_excess=True):
+        affinity_tag = None
+      logging.info("Device %s: affinity_tag=%s", serial, affinity_tag)
+      # Check affinity status and reset if we don't need this device.
+      matcher.AddDeviceAttributes(serial, **{_AFFINITY_TAG: affinity_tag})
+
+  def _GetTargetAffinityTags(self, task_id):
+    """Return target affinity tags for a task.
+
+    Args:
+      task_id: a task ID.
+    Returns:
+      (an affinity tag, a list of target affinity tags)
+    """
+    info = affinity_manager.GetTaskAffinityInfo(task_id)
+    affinity_tag = info.affinity_tag if info else None
+    target_affinity_tags = [affinity_tag]
+    if affinity_tag:
+      status = affinity_manager.GetAffinityStatus(affinity_tag)
+      if status and status.device_count < status.needed_device_count:
+        # Need more devices. Also target no affinity devices.
+        target_affinity_tags.append(None)
+    return affinity_tag, target_affinity_tags
 
   def _CreateCommandAttempt(self, leased_tasks):
     for task in leased_tasks:
@@ -172,7 +214,17 @@ class CommandTaskApi(remote.Service):
     leasable_tasks = command_task_store.GetLeasableTasks(
         cluster, matcher.GetRunTargets())
     for task in leasable_tasks:
-      matched_devices = matcher.Match(task)
+      affinity_tag, target_affinity_tags = self._GetTargetAffinityTags(
+          task.task_id)
+      logging.info(
+          "Task %s: affinity_tag=%s, target_affinity_tags=%s",
+          task.task_id, affinity_tag, target_affinity_tags)
+      for tag in target_affinity_tags:
+        matched_devices = matcher.Match(task, [
+            datastore_entities.Attribute(name=_AFFINITY_TAG, value=tag)
+        ])
+        if matched_devices:
+          break
       if not matched_devices:
         continue
       try:
@@ -187,6 +239,12 @@ class CommandTaskApi(remote.Service):
           continue
         data_consistent = self._EnsureCommandConsistency(
             task.request_id, task.command_id, task.task_id)
+
+        # Update matched devices' affinity.
+        if affinity_tag:
+          for device in matched_devices:
+            affinity_manager.SetDeviceAffinity(
+                device.device_serial, affinity_tag)
       except grpc.RpcError as e:
         # Datastore entities can only be written to once per second.  If we fail
         # to update the command or task, log the error, and try leasing other

@@ -742,7 +742,8 @@ def _ScheduleTasksToCommandTaskStore(command):
         request_type=command.request_type,
         plugin_data=command.plugin_data,
         allow_partial_device_match=command.allow_partial_device_match,
-        test_bench=command.test_bench)
+        test_bench=command.test_bench,
+        affinity_tag=command.affinity_tag)
     if not command_task_store.CreateTask(command_task_args):
       logging.warning("task %s already exists", task_id)
 
@@ -786,7 +787,8 @@ def CreateCommands(
     state=None,
     priority=None,
     queue_timeout_seconds=None,
-    request_type=None):
+    request_type=None,
+    affinity_tag=None):
   """Creates test commands for a request.
 
   Since IDs cannot be allocated within a transaction, this function acts as a
@@ -804,6 +806,7 @@ def CreateCommands(
     priority: a command priority.
     queue_timeout_seconds: a command timeout in seconds.
     request_type: a request type.
+    affinity_tag: an affinity_tag.
   Returns:
     a list of command entities, read only
   """
@@ -844,7 +847,8 @@ def CreateCommands(
       state=state,
       priority=priority,
       queue_timeout_seconds=queue_timeout_seconds,
-      request_type=request_type)
+      request_type=request_type,
+      affinity_tag=affinity_tag)
 
 
 @ndb.transactional()
@@ -857,7 +861,8 @@ def _DoCreateCommands(
     state=None,
     priority=None,
     queue_timeout_seconds=None,
-    request_type=None):
+    request_type=None,
+    affinity_tag=None):
   """Creates or return existing test commands for a request.
 
   Args:
@@ -871,6 +876,7 @@ def _DoCreateCommands(
     priority: a command priority.
     queue_timeout_seconds: a command timeout in seconds.
     request_type: a request type.
+    affinity_tag: an affinity tag.
   Returns:
     a list of command entities, read only
   """
@@ -918,7 +924,8 @@ def _DoCreateCommands(
             command_info.shard_count if command_info.shard_count > 1 else None),
         shard_index=shard_index if command_info.shard_count > 1 else None,
         plugin_data=plugin_data_,
-        test_bench=command_info.test_bench)
+        test_bench=command_info.test_bench,
+        affinity_tag=affinity_tag)
     new_commands.append(command)
   logging.info("New commands created: %s", new_commands)
   ndb.put_multi(new_commands)

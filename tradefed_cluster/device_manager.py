@@ -27,6 +27,7 @@ import uuid
 import six
 from six.moves import zip
 
+from tradefed_cluster import affinity_manager
 from tradefed_cluster import api_messages
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
@@ -598,6 +599,9 @@ def _UpdateDeviceState(device, state, timestamp):
       timestamp=device.timestamp,
       state=device.state)
   device_history = _CreateDeviceInfoHistory(device)
+  # TODO: reset a device's affinity if it is unavailable
+  if state not in [common.DeviceState.ALLOCATED, common.DeviceState.AVAILABLE]:
+    affinity_manager.ResetDeviceAffinity(device.device_serial)
   return device_state_history, device_history
 
 

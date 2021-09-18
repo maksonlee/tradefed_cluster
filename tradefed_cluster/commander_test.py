@@ -84,7 +84,8 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
         ],
         request_id=request_id2,
         priority=100,
-        queue_timeout_seconds=86400)
+        queue_timeout_seconds=86400,
+        affinity_tag="affinity_tag")
 
     commander._ProcessRequest(request_id1)
     commander._ProcessRequest(request_id2)
@@ -98,6 +99,7 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual("run_target", command.run_target)
     self.assertEqual(1, command.run_count)
     self.assertEqual("cluster", command.cluster)
+    self.assertIsNone(command.affinity_tag)
 
     commands_1 = request_manager.GetCommands(request_id2)
     self.assertEqual(1, len(commands_1))
@@ -108,6 +110,7 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual("cluster", command.cluster)
     self.assertEqual(100, command.priority)
     self.assertEqual(86400, command.queue_timeout_seconds)
+    self.assertEqual("affinity_tag", command.affinity_tag)
     monitor.assert_has_calls([mock.call(commands_0), mock.call(commands_1)])
     plugin.assert_has_calls([
         mock.call.OnCreateCommands([

@@ -65,6 +65,7 @@ class RequestApi(remote.Service):
       max_retry_on_test_failures,
       prev_test_context,
       max_concurrent_tasks,
+      affinity_tag,
       test_environment,
       test_resources):
     new_request = request_manager.CreateRequest(
@@ -80,7 +81,8 @@ class RequestApi(remote.Service):
         max_retry_on_test_failures=max_retry_on_test_failures,
         prev_test_context=datastore_entities.TestContext.FromMessage(
             prev_test_context),
-        max_concurrent_tasks=max_concurrent_tasks)
+        max_concurrent_tasks=max_concurrent_tasks,
+        affinity_tag=affinity_tag)
     if test_environment:
       request_manager.SetTestEnvironment(
           new_request.key.id(),
@@ -129,6 +131,7 @@ class RequestApi(remote.Service):
         max_retry_on_test_failures=request.max_retry_on_test_failures,
         prev_test_context=request.prev_test_context,
         max_concurrent_tasks=None,
+        affinity_tag=request.affinity_tag,
         test_environment=request.test_environment,
         test_resources=request.test_resources)
     return api_messages.RequestMessage(
@@ -160,6 +163,7 @@ class RequestApi(remote.Service):
         max_retry_on_test_failures=request.max_retry_on_test_failures,
         prev_test_context=request.prev_test_context,
         max_concurrent_tasks=request.max_concurrent_tasks,
+        affinity_tag=request.affinity_tag,
         test_environment=request.test_environment,
         test_resources=request.test_resources)
     return api_messages.RequestMessage(

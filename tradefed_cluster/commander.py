@@ -153,7 +153,8 @@ def _CreateCommands(request):
       shard_indexes=shard_indexes,
       priority=request.priority,
       queue_timeout_seconds=request.queue_timeout_seconds,
-      request_type=request.type)
+      request_type=request.type,
+      affinity_tag=request.affinity_tag)
   if request.prev_test_context:
     for command in commands:
       command_manager.UpdateTestContext(

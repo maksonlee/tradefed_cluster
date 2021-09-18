@@ -397,6 +397,7 @@ class CommandMessage(messages.Message):
   name = messages.StringField(16)
   allow_partial_device_match = messages.BooleanField(17, default=False)
   test_bench = messages.MessageField(TestBenchRequirement, 18)
+  affinity_tag = messages.StringField(19)
 
 
 class RequestType(messages.Enum):
@@ -452,6 +453,7 @@ class RequestMessage(messages.Message):
   max_retry_on_test_failures = messages.IntegerField(8)
   prev_test_context = messages.MessageField(TestContext, 9)
   max_concurrent_tasks = messages.IntegerField(10)
+  affinity_tag = messages.StringField(25)
 
   state = messages.EnumField(common.RequestState, 11)
   start_time = message_types.DateTimeField(12)
@@ -878,6 +880,7 @@ class NewRequestMessage(messages.Message):
   # TODO: deprecated cluster, run target and test_bench_attributes
   # use test_bench object instead.
   test_bench = messages.MessageField(TestBenchRequirement, 17)
+  affinity_tag = messages.StringField(18)
 
 
 class NewMultiCommandRequestMessage(messages.Message):
@@ -897,6 +900,7 @@ class NewMultiCommandRequestMessage(messages.Message):
     test_resources: a list of test resources. Only used for managed
         requests.
     plugin_data: plugin data.
+    affinity_tag: an optional affinity tag.
   """
   type = messages.EnumField(RequestType, 1)
   user = NonEmptyStringField(2)
@@ -910,6 +914,7 @@ class NewMultiCommandRequestMessage(messages.Message):
   test_environment = messages.MessageField(TestEnvironment, 9)
   test_resources = messages.MessageField(TestResource, 10, repeated=True)
   plugin_data = messages.MessageField(KeyValuePair, 11, repeated=True)
+  affinity_tag = messages.StringField(12)
 
 
 class CommandEventType(messages.Enum):

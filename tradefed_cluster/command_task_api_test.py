@@ -23,6 +23,7 @@ from protorpc import protojson
 
 from tradefed_cluster.util import ndb_shim as ndb
 
+from tradefed_cluster import affinity_manager
 from tradefed_cluster import api_messages
 from tradefed_cluster import api_test
 from tradefed_cluster import command_manager
@@ -84,7 +85,8 @@ class CommandTaskApiTest(api_test.ApiTest):
                   shard_count=None,
                   shard_index=None,
                   ants_invocation_id=None,
-                  ants_work_unit_id=None):
+                  ants_work_unit_id=None,
+                  affinity_tag=None):
     """Adds a mock command and add a corresponding task to task store."""
     key = ndb.Key(
         datastore_entities.Request,
@@ -104,7 +106,8 @@ class CommandTaskApiTest(api_test.ApiTest):
         shard_count=shard_count,
         shard_index=shard_index,
         priority=priority,
-        plugin_data=plugin_data)
+        plugin_data=plugin_data,
+        affinity_tag=affinity_tag)
     command.put()
     command_manager.ScheduleTasks([command])
     return command
@@ -639,6 +642,195 @@ class CommandTaskApiTest(api_test.ApiTest):
             command_action=metric.CommandAction.LEASE,
             count=True)])
 
+  @mock.patch.object(common, 'Now')
+  @mock.patch.object(metric, 'RecordCommandTimingMetric')
+  @mock.patch.object(command_manager, 'Touch')
+  @mock.patch.object(
+      command_task_api.CommandTaskApi, '_EnsureCommandConsistency')
+  @mock.patch.object(
+      command_task_api.CommandTaskApi, '_CreateCommandAttempt')
+  def testLeaseHostTasks_withAffinityTag(
+      self, create_command_attempt, ensure_consistency, mock_touch,
+      record_timing, mock_now):
+    mock_now.return_value = TIMESTAMP
+    mock_touch.side_effect = [
+        mock.MagicMock(create_time=TIMESTAMP),
+        mock.MagicMock(create_time=TIMESTAMP)]
+    ensure_consistency.return_value = True
+    self._AddCommand(
+        request_id=self.request.key.id(),
+        command_id='2',
+        command_line='command',
+        cluster='cluster',
+        run_target='run_target',
+        affinity_tag='affinity_tag')
+    affinity_manager.SetDeviceAffinity('d3', 'affinity_tag')
+    request = {
+        'hostname': 'hostname',
+        'cluster': 'cluster',
+        'device_infos': [
+            {
+                'device_serial': 'd1',
+                'hostname': 'hostname',
+                'run_target': 'run_target',
+                'state': common.DeviceState.AVAILABLE,
+                'group_name': 'g1'
+            },
+            {
+                'device_serial': 'd2',
+                'hostname': 'hostname',
+                'run_target': 'run_target',
+                'state': common.DeviceState.AVAILABLE,
+                'group_name': 'g2'
+            },
+            {
+                'device_serial': 'd3',
+                'hostname': 'hostname',
+                'run_target': 'run_target',
+                'state': common.DeviceState.AVAILABLE,
+                'group_name': 'g3'
+            },
+        ],
+    }
+
+    response = self.testapp.post_json(
+        '/_ah/api/CommandTaskApi.LeaseHostTasks', request)
+    self.assertEqual('200 OK', response.status)
+    task_list = protojson.decode_message(
+        command_task_api.CommandTaskList, response.body)
+
+    self.assertEqual(1, len(task_list.tasks))
+    task = task_list.tasks[0]
+    self.assertEqual(['d3'], task.device_serials)
+
+  @mock.patch.object(common, 'Now')
+  @mock.patch.object(metric, 'RecordCommandTimingMetric')
+  @mock.patch.object(command_manager, 'Touch')
+  @mock.patch.object(
+      command_task_api.CommandTaskApi, '_EnsureCommandConsistency')
+  @mock.patch.object(
+      command_task_api.CommandTaskApi, '_CreateCommandAttempt')
+  def testLeaseHostTasks_withAffinityTag_noAffinityDevice(
+      self, create_command_attempt, ensure_consistency, mock_touch,
+      record_timing, mock_now):
+    mock_now.return_value = TIMESTAMP
+    mock_touch.side_effect = [
+        mock.MagicMock(create_time=TIMESTAMP),
+        mock.MagicMock(create_time=TIMESTAMP)]
+    ensure_consistency.return_value = True
+    self._AddCommand(
+        request_id=self.request.key.id(),
+        command_id='2',
+        command_line='command',
+        cluster='cluster',
+        run_target='run_target',
+        affinity_tag='affinity_tag')
+    request = {
+        'hostname': 'hostname',
+        'cluster': 'cluster',
+        'device_infos': [
+            {
+                'device_serial': 'd1',
+                'hostname': 'hostname',
+                'run_target': 'run_target',
+                'state': common.DeviceState.AVAILABLE,
+                'group_name': 'g1'
+            },
+            {
+                'device_serial': 'd2',
+                'hostname': 'hostname',
+                'run_target': 'run_target',
+                'state': common.DeviceState.AVAILABLE,
+                'group_name': 'g2'
+            },
+            {
+                'device_serial': 'd3',
+                'hostname': 'hostname',
+                'run_target': 'run_target',
+                'state': common.DeviceState.AVAILABLE,
+                'group_name': 'g3'
+            },
+        ],
+    }
+
+    response = self.testapp.post_json(
+        '/_ah/api/CommandTaskApi.LeaseHostTasks', request)
+    self.assertEqual('200 OK', response.status)
+    task_list = protojson.decode_message(
+        command_task_api.CommandTaskList, response.body)
+
+    self.assertEqual(1, len(task_list.tasks))
+    task = task_list.tasks[0]
+    self.assertEqual(['d1'], task.device_serials)
+
+  @mock.patch.object(common, 'Now')
+  @mock.patch.object(metric, 'RecordCommandTimingMetric')
+  @mock.patch.object(command_manager, 'Touch')
+  @mock.patch.object(
+      command_task_api.CommandTaskApi, '_EnsureCommandConsistency')
+  @mock.patch.object(
+      command_task_api.CommandTaskApi, '_CreateCommandAttempt')
+  def testLeaseHostTasks_withAffinityTag_someAffinityDevice(
+      self, create_command_attempt, ensure_consistency, mock_touch,
+      record_timing, mock_now):
+    mock_now.return_value = TIMESTAMP
+    mock_touch.side_effect = [
+        mock.MagicMock(create_time=TIMESTAMP),
+        mock.MagicMock(create_time=TIMESTAMP)]
+    ensure_consistency.return_value = True
+    # Adding 2 affinity tasks but only 1 affinity device.
+    self._AddCommand(
+        request_id=self.request.key.id(),
+        command_id='2',
+        command_line='command',
+        cluster='cluster',
+        run_target='run_target',
+        affinity_tag='affinity_tag')
+    self._AddCommand(
+        request_id=self.request.key.id(),
+        command_id='3',
+        command_line='command',
+        cluster='cluster',
+        run_target='run_target',
+        affinity_tag='affinity_tag')
+    affinity_manager.SetDeviceAffinity('d3', 'affinity_tag')
+    request = {
+        'hostname': 'hostname',
+        'cluster': 'cluster',
+        'device_infos': [
+            {
+                'device_serial': 'd1',
+                'hostname': 'hostname',
+                'run_target': 'run_target',
+                'state': common.DeviceState.AVAILABLE,
+                'group_name': 'g1'
+            },
+            {
+                'device_serial': 'd2',
+                'hostname': 'hostname',
+                'run_target': 'run_target',
+                'state': common.DeviceState.AVAILABLE,
+                'group_name': 'g2'
+            },
+            {
+                'device_serial': 'd3',
+                'hostname': 'hostname',
+                'run_target': 'run_target',
+                'state': common.DeviceState.AVAILABLE,
+                'group_name': 'g3'
+            },
+        ],
+    }
+
+    response = self.testapp.post_json(
+        '/_ah/api/CommandTaskApi.LeaseHostTasks', request)
+    self.assertEqual('200 OK', response.status)
+    task_list = protojson.decode_message(
+        command_task_api.CommandTaskList, response.body)
+
+    self.assertEqual(len(task_list.tasks), 2)
+    self.assertEqual(task_list.tasks[0].device_serials, ['d3'])
+    self.assertEqual(task_list.tasks[1].device_serials, ['d1'])
 
 if __name__ == '__main__':
   unittest.main()

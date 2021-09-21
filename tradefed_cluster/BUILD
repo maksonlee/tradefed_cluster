@@ -1334,6 +1334,7 @@ py_test(
         ":harness_update_scheduler_lib",
         ":testbed_dependent_test_lib",
         "//third_party/py/absl/testing:parameterized",
+        third_party("mock"),
     ],
 )
 

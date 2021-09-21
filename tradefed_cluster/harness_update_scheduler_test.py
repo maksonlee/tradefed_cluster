@@ -12,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for harness_update_scheduler."""
+import datetime
 import unittest
 
 from absl.testing import parameterized
+
+import mock
 
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
@@ -141,6 +144,64 @@ class HarnessUpdateSchedulerTest(
     # cluster c3 hosts does not need schedules
     metadata = datastore_entities.HostMetadata.get_by_id('h4')
     self.assertFalse(metadata.allow_to_update)
+
+  @mock.patch('tradefed_cluster.harness_update_scheduler.datetime')
+  def testManageHarnessUpdateSchedules_TouchUnscheduledHostsTimeStamp(
+      self, mock_dt):
+    datastore_test_util.CreateClusterConfig(
+        'c1', max_concurrent_update_percentage=50)
+    datastore_test_util.CreateHostConfig('h0', 'alab', cluster_name='c1')
+    datastore_test_util.CreateHostConfig('h1', 'alab', cluster_name='c1')
+    datastore_test_util.CreateHostConfig('h2', 'alab', cluster_name='c1')
+    datastore_test_util.CreateHostConfig('h3', 'alab', cluster_name='c1')
+
+    time_1 = datetime.datetime(2020, 12, 24)
+    time_2 = datetime.datetime(2021, 9, 9, 5, 20)
+    time_3 = datetime.datetime(2021, 9, 9, 5, 30)
+
+    mock_dt.datetime.utcnow.return_value = time_3
+
+    datastore_test_util.CreateHostUpdateState(
+        hostname='h0', state=common.HostUpdateState.PENDING,
+        update_timestamp=time_1)
+    datastore_test_util.CreateHostUpdateState(
+        hostname='h1', state=common.HostUpdateState.PENDING,
+        update_timestamp=time_1)
+    datastore_test_util.CreateHostUpdateState(
+        hostname='h2', state=common.HostUpdateState.PENDING,
+        update_timestamp=time_1)
+    datastore_test_util.CreateHostUpdateState(
+        hostname='h3', state=common.HostUpdateState.PENDING,
+        update_timestamp=time_2)
+    datastore_test_util.CreateHostMetadata(
+        hostname='h0', allow_to_update=False)
+    datastore_test_util.CreateHostMetadata(
+        hostname='h1', allow_to_update=False)
+    datastore_test_util.CreateHostMetadata(
+        hostname='h2', allow_to_update=False)
+    datastore_test_util.CreateHostMetadata(
+        hostname='h3', allow_to_update=False)
+
+    harness_update_scheduler.ManageHarnessUpdateSchedules()
+
+    metadata = datastore_entities.HostMetadata.get_by_id('h0')
+    self.assertTrue(metadata.allow_to_update)
+    metadata = datastore_entities.HostMetadata.get_by_id('h1')
+    self.assertTrue(metadata.allow_to_update)
+
+    # Host h2 not scheduled in this iteration get a refresh for PENDING update
+    # state timestamps.
+    metadata = datastore_entities.HostMetadata.get_by_id('h2')
+    self.assertFalse(metadata.allow_to_update)
+    update_state = datastore_entities.HostUpdateState.get_by_id('h2')
+    self.assertEqual(common.HostUpdateState.PENDING, update_state.state)
+    self.assertEqual(time_3, update_state.update_timestamp)
+    # Host h3 did not refresh timestamp because its timestamp is still new.
+    metadata = datastore_entities.HostMetadata.get_by_id('h3')
+    self.assertFalse(metadata.allow_to_update)
+    update_state = datastore_entities.HostUpdateState.get_by_id('h3')
+    self.assertEqual(time_2, update_state.update_timestamp)
+    self.assertEqual(common.HostUpdateState.PENDING, update_state.state)
 
 
 if __name__ == '__main__':

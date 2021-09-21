@@ -13,6 +13,7 @@
 # limitations under the License.
 """The module to manage harness update schedules from a cron job."""
 
+import datetime
 import logging
 import flask
 
@@ -21,6 +22,9 @@ from tradefed_cluster import datastore_entities
 from tradefed_cluster.util import ndb_shim as ndb
 
 APP = flask.Flask(__name__)
+
+# The minimum interval between touchin each PENDING update state entity.
+_MIN_TOUCH_INTERVAL = datetime.timedelta(minutes=20)
 
 
 @APP.route(r'/cron/scheduler/harness_update')
@@ -101,12 +105,36 @@ def _ManageHarnessUpdateScheduleForHosts(
   if num_can_be_added <= 0:
     return
 
+  # Mark hosts as allow_to_update.
+
   metadatas_to_allow = not_allowed_yet[:num_can_be_added]
   for metadata in metadatas_to_allow:
     metadata.allow_to_update = True
     _PutHostMetadata(metadata)
 
+  # Touch remaining PENDING hosts, to prevent from being marked TIMED_OUT.
+
+  hosts_still_not_allowed = set(
+      metadata.hostname for metadata in not_allowed_yet[num_can_be_added:])
+
+  for update_state in update_states:
+    if (update_state.state == common.HostUpdateState.PENDING and
+        update_state.hostname in hosts_still_not_allowed):
+      _TouchHostUpdateState(update_state)
+
 
 @ndb.transactional()
 def _PutHostMetadata(hostmetadata):
   hostmetadata.put()
+
+
+@ndb.transactional()
+def _TouchHostUpdateState(update_state):
+  time_now = datetime.datetime.utcnow()
+  if (not update_state.update_timestamp or
+      time_now - update_state.update_timestamp > _MIN_TOUCH_INTERVAL):
+    update_state.populate(update_timestamp=time_now)
+    update_state.put()
+
+
+

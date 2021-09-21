@@ -848,6 +848,19 @@ pytype_strict_library(
     ],
 )
 
+pytype_strict_library(
+    name = "harness_update_scheduler_lib",
+    srcs = [
+        "harness_update_scheduler.py",
+    ],
+    deps = [
+        ":common_lib",
+        ":datastore_entities_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
+        third_party("flask"),
+    ],
+)
+
 py_test(
     name = "config_syncer_gcs_to_ndb_test",
     srcs = [
@@ -1304,6 +1317,23 @@ py_test(
         "//third_party/py/absl/testing:parameterized",
         "//tradefed_cluster/util:ndb_shim_lib",
         third_party("mock"),
+    ],
+)
+
+py_test(
+    name = "harness_update_scheduler_test",
+    srcs = [
+        "harness_update_scheduler_test.py",
+    ],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":common_lib",
+        ":datastore_entities_lib",
+        ":datastore_test_util_lib",
+        ":harness_update_scheduler_lib",
+        ":testbed_dependent_test_lib",
+        "//third_party/py/absl/testing:parameterized",
     ],
 )
 

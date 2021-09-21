@@ -73,3 +73,8 @@ cron:
   url: /cron/syncer/sync_harness_image_metadata
   schedule: every 30 minutes
   target: tfc
+
+- description: manage host update cluster-level schedule based on update state aggregation
+  url: /cron/scheduler/harness_update
+  schedule: every 1 minutes
+  target: tfc

@@ -328,6 +328,17 @@ def CreateHostGroupConfig(name,
   return group_config
 
 
+def CreateClusterConfig(
+    cluster_name, max_concurrent_update_percentage=10, **kwargs):
+  cluster_config = datastore_entities.ClusterConfig(
+      id=cluster_name,
+      cluster_name=cluster_name,
+      max_concurrent_update_percentage=max_concurrent_update_percentage,
+      **kwargs)
+  cluster_config.put()
+  return cluster_config
+
+
 def CreateRequest(
     request_id,
     command_infos=None,

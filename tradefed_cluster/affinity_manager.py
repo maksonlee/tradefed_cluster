@@ -39,7 +39,7 @@ def _UpdateAffinityStatus(
   logging.info('Affinity status updated: %s', status)
 
 
-@ndb.transactional()
+@ndb.transactional(xg=True)
 def SetDeviceAffinity(device_serial: str, affinity_tag: str):
   """Set an affinity tag for a device.
 
@@ -70,7 +70,7 @@ def SetDeviceAffinity(device_serial: str, affinity_tag: str):
   logging.info('Device affinity set: %s', info)
 
 
-@ndb.transactional()
+@ndb.transactional(xg=True)
 def ResetDeviceAffinity(
     device_serial: str, only_if_excess: bool = False) -> bool:
   """Reset a device's affinity info.
@@ -121,7 +121,7 @@ def GetDeviceAffinityInfos(
   return ndb.get_multi(keys)
 
 
-@ndb.transactional()
+@ndb.transactional(xg=True)
 def SetTaskAffinity(task_id: str, affinity_tag: str, needed_device_count: int):
   """Set an affinity tag for a device.
 
@@ -163,7 +163,7 @@ def SetTaskAffinity(task_id: str, affinity_tag: str, needed_device_count: int):
   logging.info('Task affinity set: %s', info)
 
 
-@ndb.transactional()
+@ndb.transactional(xg=True)
 def ResetTaskAffinity(task_id: str):
   """Reset a task's affinity.
 

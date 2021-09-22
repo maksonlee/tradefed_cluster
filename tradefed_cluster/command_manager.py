@@ -690,7 +690,7 @@ def ScheduleTasks(commands):
     request_manager.EvaluateState(request_id)
 
 
-@ndb.transactional()
+@ndb.transactional(xg=True)
 def _DoScheduleTasks(commands):
   """Schedule command tasks in a transaction.
 

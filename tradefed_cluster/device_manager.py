@@ -434,7 +434,7 @@ def _UpdateDevicesInNDB(event):
   logging.debug("Updated %d devices in ndb.", len(event.device_info))
 
 
-@ndb.transactional()
+@ndb.transactional(xg=True)
 def _DoUpdateDevicesInNDB(reported_devices, event):
   """Update device entities to ndb.
 
@@ -599,7 +599,6 @@ def _UpdateDeviceState(device, state, timestamp):
       timestamp=device.timestamp,
       state=device.state)
   device_history = _CreateDeviceInfoHistory(device)
-  # TODO: reset a device's affinity if it is unavailable
   if state not in [common.DeviceState.ALLOCATED, common.DeviceState.AVAILABLE]:
     affinity_manager.ResetDeviceAffinity(device.device_serial)
   return device_state_history, device_history
@@ -685,7 +684,7 @@ def _UpdateGoneDevicesInNDB(hostname, reported_devices, timestamp):
     logging.debug("Updated %d missing devices.", len(missing_device_keys))
 
 
-@ndb.transactional()
+@ndb.transactional(xg=True)
 def _DoUpdateGoneDevicesInNDB(missing_device_keys, timestamp):
   """Do update gone devices in NDB within transactional."""
   entities_to_update = []
@@ -784,7 +783,7 @@ def GetDevicesOnHost(hostname):
           .filter(datastore_entities.DeviceInfo.hidden == False)            .fetch())
 
 
-@ndb.transactional()
+@ndb.transactional(xg=True)
 def UpdateGoneHost(hostname):
   """Set a host and its devices to GONE."""
   logging.info("Set host %s and its devices to GONE.", hostname)

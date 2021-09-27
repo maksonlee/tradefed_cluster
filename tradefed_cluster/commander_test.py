@@ -711,6 +711,45 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
         request_id, common.CommandState.COMPLETED)
     self.assertEqual(1, len(completed_commands))
 
+  @mock.patch.object(metric, "RecordCommandAttemptMetric")
+  def testProcessCommandEvent_differentAttemptId(self, attempt_metric):
+    # Test ProcessCommandEvent for an event that does not match the task attempt
+    command = self._CreateCommand()
+    command_manager.ScheduleTasks([command])
+    _, request_id, _, command_id = command.key.flat()
+
+    tasks = command_manager.GetActiveTasks(command)
+    self.assertEqual(len(tasks), 1)
+    tasks[0].attempt_id = "attempt1"  # different attempt
+    tasks[0].put()
+    command_task_store.LeaseTask(tasks[0].task_id)
+    command_event_test_util.CreateCommandAttempt(
+        command, "attempt0", common.CommandState.UNKNOWN, task=tasks[0])
+    event = command_event_test_util.CreateTestCommandEvent(
+        request_id,
+        command_id,
+        "attempt0",
+        common.InvocationEventType.INVOCATION_COMPLETED,
+        error="error",
+        task=tasks[0],
+        time=TIMESTAMP)
+    commander.ProcessCommandEvent(event)
+
+    tasks = command_manager.GetActiveTasks(command)
+    self.assertEqual(len(tasks), 1)
+    # Task should not be rescheduled
+    self.assertEqual(tasks[0].leasable, False)
+    self.assertEqual(tasks[0].attempt_index, 0)
+    command = command.key.get(use_cache=False)
+    self.assertEqual(common.CommandState.QUEUED, command.state)
+    request = command.key.parent().get(use_cache=False)
+    self.assertEqual(common.RequestState.QUEUED, request.state)
+    attempt_metric.assert_called_once_with(
+        cluster_id=command.cluster,
+        run_target=command.run_target,
+        hostname="hostname",
+        state="ERROR")
+
   @mock.patch.object(command_monitor, "Monitor")
   @mock.patch.object(command_manager, "ScheduleTasks")
   def testCheckPendingCommands(self, schedule_tasks, monitor):

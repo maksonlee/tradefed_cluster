@@ -87,6 +87,11 @@ def Now():
   return datetime.datetime.utcnow()
 
 
+def _CreateAttemptId():
+  """Create an attempt ID."""
+  return str(uuid.uuid4())
+
+
 @api_common.tradefed_cluster_api.api_class(
     resource_name="tasks", path="tasks")
 class CommandTaskApi(remote.Service):
@@ -181,9 +186,10 @@ class CommandTaskApi(remote.Service):
         target_affinity_tags.append(None)
     return affinity_tag, target_affinity_tags
 
+  @ndb.transactional()
   def _CreateCommandAttempt(self, leased_tasks):
     for task in leased_tasks:
-      attempt_id = str(uuid.uuid4())
+      attempt_id = _CreateAttemptId()
       task.attempt_id = attempt_id
 
       plugin_data_ = api_messages.KeyValuePairMessagesToMap(task.plugin_data)
@@ -207,6 +213,13 @@ class CommandTaskApi(remote.Service):
           plugin_data=plugin_data_)
       command_manager.AddToSyncCommandAttemptQueue(attempt_entity)
       attempt_entity.put()
+
+      task = command_task_store.GetTask(task.task_id)
+      if task:
+        task.attempt_id = attempt_id
+        task.put()
+      else:
+        logging.warning("No task found with id %s", task.task_id)
 
   def _LeaseHostTasksForCluster(
       self, matcher, cluster, host, num_tasks=None):

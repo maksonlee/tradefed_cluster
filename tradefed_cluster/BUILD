@@ -748,6 +748,7 @@ pytype_strict_library(
     ],
     deps = [
         ":command_lib",
+        ":command_task_store_lib",
         ":common_lib",
         ":datastore_entities_lib",
         ":env_config_lib",

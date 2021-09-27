@@ -27,6 +27,7 @@ import flask
 
 from tradefed_cluster import command_manager
 from tradefed_cluster import command_monitor
+from tradefed_cluster import command_task_store
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import env_config
@@ -208,19 +209,25 @@ def ProcessCommandEvent(event):
         hostname=event.hostname,
         state=event.attempt_state.name)
 
-  # Update command.
-  command = command_manager.UpdateState(
-      event.request_id,
-      event.command_id,
-      attempt_state=event.attempt_state,
-      task_id=event.task_id)
+  task = command_task_store.GetTask(event.task_id)
+  if task and task.attempt_id and event.attempt_id != task.attempt_id:
+    logging.debug(
+        "Skipping command update. Event attempt_id %s does not "
+        "match the task attempt_id %s", event.attempt_id, task.attempt_id)
+  else:
+    # Update command.
+    command = command_manager.UpdateState(
+        event.request_id,
+        event.command_id,
+        attempt_state=event.attempt_state,
+        task_id=event.task_id)
 
-  if common.IsFinalCommandState(command.state):
-    # Deschedule command since the state indicates that it is not supposed
-    # to run anymore.
-    logging.debug("Command %r is finalized, delete all its tasks.",
-                  command.key)
-    command_manager.DeleteTasks(command)
+    if common.IsFinalCommandState(command.state):
+      # Deschedule command since the state indicates that it is not supposed
+      # to run anymore.
+      logging.debug("Command %r is finalized, delete all its tasks.",
+                    command.key)
+      command_manager.DeleteTasks(command)
 
   # Update AnTS.
   env_config.CONFIG.plugin.OnProcessCommandEvent(
@@ -262,4 +269,3 @@ def _CheckPendingCommands(request, request_summary):
         request.key.id(), common.CommandState.UNKNOWN)[:next_command_count]
     command_manager.ScheduleTasks(next_commands)
     command_monitor.Monitor(next_commands)
-

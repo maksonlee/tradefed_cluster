@@ -1986,6 +1986,7 @@ class CommandTask(ndb.Model):
     plugin_data: the plugin data.
     allow_partial_device_match: a boolean field indicating whether partial
          device match is allowed or not.
+    attempt_id: Attempt ID it is currently leased to
   """
   request_id = ndb.StringProperty()
   command_id = ndb.StringProperty()
@@ -2026,6 +2027,7 @@ class CommandTask(ndb.Model):
   request_type = ndb.EnumProperty(api_messages.RequestType)
   plugin_data = ndb.JsonProperty()
   allow_partial_device_match = ndb.BooleanProperty(default=False)
+  attempt_id = ndb.StringProperty()
 
 
 class CommandErrorConfigMapping(ndb.Model):

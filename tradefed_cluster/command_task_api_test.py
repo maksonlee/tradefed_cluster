@@ -223,7 +223,9 @@ class CommandTaskApiTest(api_test.ApiTest):
 
     self.assertIsNone(command_task_store.GetTask('%s-1-0' % REQUEST_ID))
 
-  def testCreateCommandAttempt(self):
+  @mock.patch.object(command_task_api, '_CreateAttemptId')
+  def testCreateCommandAttempt(self, mock_attempt_id):
+    mock_attempt_id.side_effect = ['uuid-0', 'uuid-1']
     request_id = 'request_id'
     command_id = 'command_id'
     leased_tasks = [
@@ -252,6 +254,14 @@ class CommandTaskApiTest(api_test.ApiTest):
                 api_messages.KeyValuePair(key='host_group', value='agroup'),
             ])
     ]
+    task_keys = []
+    for t in leased_tasks:
+      task = datastore_entities.CommandTask(
+          task_id=t.task_id,
+          key=command_task_store._Key(t.task_id),
+          test_bench=datastore_entities.TestBench(
+              cluster='cluster', host=datastore_entities.Host()))
+      task_keys.append(task.put())
     command_task_api.CommandTaskApi()._CreateCommandAttempt(leased_tasks)
     attempts = command_manager.GetCommandAttempts(request_id='request_id',
                                                   command_id='command_id')
@@ -275,6 +285,10 @@ class CommandTaskApiTest(api_test.ApiTest):
          'key2': 'value2', 'key3': 'value3'},
         attempts[1].plugin_data)
     self.assertIsNotNone(attempts[1].last_event_time)
+    self.assertEqual('uuid-0', attempts[0].attempt_id)
+    self.assertEqual('uuid-0', task_keys[0].get().attempt_id)
+    self.assertEqual('uuid-1', attempts[1].attempt_id)
+    self.assertEqual('uuid-1', task_keys[1].get().attempt_id)
 
   @mock.patch.object(common, 'Now')
   @mock.patch.object(metric, 'RecordCommandTimingMetric')

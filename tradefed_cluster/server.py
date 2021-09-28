@@ -25,6 +25,7 @@ from tradefed_cluster import device_history_cleaner
 from tradefed_cluster import device_info_reporter
 from tradefed_cluster import device_monitor
 from tradefed_cluster import harness_image_metadata_syncer
+from tradefed_cluster import harness_update_scheduler
 from tradefed_cluster import lab_resource_monitor
 from tradefed_cluster import notification_handler
 from tradefed_cluster import notifier
@@ -77,5 +78,6 @@ TFC = RegexDispatcher([
     (r'/cron/notifier_update_request_status', notification_handler.APP),
     (r'/cron/syncer/sync_gcs_ndb', config_syncer_gcs_to_ndb.APP),
     (r'/cron/syncer/sync_harness_image_metadata',
-     harness_image_metadata_syncer.APP)
+     harness_image_metadata_syncer.APP),
+    (r'/cron/scheduler/harness_update', harness_update_scheduler.APP),
 ])

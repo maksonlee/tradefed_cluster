@@ -1751,6 +1751,7 @@ pytype_strict_library(
         ":device_info_reporter_lib",
         ":device_monitor_lib",
         ":harness_image_metadata_syncer_lib",
+        ":harness_update_scheduler_lib",
         ":lab_resource_monitor_lib",
         ":notification_handler_lib",
         ":notifier_lib",

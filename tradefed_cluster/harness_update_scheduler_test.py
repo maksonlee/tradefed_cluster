@@ -102,11 +102,14 @@ class HarnessUpdateSchedulerTest(
         'c2', max_concurrent_update_percentage=10)
     datastore_test_util.CreateClusterConfig(
         'c3', max_concurrent_update_percentage=996)  # value out of range
+    datastore_test_util.CreateClusterConfig(
+        'c4', max_concurrent_update_percentage=0)    # value out of range
     datastore_test_util.CreateHostConfig('h0', 'alab', cluster_name='c1')
     datastore_test_util.CreateHostConfig('h1', 'alab', cluster_name='c1')
     datastore_test_util.CreateHostConfig('h2', 'alab', cluster_name='c2')
     datastore_test_util.CreateHostConfig('h3', 'alab', cluster_name='c2')
     datastore_test_util.CreateHostConfig('h4', 'alab', cluster_name='c3')
+    datastore_test_util.CreateHostConfig('h5', 'alab', cluster_name='c4')
 
     datastore_test_util.CreateHostUpdateState(
         hostname='h0', state=common.HostUpdateState.PENDING)
@@ -118,6 +121,8 @@ class HarnessUpdateSchedulerTest(
         hostname='h3', state=common.HostUpdateState.PENDING)
     datastore_test_util.CreateHostUpdateState(
         hostname='h4', state=common.HostUpdateState.PENDING)
+    datastore_test_util.CreateHostUpdateState(
+        hostname='h5', state=common.HostUpdateState.PENDING)
     datastore_test_util.CreateHostMetadata(
         hostname='h0', allow_to_update=False)
     datastore_test_util.CreateHostMetadata(
@@ -128,6 +133,8 @@ class HarnessUpdateSchedulerTest(
         hostname='h3', allow_to_update=False)
     datastore_test_util.CreateHostMetadata(
         hostname='h4', allow_to_update=False)
+    datastore_test_util.CreateHostMetadata(
+        hostname='h5', allow_to_update=False)
 
     harness_update_scheduler.ManageHarnessUpdateSchedules()
 
@@ -143,6 +150,9 @@ class HarnessUpdateSchedulerTest(
     self.assertFalse(metadata.allow_to_update)
     # cluster c3 hosts does not need schedules
     metadata = datastore_entities.HostMetadata.get_by_id('h4')
+    self.assertFalse(metadata.allow_to_update)
+    # cluster c4 hosts does not need schedules
+    metadata = datastore_entities.HostMetadata.get_by_id('h5')
     self.assertFalse(metadata.allow_to_update)
 
   @mock.patch('tradefed_cluster.harness_update_scheduler.datetime')

@@ -33,9 +33,12 @@ def ManageHarnessUpdateSchedules():
   percentage_field = (
       datastore_entities.ClusterConfig.max_concurrent_update_percentage)
   cluster_configs = list(datastore_entities.ClusterConfig.query()
-                         .filter(0 < percentage_field < 100)
+                         .filter(percentage_field < 100)
+                         .filter(percentage_field > 0)
                          .fetch())
   for cluster_config in cluster_configs:
+
+    logging.info('Managing cluster: %s', cluster_config.cluster_name)
 
     query = (datastore_entities.HostConfig.query()
              .filter(datastore_entities.HostConfig.cluster_name ==
@@ -57,7 +60,8 @@ def _ManageHarnessUpdateScheduleForHosts(
       ndb.Key(datastore_entities.HostMetadata, hostname)
       for hostname in hostnames)
 
-  if all(metadata.allow_to_update for metadata in metadatas):
+  if all(metadata and metadata.allow_to_update
+         for metadata in metadatas):
     logging.debug('All hosts are released to start update, skipping.')
     return
 
@@ -79,6 +83,8 @@ def _ManageHarnessUpdateScheduleForHosts(
   not_allowed_yet = []
   finished = []
   for metadata, update_state in zip(metadatas, update_states):
+    if not metadata or not update_state:
+      continue
     if not metadata.allow_to_update:
       not_allowed_yet.append(metadata)
     elif update_state.state in common.NON_FINAL_HOST_UPDATE_STATES:

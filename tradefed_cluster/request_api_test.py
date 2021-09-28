@@ -823,6 +823,38 @@ class RequestApiTest(api_test.ApiTest):
       self.assertEqual(a['url'], b.url)
       self.assertEqual(a['path'], b.path)
 
+  def testListCommand(self):
+    api_response = self.testapp.post_json('/_ah/api/RequestApi.ListCommands', {
+        'request_id': '1',
+    })
+    self.assertEqual('200 OK', api_response.status)
+
+    commands = protojson.decode_message(api_messages.CommandMessageCollection,
+                                        api_response.body).commands
+    self.assertEqual(len(commands), 2)
+
+  def testListCommand_filterWithResults(self):
+    api_response = self.testapp.post_json('/_ah/api/RequestApi.ListCommands', {
+        'request_id': '1',
+        'state': 'RUNNING',
+    })
+    self.assertEqual('200 OK', api_response.status)
+
+    commands = protojson.decode_message(api_messages.CommandMessageCollection,
+                                        api_response.body).commands
+    self.assertEqual(len(commands), 2)
+
+  def testListCommand_filterWithNoResults(self):
+    api_response = self.testapp.post_json('/_ah/api/RequestApi.ListCommands', {
+        'request_id': '1',
+        'state': 'UNKNOWN',
+    })
+    self.assertEqual('200 OK', api_response.status)
+
+    commands = protojson.decode_message(api_messages.CommandMessageCollection,
+                                        api_response.body).commands
+    self.assertEqual(len(commands), 0)
+
   def testGetCommand(self):
     api_response = self.testapp.post_json('/_ah/api/RequestApi.GetCommand', {
         'request_id': '1',
@@ -845,6 +877,22 @@ class RequestApiTest(api_test.ApiTest):
         },
         expect_errors=True)
     self.assertEqual('404 Not Found', api_response.status)
+
+  def testGetCommandStateStats(self):
+    api_response = self.testapp.post_json(
+        '/_ah/api/RequestApi.GetCommandStateStats', {
+            'request_id': '1',
+        })
+    self.assertEqual('200 OK', api_response.status)
+
+    stats = protojson.decode_message(api_messages.CommandStateStats,
+                                     api_response.body).state_stats
+    self.assertEqual(stats[0].key, 'CANCELED')
+    self.assertEqual(stats[0].value, '0')
+    self.assertEqual(stats[1].key, 'COMPLETED')
+    self.assertEqual(stats[1].value, '0')
+    self.assertEqual(stats[5].key, 'RUNNING')
+    self.assertEqual(stats[5].value, '2')
 
 
 if __name__ == '__main__':

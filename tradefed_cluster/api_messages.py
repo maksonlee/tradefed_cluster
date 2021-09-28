@@ -400,6 +400,17 @@ class CommandMessage(messages.Message):
   affinity_tag = messages.StringField(19)
 
 
+class CommandMessageCollection(messages.Message):
+  """A class representing a collection of commands."""
+  commands = messages.MessageField(CommandMessage, 1, repeated=True)
+  page_token = messages.StringField(2)
+
+
+class CommandStateStats(messages.Message):
+  """Lists the number of commands for each state."""
+  state_stats = messages.MessageField(KeyValuePair, 1, repeated=True)
+
+
 class RequestType(messages.Enum):
   """Request types."""
   UNMANAGED = 0   # An unmanaged request

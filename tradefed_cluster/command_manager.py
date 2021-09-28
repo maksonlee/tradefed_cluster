@@ -984,6 +984,58 @@ def GetCommands(request_id, state=None):
   return query.fetch()
 
 
+def GetCommandsPage(request_id, state=None, page_size=10, page_token=None):
+  """Gets a paginated list of commands for a given id.
+
+  Args:
+    request_id: a request id, str
+    state: command state to filter by
+    page_size: number of results to return
+    page_token: offset from the last page
+  Returns:
+    commands: a list of commands with the given state
+    next_page_token: the offset for the next page of results
+  """
+  request_key = ndb.Key(
+      datastore_entities.Request, request_id,
+      namespace=common.NAMESPACE)
+  query = datastore_entities.Command.query(
+      ancestor=request_key).order(datastore_entities.Command.create_time)
+
+  if state is not None:
+    query = query.filter(datastore_entities.Command.state == state)
+
+  cursor = (ndb.Cursor(urlsafe=six.ensure_str(page_token)) if page_token
+            else None)
+
+  commands, next_cursor, _ = query.fetch_page(
+      page_size, cursor)
+
+  next_page_token = six.ensure_str(
+      next_cursor.urlsafe()) if next_cursor else None
+
+  return commands, next_page_token
+
+
+def GetCommandStateStats(request_id):
+  """Returns a list of counts for commands of each state.
+
+  Args:
+    request_id: a request id, str
+  Returns:
+    a dict mapping states to the number of commands with that state
+  """
+  state_stats = {}
+  for state in common.CommandState:
+    state_stats[str(state)] = 0
+
+  commands = GetCommands(request_id)
+  for command in commands:
+    state_stats[str(command.state)] += 1
+
+  return state_stats
+
+
 @ndb.transactional()
 def Touch(request_id, command_id):
   """Renew update_time of this command."""

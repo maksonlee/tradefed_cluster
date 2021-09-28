@@ -482,6 +482,30 @@ class RequestApi(remote.Service):
       endpoints.ResourceContainer(
           message_types.VoidMessage,
           request_id=messages.StringField(1, required=True),
+          state=messages.EnumField(common.CommandState, 2),
+          page_size=messages.IntegerField(3, default=10),
+          page_token=messages.StringField(4, default=None)),
+      api_messages.CommandMessageCollection,
+      path="{request_id}/commands",
+      http_method="GET",
+      name="commands")
+  @api_common.with_ndb_context
+  def ListCommands(self, request):
+    """Returns a paginated list of commands."""
+    commands, page_token = command_manager.GetCommandsPage(request.request_id,
+                                                           request.state,
+                                                           request.page_size,
+                                                           request.page_token)
+    command_messages = [datastore_entities.ToMessage(command)
+                        for command in commands]
+    return api_messages.CommandMessageCollection(
+        commands=command_messages,
+        page_token=page_token)
+
+  @endpoints.method(
+      endpoints.ResourceContainer(
+          message_types.VoidMessage,
+          request_id=messages.StringField(1, required=True),
           command_id=messages.StringField(2, required=True)),
       api_messages.CommandMessage,
       path="{request_id}/commands/{command_id}",
@@ -495,6 +519,21 @@ class RequestApi(remote.Service):
           "Command {0} {1} not found.".format(
               request.request_id, request.command_id))
     return datastore_entities.ToMessage(command)
+
+  @endpoints.method(
+      endpoints.ResourceContainer(
+          message_types.VoidMessage,
+          request_id=messages.StringField(1, required=True)),
+      api_messages.CommandStateStats,
+      path="{request_id}/commands/state_counts",
+      http_method="GET",
+      name="state_counts")
+  @api_common.with_ndb_context
+  def GetCommandStateStats(self, request):
+    """Returns a list of key value pairs mapping command stats to counts."""
+    stats = command_manager.GetCommandStateStats(request.request_id)
+    pair_messages = api_messages.MapToKeyValuePairMessages(stats)
+    return api_messages.CommandStateStats(state_stats=pair_messages)
 
 
 def _SyncCommands(request_id):

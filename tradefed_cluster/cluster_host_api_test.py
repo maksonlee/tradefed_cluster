@@ -96,7 +96,9 @@ class ClusterHostApiTest(api_test.ApiTest):
         device_count_summaries=[
             datastore_test_util.CreateDeviceCountSummary(
                 run_target='run_target1', offline=4, available=0, allocated=1)
-        ])
+        ],
+        is_bad=True,
+        bad_reason='Some devices are offline.')
     self.ndb_host_3 = datastore_test_util.CreateHost(
         cluster='paid', hostname='host_3', lab_name='alab',
         timestamp=self.TIMESTAMP)

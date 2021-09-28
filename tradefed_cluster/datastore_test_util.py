@@ -75,7 +75,9 @@ def CreateHost(cluster,
                device_count_summaries=None,
                test_harness='TRADEFED',
                test_harness_version='1234',
-               pools=None):
+               pools=None,
+               is_bad=False,
+               bad_reason=''):
   """Create a host."""
   total_devices = 0
   offline_devices = 0
@@ -106,7 +108,9 @@ def CreateHost(cluster,
       assignee=assignee,
       device_count_summaries=device_count_summaries or [],
       test_harness=test_harness,
-      test_harness_version=test_harness_version)
+      test_harness_version=test_harness_version,
+      is_bad=is_bad,
+      bad_reason=bad_reason)
   ndb_host.put()
   return ndb_host
 
@@ -368,17 +372,32 @@ def CreateRequest(
   return entity
 
 
-def CreateHostResource(hostname):
+def CreateHostResourceInstance(
+    resource_name, resource_instance, metrics,
+    timestamp='2021-08-04T23:16:00.000Z'):
+  """Create a resource instance."""
+  return {
+      'resource_name': resource_name,
+      'resource_instance': resource_instance,
+      'metric': [{'tag': m[0], 'value': m[1]} for m in metrics],
+      'timestamp': timestamp,
+  }
+
+
+def CreateHostResource(hostname, resources=None):
   """Create a mock HostResource entity."""
+  if not resources:
+    resources = [
+        CreateHostResourceInstance(
+            'disk_space',
+            '$EXTERNAL_STORAGE',
+            [('avail', 100.0)],
+            '2021-08-04T23:16:00.000Z')
+    ]
   host_resource_dict = {
       'identifier': {'hostname': hostname},
       'attribute': [{'name': 'harness_version', 'value': '4.148.0'}],
-      'resource': [{
-          'resource_name': 'disk_space',
-          'resource_instance': '$EXTERNAL_STORAGE',
-          'metric': [{'tag': 'avail', 'value': 100.0}],
-          'timestamp': '2021-08-04T23:16:00.000Z'
-      }]
+      'resource': resources,
   }
   entity = datastore_entities.HostResource(
       key=ndb.Key(datastore_entities.HostResource, hostname),

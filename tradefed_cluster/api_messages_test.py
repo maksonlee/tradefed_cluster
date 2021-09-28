@@ -409,7 +409,7 @@ class ApiMessagesTest(api_test.ApiTest):
         available=3,
         allocated=1,
         timestamp=TIMESTAMP)
-    return datastore_entities.HostInfo(
+    host = datastore_entities.HostInfo(
         hostname='hostname',
         lab_name='alab',
         host_group='atp-us-mtv-43',
@@ -422,7 +422,11 @@ class ApiMessagesTest(api_test.ApiTest):
         },
         device_count_summaries=[d1_count, d2_count],
         last_recovery_time=TIMESTAMP,
-        recovery_state=common.RecoveryState.FIXED)
+        recovery_state=common.RecoveryState.FIXED,
+        is_bad=True,
+        bad_reason='Some devices are offline.')
+    host.put()
+    return host
 
   def testHostInfoFromEntity(self):
     """Test converting from host_info to host_info message."""
@@ -453,9 +457,11 @@ class ApiMessagesTest(api_test.ApiTest):
     self.assertEqual(3, host_info_message.device_count_summaries[1].available)
     self.assertEqual(1, host_info_message.device_count_summaries[1].allocated)
     self.assertTrue(host_info_message.is_bad)
+    self.assertEqual('Some devices are offline.', host_info_message.bad_reason)
     self.assertEqual(TIMESTAMP, host_info_message.last_recovery_time)
     self.assertEqual(common.RecoveryState.FIXED,
                      host_info_message.recovery_state)
+    self.assertIsNotNone(host_info_message.update_timestamp)
 
   def _CreateMockDeviceInfoEntity(self):
     """Helper function to create mock device info entity."""

@@ -762,7 +762,7 @@ class HostInfo(messages.Message):
   assignee = messages.StringField(21)
   device_count_summaries = messages.MessageField(
       DeviceCountSummary, 22, repeated=True)
-  # Bad host is defined in datastore_entities._IsBadHost.
+  # Bad host is defined in device_monitor._UpdateHostBadness.
   is_bad = messages.BooleanField(23)
   test_harness = messages.StringField(24)
   test_harness_version = messages.StringField(25)
@@ -771,6 +771,8 @@ class HostInfo(messages.Message):
   recovery_state = messages.StringField(28)
   update_state = messages.StringField(29)
   update_state_display_message = messages.StringField(30)
+  bad_reason = messages.StringField(31)
+  update_timestamp = message_types.DateTimeField(32)
 
 
 class HostInfoCollection(messages.Message):

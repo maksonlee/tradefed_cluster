@@ -649,8 +649,6 @@ def _UpdateHostState(host, host_state, timestamp):
 def _CreateHostInfoHistory(host_info):
   """Create HostInfoHistory from HostInfo."""
   host_info_dict = copy.deepcopy(host_info.to_dict())
-  # is_bad is computed property, can not be assigned.
-  host_info_dict.pop("is_bad")
   # flated_extra_info is computed property, can not be assigned.
   host_info_dict.pop("flated_extra_info")
   return datastore_entities.HostInfoHistory(

@@ -1521,13 +1521,17 @@ class HostInfo(ndb.Expando):
     host_state: the state of the host
     assignee: the user who will recover this host.
     device_count_summaries: device count by run target under the host.
-    is_bad: is the host bad or not. Right now bad means host offline or there
-      are device offline on the host.
+    is_bad: is the host bad or not.
+      1. Host offline.
+      2. there are devices offline on the host.
+      3. there are service account keys going to expire.
+    bad_reason: why the host is bad.
     last_recovery_time: last time the host was recovered.
     flated_extra_info: flated extra info for the host.
     recovery_state: recovery state for the host, e.g. assigned, fixed, verified.
     test_harness: test harness
     test_harness_version: test harness version
+    update_timestamp: entity update timestamp
   """
   hostname = ndb.StringProperty()
   lab_name = ndb.StringProperty()
@@ -1548,7 +1552,8 @@ class HostInfo(ndb.Expando):
   assignee = ndb.StringProperty()
   device_count_summaries = ndb.LocalStructuredProperty(
       DeviceCountSummary, repeated=True)
-  is_bad = ndb.ComputedProperty(_IsBadHost)
+  is_bad = ndb.BooleanProperty()
+  bad_reason = ndb.TextProperty()
   # TODO: remove the following fields once
   # we move the fields into extra_info.
   total_devices = ndb.IntegerProperty(default=0)
@@ -1564,6 +1569,7 @@ class HostInfo(ndb.Expando):
   recovery_state = ndb.StringProperty()
   test_harness = ndb.StringProperty()
   test_harness_version = ndb.StringProperty()
+  update_timestamp = ndb.DateTimeProperty(auto_now=True)
 
 
 @MessageConverter(HostInfo)
@@ -1617,11 +1623,13 @@ def HostInfoToMessage(
       assignee=host_info_entity.assignee,
       device_count_summaries=device_count_summaries,
       is_bad=host_info_entity.is_bad,
+      bad_reason=host_info_entity.bad_reason,
       last_recovery_time=host_info_entity.last_recovery_time,
       flated_extra_info=host_info_entity.flated_extra_info,
       recovery_state=host_info_entity.recovery_state,
       update_state=update_state,
-      update_state_display_message=update_state_display_message)
+      update_state_display_message=update_state_display_message,
+      update_timestamp=host_info_entity.update_timestamp)
 
 
 class HostInfoHistory(HostInfo):

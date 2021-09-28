@@ -46,7 +46,8 @@ CLOUD_TF_LAB_NAME = 'cloud-tf'
 # fixed, we should use lab name only to decide the host type.
 CLOUD_TF_HOST_NAME_PREFIX = 'cloud-tf'
 DOCKERIZED_TF_GKE_NAME_PREFIX = 'dockerized-tf-gke'
-
+_SERVICE_ACCOUNT_KEY_RESOURCE = 'service_account_key'
+_SERVICE_ACCOUNT_KEY_EXPIRE_METRIC = 'expire'
 
 # TODO: Make the TTL configurable.
 ONE_MONTH = datetime.timedelta(days=30)
@@ -64,11 +65,6 @@ HOST_AND_DEVICE_PUBSUB_TOPIC = 'projects/%s/topics/%s' % (
     env_config.CONFIG.app_id, 'host_and_device')
 
 APP = flask.Flask(__name__)
-
-
-def _Now():
-  """Returns the current time in UTC. Added to allow mocking in our tests."""
-  return datetime.datetime.utcnow()
 
 
 def _UpdateClusters(hosts):
@@ -111,7 +107,7 @@ def _UpdateClusters(hosts):
     cluster_entity.offline_devices = 0
     cluster_entity.available_devices = 0
     cluster_entity.allocated_devices = 0
-    cluster_entity.device_count_timestamp = _Now()
+    cluster_entity.device_count_timestamp = common.Now()
     host_update_states = []
     host_update_states_by_target_version = collections.defaultdict(list)
     host_count_by_harness_version = collections.Counter()
@@ -227,7 +223,7 @@ def _UpdateLabs(clusters):
         host_count_by_harness_version=host_count_by_harness_version,
         host_update_state_summaries_by_version=list(
             lab_host_update_state_summaries_by_version.values()),
-        update_timestamp=_Now())
+        update_timestamp=common.Now())
     labs.append(lab)
 
   ndb.put_multi(labs)
@@ -292,12 +288,12 @@ def _ShouldHideHost(host):
   if ((host.lab_name == CLOUD_TF_LAB_NAME or
        host.hostname.startswith(CLOUD_TF_HOST_NAME_PREFIX) or
        host.hostname.startswith(DOCKERIZED_TF_GKE_NAME_PREFIX)) and
-      host.timestamp <= _Now() - ONE_HOUR):
+      host.timestamp <= common.Now() - ONE_HOUR):
     logging.info(
         'Hiding cloud tf host [%s], because it last checked in longer than '
         'an hour ago on [%s]', host.hostname, host.timestamp)
     return True
-  if host.timestamp <= _Now() - ONE_MONTH:
+  if host.timestamp <= common.Now() - ONE_MONTH:
     logging.info(
         'Hiding host [%s], because it last checked in longer than a month '
         'ago on [%s]', host.hostname, host.timestamp)
@@ -332,7 +328,7 @@ def _SyncHost(hostname):
     device_manager.HideHost(hostname)
     return False
   if host.timestamp:
-    inactive_time = _Now() - host.timestamp
+    inactive_time = common.Now() - host.timestamp
   else:
     # TODO: Make sure devices have a timestamp for inactive time
     # if timestamp is None, force update
@@ -369,7 +365,7 @@ def _PublishHostMessage(hostname):
   encoded_message = protojson.encode_message(host_message)  # pytype: disable=module-attr
   # TODO: find a better way to add event publish timestamp.
   msg_dict = json.loads(encoded_message)
-  msg_dict['publish_timestamp'] = _Now().isoformat()
+  msg_dict['publish_timestamp'] = common.Now().isoformat()
   data = common.UrlSafeB64Encode(json.dumps(msg_dict))
   _PubsubClient.PublishMessages(
       HOST_AND_DEVICE_PUBSUB_TOPIC,
@@ -418,7 +414,7 @@ def _MarkHostUpdateStateIfTimedOut(hostname):
 
   timeout_timedelta = _GetCustomizedOrDefaultHostUpdateTimeout(hostname)
 
-  now = _Now()
+  now = common.Now()
 
   entities_to_update = []
 
@@ -472,6 +468,73 @@ def _MarkHostUpdateStateIfTimedOut(hostname):
   return host_update_state
 
 
+def _CheckServiceAccountKeyExpiration(hostname):
+  """Check host's service account is expiring or not.
+
+  Args:
+    hostname: hostname
+  Returns:
+    a list of service accounts that are going to expire.
+  """
+  host_resource = datastore_entities.HostResource.get_by_id(hostname)
+  if not host_resource:
+    return None
+  expiring_keys = []
+  for resource in host_resource.resource.get(
+      common.LabResourceKey.RESOURCE, []):
+    if (resource.get(common.LabResourceKey.RESOURCE_NAME) !=
+        _SERVICE_ACCOUNT_KEY_RESOURCE):
+      continue
+    sa_key = resource.get(common.LabResourceKey.RESOURCE_INSTANCE)
+    if not resource.get(common.LabResourceKey.METRIC):
+      logging.error('There is no metric for %s', sa_key)
+      continue
+    expire_time = None
+    for metric in resource[common.LabResourceKey.METRIC]:
+      if (metric.get(common.LabResourceKey.TAG) ==
+          _SERVICE_ACCOUNT_KEY_EXPIRE_METRIC):
+        expire_time = metric.get(common.LabResourceKey.VALUE)
+        break
+    if not expire_time:
+      logging.error('There is no expire time for %s', sa_key)
+      continue
+    # expire time is in ms, need to change it to seconds.
+    expire_time = datetime.datetime.fromtimestamp(expire_time / 1000)
+    if expire_time > common.Now() + ONE_MONTH:
+      continue
+    expiring_keys.append(sa_key)
+  return expiring_keys
+
+
+def _UpdateHostBadness(hostname):
+  """Check if the host is bad or not."""
+  host_info = device_manager.GetHost(hostname)
+  reason = ''
+  if host_info.host_state == api_messages.HostState.GONE:
+    reason += 'Host is gone.'
+
+  for device_count_summary in host_info.device_count_summaries or []:
+    if device_count_summary.offline:
+      reason += ' Some devices are offline.'
+      break
+
+  expiring_keys = _CheckServiceAccountKeyExpiration(hostname)
+  if expiring_keys:
+    reason += ' %s are going to expire.' % expiring_keys
+
+  if host_info.bad_reason != reason:
+    _DoUpdateHostBadness(hostname, reason)
+
+
+@ndb.transactional()
+def _DoUpdateHostBadness(hostname, reason):
+  """Update host's badness in transaction."""
+  host_info = device_manager.GetHost(hostname)
+  host_info.is_bad = bool(reason)
+  host_info.bad_reason = reason
+  host_info.put()
+
+
 @APP.route('/_ah/queue/%s' % device_manager.HOST_SYNC_QUEUE, methods=['POST'])
 def HandleHostSyncTask():
   """Handle host sync tasks."""
@@ -481,6 +544,7 @@ def HandleHostSyncTask():
   hostname = host_info[device_manager.HOSTNAME_KEY]
   host_sync_id = host_info.get(device_manager.HOST_SYNC_ID_KEY)
   _MarkHostUpdateStateIfTimedOut(hostname)
+  _UpdateHostBadness(hostname)
   should_sync = _SyncHost(hostname)
   if should_sync:
     device_manager.StartHostSync(hostname, host_sync_id)

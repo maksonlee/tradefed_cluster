@@ -424,3 +424,13 @@ def DatetimeToAntsTimestampProperty(time):
 
 
 TF_ERROR_STATUS_CUSTOMER_ISSUE = "CUSTOMER_ISSUE"
+
+
+class LabResourceKey(object):
+  """Json keys for lab resource."""
+  RESOURCE = "resource"
+  RESOURCE_NAME = "resource_name"
+  RESOURCE_INSTANCE = "resource_instance"
+  METRIC = "metric"
+  TAG = "tag"
+  VALUE = "value"

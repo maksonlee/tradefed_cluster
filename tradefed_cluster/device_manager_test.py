@@ -1752,7 +1752,6 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
         "acluster", "ahost",
         extra_info=extra_info,
         device_count_summaries=[d1_count, d2_count])
-    self.assertTrue(host.is_bad)
     host_history = device_manager._CreateHostInfoHistory(host)
     self.assertEqual(host.to_dict(), host_history.to_dict())
 

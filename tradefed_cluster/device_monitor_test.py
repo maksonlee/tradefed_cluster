@@ -546,7 +546,7 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
          mock.call('cloud-tf-1234')],
         any_order=True)
 
-  @mock.patch.object(device_monitor, '_Now')
+  @mock.patch.object(common, 'Now')
   @mock.patch.object(device_manager, 'HideHost')
   @mock.patch.object(device_manager, 'UpdateGoneHost')
   def testSyncHost(self, mock_gone, mock_hide, mock_now):
@@ -563,7 +563,7 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
     self.assertFalse(mock_gone.called)
     self.assertFalse(mock_hide.called)
 
-  @mock.patch.object(device_monitor, '_Now')
+  @mock.patch.object(common, 'Now')
   @mock.patch.object(device_manager, 'UpdateGoneHost')
   def testSyncHost_hideHost(self, mock_gone, mock_now):
     """Test _SyncHost will hide host and it devices."""
@@ -582,7 +582,7 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
       self.assertTrue(d.key.get().hidden)
     self.assertFalse(mock_gone.called)
 
-  @mock.patch.object(device_monitor, '_Now')
+  @mock.patch.object(common, 'Now')
   @mock.patch.object(device_manager, 'UpdateGoneHost')
   def testSyncHost_hideCloudTfHost(self, mock_gone, mock_now):
     """Test _SyncHost will hide cloud tf host and it devices."""
@@ -599,7 +599,7 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
     self.assertTrue(self.device_10.key.get().hidden)
     self.assertFalse(mock_gone.called)
 
-  @mock.patch.object(device_monitor, '_Now')
+  @mock.patch.object(common, 'Now')
   def testSyncHost_hideCloudTfHostWithoutLabName(self, mock_now):
     """Test _SyncHost will hide cloud tf host without lab name."""
     now = datetime.datetime(2019, 11, 14, 10, 10)
@@ -621,7 +621,7 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
     self.assertTrue(cloud_host.key.get().hidden)
     self.assertTrue(gke_host.key.get().hidden)
 
-  @mock.patch.object(device_monitor, '_Now')
+  @mock.patch.object(common, 'Now')
   @mock.patch.object(device_manager, 'HideHost')
   def testSyncHost_hostGone(self, mock_hide, mock_now):
     """Test _SyncHost will set host and its devices to GONE."""
@@ -648,7 +648,7 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
       self.assertEqual(1, len(device_histories))
       self.assertEqual(common.DeviceState.GONE, device_histories[0].state)
 
-  @mock.patch.object(device_monitor, '_Now')
+  @mock.patch.object(common, 'Now')
   @mock.patch.object(device_monitor, '_PubsubClient')
   def testPublishHostMessage(self, mock_pubsub_client, mock_now):
     now = datetime.datetime(2019, 11, 14, 10, 10)
@@ -671,7 +671,7 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
       self.assertEqual(d.device_serial, msg.device_serial)
       self.assertEqual(d.state, msg.state)
 
-  @mock.patch.object(device_monitor, '_Now')
+  @mock.patch.object(common, 'Now')
   def testMarkHostUpdateStateIfTimedOut_NonFinalStateUpdateIsNotTimedOut(
       self, mock_now):
     now = datetime.datetime(2021, 1, 15, 10, 10)
@@ -695,7 +695,7 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
         self.host1.hostname)
     self.assertEmpty(new_state_histories)
 
-  @mock.patch.object(device_monitor, '_Now')
+  @mock.patch.object(common, 'Now')
   def testMarkHostUpdateStateIfTimedOut_CustomizedTimedOutMarked(
       self, mock_now):
     customized_timeout_sec = 60
@@ -736,7 +736,7 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
                      new_state_histories[0].state)
     self.assertEqual(now, new_state_histories[0].update_timestamp)
 
-  @mock.patch.object(device_monitor, '_Now')
+  @mock.patch.object(common, 'Now')
   def testMarkHostUpdateStateIfTimedOut_NonFinalStateUpdateIsTimedOut(
       self, mock_now):
     now = datetime.datetime(2021, 1, 15, 10, 10)
@@ -769,7 +769,7 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
                      new_state_histories[0].state)
     self.assertEqual(now, new_state_histories[0].update_timestamp)
 
-  @mock.patch.object(device_monitor, '_Now')
+  @mock.patch.object(common, 'Now')
   def testMarkHostUpdateStateIfTimedOut_FinalStateUpdateNotBeingChecked(
       self, mock_now):
     now = datetime.datetime(2021, 1, 15, 10, 10)
@@ -793,7 +793,7 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
         self.host1.hostname)
     self.assertEmpty(new_state_histories)
 
-  @mock.patch.object(device_monitor, '_Now')
+  @mock.patch.object(common, 'Now')
   def testMarkHostUpdateStateIfTimedOut_AddMissingTimestamp(
       self, mock_now):
     now = datetime.datetime(2021, 1, 15, 10, 10)
@@ -816,6 +816,136 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(api_messages.HostUpdateState.SYNCING,
                      new_state_histories[0].state)
     self.assertEqual(now, new_state_histories[0].update_timestamp)
+
+  @mock.patch.object(common, 'Now')
+  def testCheckServiceAccountKeyExpiration(self, mock_now):
+    now_seconds = 1632707046
+    now = datetime.datetime.fromtimestamp(now_seconds)
+    mock_now.return_value = now
+    expire_timestamp1 = (now_seconds + 14 * 24 * 3600) * 1000
+    expire_timestamp2 = (now_seconds + 32 * 24 * 3600) * 1000
+    resources = [
+        datastore_test_util.CreateHostResourceInstance(
+            'service_account_key', 'sa1', [('expire', expire_timestamp1)]),
+        datastore_test_util.CreateHostResourceInstance(
+            'service_account_key', 'sa2', [('expire', expire_timestamp2)])
+    ]
+    datastore_test_util.CreateHostResource('ahost', resources=resources)
+    sa_keys = device_monitor._CheckServiceAccountKeyExpiration('ahost')
+    self.assertEqual(['sa1'], sa_keys)
+
+  @mock.patch.object(common, 'Now')
+  def testCheckServiceAccountKeyExpiration_noHostResource(self, mock_now):
+    sa_keys = device_monitor._CheckServiceAccountKeyExpiration('ahost')
+    self.assertIsNone(sa_keys)
+
+  @mock.patch.object(common, 'Now')
+  def testCheckServiceAccountKeyExpiration_noServiceAccountKey(self, mock_now):
+    datastore_test_util.CreateHostResource('ahost')
+    sa_keys = device_monitor._CheckServiceAccountKeyExpiration('ahost')
+    self.assertEmpty(sa_keys)
+
+  @mock.patch.object(common, 'Now')
+  def testUpdateHostBadness(self, mock_now):
+    now_seconds = 1632707046
+    now = datetime.datetime.fromtimestamp(now_seconds)
+    mock_now.return_value = now
+    host = datastore_test_util.CreateHost(
+        'acluster', 'ahost',
+        host_state=api_messages.HostState.GONE,
+        device_count_summaries=[
+            datastore_entities.DeviceCountSummary(
+                run_target='r1', total=1, offline=1)],
+    )
+    expire_timestamp1 = (now_seconds + 14 * 24 * 3600) * 1000
+    expire_timestamp2 = (now_seconds + 32 * 24 * 3600) * 1000
+    resources = [
+        datastore_test_util.CreateHostResourceInstance(
+            'service_account_key', 'sa1', [('expire', expire_timestamp1)]),
+        datastore_test_util.CreateHostResourceInstance(
+            'service_account_key', 'sa2', [('expire', expire_timestamp2)])
+    ]
+    datastore_test_util.CreateHostResource('ahost', resources=resources)
+    device_monitor._UpdateHostBadness('ahost')
+    ndb.get_context().clear_cache()
+    host = host.key.get()
+    self.assertTrue(host.is_bad)
+    self.assertEqual(
+        ("Host is gone. "
+         "Some devices are offline. "
+         "['sa1'] are going to expire."),
+        host.bad_reason)
+
+  @mock.patch.object(common, 'Now')
+  def testUpdateHostBadness_becomeGood(self, mock_now):
+    now_seconds = 1632707046
+    now = datetime.datetime.fromtimestamp(now_seconds)
+    mock_now.return_value = now
+    host = datastore_test_util.CreateHost(
+        'acluster', 'ahost',
+        host_state=api_messages.HostState.RUNNING,
+        device_count_summaries=[
+            datastore_entities.DeviceCountSummary(
+                run_target='r1', total=1, available=1)],
+        is_bad=True,
+        bad_reason='Host is gone',
+    )
+    expire_timestamp1 = (now_seconds + 32 * 24 * 3600) * 1000
+    resources = [
+        datastore_test_util.CreateHostResourceInstance(
+            'service_account_key', 'sa1', [('expire', expire_timestamp1)]),
+    ]
+    datastore_test_util.CreateHostResource('ahost', resources=resources)
+    device_monitor._UpdateHostBadness('ahost')
+    ndb.get_context().clear_cache()
+    host = host.key.get()
+    self.assertFalse(host.is_bad)
+    self.assertEqual('', host.bad_reason)
+
+  @mock.patch.object(common, 'Now')
+  def testUpdateHostBadness_unchanged(self, mock_now):
+    now_seconds = 1632707046
+    now = datetime.datetime.fromtimestamp(now_seconds)
+    mock_now.return_value = now
+    host = datastore_test_util.CreateHost(
+        'acluster', 'ahost',
+        host_state=api_messages.HostState.GONE,
+        device_count_summaries=[
+            datastore_entities.DeviceCountSummary(
+                run_target='r1', total=1, offline=1)],
+    )
+    expire_timestamp1 = (now_seconds + 14 * 24 * 3600) * 1000
+    expire_timestamp2 = (now_seconds + 32 * 24 * 3600) * 1000
+    resources = [
+        datastore_test_util.CreateHostResourceInstance(
+            'service_account_key', 'sa1', [('expire', expire_timestamp1)]),
+        datastore_test_util.CreateHostResourceInstance(
+            'service_account_key', 'sa2', [('expire', expire_timestamp2)])
+    ]
+    datastore_test_util.CreateHostResource('ahost', resources=resources)
+    device_monitor._UpdateHostBadness('ahost')
+    ndb.get_context().clear_cache()
+    host = host.key.get()
+    self.assertTrue(host.is_bad)
+    self.assertEqual(
+        ("Host is gone. "
+         "Some devices are offline. "
+         "['sa1'] are going to expire."),
+        host.bad_reason)
+    update_timestamp1 = host.update_timestamp
+
+    now = datetime.datetime.fromtimestamp(now_seconds + 3600)
+    mock_now.return_value = now
+    device_monitor._UpdateHostBadness('ahost')
+    ndb.get_context().clear_cache()
+    host = host.key.get()
+    self.assertEqual(update_timestamp1, host.update_timestamp)
+    self.assertTrue(host.is_bad)
+    self.assertEqual(
+        ("Host is gone. "
+         "Some devices are offline. "
+         "['sa1'] are going to expire."),
+        host.bad_reason)
 
 
 if __name__ == '__main__':

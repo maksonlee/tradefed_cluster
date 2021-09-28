@@ -259,48 +259,9 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
     host_info_res = key.get()
     self.assertEqual('ahost', host_info_res.hostname)
     self.assertEqual(api_messages.HostState.RUNNING, host_info_res.host_state)
-    self.assertFalse(host_info_res.is_bad)
+    self.assertIsNone(host_info_res.is_bad)
     self.assertIsNotNone(host_info.timestamp)
-
-  def testHostInfo_gone(self):
-    key = ndb.Key(datastore_entities.HostInfo, 'ahost')
-    host_info = datastore_entities.HostInfo(
-        key=key,
-        hostname='ahost',
-        host_state=api_messages.HostState.GONE,
-        timestamp=TIMESTAMP_NEW,
-        device_count_summaries=[
-            datastore_entities.DeviceCountSummary(
-                run_target='r1',
-                total=1,
-                available=1)])
-    host_info.put()
-    host_info_res = key.get()
-    self.assertEqual('ahost', host_info_res.hostname)
-    self.assertEqual(TIMESTAMP_NEW,
-                     host_info_res.timestamp.replace(tzinfo=None))
-    self.assertEqual(api_messages.HostState.GONE, host_info_res.host_state)
-    self.assertTrue(host_info_res.is_bad)
-
-  def testHostInfo_withOfflineDevice(self):
-    key = ndb.Key(datastore_entities.HostInfo, 'ahost')
-    host_info = datastore_entities.HostInfo(
-        key=key,
-        hostname='ahost',
-        host_state=api_messages.HostState.RUNNING,
-        timestamp=TIMESTAMP_NEW,
-        device_count_summaries=[
-            datastore_entities.DeviceCountSummary(
-                run_target='r1',
-                total=1,
-                offline=1)])
-    host_info.put()
-    host_info_res = key.get()
-    self.assertEqual('ahost', host_info_res.hostname)
-    self.assertEqual(TIMESTAMP_NEW,
-                     host_info_res.timestamp.replace(tzinfo=None))
-    self.assertEqual(api_messages.HostState.RUNNING, host_info_res.host_state)
-    self.assertTrue(host_info_res.is_bad)
+    self.assertIsNotNone(host_info.update_timestamp)
 
   def testDeviceBlocklist(self):
     blocklist = datastore_test_util.CreateDeviceBlocklist('alab', 'auser')

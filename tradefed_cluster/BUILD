@@ -857,6 +857,7 @@ pytype_strict_library(
     deps = [
         ":common_lib",
         ":datastore_entities_lib",
+        ":env_config_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
         third_party("flask"),
     ],

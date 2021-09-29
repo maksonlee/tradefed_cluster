@@ -19,6 +19,7 @@ import flask
 
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
+from tradefed_cluster import env_config
 from tradefed_cluster.util import ndb_shim as ndb
 
 APP = flask.Flask(__name__)
@@ -30,6 +31,10 @@ _MIN_TOUCH_INTERVAL = datetime.timedelta(minutes=20)
 @APP.route(r'/cron/scheduler/harness_update')
 def ManageHarnessUpdateSchedules():
   """The job to manage update schedule based on update schedule aggregation."""
+  if not env_config.CONFIG.should_manage_harness_update:
+    return common.HTTP_OK
+  logging.debug('"should_manage_harness_update" is enabled.')
+
   percentage_field = (
       datastore_entities.ClusterConfig.max_concurrent_update_percentage)
   cluster_configs = list(datastore_entities.ClusterConfig.query()

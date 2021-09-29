@@ -55,6 +55,8 @@ def ManageHarnessUpdateSchedules():
         hostnames,
         cluster_config.max_concurrent_update_percentage)
 
+  return common.HTTP_OK
+
 
 def _ManageHarnessUpdateScheduleForHosts(
     hostnames, max_concurrent_update_percentage):

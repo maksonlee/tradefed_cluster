@@ -71,6 +71,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
               "extra_info": [
                   {"key": "dkey1", "value": "dvalue1"},
                   {"key": "dkey2", "value": "dvalue2"},
+                  {"key": "hardware_revision", "value": "1"},
               ]
           },
           {
@@ -390,6 +391,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual("alab", device_0.lab_name)
     self.assertEqual("58:a2:b5:7d:49:24", device_1.mac_address)
     self.assertEqual("58:a2:b5:7d:49:24", device_1.extra_info["mac_address"])
+    self.assertEqual("1", device_1.extra_info["hardware_revision"])
     self.assertEqual("READY", device_1.extra_info["sim_state"])
     self.assertEqual("operator", device_1.extra_info["sim_operator"])
     self.assertEqual(api_messages.DeviceTypeMessage.PHYSICAL,

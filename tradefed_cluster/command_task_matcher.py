@@ -22,6 +22,7 @@ from __future__ import print_function
 from collections import defaultdict, namedtuple  import logging
 
 import six
+from tradefed_cluster import api_messages
 from tradefed_cluster import common
 
 _OPERATOR_TO_PREDICTOR = {
@@ -165,6 +166,9 @@ class CommandTaskMatcher(object):
     attributes['product_variant'] = device.product_variant
     attributes['sim_state'] = device.sim_state
     attributes['battery_level'] = device.battery_level
+    extra_info = api_messages.KeyValuePairMessagesToMap(device.extra_info)
+    if 'hardware_revision' in extra_info:
+      attributes['hardware_revision'] = extra_info['hardware_revision']
     return attributes
 
   def _ListGroupDevices(self, group):

@@ -660,6 +660,7 @@ pytype_strict_library(
         "command_task_matcher.py",
     ],
     deps = [
+        ":api_messages_lib",
         ":common_lib",
         ":datastore_entities_lib",
         third_party("six"),

@@ -1659,6 +1659,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["requires-net:external"],
     deps = [
         ":datastore_test_util_lib",
         ":env_config_lib",

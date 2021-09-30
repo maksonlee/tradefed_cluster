@@ -45,8 +45,9 @@ class _Group(object):
   So we only expose needed interfaces.
   """
 
-  def __init__(self, inventory_group):
+  def __init__(self, inventory_group, root_group):
     self._inventory_group = inventory_group
+    self._root_group = root_group if root_group != inventory_group else None
 
   @property
   def name(self):
@@ -61,7 +62,9 @@ class _Group(object):
   @property
   def parent_groups(self):
     """Parent groups of this group."""
-    return self._inventory_group.parent_groups
+    if self._root_group:
+      return [self._root_group] +self._inventory_group.parent_groups
+    return []
 
 
 class _Host(object):
@@ -93,7 +96,7 @@ class _Host(object):
       self._inventory_groups = (self._inventory_host.get_groups() +
                                 [self._root_group])
       self._inventory_groups = helpers.sort_groups(self._inventory_groups)
-    return [_Group(g) for g in self._inventory_groups]
+    return [_Group(g, self._root_group) for g in self._inventory_groups]
 
   @property
   def direct_vars(self):
@@ -116,6 +119,7 @@ class UnifiedLabConfig(object):
   def __init__(self, data):
     """Initialilzed unified lab config."""
     self._data = data
+    self._root_group = self._data.groups[_ROOT_GROUP]
 
   def ListGlobalVars(self):
     """List global vars."""
@@ -127,12 +131,13 @@ class UnifiedLabConfig(object):
 
   def ListGroups(self):
     """List groups."""
-    return [_Group(g) for g in self._data.groups.values()]
+    return [_Group(
+        g, self._root_group) for g in self._data.groups.values()]
 
   def GetGroup(self, group_name):
     """Get a group."""
     if group_name in self._data.groups:
-      return _Group(self._data.groups[group_name])
+      return _Group(self._data.groups[group_name], self._root_group)
     return None
 
   def ListHosts(self):
@@ -143,5 +148,5 @@ class UnifiedLabConfig(object):
   def GetHost(self, hostname):
     """Get a host."""
     if hostname in self._data.hosts:
-      return _Host(self._data.hosts[hostname], self._data.groups[_ROOT_GROUP])
+      return _Host(self._data.hosts[hostname], self._root_group)
     return None

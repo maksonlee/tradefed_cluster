@@ -822,6 +822,7 @@ pytype_strict_library(
         "//tradefed_cluster/configs:lab_config_lib",
         "//tradefed_cluster/configs:unified_lab_config_lib",
         "//tradefed_cluster/plugins:base_lib",
+        "//tradefed_cluster/services:acl_service_lib",
         "//tradefed_cluster/services:file_storage_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
         third_party("flask"),

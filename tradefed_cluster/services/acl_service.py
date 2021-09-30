@@ -139,7 +139,7 @@ def _CheckHostPermission(obj_id, permission, user_name):
   # A host might belong to multiple groups and these groups might belong to
   # different DAC graphs, thus, it requires to check all the groups. However,
   # the method could return earlier if the leaf groups could be checked earlier.
-  for group in host_config.inventory_groups:
+  for group in reversed(host_config.inventory_groups):
     try:
       return CheckPermission(
           datastore_entities.HostGroupConfig.CreateId(
@@ -157,6 +157,18 @@ def _CheckHostPermission(obj_id, permission, user_name):
   raise endpoints.ForbiddenException(
       f'Failed to authorize {user_name} for accessing {obj_id} resources' +
       f' with {permission.value} permission')
+
+
+def SyncParentObjects(object_id, parent_ids):
+  plugin = _GetPlugin()
+  if plugin:
+    plugin.SyncParentObjects(object_id, parent_ids)
+
+
+def SyncUserPermissions(object_id, permission, user_names):
+  plugin = _GetPlugin()
+  if plugin:
+    plugin.SyncUserPermissions(object_id, permission, user_names)
 
 
 class PermissionMiddleware:

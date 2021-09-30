@@ -27,6 +27,7 @@ from tradefed_cluster import datastore_util
 from tradefed_cluster import env_config
 from tradefed_cluster.configs import lab_config as lab_config_util
 from tradefed_cluster.plugins import base as plugins_base
+from tradefed_cluster.services import acl_service
 from tradefed_cluster.services import file_storage
 from tradefed_cluster.util import ndb_shim as ndb
 
@@ -54,6 +55,8 @@ _INVENTORY_FILE_FORMAT = '{}/hosts'
 _GROUP_VAR_ACCOUNTS = 'accounts'
 _GROUP_VAR_LAB_NAME = 'lab_name'
 _STATLE_CONFIG_MAX_AGE = datetime.timedelta(days=7)
+_OWNERS = 'owners'
+_READERS = 'readers'
 
 APP = flask.Flask(__name__)
 
@@ -256,6 +259,7 @@ def SyncToNDB():
       datastore_entities.HostGroupConfig,
       datastore_entities.HostConfig.update_time,
       _STATLE_CONFIG_MAX_AGE)
+  _UpdateHostGroupPermissions(lab_to_unified_lab_config)
 
 
 class _GcsDataLoader(dataloader.DataLoader):
@@ -322,7 +326,9 @@ def _CreateHostGroupConfigEntityFromGroupInventory(lab_name, group):
       name=group.name,
       lab_name=lab_name,
       parent_groups=[g.name for g in group.parent_groups],
-      account_principals=group.direct_vars.get(_GROUP_VAR_ACCOUNTS))
+      account_principals=group.direct_vars.get(_GROUP_VAR_ACCOUNTS),
+      owners=group.direct_vars.get(_OWNERS, []),
+      readers=group.direct_vars.get(_READERS, []))
 
 
 def _UpdateHostGroupConfigByInventoryData(lab_name, lab_config):
@@ -376,6 +382,28 @@ def _GetLabInventoryFiles():
       if inventory_file_match and inventory_file_match.group(_LAB_NAME_KEY):
         logging.debug('Gets inventory from lab dir: %s', file.filename)
         yield (inventory_file_match.group(_LAB_NAME_KEY), file.filename)
+
+
+def _UpdateHostGroupPermissions(lab_to_unified_lab_config):
+  """Updates parent relations and group permissions."""
+  for lab_name, lab_config in lab_to_unified_lab_config.items():
+    for group in lab_config.ListGroups():
+      group_id = datastore_entities.HostGroupConfig.CreateId(
+          lab_name, group.name)
+      acl_service.SyncParentObjects(
+          group_id,
+          [datastore_entities.HostGroupConfig.CreateId(
+              lab_name, group.name) for group in group.parent_groups])
+      if group.direct_vars.get(_OWNERS):
+        acl_service.SyncUserPermissions(
+            group_id,
+            acl_service.Permission.owner.value,
+            group.direct_vars[_OWNERS])
+      if group.direct_vars.get(_READERS):
+        acl_service.SyncUserPermissions(
+            group_id,
+            acl_service.Permission.reader.value,
+            group.direct_vars[_READERS])
 
 
 @APP.route('/cron/syncer/sync_gcs_ndb')

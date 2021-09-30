@@ -15,6 +15,7 @@
 """Tests for config_syncer_bs_to_ndb.py."""
 import os
 import unittest
+from unittest import mock
 
 import six
 
@@ -313,6 +314,38 @@ class ConfigSyncerGCSToNdbTest(testbed_dependent_test.TestbedDependentTest):
         ['all', 'tf', 'storage_tf'],
         [g.name for g in
          config.GetHost('homer-atc3.lab1.google.com').groups])
+
+  @mock.patch('tradefed_cluster.services.acl_service.SyncUserPermissions')
+  @mock.patch('tradefed_cluster.services.acl_service.SyncParentObjects')
+  def testUpdateHostGroupPermissions(self,
+                                     mock_sync_parent,
+                                     mock_sync_permission):
+    config = unified_lab_config_util.Parse(
+        os.path.join(config_syncer_gcs_to_ndb._LAB_INVENTORY_DIR_PATH, 'lab1/',
+                     LAB_INV_FILE),
+        config_syncer_gcs_to_ndb._GcsDataLoader())
+    config_syncer_gcs_to_ndb._UpdateHostGroupPermissions({'lab1': config})
+    self.assertEqual(
+        [
+            mock.call('lab1_all', []),
+            mock.call('lab1_ungrouped', ['lab1_all', 'lab1_all']),
+            mock.call('lab1_jump', ['lab1_all', 'lab1_server']),
+            mock.call('lab1_dhcp', ['lab1_all', 'lab1_server']),
+            mock.call('lab1_pxe', ['lab1_all', 'lab1_server']),
+            mock.call('lab1_server', ['lab1_all']),
+            mock.call('lab1_pixellab', ['lab1_all']),
+            mock.call('lab1_tf', ['lab1_all']),
+            mock.call('lab1_dtf', ['lab1_all', 'lab1_tf']),
+            mock.call('lab1_storage_tf', ['lab1_all', 'lab1_tf']),
+            mock.call('lab1_mh', ['lab1_all'])
+        ],
+        mock_sync_parent.call_args_list)
+    self.assertEqual(
+        [mock.call('lab1_all', 'owner', ['mdb-group:some_owner', 'foo', 'bar']),
+         mock.call('lab1_all', 'reader', ['mdb-group:some_reader']),
+         mock.call('lab1_storage_tf', 'owner', ['mdb-group:storage_owner']),
+         mock.call('lab1_mh', 'owner', ['mdb-group:mh_owner'])],
+        mock_sync_permission.call_args_list)
 
 
 if __name__ == '__main__':

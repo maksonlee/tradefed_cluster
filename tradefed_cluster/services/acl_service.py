@@ -25,7 +25,7 @@ from tradefed_cluster import device_manager
 from tradefed_cluster import env_config
 
 
-_AUTHENTICATE_HEADER = 'AUTHENTICATED-USER'
+AUTHENTICATE_HEADER = 'AUTHENTICATED-USER'
 _DEVICE_KEY = 'device_serial'
 _HOST_KEY = 'hostname'
 
@@ -198,8 +198,7 @@ class PermissionMiddleware:
       return self._HandleAclError(
           endpoints.NotFoundException('Not Found'), original, start_response)
     request = self.transform_request(original, params, method_config)
-    # perform permission checks
-    authentication = request.headers.get(_AUTHENTICATE_HEADER)
+    authentication = request.headers.get(AUTHENTICATE_HEADER)
     if authentication:
       device_serial = request.body_json.get(_DEVICE_KEY)
       hostname = request.body_json.get(_HOST_KEY)

@@ -151,3 +151,32 @@ class AclApi(remote.Service):
         if acl_service.CheckMembership(user_name, principal):
           return True
     return False
+
+  @endpoints.method(
+      api_messages.CheckResourcePermissionRequest,
+      api_messages.AclCheckResult,
+      path="{resource}/{permission}/check",
+      http_method="GET",
+      name="checkAccessPermission")
+  def CheckAccessPermission(self, request):
+    """Checks user access permission."""
+    try:
+      resource = acl_service.Resource(request.resource_type)
+    except ValueError:
+      raise endpoints.BadRequestException(
+          f"Unsupported resource {request.resource_type}")
+    try:
+      permission = acl_service.Permission(request.permission)
+    except ValueError:
+      raise endpoints.BadRequestException(
+          f"Unsupported permission {request.permission}")
+    try:
+      if resource == acl_service.Resource.device:
+        acl_service.CheckResourcePermission(
+            request.user_name, permission, device_serial=request.resource_id)
+      elif resource == acl_service.Resource.host:
+        acl_service.CheckResourcePermission(
+            request.user_name, permission, hostname=request.resource_id)
+    except endpoints.ForbiddenException:
+      return api_messages.AclCheckResult(has_access=False)
+    return api_messages.AclCheckResult(has_access=True)

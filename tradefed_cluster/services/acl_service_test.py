@@ -51,8 +51,8 @@ class AclServiceTest(testbed_dependent_test.TestbedDependentTest):
     super().setUp()
     self._acl_plugin = mock.MagicMock()
     env_config.CONFIG.acl_plugin = self._acl_plugin
-    app = endpoints.apiserving.api_server([StubApi], restricted=False)
-    app = acl_service.PermissionMiddleware(app)
+    app = endpoints.api_server([StubApi])
+    app = acl_service.PermissionMiddleware(app, r'.*stub/.*')
     self.testapp = webtest.TestApp(app)
     datastore_test_util.CreateLabConfig(
         'stub_lab',
@@ -176,7 +176,6 @@ class AclServiceTest(testbed_dependent_test.TestbedDependentTest):
       self.testapp.put(
           '/_ah/api/tradefed_cluster/v1/stub/stub_serial',
           headers={'AUTHENTICATED-USER': 'stub_user'})
-
 
 if __name__ == '__main__':
   unittest.main()

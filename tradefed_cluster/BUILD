@@ -111,10 +111,7 @@ pytype_strict_library(
         ":cluster_host_api_lib",
         ":command_attempt_api_lib",
         ":command_event_api_lib",
-        ":command_event_handler_lib",
         ":command_task_api_lib",
-        ":commander_lib",
-        ":common_lib",
         ":coordinator_api_lib",
         ":device_blocklist_api_lib",
         ":device_snapshot_api_lib",
@@ -128,6 +125,7 @@ pytype_strict_library(
         ":run_target_api_lib",
         ":test_harness_image_api_lib",
         third_party("endpoints:endpoints_library"),
+        "//tradefed_cluster/services:acl_service_lib",
     ],
 )
 

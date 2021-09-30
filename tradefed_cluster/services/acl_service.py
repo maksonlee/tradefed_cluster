@@ -15,6 +15,7 @@
 """A host account validator service."""
 import enum
 import logging
+import re
 
 import endpoints
 from endpoints import api_request
@@ -32,6 +33,11 @@ _HOST_KEY = 'hostname'
 class Permission(enum.Enum):
   owner = 'owner'
   reader = 'reader'
+
+
+class Resource(enum.Enum):
+  device = 'device'
+  host = 'host'
 
 
 def _GetPlugin():
@@ -156,8 +162,11 @@ def _CheckHostPermission(obj_id, permission, user_name):
 class PermissionMiddleware:
   """The wsgi middleware for checking resource access permission."""
 
-  def __init__(self, app: endpoints_dispatcher.EndpointsDispatcherMiddleware):
+  def __init__(self,
+               app: endpoints_dispatcher.EndpointsDispatcherMiddleware,
+               guard_pattern: str):
     self._app = app
+    self._guard_pattern = guard_pattern
 
   def __call__(self, environ, start_response):
     # skip acl checking if no acl plugin installed.
@@ -166,11 +175,18 @@ class PermissionMiddleware:
       return self._app(environ, start_response)
     original = api_request.ApiRequest(
         environ, base_paths=self._backend.base_paths)
+    # skip checking if the path was not guarded.
+    if not re.match(self._guard_pattern + r'\Z', original.path):
+      logging.debug(
+          'path %s was not guarded by PermissionMiddleware', original.path)
+      return self._app(environ, start_response)
+    # transform the http request to apiserving requests
     method_config, params = self.lookup_rest_method(original)
     if not method_config:
       return self._HandleAclError(
           endpoints.NotFoundException('Not Found'), original, start_response)
     request = self.transform_request(original, params, method_config)
+    # perform permission checks
     authentication = request.headers.get(_AUTHENTICATE_HEADER)
     if authentication:
       device_serial = request.body_json.get(_DEVICE_KEY)

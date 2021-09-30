@@ -32,7 +32,9 @@ from tradefed_cluster.services import acl_service
 class AclCheckApiTest(api_test.ApiTest):
   """Unit tests for AclCheckApi."""
 
-  def testAuthAccountPrinciples_jumpHostHaveAccess(self):
+  def setUp(self, extra_apis=None):
+    super().setUp()
+    datastore_test_util.CreateLabConfig('foo-lab', ('groupA', 'groupB'))
     datastore_test_util.CreateHostConfig(
         'mock.host.google.com', 'foo-lab', inventory_groups=['jump', 'dhcp'])
     datastore_test_util.CreateHostGroupConfig(
@@ -43,6 +45,10 @@ class AclCheckApiTest(api_test.ApiTest):
                 'principals': ['principalA', 'principalB']
             }
         })
+    datastore_test_util.CreateDevice('stub_cluster', 'mock.host.google.com',
+                                     'stub_serial')
+
+  def createRootGroup(self):
     datastore_test_util.CreateHostGroupConfig(
         'all',
         'foo-lab',
@@ -51,6 +57,9 @@ class AclCheckApiTest(api_test.ApiTest):
                 'principals': ['principalC', 'principalD']
             }
         })
+
+  def testAuthAccountPrinciples_jumpHostHaveAccess(self):
+    self.createRootGroup()
     acl_service.CheckMembership = mock.MagicMock(
         side_effect=[False, False, True])
     api_request = {
@@ -64,6 +73,7 @@ class AclCheckApiTest(api_test.ApiTest):
                                                   api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertTrue(account_principals.has_access)
+    self.assertEqual(acl_service.CheckMembership.call_count, 3)
     acl_service.CheckMembership.assert_has_calls([
         mock.call('mock-user', 'principalC'),
         mock.call('mock-user', 'principalD'),
@@ -71,17 +81,6 @@ class AclCheckApiTest(api_test.ApiTest):
     ])
 
   def testAuthAccountPrinciples_jumpHostNoAccess(self):
-    datastore_test_util.CreateHostConfig(
-        'mock.host.google.com', 'foo-lab', inventory_groups=['jump'])
-    datastore_test_util.CreateHostGroupConfig(
-        'bar-group',
-        'foo-lab',
-        account_principals={
-            'bar-admin': {
-                'principals': ['principalA', 'principalB']
-            }
-        })
-    datastore_test_util.CreateHostGroupConfig('bar-group2', 'foo-lab')
     acl_service.CheckMembership = mock.MagicMock(return_value=False)
     api_request = {
         'hostname': 'mock.host.google.com',
@@ -101,27 +100,17 @@ class AclCheckApiTest(api_test.ApiTest):
 
   def testAuthAccountPrinciples_hostGroupHaveAccess(self):
     datastore_test_util.CreateHostConfig(
-        'mock.host.google.com', 'foo-lab', inventory_groups=['bar', 'jump'])
-    datastore_test_util.CreateHostGroupConfig(
-        'bar',
+        'mock2.host.google.com',
         'foo-lab',
-        account_principals={
-            'bar-admin': {
-                'principals': ['principalA', 'principalB']
-            }
-        })
-    datastore_test_util.CreateHostGroupConfig(
-        'all',
-        'foo-lab',
-        account_principals={
-            'bar-admin': {
-                'principals': ['principalC', 'principalD']
-            }
-        })
+        inventory_groups=[
+            'bar-group',
+            'jump',
+        ])
+    self.createRootGroup()
     acl_service.CheckMembership = mock.MagicMock(
         side_effect=[False, False, True])
     api_request = {
-        'hostname': 'mock.host.google.com',
+        'hostname': 'mock2.host.google.com',
         'host_account': 'bar-admin',
         'user_name': 'mock-user'
     }
@@ -140,12 +129,12 @@ class AclCheckApiTest(api_test.ApiTest):
 
   def testAuthAccountPrinciples_hostGroupNoAccess(self):
     datastore_test_util.CreateHostConfig(
-        'mock.host.google.com', 'foo-lab', inventory_groups=['bar', 'server'])
+        'mock2.host.google.com', 'foo-lab', inventory_groups=['bar', 'server'])
     datastore_test_util.CreateHostGroupConfig('bar', 'foo-lab')
     datastore_test_util.CreateHostGroupConfig('server', 'foo-lab')
     acl_service.CheckMembership = mock.MagicMock(return_value=True)
     api_request = {
-        'hostname': 'mock.host.google.com',
+        'hostname': 'mock2.host.google.com',
         'host_account': 'bar-admin',
         'user_name': 'mock-user'
     }
@@ -158,27 +147,17 @@ class AclCheckApiTest(api_test.ApiTest):
     acl_service.CheckMembership.assert_not_called()
 
   def testAuthAccountPrinciples_noHost(self):
-    with self.assertRaisesRegex(
-        Exception, 'mock.host.google.com host config not found'):
+    with self.assertRaisesRegex(Exception,
+                                'mock3.host.google.com host config not found'):
       self.testapp.post_json(
-          '/_ah/api/AclApi.CheckSshAccessible',
-          {
-              'hostname': 'mock.host.google.com',
+          '/_ah/api/AclApi.CheckSshAccessible', {
+              'hostname': 'mock3.host.google.com',
               'host_account': 'bar-admin',
               'user_name': 'mock-user'
           })
 
   def testAuthAccountPrinciples_noUser(self):
-    datastore_test_util.CreateHostConfig(
-        'mock.host.google.com', 'foo-lab', inventory_groups=['bar', 'jump'])
-    datastore_test_util.CreateHostGroupConfig(
-        'bar',
-        'foo-lab',
-        account_principals={
-            'bar-admin': {
-                'principals': ['principalA', 'principalB']
-            }
-        })
+    self.createRootGroup()
     acl_service.CheckMembership = mock.MagicMock(
         side_effect=endpoints.NotFoundException('mock error message'))
     with self.assertRaisesRegex(Exception, 'mock error message'):
@@ -190,6 +169,52 @@ class AclCheckApiTest(api_test.ApiTest):
               'user_name': 'mock-user'
           })
 
+  def testCheckAccessPermission_deviceOwner(self):
+    acl_service.CheckResourcePermission = mock.MagicMock(return_value=None)
+    response = self.testapp.post_json(
+        '/_ah/api/AclApi.CheckAccessPermission', {
+            'resource_type': 'device',
+            'permission': 'owner',
+            'user_name': 'stub_user',
+            'resource_id': 'stub_serial'
+        })
+    account_principals = protojson.decode_message(api_messages.AclCheckResult,
+                                                  response.body)
+    self.assertEqual('200 OK', response.status)
+    self.assertTrue(account_principals.has_access)
+
+  def testCheckAccessPermission_deviceNoAccess(self):
+    acl_service.CheckResourcePermission = mock.MagicMock(
+        side_effect=endpoints.ForbiddenException)
+    response = self.testapp.post_json(
+        '/_ah/api/AclApi.CheckAccessPermission', {
+            'resource_type': 'device',
+            'permission': 'owner',
+            'user_name': 'stub_user',
+            'resource_id': 'stub_serial'
+        })
+    account_principals = protojson.decode_message(api_messages.AclCheckResult,
+                                                  response.body)
+    self.assertEqual('200 OK', response.status)
+    self.assertFalse(account_principals.has_access)
+
+  def testCheckAccessPermission_badResource(self):
+    with self.assertRaisesRegex(Exception, '400 Bad Request.*'):
+      self.testapp.post_json(
+          '/_ah/api/AclApi.CheckAccessPermission', {
+              'resource_type': 'invalid_resource',
+              'permission': 'owner',
+              'user_name': 'stub_user',
+              'resource_id': 'stub_serial'
+          })
+    with self.assertRaisesRegex(Exception, '400 Bad Request.*'):
+      self.testapp.post_json(
+          '/_ah/api/AclApi.CheckAccessPermission', {
+              'resource_type': 'device',
+              'permission': 'invalid_permission',
+              'user_name': 'stub_user',
+              'resource_id': 'stub_serial'
+          })
 
 if __name__ == '__main__':
   unittest.main()

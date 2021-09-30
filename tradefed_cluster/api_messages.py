@@ -1161,3 +1161,21 @@ class TestHarnessImageMetadataCollection(messages.Message):
   images = messages.MessageField(
       TestHarnessImageMetadataMessage, 1, repeated=True)
   next_cursor = messages.StringField(2)
+
+
+class CheckResourcePermissionRequest(messages.Message):
+  """Request for checking user access permission.
+
+  Attributes:
+    resource_type: what kind of resource to be checked,
+        could be "host" or "device".
+    permission: what kind of permission to be checked,
+        could be "owner" or "reader".
+    user_name: the user name.
+    resource_id: the target object id. Depends on the "resource" field,
+        it could be hostname or device_serial.
+  """
+  resource_type = messages.StringField(1, required=True)
+  permission = messages.StringField(2, required=True)
+  user_name = messages.StringField(3, required=True)
+  resource_id = messages.StringField(4, required=True)

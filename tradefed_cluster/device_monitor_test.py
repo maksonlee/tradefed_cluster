@@ -822,8 +822,8 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
     now_seconds = 1632707046
     now = datetime.datetime.fromtimestamp(now_seconds)
     mock_now.return_value = now
-    expire_timestamp1 = (now_seconds + 14 * 24 * 3600) * 1000
-    expire_timestamp2 = (now_seconds + 32 * 24 * 3600) * 1000
+    expire_timestamp1 = now_seconds + 14 * 24 * 3600
+    expire_timestamp2 = now_seconds + 32 * 24 * 3600
     resources = [
         datastore_test_util.CreateHostResourceInstance(
             'service_account_key', 'sa1', [('expire', expire_timestamp1)]),
@@ -857,8 +857,8 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
             datastore_entities.DeviceCountSummary(
                 run_target='r1', total=1, offline=1)],
     )
-    expire_timestamp1 = (now_seconds + 14 * 24 * 3600) * 1000
-    expire_timestamp2 = (now_seconds + 32 * 24 * 3600) * 1000
+    expire_timestamp1 = now_seconds + 14 * 24 * 3600
+    expire_timestamp2 = now_seconds + 32 * 24 * 3600
     resources = [
         datastore_test_util.CreateHostResourceInstance(
             'service_account_key', 'sa1', [('expire', expire_timestamp1)]),
@@ -890,7 +890,7 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
         is_bad=True,
         bad_reason='Host is gone',
     )
-    expire_timestamp1 = (now_seconds + 32 * 24 * 3600) * 1000
+    expire_timestamp1 = now_seconds + 32 * 24 * 3600
     resources = [
         datastore_test_util.CreateHostResourceInstance(
             'service_account_key', 'sa1', [('expire', expire_timestamp1)]),
@@ -914,8 +914,8 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
             datastore_entities.DeviceCountSummary(
                 run_target='r1', total=1, offline=1)],
     )
-    expire_timestamp1 = (now_seconds + 14 * 24 * 3600) * 1000
-    expire_timestamp2 = (now_seconds + 32 * 24 * 3600) * 1000
+    expire_timestamp1 = now_seconds + 14 * 24 * 3600
+    expire_timestamp2 = now_seconds + 32 * 24 * 3600
     resources = [
         datastore_test_util.CreateHostResourceInstance(
             'service_account_key', 'sa1', [('expire', expire_timestamp1)]),

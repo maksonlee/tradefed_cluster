@@ -498,9 +498,7 @@ def _CheckServiceAccountKeyExpiration(hostname):
     if not expire_time:
       logging.error('There is no expire time for %s', sa_key)
       continue
-    # expire time is in ms, need to change it to seconds.
-    expire_time = datetime.datetime.fromtimestamp(expire_time / 1000)
-    if expire_time > common.Now() + ONE_MONTH:
+    if expire_time > (common.Now() + ONE_MONTH).timestamp():
       continue
     expiring_keys.append(sa_key)
   return expiring_keys

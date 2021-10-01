@@ -1018,12 +1018,13 @@ def GetCommandsPage(request_id, state=None, page_size=10, page_token=None):
 
 
 def GetCommandStateStats(request_id):
-  """Returns a list of counts for commands of each state.
+  """Returns a list of counts for commands of each state and the create time.
 
   Args:
     request_id: a request id, str
   Returns:
     a dict mapping states to the number of commands with that state
+    the create time of the first command
   """
   state_stats = {}
   for state in common.CommandState:
@@ -1033,7 +1034,12 @@ def GetCommandStateStats(request_id):
   for command in commands:
     state_stats[str(command.state)] += 1
 
-  return state_stats
+  # GetCommands already orders by create_time
+  create_time = None
+  if commands:
+    create_time = commands[0].create_time
+
+  return state_stats, create_time
 
 
 @ndb.transactional()

@@ -532,9 +532,12 @@ class RequestApi(remote.Service):
   @api_common.with_ndb_context
   def GetCommandStateStats(self, request):
     """Returns a list of key value pairs mapping command stats to counts."""
-    stats = command_manager.GetCommandStateStats(request.request_id)
+    stats, create_time = command_manager.GetCommandStateStats(
+        request.request_id)
     pair_messages = api_messages.MapToKeyValuePairMessages(stats)
-    return api_messages.CommandStateStats(state_stats=pair_messages)
+
+    return api_messages.CommandStateStats(state_stats=pair_messages,
+                                          create_time=create_time)
 
 
 def _SyncCommands(request_id):

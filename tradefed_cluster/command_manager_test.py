@@ -922,26 +922,31 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
   def testGetCommandStateStats(self):
     """Tests getting command state counts for given request id."""
     self._CreateCommands()
-    command = command_manager.GetCommands(request_id="1001")[0]
-    command.state = common.CommandState.RUNNING
-    command.put()
+    command1 = command_manager.GetCommands(request_id="1001")[0]
+    command1.state = common.CommandState.RUNNING
+    command1.put()
 
-    counts1 = command_manager.GetCommandStateStats(request_id="1001")
-    counts2 = command_manager.GetCommandStateStats(request_id="1002")
+    command2 = command_manager.GetCommands(request_id="1002")[0]
+
+    counts1, time1 = command_manager.GetCommandStateStats(request_id="1001")
+    counts2, time2 = command_manager.GetCommandStateStats(request_id="1002")
 
     self.assertEqual(counts1["UNKNOWN"], 0)
     self.assertEqual(counts1["RUNNING"], 1)
     self.assertEqual(counts2["UNKNOWN"], 1)
     self.assertEqual(counts2["RUNNING"], 0)
+    self.assertEqual(time1, command1.create_time)
+    self.assertEqual(time2, command2.create_time)
 
   def testGetCommandStateStats_byNonExistingRequestId(self):
     """Tests getting command state counts for a non existent request ID."""
     self._CreateCommands()
-    counts = command_manager.GetCommandStateStats(request_id="2001")
+    counts, time = command_manager.GetCommandStateStats(request_id="2001")
     self.assertEqual(counts["UNKNOWN"], 0)
     self.assertEqual(counts["RUNNING"], 0)
     self.assertEqual(counts["COMPLETED"], 0)
     self.assertEqual(counts["ERROR"], 0)
+    self.assertIsNone(time)
 
   def testGetCommandAttempts(self):
     """Tests getting all command attempts for given command Id."""

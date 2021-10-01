@@ -409,6 +409,7 @@ class CommandMessageCollection(messages.Message):
 class CommandStateStats(messages.Message):
   """Lists the number of commands for each state."""
   state_stats = messages.MessageField(KeyValuePair, 1, repeated=True)
+  create_time = message_types.DateTimeField(2)
 
 
 class RequestType(messages.Enum):

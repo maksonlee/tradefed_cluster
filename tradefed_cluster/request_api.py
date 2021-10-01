@@ -110,6 +110,7 @@ class RequestApi(remote.Service):
     Returns:
       a new request object with a valid ID.
     """
+    logging.info("NewRequest: %s", request)
     # TODO: figure a better way for auth.
     # self._CheckAuth()
     new_request = self._CreateRequest(

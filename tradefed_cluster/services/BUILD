@@ -73,7 +73,6 @@ pytype_strict_library(
         "//third_party/py/endpoints:endpoints_library",
         "//third_party/py/enum",
         "//tradefed_cluster:datastore_entities_lib",
-        "//tradefed_cluster:device_manager_lib",
         "//tradefed_cluster:env_config_lib",
     ],
 )

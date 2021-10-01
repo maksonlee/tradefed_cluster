@@ -21,7 +21,6 @@ import endpoints
 from endpoints import api_request
 from endpoints import endpoints_dispatcher
 from tradefed_cluster import datastore_entities
-from tradefed_cluster import device_manager
 from tradefed_cluster import env_config
 
 
@@ -101,7 +100,10 @@ def _CheckDevicePermission(obj_id, permission, user_name):
   Raises:
     ResourceNotFoundError: if the DeviceInfo doesn't exist
   """
-  device = device_manager.GetDevice(device_serial=obj_id)
+  device = (datastore_entities.DeviceInfo.query()
+            .filter(
+                datastore_entities.DeviceInfo.device_serial == obj_id)
+            .order(-datastore_entities.DeviceInfo.timestamp).get())
   if not device:
     raise endpoints.NotFoundException(f'Device({obj_id}) not found')
   # skip checking if the device lost hostname information.

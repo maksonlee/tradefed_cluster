@@ -229,7 +229,7 @@ class CommandTaskApi(remote.Service):
     for task in leasable_tasks:
       affinity_tag, target_affinity_tags = self._GetTargetAffinityTags(
           task.task_id)
-      logging.info(
+      logging.debug(
           "Task %s: affinity_tag=%s, target_affinity_tags=%s",
           task.task_id, affinity_tag, target_affinity_tags)
       for tag in target_affinity_tags:

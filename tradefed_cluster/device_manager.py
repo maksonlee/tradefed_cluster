@@ -431,10 +431,11 @@ def _UpdateDevicesInNDB(event):
     reported_devices[device_serial] = device_data
   _DoUpdateDevicesInNDB(reported_devices, event)
   _UpdateGoneDevicesInNDB(event.hostname, reported_devices, event.timestamp)
+  ResetDeviceAffinities(event.hostname)
   logging.debug("Updated %d devices in ndb.", len(event.device_info))
 
 
-@ndb.transactional(xg=True)
+@ndb.transactional()
 def _DoUpdateDevicesInNDB(reported_devices, event):
   """Update device entities to ndb.
 
@@ -599,8 +600,6 @@ def _UpdateDeviceState(device, state, timestamp):
       timestamp=device.timestamp,
       state=device.state)
   device_history = _CreateDeviceInfoHistory(device)
-  if state not in [common.DeviceState.ALLOCATED, common.DeviceState.AVAILABLE]:
-    affinity_manager.ResetDeviceAffinity(device.device_serial)
   return device_state_history, device_history
 
 
@@ -682,7 +681,7 @@ def _UpdateGoneDevicesInNDB(hostname, reported_devices, timestamp):
     logging.debug("Updated %d missing devices.", len(missing_device_keys))
 
 
-@ndb.transactional(xg=True)
+@ndb.transactional()
 def _DoUpdateGoneDevicesInNDB(missing_device_keys, timestamp):
   """Do update gone devices in NDB within transactional."""
   entities_to_update = []
@@ -781,7 +780,7 @@ def GetDevicesOnHost(hostname):
           .filter(datastore_entities.DeviceInfo.hidden == False)            .fetch())
 
 
-@ndb.transactional(xg=True)
+@ndb.transactional()
 def UpdateGoneHost(hostname):
   """Set a host and its devices to GONE."""
   logging.info("Set host %s and its devices to GONE.", hostname)
@@ -1297,3 +1296,20 @@ def CreateAndSaveHostInfoHistoryFromHostNote(hostname, note_id):
   host_info_history.extra_info[HOST_NOTE_ID_KEY] = note_id
   key = host_info_history.put()
   return key
+
+
+def ResetDeviceAffinities(hostname):
+  """Reset device affinities for unavailable devices on a given host.
+
+  Args:
+    hostname: a lab host's name.
+  """
+  devices = (
+      datastore_entities.DeviceInfo
+      .query(ancestor=ndb.Key(datastore_entities.HostInfo, hostname))
+      .fetch())
+  for device in devices:
+    if device.state not in [
+        common.DeviceState.ALLOCATED, common.DeviceState.AVAILABLE
+    ]:
+      affinity_manager.ResetDeviceAffinity(device.device_serial)

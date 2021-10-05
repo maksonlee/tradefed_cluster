@@ -339,6 +339,7 @@ def _SyncHost(hostname):
         'Set host %s to GONE, which has been inactive for %r.',
         hostname, inactive_time)
     device_manager.UpdateGoneHost(hostname)
+    device_manager.ResetDeviceAffinities(hostname)
   return True
 
 

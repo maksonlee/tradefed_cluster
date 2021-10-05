@@ -19,6 +19,8 @@ import cloudstorage
 
 from google.appengine.ext import testbed
 
+from google3.apphosting.contrib.testing import internal_testbed
+
 from tradefed_cluster.plugins import appengine
 
 
@@ -27,7 +29,7 @@ class AppManagerTest(absltest.TestCase):
 
   def setUp(self):
     super(AppManagerTest, self).setUp()
-    self.testbed = testbed.Testbed()
+    self.testbed = internal_testbed.Testbed()
     self.testbed.activate()
     self.testbed.init_all_stubs()
     self.addCleanup(self.testbed.deactivate)
@@ -46,7 +48,7 @@ class MailerTest(absltest.TestCase):
 
   def setUp(self):
     super(MailerTest, self).setUp()
-    self.testbed = testbed.Testbed()
+    self.testbed = internal_testbed.Testbed()
     self.testbed.activate()
     self.testbed.init_all_stubs()
     self.mail_stub = self.testbed.get_stub(testbed.MAIL_SERVICE_NAME)
@@ -102,7 +104,7 @@ class FileStorageTest(absltest.TestCase):
 
   def setUp(self):
     super(FileStorageTest, self).setUp()
-    self.testbed = testbed.Testbed()
+    self.testbed = internal_testbed.Testbed()
     self.testbed.activate()
     self.testbed.init_all_stubs()
     self.addCleanup(self.testbed.deactivate)

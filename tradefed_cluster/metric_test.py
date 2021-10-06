@@ -43,7 +43,6 @@ class MetricTest(unittest.TestCase):
         metric.METRIC_FIELD_CLUSTER: 'cluster',
         metric.METRIC_FIELD_RUN_TARGET: 'target',
         metric.METRIC_FIELD_ACTION: 'LEASE',
-        metric.METRIC_FIELD_HOSTNAME: None
     }
     record.assert_called_once_with(expected_latency, expected_metric_fields)
 
@@ -61,7 +60,6 @@ class MetricTest(unittest.TestCase):
         metric.METRIC_FIELD_CLUSTER: 'cluster',
         metric.METRIC_FIELD_RUN_TARGET: 'target',
         metric.METRIC_FIELD_ACTION: 'RESCHEDULE',
-        metric.METRIC_FIELD_HOSTNAME: None
     }
     record.assert_called_once_with(expected_latency, expected_metric_fields)
 
@@ -77,7 +75,6 @@ class MetricTest(unittest.TestCase):
         metric.METRIC_FIELD_CLUSTER: 'cluster',
         metric.METRIC_FIELD_RUN_TARGET: 'target',
         metric.METRIC_FIELD_ACTION: 'INVOCATION_FETCH_BUILD',
-        metric.METRIC_FIELD_HOSTNAME: None
     }
     record.assert_called_once_with(100, expected_metric_fields)
     increment.assert_not_called()
@@ -90,13 +87,11 @@ class MetricTest(unittest.TestCase):
         run_target='target',
         command_action=metric.CommandAction.INVOCATION_FETCH_BUILD,
         latency_secs=100,
-        hostname='example.mtv',
         count=True)
     expected_metric_fields = {
         metric.METRIC_FIELD_CLUSTER: 'cluster',
         metric.METRIC_FIELD_RUN_TARGET: 'target',
         metric.METRIC_FIELD_ACTION: 'INVOCATION_FETCH_BUILD',
-        metric.METRIC_FIELD_HOSTNAME: 'example.mtv'
     }
     record.assert_called_once_with(100, expected_metric_fields)
     increment.assert_called_once_with(expected_metric_fields)

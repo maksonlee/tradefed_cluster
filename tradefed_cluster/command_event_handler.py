@@ -82,7 +82,6 @@ def LogCommandEventMetrics(command, event):
     event: a command event
   """
   command_event_metric_fields = {
-      metric.METRIC_FIELD_HOSTNAME: event.hostname or "",
       metric.METRIC_FIELD_TYPE: event.type or ""
   }
   metric.command_event_type_count.Increment(command_event_metric_fields)
@@ -94,7 +93,6 @@ def LogCommandEventMetrics(command, event):
         cluster_id=command.cluster,
         run_target=command.run_target,
         create_timestamp=command.start_time,
-        hostname=event.hostname,
         command_action=metric.CommandAction.INVOCATION_COMPLETED)
   # Invocation timing is only reported on InvocationCompleted events
   try:
@@ -106,7 +104,6 @@ def LogCommandEventMetrics(command, event):
           cluster_id=command.cluster,
           run_target=command.run_target,
           command_action=TIMING_DATA_FIELDS_TO_COMMAND_ACTIONS[key],
-          hostname=event.hostname,
           latency_secs=latency_secs)
   except:      # Protecting against bad data
     logging.warning("Failed to report timing metrics.", exc_info=True)

@@ -206,7 +206,6 @@ def ProcessCommandEvent(event):
     metric.RecordCommandAttemptMetric(
         cluster_id=command.cluster,
         run_target=command.run_target,
-        hostname=event.hostname,
         state=event.attempt_state.name)
 
   task = command_task_store.GetTask(event.task_id)

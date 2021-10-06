@@ -270,7 +270,6 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         command=self.command, event=invocation_completed_event)
 
     expected_metric_fields = {
-        metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "InvocationCompleted"
     }
     event_type_metric.Increment.assert_called_once_with(expected_metric_fields)
@@ -290,7 +289,6 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         command=self.command, event=invocation_completed_event)
 
     expected_metric_fields = {
-        metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "InvocationCompleted",
     }
     event_type_metric.Increment.assert_called_once_with(expected_metric_fields)
@@ -298,7 +296,6 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         cluster_id="foobar",
         run_target="foo",
         command_action=metric.CommandAction.INVOCATION_COMPLETED,
-        hostname="hostname",
         create_timestamp=TIMESTAMP)
 
   @mock.patch.object(metric, "RecordCommandTimingMetric")
@@ -314,7 +311,6 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         command=None, event=invocation_completed_event)
 
     expected_metric_fields = {
-        metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "InvocationCompleted"
     }
     event_type_metric.Increment.assert_called_once_with(expected_metric_fields)
@@ -334,7 +330,6 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         command=self.command, event=invocation_completed_event)
 
     expected_metric_fields = {
-        metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "InvocationCompleted"
     }
     event_type_metric.Increment.assert_called_once_with(expected_metric_fields)
@@ -353,16 +348,13 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         command=self.command, event=invocation_completed_event)
 
     expected_metric_fields = {
-        metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "InvocationCompleted",
-        metric.METRIC_FIELD_HOSTNAME: "hostname"
     }
     event_type_metric.Increment.assert_called_once_with(expected_metric_fields)
     command_timing_metric.assert_called_once_with(
         cluster_id="foobar",
         run_target="foo",
         command_action=metric.CommandAction.INVOCATION_FETCH_BUILD,
-        hostname="hostname",
         latency_secs=101.5)
 
   @mock.patch.object(metric, "RecordCommandTimingMetric")
@@ -378,16 +370,13 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         command=self.command, event=invocation_completed_event)
 
     expected_metric_fields = {
-        metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "InvocationCompleted",
-        metric.METRIC_FIELD_HOSTNAME: "hostname"
     }
     event_type_metric.Increment.assert_called_once_with(expected_metric_fields)
     command_timing_metric.assert_called_once_with(
         cluster_id="foobar",
         run_target="foo",
         command_action=metric.CommandAction.INVOCATION_SETUP,
-        hostname="hostname",
         latency_secs=10.5)
 
   @mock.patch.object(metric, "command_event_legacy_processing_count")
@@ -446,7 +435,6 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         set(attempt.attempt_index for attempt in command_attempts),
         set(range(command_manager.MAX_CANCELED_COUNT_BASE)))
     expected_metric_fields = {
-        metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "AllocationFailed"
     }
     mock_command_event_type_count.Increment.assert_has_calls(
@@ -489,7 +477,6 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         set(range(command_manager.MAX_ERROR_COUNT_BASE)))
     mock_notify.assert_called_with(request_id)
     expected_metric_fields = {
-        metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "FetchFailed"
     }
     mock_command_event_type_count.Increment.assert_has_calls(
@@ -556,7 +543,6 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
         set(attempt.attempt_index for attempt in command_attempts),
         set(range(command_manager.MAX_ERROR_COUNT_BASE)))
     expected_metric_fields = {
-        metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "ExecuteFailed"
     }
     mock_command_event_type_count.Increment.assert_has_calls(
@@ -597,7 +583,6 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(tasks[0].leasable, False)
     mock_notify.assert_called_with(request_id)
     expected_metric_fields = {
-        metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "InvocationInitiated"
     }
     mock_command_event_type_count.Increment.assert_called_once_with(
@@ -640,7 +625,6 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(["0123456789ABCDEF"], attempts[0].device_serials)
     mock_notify.assert_called_with(request_id)
     expected_metric_fields = {
-        metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "InvocationStarted"
     }
     mock_command_event_type_count.Increment.assert_called_once_with(
@@ -677,7 +661,6 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(["d1", "d2"], attempts[0].device_serials)
     mock_notify.assert_called_with(request_id)
     expected_metric_fields = {
-        metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "InvocationStarted"
     }
     mock_command_event_type_count.Increment.assert_called_once_with(
@@ -717,7 +700,6 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(tasks[0].leasable, False)
     mock_notify.assert_called_with(request_id)
     expected_metric_fields = {
-        metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "TestRunInProgress"
     }
     mock_command_event_type_count.Increment.assert_called_once_with(
@@ -757,7 +739,6 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(tasks[0].leasable, False)
     mock_notify.assert_called_with(request_id)
     expected_metric_fields = {
-        metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "InvocationEnded"
     }
     mock_command_event_type_count.Increment.assert_called_once_with(
@@ -799,7 +780,6 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(10, attempts[0].failed_test_run_count)
     mock_notify.assert_called_with(request_id)
     expected_metric_fields = {
-        metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "InvocationCompleted"
     }
     mock_command_event_type_count.Increment.assert_called_once_with(
@@ -1001,7 +981,6 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(1, len(attempts))
     mock_notify.assert_called_with(request_id)
     expected_metric_fields = {
-        metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "ConfigurationError"
     }
     mock_command_event_type_count.Increment.assert_called_once_with(
@@ -1036,7 +1015,6 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(3, len(attempts))
     mock_notify.assert_called_with(request_id)
     expected_metric_fields = {
-        metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "InvocationCompleted"
     }
     mock_command_event_type_count.Increment.assert_has_calls(
@@ -1094,11 +1072,9 @@ class CommandEventHandlerTest(testbed_dependent_test.TestbedDependentTest):
     mock_notify.assert_called_with(request_id)
     # Metrics should still be logged for out of order events
     started_metric_fields = {
-        metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "InvocationStarted"
     }
     completed_metric_fields = {
-        metric.METRIC_FIELD_HOSTNAME: "hostname",
         metric.METRIC_FIELD_TYPE: "InvocationCompleted"
     }
     mock_command_event_type_count.Increment.assert_has_calls(

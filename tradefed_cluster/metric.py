@@ -80,7 +80,6 @@ queue_eta = _Metric(
         units=metric_util.Units.SECONDS))
 
 COMMAND_EVENT_METRIC_FIELDS = [
-    (METRIC_FIELD_HOSTNAME, str),
     (METRIC_FIELD_TYPE, str),
 ]
 
@@ -102,7 +101,6 @@ command_event_legacy_processing_count = _Metric(
 COMMAND_ATTEMPT_METRIC_FIELDS = [
     (METRIC_FIELD_CLUSTER, str),
     (METRIC_FIELD_RUN_TARGET, str),
-    (METRIC_FIELD_HOSTNAME, str),
     (METRIC_FIELD_STATE, str),
 ]
 
@@ -115,19 +113,17 @@ command_attempt_count = _Metric(
         fields=COMMAND_ATTEMPT_METRIC_FIELDS))
 
 
-def RecordCommandAttemptMetric(cluster_id, run_target, hostname, state):
+def RecordCommandAttemptMetric(cluster_id, run_target, state):
   """Record timing metrics on command attempts.
 
   Args:
     cluster_id: Cluster ID of the command leased
     run_target: Run target of the command leased
-    hostname: Hostname that leased the command
     state: State of the command attempt
   """
   metric_fields = {
       METRIC_FIELD_CLUSTER: cluster_id,
       METRIC_FIELD_RUN_TARGET: run_target,
-      METRIC_FIELD_HOSTNAME: hostname,
       METRIC_FIELD_STATE: state
   }
   command_attempt_count.Increment(metric_fields)
@@ -137,7 +133,6 @@ COMMAND_METRIC_FIELDS = [
     (METRIC_FIELD_CLUSTER, str),
     (METRIC_FIELD_RUN_TARGET, str),
     (METRIC_FIELD_ACTION, str),
-    (METRIC_FIELD_HOSTNAME, str),
 ]
 
 
@@ -173,7 +168,6 @@ command_action_count = _Metric(
 def RecordCommandTimingMetric(cluster_id,
                               run_target,
                               command_action,
-                              hostname=None,
                               latency_secs=None,
                               create_timestamp=None,
                               count=False):
@@ -185,7 +179,6 @@ def RecordCommandTimingMetric(cluster_id,
     cluster_id: Cluster ID of the command leased
     run_target: Run target of the command leased
     command_action: CommandAction to log
-    hostname: Hostname that leased the command
     latency_secs: Latency of the action in seconds
     create_timestamp: Task creation timestamp
     count: Increments the counter metric
@@ -193,7 +186,6 @@ def RecordCommandTimingMetric(cluster_id,
   metric_fields = {
       METRIC_FIELD_CLUSTER: cluster_id,
       METRIC_FIELD_RUN_TARGET: run_target,
-      METRIC_FIELD_HOSTNAME: hostname,
       METRIC_FIELD_ACTION: command_action.name
   }
 

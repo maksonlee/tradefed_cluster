@@ -491,7 +491,6 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
     attempt_metric.assert_called_once_with(
         cluster_id=command.cluster,
         run_target=command.run_target,
-        hostname="hostname",
         state="ERROR")
     plugin.assert_has_calls([
         mock.call.OnProcessCommandEvent(
@@ -542,7 +541,6 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
     attempt_metric.assert_called_once_with(
         cluster_id=command.cluster,
         run_target=command.run_target,
-        hostname="hostname",
         state="ERROR")
 
   @mock.patch.object(metric, "RecordCommandAttemptMetric")
@@ -576,7 +574,6 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
     attempt_metric.assert_called_once_with(
         cluster_id=command.cluster,
         run_target=command.run_target,
-        hostname="hostname",
         state="COMPLETED")
 
   @mock.patch.object(metric, "RecordCommandAttemptMetric")
@@ -607,7 +604,6 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
     attempt_metric.assert_called_once_with(
         cluster_id=command.cluster,
         run_target=command.run_target,
-        hostname="hostname",
         state="COMPLETED")
     plugin.assert_has_calls([
         mock.call.OnCreateCommands([
@@ -695,7 +691,6 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
     attempt_metric.assert_called_once_with(
         cluster_id=command.cluster,
         run_target=command.run_target,
-        hostname="hostname",
         state="COMPLETED")
     next_command = pending_commands[0]
     monitor.assert_called_once_with([next_command])
@@ -747,7 +742,6 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
     attempt_metric.assert_called_once_with(
         cluster_id=command.cluster,
         run_target=command.run_target,
-        hostname="hostname",
         state="ERROR")
 
   @mock.patch.object(command_monitor, "Monitor")

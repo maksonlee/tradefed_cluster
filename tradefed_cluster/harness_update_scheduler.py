@@ -131,7 +131,8 @@ def _ManageHarnessUpdateScheduleForHosts(
       metadata.hostname for metadata in not_allowed_yet[num_can_be_added:])
 
   for update_state in update_states:
-    if (update_state.state == common.HostUpdateState.PENDING and
+    if (update_state and
+        update_state.state == common.HostUpdateState.PENDING and
         update_state.hostname in hosts_still_not_allowed):
       _TouchHostUpdateState(update_state)
 

@@ -164,6 +164,9 @@ class HarnessUpdateSchedulerTest(
     datastore_test_util.CreateHostConfig('h1', 'alab', cluster_name='c1')
     datastore_test_util.CreateHostConfig('h2', 'alab', cluster_name='c1')
     datastore_test_util.CreateHostConfig('h3', 'alab', cluster_name='c1')
+    # A redundant host config without host update state for testing
+    # when update_state datastore entity is not found.
+    datastore_test_util.CreateHostConfig('h4', 'alab', cluster_name='c1')
 
     time_1 = datetime.datetime(2020, 12, 24)
     time_2 = datetime.datetime(2021, 9, 9, 5, 20)

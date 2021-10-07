@@ -64,13 +64,28 @@ def _ProcessRequest(request_id):
     return
   logging.debug("Processing request %s: %s",
                 request_id, request)
+
+  # It is important to make the following block to be idempotent since it can be
+  # retried.
   try:
-    commands = _CreateCommands(request)
+    # We don't have to worry about a case where only some commands are created
+    # because all commands are created in a transaction
+    # (see command_manager.CreateCommands).
+    commands = command_manager.GetCommands(request_id)
+    if not commands:
+      commands = _CreateCommands(request)
     if request.max_concurrent_tasks:
       # Only schedule (request.max_concurrent_tasks) commands.
       commands = commands[:request.max_concurrent_tasks]
-    command_manager.ScheduleTasks(commands)
-    command_monitor.Monitor(commands)
+    pending_commands = [
+        c for c in commands if c.state == common.CommandState.UNKNOWN
+    ]
+    if pending_commands:
+      command_manager.ScheduleTasks(
+          pending_commands, update_request_state=False)
+      command_monitor.Monitor(pending_commands)
+    # Update the request state to start request event processing.
+    request_manager.EvaluateState(request_id)
   except (AssertionError, ValueError) as e:
     logging.exception("Failed to process request %s", request_id)
     cancel_reason = None

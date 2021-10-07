@@ -64,7 +64,7 @@ def RetryNdbContentionErrors(f):
                tries=3, delay=2, backoff=2, logger=logging)
   def Wrapper(*args, **kwargs):
     try:
-      f(*args, **kwargs)
+      return f(*args, **kwargs)
     except Exception as e:        exception_message = str(e)
       if "too much contention" in exception_message:
         raise TooMuchContentionError(exception_message)
@@ -85,7 +85,7 @@ class ClassProperty(object):
 
 class CommandState(messages.Enum):
   """Command states."""
-  UNKNOWN = 0
+  UNKNOWN = 0  # Pending (Scheduling)
   QUEUED = 1
   RUNNING = 2
   CANCELED = 3
@@ -109,7 +109,7 @@ FINAL_COMMAND_STATES = (
 
 class RequestState(messages.Enum):
   """Request states."""
-  UNKNOWN = 0
+  UNKNOWN = 0  # Pending (Scheduling)
   QUEUED = 1
   RUNNING = 2
   CANCELED = 3

@@ -225,6 +225,7 @@ def SyncRequest(request_id):
     logging.error('No request found with ID: %s', request_id)
     sync_status_key.delete()
     return
+  logging.info('Request %s: state=%s', request_id, request.state)
 
   if request.state == common.RequestState.UNKNOWN:
     logging.debug(

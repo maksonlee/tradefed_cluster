@@ -347,7 +347,7 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
         ], request.plugin_data, {}),
     ])
     schedule_tasks.assert_called_once_with(
-        commands[:request.max_concurrent_tasks])
+        commands[:request.max_concurrent_tasks], update_request_state=False)
     monitor.assert_called_once_with(
         commands[:request.max_concurrent_tasks])
 

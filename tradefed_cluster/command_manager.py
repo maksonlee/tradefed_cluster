@@ -679,29 +679,16 @@ def _NotifyAttemptState(attempt_entity, old_state, event_time):
       queue_name=common.OBJECT_EVENT_QUEUE, payload=payload)
 
 
-def ScheduleTasks(commands):
+def ScheduleTasks(commands, update_request_state=True):
   """Schedules command tasks to run.
 
   Args:
     commands: a list of commands, read only
-  """
-  request_ids = _DoScheduleTasks(commands)
-  for request_id in request_ids:
-    request_manager.EvaluateState(request_id)
-
-
-@ndb.transactional(xg=True)
-def _DoScheduleTasks(commands):
-  """Schedule command tasks in a transaction.
-
-  Args:
-    commands: a list of Command objects.
-  Returns:
-    A set of affected Request IDs.
+    update_request_state: whether to update states of requests.
   """
   request_ids = {command.request_id for command in commands}
-  # Ensure requests are in a pre-scheduled state (UNKNOWN).
   for request_id in request_ids:
+    # Ensure requests are in a pre-scheduled state (UNKNOWN).
     request = request_manager.GetRequest(request_id)
     if not request or request.state == common.RequestState.CANCELED:
       raise ValueError(
@@ -710,16 +697,16 @@ def _DoScheduleTasks(commands):
     if command.priority and (
         command.priority < 0 or MAX_PRIORITY < command.priority):
       raise ValueError("priority is out of range: %d" % command.priority)
-    _ScheduleTasksToCommandTaskStore(command)
-    UpdateState(
-        command.request_id,
-        command.key.id(),
-        state=common.CommandState.QUEUED,
-        force=True)
-  return request_ids
+    if command.state != common.CommandState.UNKNOWN:
+      continue
+    _ScheduleTask(command)
+  if update_request_state:
+    for request_id in request_ids:
+      request_manager.EvaluateState(request_id)
 
 
-def _ScheduleTasksToCommandTaskStore(command):
+@ndb.transactional(xg=True)
+def _ScheduleTask(command):
   """Schedules command tasks to CommandTaskStore to run.
 
   Args:
@@ -746,6 +733,11 @@ def _ScheduleTasksToCommandTaskStore(command):
         affinity_tag=command.affinity_tag)
     if not command_task_store.CreateTask(command_task_args):
       logging.warning("task %s already exists", task_id)
+  UpdateState(
+      command.request_id,
+      command.key.id(),
+      state=common.CommandState.QUEUED,
+      force=True)
 
 
 def RescheduleTask(task_id, command, run_index, attempt_index):
@@ -889,11 +881,10 @@ def _DoCreateCommands(
   if not request or request.state == common.RequestState.CANCELED:
     raise ValueError("A request is CANCELED: request=%s" % request)
 
-  existing_commands = (datastore_entities.Command
-                       .query(ancestor=request_key,
-                              namespace=common.NAMESPACE).fetch())
+  existing_commands = datastore_entities.Command.query(
+      ancestor=request_key, namespace=common.NAMESPACE).fetch()
   if existing_commands:
-    logging.info("existing")
+    logging.info("commands already exist for request %s", request_id)
     return existing_commands
 
   new_commands = []
@@ -927,7 +918,7 @@ def _DoCreateCommands(
         test_bench=command_info.test_bench,
         affinity_tag=affinity_tag)
     new_commands.append(command)
-  logging.info("New commands created: %s", new_commands)
+  logging.debug("New commands created: %s", new_commands)
   ndb.put_multi(new_commands)
   return new_commands
 
@@ -1071,12 +1062,11 @@ def CancelCommands(request_id, cancel_reason=None):
     request_id: a request ID, str.
     cancel_reason: an optional enum cancel reason.
   """
-  request = request_manager.GetRequest(request_id)
   commands = GetCommands(request_id)
   for command in commands:
-    _DoCancelCommand(command, cancel_reason)
-  request.dirty = True
-  ndb.put_multi([request] + commands)
+    if common.IsFinalCommandState(command.state):
+      continue
+    _DoCancelCommand(request_id, command.key.id(), cancel_reason)
 
 
 def Cancel(request_id, command_id, cancel_reason=None):
@@ -1089,27 +1079,27 @@ def Cancel(request_id, command_id, cancel_reason=None):
   Returns:
     command: a command entity, read only
   """
-  request = request_manager.GetRequest(request_id)
-  command = GetCommand(request_id, command_id)
-  _DoCancelCommand(command, cancel_reason)
-  request.dirty = True
-  ndb.put_multi([request, command])
-  return command
+  return _DoCancelCommand(request_id, command_id, cancel_reason)
 
 
-def _DoCancelCommand(command, cancel_reason):
+@ndb.transactional(xg=True)
+def _DoCancelCommand(request_id, command_id, cancel_reason):
   """Do cancel a command."""
+  command = GetCommand(request_id, command_id)
   if common.IsFinalCommandState(command.state):
     logging.info(
         "Cannot cancel command %s; already in a final state %s",
         command.key, command.state)
-    return
+    return command
   if command.state != common.CommandState.UNKNOWN:
     DeleteTasks(command)
   command.state = common.CommandState.CANCELED
   command.cancel_reason = cancel_reason or common.CancelReason.UNKNOWN
-
   command.dirty = False
+  request = request_manager.GetRequest(request_id)
+  request.dirty = True
+  ndb.put_multi([request, command])
+  return command
 
 
 def _GetCommandAttemptsFromCommandKey(command_key, state=None):

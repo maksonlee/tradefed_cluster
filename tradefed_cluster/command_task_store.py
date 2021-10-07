@@ -57,6 +57,7 @@ def _Now():
   return datetime.datetime.utcnow()
 
 
+@ndb.transactional(xg=True)
 def CreateTask(command_task_args):
   """Save the command task in datastore.
 
@@ -184,13 +185,15 @@ def LeaseTask(task_id):
   return task
 
 
+@ndb.transactional(xg=True)
 def DeleteTask(task_id):
   """Delete a task.
 
   Args:
     task_id: the task id
   """
-  DeleteTasks([task_id])
+  affinity_manager.ResetTaskAffinity(task_id)
+  _Key(task_id).delete()
 
 
 def DeleteTasks(task_ids):
@@ -203,9 +206,7 @@ def DeleteTasks(task_ids):
     task_ids: a list of task ids
   """
   for task_id in task_ids:
-    affinity_manager.ResetTaskAffinity(task_id)
-  keys = [_Key(task_id) for task_id in task_ids]
-  ndb.delete_multi(keys)
+    DeleteTask(task_id)
 
 
 def GetActiveTaskCount(task_ids):

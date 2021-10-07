@@ -1,11 +1,14 @@
 """A module for command task/device affinity management."""
 
+import datetime
 import logging
 import typing
 
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster.util import ndb_shim as ndb
+
+MAX_DEVICE_AFFINITY_TTL_SECONDS = 3600
 
 
 def _UpdateAffinityStatus(
@@ -33,6 +36,11 @@ def _UpdateAffinityStatus(
     status = datastore_entities.AffinityStatus(
         key=key, affinity_tag=affinity_tag)
   status.device_count += device_count_delta
+  if status.device_count < 0:
+    logging.warning(
+        'new device_count %d is less than 0; set to 0 (this must not happen)',
+        status.device_count)
+    status.device_count = 0
   status.task_count += task_count_delta
   status.needed_device_count += needed_device_count_delta
   status.put()
@@ -49,6 +57,9 @@ def SetDeviceAffinity(device_serial: str, affinity_tag: str):
   """
   if not affinity_tag:
     raise ValueError('affnity_tag cannot be None or empty')
+  logging.info(
+      'Setting device affinity: device_serial=%s, affinity_tag=%s',
+      device_serial, affinity_tag)
   key = ndb.Key(
       datastore_entities.DeviceAffinityInfo,
       device_serial,
@@ -67,7 +78,6 @@ def SetDeviceAffinity(device_serial: str, affinity_tag: str):
   _UpdateAffinityStatus(affinity_tag, device_count_delta=1)
   info.affinity_tag = affinity_tag
   info.put()
-  logging.info('Device affinity set: %s', info)
 
 
 @ndb.transactional(xg=True)
@@ -89,13 +99,19 @@ def ResetDeviceAffinity(
   info = key.get()
   if not info:
     return True
-  if only_if_excess:
-    key = ndb.Key(
+  expire_time = (
+      info.update_timestamp +
+      datetime.timedelta(seconds=MAX_DEVICE_AFFINITY_TTL_SECONDS))
+  if datetime.datetime.utcnow() < expire_time and only_if_excess:
+    status_key = ndb.Key(
         datastore_entities.AffinityStatus,
         info.affinity_tag,
         namespace=common.NAMESPACE)
-    status = key.get()
-    if status and status.device_count <= status.needed_device_count:
+    status = status_key.get()
+    logging.info(
+        'Checking device affinity info for %s: info=%s, status=%s',
+        device_serial, info, status)
+    if status and 0 < status.device_count <= status.needed_device_count:
       return False
   _UpdateAffinityStatus(info.affinity_tag, device_count_delta=-1)
   key.delete()
@@ -132,6 +148,9 @@ def SetTaskAffinity(task_id: str, affinity_tag: str, needed_device_count: int):
   """
   if not affinity_tag:
     raise ValueError('affnity_tag cannot be None or empty')
+  logging.info(
+      'Setting task affinity: task_id=%s, affinity_tag=%s',
+      task_id, affinity_tag)
   key = ndb.Key(
       datastore_entities.TaskAffinityInfo, task_id, namespace=common.NAMESPACE)
   info = key.get()
@@ -160,7 +179,6 @@ def SetTaskAffinity(task_id: str, affinity_tag: str, needed_device_count: int):
   info.affinity_tag = affinity_tag
   info.needed_device_count = needed_device_count
   info.put()
-  logging.info('Task affinity set: %s', info)
 
 
 @ndb.transactional(xg=True)

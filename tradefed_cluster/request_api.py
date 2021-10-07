@@ -246,6 +246,7 @@ class RequestApi(remote.Service):
       http_method="GET",
       name="cancel")
   @api_common.with_ndb_context
+  @common.RetryNdbContentionErrors
   def CancelRequest(self, api_request):
     """Cancel a specific test request by id.
 

@@ -20,7 +20,10 @@ from __future__ import print_function
 import functools
 from six.moves import map
 
-import tradefed_cluster.util.google_import_fixer  from google.cloud import ndb
+import tradefed_cluster.util.google_import_fixer  #  pylint: disable=unused-import
+from google import auth
+from google.cloud import ndb
+from google.cloud.ndb import context as context_module
 
 # All methods/classes used by tradefed_cluster are defined below
 Expando = ndb.Expando
@@ -130,3 +133,21 @@ class EnumProperty(IntegerProperty):
   def _from_base_type(self, val):
     """Convert a base type (integer) value to an Enum value."""
     return self._enum_type(val)
+
+
+def with_ndb_context(method):
+  """Decorator to wrap individual endpoints in NDB Context."""
+
+  @functools.wraps(method)
+  def wrap_endpoint(*args, **kwargs):
+    """Wraps the endpoint method in a NDB Context."""
+    context = context_module.get_context(raise_context_error=False)
+    if not context:
+      creds, project = auth.default()
+      with ndb.Client(project=project, credentials=creds).context(
+          legacy_data=False):
+        return method(*args, **kwargs)
+    # If endpoint is inside a NDB context don't create a new context.
+    return method(*args, **kwargs)
+
+  return wrap_endpoint

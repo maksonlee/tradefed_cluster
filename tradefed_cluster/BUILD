@@ -90,11 +90,8 @@ pytype_strict_library(
         "api_common.py",
     ],
     deps = [
-        "//tradefed_cluster/util:ndb_shim_lib",
         third_party("endpoints:endpoints_library"),
-        third_party("google/auth:__init__"),
-        third_party("google/auth:compute_engine/__init__"),
-        third_party("google/cloud/ndb:google3_ndb"),
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -441,7 +438,6 @@ pytype_strict_library(
         ":api_messages_lib",
         ":command_event_handler_lib",
         ":common_lib",
-        third_party("endpoints:endpoints_library"),
         third_party("protorpc:protorpc_all"),
         third_party("pytz"),
     ],
@@ -629,7 +625,6 @@ pytype_strict_library(
         ":request_manager_lib",
         "//tradefed_cluster/util:command_util",
         "//tradefed_cluster/util:ndb_shim_lib",
-        third_party("endpoints:endpoints_library"),
         third_party("grpc"),
         third_party("protorpc:protorpc_all"),
     ],
@@ -900,7 +895,6 @@ pytype_strict_library(
         ":common_lib",
         ":datastore_entities_lib",
         ":request_sync_monitor_lib",
-        third_party("endpoints:endpoints_library"),
         third_party("protorpc:protorpc_all"),
         third_party("pytz"),
     ],
@@ -1758,6 +1752,7 @@ pytype_strict_library(
         ":notifier_lib",
         ":request_sync_monitor_lib",
         "//tradefed_cluster/services:task_scheduler_lib",
+        "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
 
@@ -1770,7 +1765,7 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":server_lib",
-        third_party("absl/testing:absltest"),
+        ":testbed_dependent_test_lib",
         third_party("mock"),
         third_party("werkzeug"),
     ],

@@ -31,6 +31,7 @@ from tradefed_cluster import notification_handler
 from tradefed_cluster import notifier
 from tradefed_cluster import request_sync_monitor
 from tradefed_cluster.services import task_scheduler
+from tradefed_cluster.util import ndb_shim as ndb
 
 
 class RegexDispatcher(object):
@@ -48,8 +49,12 @@ class RegexDispatcher(object):
     """Dispatches to the first WSGI app that matches the request path."""
     path = environ.get('PATH_INFO', '/')
     for regex, app in self.apps:
-      if re.match(regex + r'\Z', path):
-        return app(environ, start_response)
+      if not re.match(regex + r'\Z', path):
+        continue
+      # This ndb context only work for handlers but not api.
+      # Apis are using api_common.method.
+      app_with_ndb_context = ndb.with_ndb_context(app)
+      return app_with_ndb_context(environ, start_response)
     # No matching app found
     start_response('404 Not Found', [])
     return []

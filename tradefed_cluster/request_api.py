@@ -95,13 +95,12 @@ class RequestApi(remote.Service):
     request_sync_monitor.Monitor(request_id=new_request.key.id())
     return new_request
 
-  @endpoints.method(
+  @api_common.method(
       api_messages.NewRequestMessage,
       api_messages.RequestMessage,
       path="/requests",
       http_method="POST",
       name="new")
-  @api_common.with_ndb_context
   def NewRequest(self, request):
     """Create a new request.
 
@@ -139,13 +138,12 @@ class RequestApi(remote.Service):
         id=new_request.key.id(),
         api_module_version=common.NAMESPACE)
 
-  @endpoints.method(
+  @api_common.method(
       api_messages.NewMultiCommandRequestMessage,
       api_messages.RequestMessage,
       path="/new_multi_command_request",
       http_method="POST",
       name="newMultiCommandRequest")
-  @api_common.with_ndb_context
   def NewMultiCommandRequest(self, request):
     """Create a new multi command request.
 
@@ -179,13 +177,12 @@ class RequestApi(remote.Service):
       count=messages.IntegerField(4, variant=messages.Variant.INT32)
   )
 
-  @endpoints.method(
+  @api_common.method(
       REQUEST_LIST_FILTER_RESOURCE,
       api_messages.RequestMessageCollection,
       path="/requests",
       http_method="GET",
       name="list")
-  @api_common.with_ndb_context
   def ListRequest(self, api_request):
     """Get requests satisfy the condition.
 
@@ -210,13 +207,12 @@ class RequestApi(remote.Service):
       request_id=messages.IntegerField(1, variant=messages.Variant.INT32)
   )
 
-  @endpoints.method(
+  @api_common.method(
       REQUEST_ID_RESOURCE,
       api_messages.RequestMessage,
       path="{request_id}",
       http_method="GET",
       name="get")
-  @api_common.with_ndb_context
   def GetRequest(self, api_request):
     """Get a specific test request by id.
 
@@ -239,13 +235,12 @@ class RequestApi(remote.Service):
         commands=commands)
     return message
 
-  @endpoints.method(
+  @api_common.method(
       REQUEST_ID_RESOURCE,
       api_messages.RequestMessage,
       path="{request_id}/cancel",
       http_method="GET",
       name="cancel")
-  @api_common.with_ndb_context
   @common.RetryNdbContentionErrors
   def CancelRequest(self, api_request):
     """Cancel a specific test request by id.
@@ -274,13 +269,12 @@ class RequestApi(remote.Service):
 
     return datastore_entities.ToMessage(cur_request)
 
-  @endpoints.method(
+  @api_common.method(
       REQUEST_ID_RESOURCE,
       api_messages.RequestMessage,
       path="{request_id}",
       http_method="POST",
       name="poke")
-  @api_common.with_ndb_context
   def PokeRequest(self, request):
     """Pokes a request to notify its state via Cloud Pub/Sub.
 
@@ -300,7 +294,7 @@ class RequestApi(remote.Service):
     request_manager.Poke(request_id)
     return datastore_entities.ToMessage(req)
 
-  @endpoints.method(
+  @api_common.method(
       endpoints.ResourceContainer(
           message_types.VoidMessage,
           request_ids=messages.IntegerField(1, repeated=True),
@@ -310,7 +304,6 @@ class RequestApi(remote.Service):
       path="poke",
       http_method="POST",
       name="batchPoke")
-  @api_common.with_ndb_context
   def PokeRequests(self, request):
     """Pokes a list of requests to notify their state via Cloud Pub/Sub.
 
@@ -336,13 +329,12 @@ class RequestApi(remote.Service):
       request_manager.Poke(request_id)
     return message_types.VoidMessage()
 
-  @endpoints.method(
+  @api_common.method(
       REQUEST_ID_RESOURCE,
       api_messages.TestEnvironment,
       path="{request_id}/test_environment",
       http_method="GET",
       name="testEnvironment.get")
-  @api_common.with_ndb_context
   def GetTestEnvironment(self, request):
     """Returns a test environment for a request.
 
@@ -357,13 +349,12 @@ class RequestApi(remote.Service):
       return api_messages.TestEnvironment()
     return datastore_entities.ToMessage(entity)
 
-  @endpoints.method(
+  @api_common.method(
       REQUEST_ID_RESOURCE,
       api_messages.TestResourceCollection,
       path="{request_id}/test_resources",
       http_method="GET",
       name="testResource.list")
-  @api_common.with_ndb_context
   def ListTestResources(self, request):
     """Lists test resources for a request.
 
@@ -379,13 +370,12 @@ class RequestApi(remote.Service):
       test_resources.append(datastore_entities.ToMessage(entity))
     return api_messages.TestResourceCollection(test_resources=test_resources)
 
-  @endpoints.method(
+  @api_common.method(
       REQUEST_ID_RESOURCE,
       api_messages.InvocationStatus,
       path="{request_id}/invocation_status",
       http_method="GET",
       name="invocationStatus.get")
-  @api_common.with_ndb_context
   def GetInvocationStatus(self, request):
     """Returns invocation status for a request.
 
@@ -410,7 +400,7 @@ class RequestApi(remote.Service):
       run_count_by_command_key[command_key] -= 1
     return datastore_entities.ToMessage(invocation_status)
 
-  @endpoints.method(
+  @api_common.method(
       endpoints.ResourceContainer(
           message_types.VoidMessage,
           request_id=messages.IntegerField(1, required=True),
@@ -419,7 +409,6 @@ class RequestApi(remote.Service):
       path="{request_id}/commands/{command_id}/test_context",
       http_method="GET",
       name="testContext.get")
-  @api_common.with_ndb_context
   def GetTestContext(self, request):
     """Returns a test context for a command.
 
@@ -449,7 +438,7 @@ class RequestApi(remote.Service):
 
     return datastore_entities.ToMessage(test_context)
 
-  @endpoints.method(
+  @api_common.method(
       endpoints.ResourceContainer(
           api_messages.TestContext,
           request_id=messages.IntegerField(1, required=True),
@@ -458,7 +447,6 @@ class RequestApi(remote.Service):
       path="{request_id}/commands/{command_id}/test_context",
       http_method="POST",
       name="testContext.update")
-  @api_common.with_ndb_context
   def UpdateTestContext(self, request):
     """Updates a test context for a command.
 
@@ -480,7 +468,7 @@ class RequestApi(remote.Service):
         test_context=test_context)
     return message_types.VoidMessage()
 
-  @endpoints.method(
+  @api_common.method(
       endpoints.ResourceContainer(
           message_types.VoidMessage,
           request_id=messages.StringField(1, required=True),
@@ -491,7 +479,6 @@ class RequestApi(remote.Service):
       path="{request_id}/commands",
       http_method="GET",
       name="commands")
-  @api_common.with_ndb_context
   def ListCommands(self, request):
     """Returns a paginated list of commands."""
     commands, page_token = command_manager.GetCommandsPage(request.request_id,
@@ -504,7 +491,7 @@ class RequestApi(remote.Service):
         commands=command_messages,
         page_token=page_token)
 
-  @endpoints.method(
+  @api_common.method(
       endpoints.ResourceContainer(
           message_types.VoidMessage,
           request_id=messages.StringField(1, required=True),
@@ -513,7 +500,6 @@ class RequestApi(remote.Service):
       path="{request_id}/commands/{command_id}",
       http_method="GET",
       name="command")
-  @api_common.with_ndb_context
   def GetCommand(self, request):
     command = command_manager.GetCommand(request.request_id, request.command_id)
     if not command:
@@ -522,7 +508,7 @@ class RequestApi(remote.Service):
               request.request_id, request.command_id))
     return datastore_entities.ToMessage(command)
 
-  @endpoints.method(
+  @api_common.method(
       endpoints.ResourceContainer(
           message_types.VoidMessage,
           request_id=messages.StringField(1, required=True)),
@@ -530,7 +516,6 @@ class RequestApi(remote.Service):
       path="{request_id}/commands/state_counts",
       http_method="GET",
       name="state_counts")
-  @api_common.with_ndb_context
   def GetCommandStateStats(self, request):
     """Returns a list of key value pairs mapping command stats to counts."""
     stats, create_time = command_manager.GetCommandStateStats(

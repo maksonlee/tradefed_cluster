@@ -38,11 +38,10 @@ class DeviceBlocklistApi(remote.Service):
       note=messages.StringField(2),
       user=messages.StringField(3),)
 
-  @endpoints.method(
+  @api_common.method(
       NEW_DEVICE_BLOCKLIST_RESOURCE,
       api_messages.DeviceBlocklistMessage,
       path="/deviceBlocklists", http_method="POST", name="new")
-  @api_common.with_ndb_context
   def NewDeviceBlocklist(self, request):
     """Create a new device blocklist.
 
@@ -63,11 +62,10 @@ class DeviceBlocklistApi(remote.Service):
       key_id=messages.IntegerField(1, required=True),
   )
 
-  @endpoints.method(
+  @api_common.method(
       GET_DEVICE_BLOCKLIST_RESOURCE,
       api_messages.DeviceBlocklistMessage,
       path="{key_id}", http_method="GET", name="get")
-  @api_common.with_ndb_context
   def GetDeviceBlocklist(self, request):
     """Get a device blocklist.
 
@@ -86,11 +84,10 @@ class DeviceBlocklistApi(remote.Service):
       backwards=messages.BooleanField(3, default=False),
   )
 
-  @endpoints.method(
+  @api_common.method(
       LIST_DEVICE_BLOCKLIST_RESOURCE,
       api_messages.DeviceBlocklistCollection,
       path="/deviceBlocklists", http_method="GET", name="list")
-  @api_common.with_ndb_context
   def ListDeviceBlocklist(self, request):
     """List device blocklists.
 

@@ -35,13 +35,12 @@ class TestHarnessImageApi(remote.Service):
       cursor=messages.StringField(2),
       tag_prefix=messages.StringField(3))
 
-  @endpoints.method(
+  @api_common.method(
       TEST_HARNESS_IMAGE_LIST_RESOURCE,
       api_messages.TestHarnessImageMetadataCollection,
       path="/test_harness_images",
       http_method="GET",
       name="list")
-  @api_common.with_ndb_context
   def ListTestHarnessImages(self, request):
     """List test harness image metadata.
 

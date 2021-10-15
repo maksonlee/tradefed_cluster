@@ -43,13 +43,12 @@ class PredefinedMessageApi(remote.Service):
       lab_name=messages.StringField(2, required=True),
       content=messages.StringField(3, required=True))
 
-  @endpoints.method(
+  @api_common.method(
       PREDEFINED_MESSAGE_CREATE_RESOURCE,
       api_messages.PredefinedMessage,
       path="/predefined_messages",
       http_method="POST",
       name="createPredefinedMessage")
-  @api_common.with_ndb_context
   def CreatePredefinedMessage(self, request):
     existing_predefined_message_entity = (
         note_manager.GetPredefinedMessage(
@@ -73,13 +72,12 @@ class PredefinedMessageApi(remote.Service):
       id=messages.IntegerField(1, required=True),
       content=messages.StringField(2, required=True))
 
-  @endpoints.method(
+  @api_common.method(
       PREDEFINED_MESSAGE_UPDATE_RESOURCE,
       api_messages.PredefinedMessage,
       path="/predefined_messages/{id}",
       http_method="PATCH",
       name="updatePredefinedMessage")
-  @api_common.with_ndb_context
   def UpdatePredefinedMessage(self, request):
     predefined_message = ndb.Key(
         datastore_entities.PredefinedMessage,
@@ -104,13 +102,12 @@ class PredefinedMessageApi(remote.Service):
   PREDEFINED_MESSAGE_DELETE_RESOURCE = endpoints.ResourceContainer(
       id=messages.IntegerField(1, required=True))
 
-  @endpoints.method(
+  @api_common.method(
       PREDEFINED_MESSAGE_DELETE_RESOURCE,
       api_messages.PredefinedMessage,
       path="/predefined_messages/{id}",
       http_method="DELETE",
       name="deletePredefinedMessage")
-  @api_common.with_ndb_context
   def DeletePredefinedMessage(self, request):
     predefined_message_key = ndb.Key(
         datastore_entities.PredefinedMessage,
@@ -132,13 +129,12 @@ class PredefinedMessageApi(remote.Service):
           4, default=_PREDEFINED_MESSAGE_LIST_DEFAULT_LIMIT),
       backwards=messages.BooleanField(5, default=False))
 
-  @endpoints.method(
+  @api_common.method(
       PREDEFINED_MESSAGE_LIST_RESOURCE,
       api_messages.PredefinedMessageCollection,
       path="/predefined_messages",
       http_method="GET",
       name="listPredefinedMessages")
-  @api_common.with_ndb_context
   def ListPredefinedMessages(self, request):
     query = (
         datastore_entities.PredefinedMessage.query()

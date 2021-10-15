@@ -41,9 +41,8 @@ class LabManagementApi(remote.Service):
                                   variant=messages.Variant.INT32,
                                   default=_DEFAULT_COUNT))
 
-  @endpoints.method(LAB_LIST_RESOURCE, api_messages.LabInfoCollection,
-                    path="/labs", http_method="GET", name="list")
-  @api_common.with_ndb_context
+  @api_common.method(LAB_LIST_RESOURCE, api_messages.LabInfoCollection,
+                     path="/labs", http_method="GET", name="list")
   def ListLabs(self, request):
     """Fetches a list of labs that are available.
 
@@ -99,12 +98,11 @@ class LabManagementApi(remote.Service):
       lab_name=messages.StringField(1, required=True),
   )
 
-  @endpoints.method(
+  @api_common.method(
       LAB_GET_RESOURCE,
       api_messages.LabInfo,
       path="{lab_name}",
       http_method="GET", name="get")
-  @api_common.with_ndb_context
   def GetLab(self, request):
     lab_info = datastore_entities.LabInfo.get_by_id(request.lab_name)
     lab_config = datastore_entities.LabConfig.get_by_id(request.lab_name)

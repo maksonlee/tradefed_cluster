@@ -21,23 +21,27 @@ class StubDeviceRequest(messages.Message):
 @api_common.tradefed_cluster_api.api_class(resource_name='stub', path='stub')
 class StubApi(remote.Service):
 
-  @endpoints.method(
+  @api_common.method(
       StubDeviceRequest,
+      message_types.VoidMessage,
       path='{device_serial}',
       http_method='GET',
       name='getDevice')
   def GetDevice(self, request):
     return message_types.VoidMessage()
 
-  @endpoints.method(
+  @api_common.method(
       StubDeviceRequest,
+      message_types.VoidMessage,
       path='{device_serial}',
       http_method='PUT',
       name='updateDevice')
   def UpdateDevice(self, request):
     return message_types.VoidMessage()
 
-  @endpoints.method(
+  @api_common.method(
+      message_types.VoidMessage,
+      message_types.VoidMessage,
       path='randomapi',
       http_method='POST',
       name='randomApi')

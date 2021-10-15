@@ -40,13 +40,12 @@ class AclApi(remote.Service):
       user_name=messages.StringField(3, required=True),
   )
 
-  @endpoints.method(
+  @api_common.method(
       CHECK_HOST_PRINCIPALS,
       api_messages.AclCheckResult,
       path="ssh_access/check",
       http_method="GET",
       name="checkSshAccessible")
-  @api_common.with_ndb_context
   def CheckSshAccessible(self, request):
     """Authenticates host account principals."""
     host_config = datastore_entities.HostConfig.get_by_id(request.hostname)
@@ -152,7 +151,7 @@ class AclApi(remote.Service):
           return True
     return False
 
-  @endpoints.method(
+  @api_common.method(
       api_messages.CheckResourcePermissionRequest,
       api_messages.AclCheckResult,
       path="{resource}/{permission}/check",

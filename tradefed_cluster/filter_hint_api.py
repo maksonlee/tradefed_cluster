@@ -34,13 +34,12 @@ class FilterHintApi(remote.Service):
       message_types.VoidMessage,
       type=messages.EnumField(common.FilterHintType, 1))
 
-  @endpoints.method(
+  @api_common.method(
       FILTER_HINT_LIST_RESOURCE,
       api_messages.FilterHintCollection,
       path="/filterHints",
       http_method="GET",
       name="list")
-  @api_common.with_ndb_context
   def ListFilterHints(self, request):
     """Fetches a list of filter hint by type.
 

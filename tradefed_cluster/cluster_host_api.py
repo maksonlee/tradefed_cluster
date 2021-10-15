@@ -91,13 +91,12 @@ class ClusterHostApi(remote.Service):
       host_update_states=messages.EnumField(
           api_messages.HostUpdateState, 19, repeated=True))
 
-  @endpoints.method(
+  @api_common.method(
       HOST_LIST_RESOURCE,
       api_messages.HostInfoCollection,
       path="/hosts",
       http_method="GET",
       name="list")
-  @api_common.with_ndb_context
   def ListHosts(self, request):
     """Fetches a list of hosts.
 
@@ -232,13 +231,12 @@ class ClusterHostApi(remote.Service):
           5, default=device_manager.DEFAULT_HOST_HISTORY_SIZE),
   )
 
-  @endpoints.method(
+  @api_common.method(
       HOST_GET_RESOURCE,
       api_messages.HostInfo,
       path="{hostname}",
       http_method="GET",
       name="get")
-  @api_common.with_ndb_context
   def GetHost(self, request):
     """Fetches the information and notes of a given hostname.
 
@@ -305,13 +303,12 @@ class ClusterHostApi(remote.Service):
       timestamp=message_types.DateTimeField(9, required=True),
   )
 
-  @endpoints.method(
+  @api_common.method(
       NEW_NOTE_RESOURCE,
       api_messages.Note,
       path="{hostname}/note",
       http_method="POST",
       name="newNote")
-  @api_common.with_ndb_context
   def NewNote(self, request):
     """Submits a note for this host.
 
@@ -349,13 +346,12 @@ class ClusterHostApi(remote.Service):
       event_time=message_types.DateTimeField(10),
   )
 
-  @endpoints.method(
+  @api_common.method(
       NOTE_ADD_OR_UPDATE_RESOURCE,
       api_messages.Note,
       path="{hostname}/notes",
       http_method="POST",
       name="addOrUpdateNote")
-  @api_common.with_ndb_context
   def AddOrUpdateNote(self, request):
     """Add or update a host note.
 
@@ -420,13 +416,12 @@ class ClusterHostApi(remote.Service):
 
     return host_note_msg
 
-  @endpoints.method(
+  @api_common.method(
       api_messages.BatchUpdateNotesWithPredefinedMessageRequest,
       api_messages.NoteCollection,
       path="notes:batchUpdateNotesWithPredefinedMessage",
       http_method="POST",
       name="batchUpdateNotesWithPredefinedMessage")
-  @api_common.with_ndb_context
   def BatchUpdateNotesWithPredefinedMessage(self, request):
     """Batch update notes with the same predefined message.
 
@@ -509,13 +504,12 @@ class ClusterHostApi(remote.Service):
       ids=messages.IntegerField(2, repeated=True),
   )
 
-  @endpoints.method(
+  @api_common.method(
       NOTES_BATCH_GET_RESOURCE,
       api_messages.NoteCollection,
       path="{hostname}/notes:batchGet",
       http_method="GET",
       name="batchGetNotes")
-  @api_common.with_ndb_context
   def BatchGetNotes(self, request):
     """Batch get notes of a host.
 
@@ -554,13 +548,12 @@ class ClusterHostApi(remote.Service):
       ids=messages.IntegerField(2, repeated=True),
   )
 
-  @endpoints.method(
+  @api_common.method(
       NOTES_DELETE_RESOURCE,
       message_types.VoidMessage,
       path="{hostname}/notes",
       http_method="DELETE",
       name="batchDeleteNotes")
-  @api_common.with_ndb_context
   def BatchDeleteNotes(self, request):
     """Delete notes of a host.
 
@@ -590,13 +583,12 @@ class ClusterHostApi(remote.Service):
       key.delete()
     return message_types.VoidMessage()
 
-  @endpoints.method(
+  @api_common.method(
       NOTES_LIST_RESOURCE,
       api_messages.NoteCollection,
       path="{hostname}/notes",
       http_method="GET",
       name="listNotes")
-  @api_common.with_ndb_context
   def ListNotes(self, request):
     """List notes of a host.
 
@@ -629,13 +621,12 @@ class ClusterHostApi(remote.Service):
       hostnames=messages.StringField(1, repeated=True),
       assignee=messages.StringField(2, required=True))
 
-  @endpoints.method(
+  @api_common.method(
       ASSIGN_HOSTS_RESOURCE,
       message_types.VoidMessage,
       path="assign",
       http_method="POST",
       name="assign")
-  @api_common.with_ndb_context
   def Assign(self, request):
     """Mark the hosts as recover.
 
@@ -653,13 +644,12 @@ class ClusterHostApi(remote.Service):
   UNASSIGN_HOSTS_RESOURCE = endpoints.ResourceContainer(
       hostnames=messages.StringField(1, repeated=True))
 
-  @endpoints.method(
+  @api_common.method(
       UNASSIGN_HOSTS_RESOURCE,
       message_types.VoidMessage,
       path="unassign",
       http_method="POST",
       name="unassign")
-  @api_common.with_ndb_context
   def Unassign(self, request):
     """Mark the hosts as recover.
 
@@ -674,13 +664,12 @@ class ClusterHostApi(remote.Service):
     device_manager.AssignHosts(request.hostnames, None)
     return message_types.VoidMessage()
 
-  @endpoints.method(
+  @api_common.method(
       api_messages.HostRecoveryStateRequests,
       message_types.VoidMessage,
       path="batchSetRecoveryState",
       http_method="POST",
       name="batchSetRecoveryState")
-  @api_common.with_ndb_context
   def BatchSetRecoveryState(self, request):
     """Batch set recovery state for hosts.
 
@@ -695,13 +684,12 @@ class ClusterHostApi(remote.Service):
   HOSTNAME_RESOURCE = endpoints.ResourceContainer(
       hostname=messages.StringField(1, required=True),)
 
-  @endpoints.method(
+  @api_common.method(
       HOSTNAME_RESOURCE,
       api_messages.HostInfo,
       path="{hostname}/remove",
       http_method="POST",
       name="remove")
-  @api_common.with_ndb_context
   def Remove(self, request):
     """Remove this host.
 
@@ -719,13 +707,12 @@ class ClusterHostApi(remote.Service):
                                         request.hostname)
     return datastore_entities.ToMessage(host)
 
-  @endpoints.method(
+  @api_common.method(
       HOSTNAME_RESOURCE,
       api_messages.HostInfo,
       path="{hostname}/restore",
       http_method="POST",
       name="restore")
-  @api_common.with_ndb_context
   def Restore(self, request):
     """Restore this host.
 
@@ -750,13 +737,12 @@ class ClusterHostApi(remote.Service):
       backwards=messages.BooleanField(4, default=False),
   )
 
-  @endpoints.method(
+  @api_common.method(
       HISTORIES_LIST_RESOURCE,
       api_messages.HostInfoHistoryCollection,
       path="{hostname}/histories",
       http_method="GET",
       name="listHistories")
-  @api_common.with_ndb_context
   def ListHistories(self, request):
     """List histories of a host.
 
@@ -786,13 +772,12 @@ class ClusterHostApi(remote.Service):
       cursor=messages.StringField(3),
   )
 
-  @endpoints.method(
+  @api_common.method(
       CONFIGS_LIST_RESOURCE,
       api_messages.HostConfigCollection,
       path="configs",
       http_method="GET",
       name="listHostConfigs")
-  @api_common.with_ndb_context
   def ListHostConfigs(self, request):
     """List host configs.
 
@@ -815,13 +800,12 @@ class ClusterHostApi(remote.Service):
     return api_messages.HostConfigCollection(
         host_configs=host_config_msgs, next_cursor=next_cursor)
 
-  @endpoints.method(
+  @api_common.method(
       _HOSTNAME_RESOURCE,
       api_messages.HostMetadata,
       path="{hostname}/metadata",
       http_method="GET",
       name="getMetadata")
-  @api_common.with_ndb_context
   def GetMetadata(self, request):
     """Get a host metadata.
 
@@ -844,13 +828,12 @@ class ClusterHostApi(remote.Service):
       allow_to_update=messages.BooleanField(3, default=False),
   )
 
-  @endpoints.method(
+  @api_common.method(
       METADATA_PATCH_RESOURCE,
       api_messages.HostMetadata,
       path="{hostname}/metadata",
       http_method="PATCH",
       name="patchMetadata")
-  @api_common.with_ndb_context
   def PatchMetadata(self, request):
     """Patch a host metadata.
 
@@ -884,13 +867,12 @@ class ClusterHostApi(remote.Service):
       allow_to_update=messages.BooleanField(4, default=False),
   )
 
-  @endpoints.method(
+  @api_common.method(
       BATCH_SET_TEST_HARNESS_IMAGES_RESOURCE,
       message_types.VoidMessage,
       path="hostMetadata:batchUpdate",
       http_method="POST",
       name="batchUpdateHostMetadata")
-  @api_common.with_ndb_context
   def BatchUpdateHostMetadata(self, request):
     """Update HostMetadata on multiple hosts.
 
@@ -954,13 +936,12 @@ class ClusterHostApi(remote.Service):
                         % ", ".join(hosts_not_enabled))
     raise endpoints.BadRequestException(error_message)
 
-  @endpoints.method(
+  @api_common.method(
       _HOSTNAME_RESOURCE,
       api_messages.HostResource,
       path="{hostname}/resource",
       http_method="GET",
       name="getHostResource")
-  @api_common.with_ndb_context
   def GetHostResource(self, request):
     """Get a host resource.
 

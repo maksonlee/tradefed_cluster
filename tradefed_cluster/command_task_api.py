@@ -18,7 +18,6 @@ import datetime
 import logging
 import uuid
 
-import endpoints
 import grpc
 from protorpc import messages
 from protorpc import remote
@@ -97,13 +96,12 @@ def _CreateAttemptId():
 class CommandTaskApi(remote.Service):
   """A class for task API service."""
 
-  @endpoints.method(
+  @api_common.method(
       LeaseHostTasksRequest,
       CommandTaskList,
       path="leasehosttasks",
       http_method="POST",
       name="leasehosttasks")
-  @api_common.with_ndb_context
   def LeaseHostTasks(self, request):
     """Lease available command tasks for a given host.
 

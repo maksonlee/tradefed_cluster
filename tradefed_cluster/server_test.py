@@ -13,10 +13,11 @@
 # limitations under the License.
 
 """Tests for server."""
-from absl.testing import absltest
+import unittest
 import werkzeug
 
 from tradefed_cluster import server
+from tradefed_cluster import testbed_dependent_test
 
 
 def CreateMockApp(status_code=200):
@@ -25,7 +26,7 @@ def CreateMockApp(status_code=200):
       lambda _: werkzeug.wrappers.Response(status=status_code))
 
 
-class RegexDispatcherTest(absltest.TestCase):
+class RegexDispatcherTest(testbed_dependent_test.TestbedDependentTest):
 
   def testDispatch(self):
     """Tests that requests can be dispatched."""
@@ -47,4 +48,4 @@ class RegexDispatcherTest(absltest.TestCase):
 
 
 if __name__ == '__main__':
-  absltest.main()
+  unittest.main()

@@ -117,13 +117,12 @@ class ReportApi(remote.Service):
       clusterPrefix=messages.StringField(6, required=False),
   )
 
-  @endpoints.method(
+  @api_common.method(
       REPORT_BUILD_RESOURCE,
       Report,
       path='/reports',
       http_method='GET',
       name='build')
-  @api_common.with_ndb_context
   def BuildReport(self, request):
     """Builds a report containing the counts of devices in given states.
 

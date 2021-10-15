@@ -16,7 +16,6 @@
 
 import logging
 
-import endpoints
 from protorpc import message_types
 from protorpc import remote
 
@@ -33,13 +32,12 @@ from tradefed_cluster import request_sync_monitor
 class CoordinatorApi(remote.Service):
   """A class for coordinator API."""
 
-  @endpoints.method(
+  @api_common.method(
       message_types.VoidMessage,
       message_types.VoidMessage,
       path="backfill-commands",
       http_method="POST",
       name="backfillCommands")
-  @api_common.with_ndb_context
   def BackfillCommands(self, request):
     """Backfills all queued commands into sync queue."""
     logging.info("Backfilling queued commands to sync queue.")
@@ -50,13 +48,12 @@ class CoordinatorApi(remote.Service):
     logging.info("Backfilled %d queued commands.", num_monitored)
     return message_types.VoidMessage()
 
-  @endpoints.method(
+  @api_common.method(
       message_types.VoidMessage,
       message_types.VoidMessage,
       path="backfill-command-attempts",
       http_method="POST",
       name="backfillCommandAttempts")
-  @api_common.with_ndb_context
   def BackfillCommandAttempts(self, request):
     """Backfills all running attempts into sync queue."""
     logging.info("Backfilling running command attempts to sync queue.")
@@ -67,13 +64,12 @@ class CoordinatorApi(remote.Service):
     logging.info("Backfilled %d running command attempts.", num_monitored)
     return message_types.VoidMessage()
 
-  @endpoints.method(
+  @api_common.method(
       message_types.VoidMessage,
       message_types.VoidMessage,
       path="backfill-request-syncs",
       http_method="POST",
       name="backfillRequestSyncs")
-  @api_common.with_ndb_context
   def BackfillRequestSyncs(self, request):
     logging.info("Backfilling non final requests to sync queue.")
 

@@ -39,9 +39,8 @@ class ClusterApi(remote.Service):
       message_types.VoidMessage,
       include_hosts=messages.BooleanField(1, default=False))
 
-  @endpoints.method(CLUSTER_LIST_RESOURCE, ClusterInfoCollection,
-                    path="/clusters", http_method="GET", name="list")
-  @api_common.with_ndb_context
+  @api_common.method(CLUSTER_LIST_RESOURCE, ClusterInfoCollection,
+                     path="/clusters", http_method="GET", name="list")
   def ListClusters(self, request):
     """Fetches a list of clusters that are available.
 
@@ -68,12 +67,11 @@ class ClusterApi(remote.Service):
       include_notes=messages.BooleanField(3, default=False),
   )
 
-  @endpoints.method(
+  @api_common.method(
       CLUSTER_GET_RESOURCE,
       api_messages.ClusterInfo,
       path="{cluster_id}",
       http_method="GET", name="get")
-  @api_common.with_ndb_context
   def GetCluster(self, request):
     """Fetches the information/status for a given cluster id.
 
@@ -134,10 +132,9 @@ class ClusterApi(remote.Service):
       timestamp=message_types.DateTimeField(9, required=True),
   )
 
-  @endpoints.method(CLUSTER_NOTE_RESOURCE, api_messages.Note,
-                    path="{cluster_id}/note", http_method="POST",
-                    name="newNote")
-  @api_common.with_ndb_context
+  @api_common.method(CLUSTER_NOTE_RESOURCE, api_messages.Note,
+                     path="{cluster_id}/note", http_method="POST",
+                     name="newNote")
   def NewNote(self, request):
     """Submits a note for this host.
 

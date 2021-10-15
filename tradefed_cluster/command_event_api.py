@@ -16,7 +16,6 @@
 
 import json
 
-import endpoints
 from protorpc import message_types
 from protorpc import protojson
 from protorpc import remote
@@ -31,13 +30,12 @@ from tradefed_cluster import command_event_handler
 class CommandEventApi(remote.Service):
   """A class for command events API service."""
 
-  @endpoints.method(
+  @api_common.method(
       api_messages.CommandEventList,
       message_types.VoidMessage,
       path="/command_events",
       http_method="POST",
       name="submit")
-  @api_common.with_ndb_context
   def SubmitCommandEvents(self, request):
     """Submit a bundle of cluster command events for processing.
 

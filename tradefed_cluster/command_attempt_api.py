@@ -38,13 +38,12 @@ class CommandAttemptApi(remote.Service):
       count=messages.IntegerField(4, variant=messages.Variant.INT32)
   )
 
-  @endpoints.method(
+  @api_common.method(
       COMMAND_ATTEMPT_LIST_RESOURCE,
       api_messages.CommandAttemptMessageCollection,
       path="/commandAttempts",
       http_method="GET",
       name="list")
-  @api_common.with_ndb_context
   def ListCommandAttempts(self, api_request):
     """Get command attempts satisfy the condition.
 

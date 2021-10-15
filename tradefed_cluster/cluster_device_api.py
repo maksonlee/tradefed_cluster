@@ -69,13 +69,12 @@ class ClusterDeviceApi(remote.Service):
       test_harness=messages.StringField(18, repeated=True),
   )
 
-  @endpoints.method(
+  @api_common.method(
       DEVICE_LIST_RESOURCE,
       api_messages.DeviceInfoCollection,
       path="/devices",
       http_method="GET",
       name="list")
-  @api_common.with_ndb_context
   def ListDevices(self, request):
     """Fetches a list of devices from NDB.
 
@@ -186,13 +185,12 @@ class ClusterDeviceApi(remote.Service):
       hostname=messages.StringField(5),
   )
 
-  @endpoints.method(
+  @api_common.method(
       DEVICE_GET_RESOURCE,
       api_messages.DeviceInfo,
       path="{device_serial}",
       http_method="GET",
       name="get")
-  @api_common.with_ndb_context
   def GetDevice(self, request):
     """Fetches the information and notes of a given device.
 
@@ -246,13 +244,12 @@ class ClusterDeviceApi(remote.Service):
       hostname=messages.StringField(10),
   )
 
-  @endpoints.method(
+  @api_common.method(
       NEW_NOTE_RESOURCE,
       api_messages.Note,
       path="{device_serial}/note",
       http_method="POST",
       name="newNote")
-  @api_common.with_ndb_context
   def NewNote(self, request):
     """Submits a note for this device.
 
@@ -293,13 +290,12 @@ class ClusterDeviceApi(remote.Service):
       event_time=message_types.DateTimeField(11),
   )
 
-  @endpoints.method(
+  @api_common.method(
       NOTE_ADD_OR_UPDATE_RESOURCE,
       api_messages.Note,
       path="{device_serial}/notes",
       http_method="POST",
       name="addOrUpdateNote")
-  @api_common.with_ndb_context
   def AddOrUpdateNote(self, request):
     """Add or update a device note.
 
@@ -370,13 +366,12 @@ class ClusterDeviceApi(remote.Service):
 
     return device_note_msg
 
-  @endpoints.method(
+  @api_common.method(
       api_messages.BatchUpdateNotesWithPredefinedMessageRequest,
       api_messages.NoteCollection,
       path="notes:batchUpdateNotesWithPredefinedMessage",
       http_method="POST",
       name="batchUpdateNotesWithPredefinedMessage")
-  @api_common.with_ndb_context
   def BatchUpdateNotesWithPredefinedMessage(self, request):
     """Batch update notes with the same predefined message.
 
@@ -464,13 +459,12 @@ class ClusterDeviceApi(remote.Service):
       ids=messages.IntegerField(2, repeated=True),
   )
 
-  @endpoints.method(
+  @api_common.method(
       NOTES_BATCH_GET_RESOURCE,
       api_messages.NoteCollection,
       path="{device_serial}/notes:batchGet",
       http_method="GET",
       name="batchGetNotes")
-  @api_common.with_ndb_context
   def BatchGetNotes(self, request):
     """Batch get notes of a device.
 
@@ -501,13 +495,12 @@ class ClusterDeviceApi(remote.Service):
       ids=messages.IntegerField(2, repeated=True),
   )
 
-  @endpoints.method(
+  @api_common.method(
       NOTES_DELETE_RESOURCE,
       message_types.VoidMessage,
       path="{device_serial}/notes",
       http_method="DELETE",
       name="batchDeleteNotes")
-  @api_common.with_ndb_context
   def BatchDeleteNotes(self, request):
     """Delete notes of a device.
 
@@ -544,13 +537,12 @@ class ClusterDeviceApi(remote.Service):
       backwards=messages.BooleanField(4, default=False),
   )
 
-  @endpoints.method(
+  @api_common.method(
       NOTES_LIST_RESOURCE,
       api_messages.NoteCollection,
       path="{device_serial}/notes",
       http_method="GET",
       name="listNotes")
-  @api_common.with_ndb_context
   def ListNotes(self, request):
     """List notes of a device.
 
@@ -581,13 +573,12 @@ class ClusterDeviceApi(remote.Service):
   LATEST_NOTES_BATCH_GET_BY_DEVICE_RESOURCE = endpoints.ResourceContainer(
       device_serials=messages.StringField(1, repeated=True),)
 
-  @endpoints.method(
+  @api_common.method(
       LATEST_NOTES_BATCH_GET_BY_DEVICE_RESOURCE,
       api_messages.NoteCollection,
       path="latest_notes:batchGet",
       http_method="GET",
       name="batchGetLatestNotesByDevice")
-  @api_common.with_ndb_context
   def BatchGetLatestNotesByDevice(self, request):
     """Batch get notes of a device.
 
@@ -619,13 +610,12 @@ class ClusterDeviceApi(remote.Service):
       hostname=messages.StringField(2),
   )
 
-  @endpoints.method(
+  @api_common.method(
       DEVICE_SERIAL_RESOURCE,
       api_messages.DeviceInfo,
       path="{device_serial}/remove",
       http_method="POST",
       name="remove")
-  @api_common.with_ndb_context
   def Remove(self, request):
     """Remove this device .
 
@@ -646,13 +636,12 @@ class ClusterDeviceApi(remote.Service):
         device_serial=device.device_serial, hostname=device.hostname)
     return datastore_entities.ToMessage(device)
 
-  @endpoints.method(
+  @api_common.method(
       DEVICE_SERIAL_RESOURCE,
       api_messages.DeviceInfo,
       path="{device_serial}/restore",
       http_method="POST",
       name="restore")
-  @api_common.with_ndb_context
   def Restore(self, request):
     """Restore this device .
 
@@ -680,13 +669,12 @@ class ClusterDeviceApi(remote.Service):
       backwards=messages.BooleanField(4, default=False),
   )
 
-  @endpoints.method(
+  @api_common.method(
       HISTORIES_LIST_RESOURCE,
       api_messages.DeviceInfoHistoryCollection,
       path="{device_serial}/histories",
       http_method="GET",
       name="listHistories")
-  @api_common.with_ndb_context
   def ListHistories(self, request):
     """List histories of a device.
 
@@ -710,13 +698,12 @@ class ClusterDeviceApi(remote.Service):
         next_cursor=next_cursor,
         prev_cursor=prev_cursor)
 
-  @endpoints.method(
+  @api_common.method(
       api_messages.DeviceRecoveryStateRequests,
       message_types.VoidMessage,
       path="batchSetRecoveryState",
       http_method="POST",
       name="batchSetRecoveryState")
-  @api_common.with_ndb_context
   def BatchSetRecoveryState(self, request):
     """Batch set recovery state for devices.
 

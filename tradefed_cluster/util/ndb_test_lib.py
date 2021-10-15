@@ -40,7 +40,8 @@ def NdbContextManager():
   return ndb.Client(
       project='testbed-test',
       credentials=credentials.AnonymousCredentials()).context(
-          cache_policy=False, global_cache_policy=False)
+          cache_policy=False, global_cache_policy=False,
+          legacy_data=False)
 
 
 class NdbTest(absltest.TestCase):

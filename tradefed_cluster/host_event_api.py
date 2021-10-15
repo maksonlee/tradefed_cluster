@@ -98,9 +98,8 @@ class HostEventList(messages.Message):
 class HostEventApi(remote.Service):
   """A class for host events API service."""
 
-  @endpoints.method(HostEventList, message_types.VoidMessage,
-                    path="/host_events", http_method="POST", name="submit")
-  @api_common.with_ndb_context
+  @api_common.method(HostEventList, message_types.VoidMessage,
+                     path="/host_events", http_method="POST", name="submit")
   def SubmitHostEvents(self, request):
     """Submit a bundle of cluster host events for processing.
 

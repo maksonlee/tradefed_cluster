@@ -57,7 +57,6 @@ def _Now():
   return datetime.datetime.utcnow()
 
 
-@ndb.transactional(xg=True)
 def CreateTask(command_task_args):
   """Save the command task in datastore.
 

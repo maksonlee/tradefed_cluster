@@ -705,7 +705,6 @@ def ScheduleTasks(commands, update_request_state=True):
       request_manager.EvaluateState(request_id)
 
 
-@ndb.transactional(xg=True)
 def _ScheduleTask(command):
   """Schedules command tasks to CommandTaskStore to run.
 
@@ -733,6 +732,8 @@ def _ScheduleTask(command):
         affinity_tag=command.affinity_tag)
     if not command_task_store.CreateTask(command_task_args):
       logging.warning("task %s already exists", task_id)
+  # Update command state to QUEUED, to indicate that all command tasks have been
+  # scheduled.
   UpdateState(
       command.request_id,
       command.key.id(),

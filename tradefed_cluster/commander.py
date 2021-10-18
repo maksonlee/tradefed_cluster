@@ -77,13 +77,19 @@ def _ProcessRequest(request_id):
     if request.max_concurrent_tasks:
       # Only schedule (request.max_concurrent_tasks) commands.
       commands = commands[:request.max_concurrent_tasks]
+
+    # If the command is in an UNKNOWN state, it means that not all tasks may
+    # have been scheduled for the command. Since we may retry processing a
+    # request for various reasons, we should only try to schedule commands that
+    # are in an UNKNOWN state.
     pending_commands = [
         c for c in commands if c.state == common.CommandState.UNKNOWN
     ]
     if pending_commands:
       command_manager.ScheduleTasks(
           pending_commands, update_request_state=False)
-      command_monitor.Monitor(pending_commands)
+    command_monitor.Monitor(commands)
+
     # Update the request state to start request event processing.
     request_manager.EvaluateState(request_id)
   except (AssertionError, ValueError) as e:

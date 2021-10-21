@@ -63,7 +63,7 @@ class ClusterDeviceApi(remote.Service):
       pools=messages.StringField(13, repeated=True),
       device_states=messages.StringField(14, repeated=True),
       host_groups=messages.StringField(15, repeated=True),
-      device_serial=messages.StringField(16),
+      device_serial=messages.StringField(16, repeated=True),
       flated_extra_info=messages.StringField(17),
       # TODO: Please use test_harnesses, this field is deprecated.
       test_harness=messages.StringField(18, repeated=True),
@@ -106,10 +106,6 @@ class ClusterDeviceApi(remote.Service):
       query = query.filter(
           datastore_entities.DeviceInfo.product == request.product)
 
-    if request.device_serial:
-      query = query.filter(
-          datastore_entities.DeviceInfo.device_serial == request.device_serial)
-
     if request.flated_extra_info:
       query = query.filter(datastore_entities.DeviceInfo.flated_extra_info ==
                            request.flated_extra_info)
@@ -138,6 +134,9 @@ class ClusterDeviceApi(remote.Service):
     if len(request.run_targets) == 1:
       query = query.filter(
           datastore_entities.DeviceInfo.run_target == request.run_targets[0])
+    if len(request.device_serial) == 1:
+      query = query.filter(datastore_entities.DeviceInfo.device_serial ==
+                           request.device_serial[0])
 
     def _PostFilter(device):
       if (request.pools and
@@ -158,6 +157,9 @@ class ClusterDeviceApi(remote.Service):
       if request.hostnames and device.hostname not in request.hostnames:
         return
       if request.run_targets and device.run_target not in request.run_targets:
+        return
+      if (request.device_serial and
+          device.device_serial not in request.device_serial):
         return
       return True
 

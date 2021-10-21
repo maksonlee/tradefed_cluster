@@ -132,6 +132,8 @@ message HostConfig {
   optional uint32 max_local_virtual_devices = 11;
   // Wait all tests finish or not.
   optional bool graceful_shutdown = 12;
+  // The max wait timeout to shutdown dockerized TradeFed.
+  optional uint64 shutdown_timeout_sec = 13;
 }
 
 // Tmpfs to mount in the dockerized tradefed container.

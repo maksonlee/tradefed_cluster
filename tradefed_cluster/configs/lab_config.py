@@ -194,7 +194,8 @@ class HostConfig(object):
   @property
   def shutdown_timeout_sec(self):
     """The dockerized TradeFed shutdown timeouts in seconds."""
-    return self.cluster_config_pb.shutdown_timeout_sec
+    return (self.host_config_pb.shutdown_timeout_sec or
+            self.cluster_config_pb.shutdown_timeout_sec)
 
   @property
   def enable_stackdriver(self):
@@ -407,6 +408,7 @@ def CreateHostConfig(
       docker_server=docker_server,
       extra_docker_args=list(extra_docker_args),
       enable_ui_update=enable_ui_update,
+      shutdown_timeout_sec=shutdown_timeout_sec,
       max_local_virtual_devices=max_local_virtual_devices,)
   cluster_config_pb = lab_config_pb2.ClusterConfig(
       cluster_name=cluster_name,

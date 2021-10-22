@@ -196,7 +196,6 @@ pytype_strict_library(
     deps = [
         ":datastore_emulator_lib",
         ":ndb_shim_lib",
-        "//net/grpc/python:use_insecure_channel",  # buildcleaner:keep
         third_party("absl/testing:absltest"),
         third_party("google/auth:credentials"),
         third_party("google/cloud/datastore"),

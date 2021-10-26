@@ -14,6 +14,7 @@
 # limitations under the License.
 """A host account validator service."""
 import enum
+import io
 import logging
 import re
 
@@ -173,6 +174,10 @@ def SyncUserPermissions(object_id, permission, user_names):
     plugin.SyncUserPermissions(object_id, permission, user_names)
 
 
+_ENV_PATH = 'PATH_INFO'
+_ENV_INPUT = 'wsgi.input'
+
+
 class PermissionMiddleware:
   """The wsgi middleware for checking resource access permission."""
 
@@ -187,19 +192,23 @@ class PermissionMiddleware:
     if not _GetPlugin():
       logging.info('No acl plugin installed, skip permission check.')
       return self._app(environ, start_response)
-    original = api_request.ApiRequest(
-        environ, base_paths=self._backend.base_paths)
+    path = environ[_ENV_PATH]
     # skip checking if the path was not guarded.
-    if not re.match(self._guard_pattern + r'\Z', original.path):
-      logging.debug(
-          'path %s was not guarded by PermissionMiddleware', original.path)
+    if not re.match(self._guard_pattern + r'\Z', path):
+      logging.debug('path %s was not guarded by PermissionMiddleware', path)
       return self._app(environ, start_response)
     # transform the http request to apiserving requests
-    method_config, params = self.lookup_rest_method(original)
+    environ[_ENV_INPUT] = io.StringIO(
+        environ[_ENV_INPUT].read().decode('utf-8'))
+    rest_request = api_request.ApiRequest(
+        environ, base_paths=self._backend.base_paths)
+    environ[_ENV_INPUT].seek(0)
+    method_config, params = self.lookup_rest_method(rest_request)
     if not method_config:
       return self._HandleAclError(
-          endpoints.NotFoundException('Not Found'), original, start_response)
-    request = self.transform_request(original, params, method_config)
+          endpoints.NotFoundException('Not Found'),
+          rest_request, start_response)
+    request = self.transform_request(rest_request, params, method_config)
     authentication = request.headers.get(AUTHENTICATE_HEADER)
     if authentication:
       device_serial = request.body_json.get(_DEVICE_KEY)
@@ -209,7 +218,7 @@ class PermissionMiddleware:
             authentication, Permission.reader if request.http_method == 'GET'
             else Permission.owner, device_serial, hostname)
       except endpoints.ServiceException as err:
-        return self._HandleAclError(err, original, start_response)
+        return self._HandleAclError(err, rest_request, start_response)
     return self._app(environ, start_response)
 
   def _HandleAclError(self, err, orig_request, start_response):

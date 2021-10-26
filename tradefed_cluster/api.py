@@ -35,6 +35,7 @@ from tradefed_cluster import report_api
 from tradefed_cluster import request_api
 from tradefed_cluster import run_target_api
 from tradefed_cluster import acl_check_api
+from tradefed_cluster.services import acl_service
 
 API_HANDLERS = [
     cluster_api.ClusterApi,
@@ -57,4 +58,5 @@ API_HANDLERS = [
     acl_check_api.AclApi,
 ] + env_config.CONFIG.extra_apis
 
-APP = endpoints.api_server(API_HANDLERS)
+APP = acl_service.PermissionMiddleware(
+    endpoints.api_server(API_HANDLERS), r'.*/(devices|hosts).*')

@@ -122,6 +122,7 @@ pytype_strict_library(
         ":run_target_api_lib",
         ":test_harness_image_api_lib",
         third_party("endpoints:endpoints_library"),
+        "//tradefed_cluster/services:acl_service_lib",
     ],
 )
 

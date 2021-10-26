@@ -259,8 +259,7 @@ def SyncToNDB():
       datastore_entities.HostGroupConfig,
       datastore_entities.HostConfig.update_time,
       _STATLE_CONFIG_MAX_AGE)
-  # TODO: Uncomment when fixed.
-  # _UpdateHostGroupPermissions(lab_to_unified_lab_config)
+  _UpdateHostGroupPermissions(lab_to_unified_lab_config)
 
 
 class _GcsDataLoader(dataloader.DataLoader):

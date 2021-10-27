@@ -522,6 +522,55 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual("test", device_1.physical_cluster)
     self.assertEqual(["test"], device_1.clusters)
 
+    # Device info history should be updated.
+    device_info_history = datastore_entities.DeviceInfoHistory.query(
+        ancestor=device_1.key).order(
+            -datastore_entities.DeviceInfoHistory.timestamp).fetch()
+    self.assertLen(device_info_history, 2)
+    self.assertEqual("NullDevice", device_info_history[0].run_target)
+    self.assertEqual("emulator", device_info_history[1].run_target)
+
+  def testHandleDeviceSnapshot_availableDevice_updateRunTargetWithUnknown(self):
+    """Tests that HandleDeviceSnapshot() updates run target with unknown."""
+    some_host_event = host_event.HostEvent(**self.HOST_EVENT)
+    device_manager.HandleDeviceSnapshotWithNDB(some_host_event)
+
+    host_event_run_target_unknown = copy.deepcopy(
+        self.HOST_EVENT_RUN_TARGET_UPDATE_AVAILABLE)
+    host_event_run_target_unknown["device_infos"][0]["run_target"] = "unknown"
+    some_host_event = host_event.HostEvent(**host_event_run_target_unknown)
+    device_manager.HandleDeviceSnapshotWithNDB(some_host_event)
+    device_1 = device_manager.GetDevice(device_serial=self.EMULATOR_SERIAL)
+    # Run target won't be updated.
+    self.assertEqual("emulator", device_1.run_target)
+
+    # Device info history won't be updated.
+    device_info_history = datastore_entities.DeviceInfoHistory.query(
+        ancestor=device_1.key).order(
+            -datastore_entities.DeviceInfoHistory.timestamp).fetch()
+    self.assertLen(device_info_history, 1)
+    self.assertEqual("emulator", device_info_history[0].run_target)
+
+  def testHandleDeviceSnapshot_availableDevice_createWithUnknownRunTarget(self):
+    """Tests that HandleDeviceSnapshot() with new unknown run_target device."""
+    host_event_new_device_unknown_run_target = copy.deepcopy(self.HOST_EVENT)
+    host_event_new_device_unknown_run_target["device_infos"][0][
+        "run_target"] = "unknown"
+    some_host_event = host_event.HostEvent(
+        **host_event_new_device_unknown_run_target)
+    device_manager.HandleDeviceSnapshotWithNDB(some_host_event)
+
+    device_1 = device_manager.GetDevice(device_serial=self.EMULATOR_SERIAL)
+    # Device created with unknown run target.
+    self.assertEqual("unknown", device_1.run_target)
+
+    # Device info history exists.
+    device_info_history = datastore_entities.DeviceInfoHistory.query(
+        ancestor=device_1.key).order(
+            -datastore_entities.DeviceInfoHistory.timestamp).fetch()
+    self.assertLen(device_info_history, 1)
+    self.assertEqual("unknown", device_info_history[0].run_target)
+
   def testHandleDeviceSnapshot_availableDevice_updateMac(self):
     """Tests that HandleDeviceSnapshot() updates mac address."""
     some_host_event = host_event.HostEvent(**self.HOST_EVENT)
@@ -913,8 +962,9 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
         state=common.DeviceState.AVAILABLE)
 
     timestamp = datetime.datetime(2015, 5, 7)
-    device_state_history, device_history = device_manager._UpdateDeviceState(
-        device, state=common.DeviceState.ALLOCATED, timestamp=timestamp)
+    device_state_history, device_history = (
+        device_manager._UpdateDevicePropertiesAndGetHistory(
+            device, timestamp, state=common.DeviceState.ALLOCATED))
     self.assertIsNotNone(device_state_history)
     self.assertEqual(timestamp, device_state_history.timestamp)
     self.assertEqual(common.DeviceState.ALLOCATED, device_state_history.state)
@@ -929,9 +979,11 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
         timestamp=datetime.datetime(2015, 5, 6),
         state=common.DeviceState.AVAILABLE)
 
-    device_state_history, device_history = device_manager._UpdateDeviceState(
-        device, state=common.DeviceState.AVAILABLE,
-        timestamp=datetime.datetime(2015, 5, 7))
+    device_state_history, device_history = (
+        device_manager._UpdateDevicePropertiesAndGetHistory(
+            device,
+            datetime.datetime(2015, 5, 7),
+            state=common.DeviceState.AVAILABLE))
     self.assertIsNone(device_state_history)
     self.assertIsNone(device_history)
 

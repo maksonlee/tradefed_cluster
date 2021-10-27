@@ -483,10 +483,7 @@ def _UpdateDeviceInNDB(device, device_key, device_data, host_event):
   product_variant = device_data.get(PRODUCT_VARIANT_KEY)
   if not device:
     device = datastore_entities.DeviceInfo(
-        key=device_key,
-        product=product,
-        product_variant=product_variant,
-        run_target=run_target)
+        key=device_key, product=product, product_variant=product_variant)
   if (device.timestamp and host_event.timestamp and
       device.timestamp > host_event.timestamp):
     logging.info("Ignore outdated event.")
@@ -512,8 +509,6 @@ def _UpdateDeviceInNDB(device, device_key, device_data, host_event):
     if _IsKnownProperty(product_variant):
       device.last_known_product_variant = product_variant
       device.extra_info[LAST_KNOWN_PRODUCT_VARIANT_KEY] = product_variant
-    if _IsKnownProperty(run_target):
-      device.run_target = run_target
     device.extra_info[SIM_STATE_KEY] = device_data.get(SIM_STATE_KEY)
     device.extra_info[SIM_OPERATOR_KEY] = device_data.get(SIM_OPERATOR_KEY)
     device.hidden = False
@@ -547,8 +542,8 @@ def _UpdateDeviceInNDB(device, device_key, device_data, host_event):
   device.extra_info[BATTERY_LEVEL_KEY] = device.battery_level
   device.device_type = device_type
 
-  device_state_history, device_history = _UpdateDeviceState(
-      device, device_state, host_event.timestamp)
+  device_state_history, device_history = _UpdateDevicePropertiesAndGetHistory(
+      device, host_event.timestamp, state=device_state, run_target=run_target)
   entities_to_update.append(device)
   if device_state_history:
     entities_to_update.append(device_state_history)
@@ -579,20 +574,42 @@ def _IsFastbootDevice(device_state, device_type, product, test_harness):
   return device_state == common.DeviceState.FASTBOOT
 
 
-def _UpdateDeviceState(device, state, timestamp):
-  """Updates the device state with a new state.
+def _UpdateDevicePropertiesAndGetHistory(device,
+                                         timestamp,
+                                         state=None,
+                                         run_target=None):
+  """Updates the device properties with new values from host events.
+
+  Changes in these fields will create a history.
 
   Args:
     device: a DeviceInfo object.
+    timestamp: host event timestamp.
     state: device's new state
-    timestamp: timestamp the state change.
+    run_target: device's new run_target
+
   Returns:
-    the new state history
+    the new device state history entity
+    the new device info history entity
   """
-  if not state or device.state == state:
-    # Ignore if the state doesn't change
+  changed = False
+
+  if state and device.state != state:
+    device.state = state
+    changed = True
+
+  if run_target and device.run_target != run_target:
+    if (_IsKnownProperty(run_target) and device.state
+        == common.DeviceState.AVAILABLE) or device.run_target is None:
+      # When the device first appears on a host (device.run_target will be None)
+      # it can be assigned with "unknown" run target. For existing devices
+      # "unknown" run target updates are ignored.
+      device.run_target = run_target
+      changed = True
+
+  if not changed:
     return None, None
-  device.state = state
+
   device.timestamp = timestamp
   device_state_history = datastore_entities.DeviceStateHistory(
       parent=device.key,
@@ -698,8 +715,8 @@ def _DoUpdateGoneDevicesInNDB(missing_device_keys, timestamp):
     if device.timestamp and device.timestamp < timestamp - ONE_MONTH:
       device.hidden = True
       device.timestamp = timestamp
-    device_state_history, device_history = _UpdateDeviceState(
-        device, common.DeviceState.GONE, timestamp)
+    device_state_history, device_history = _UpdateDevicePropertiesAndGetHistory(
+        device, timestamp, state=common.DeviceState.GONE)
     entities_to_update.append(device)
     if device_state_history:
       entities_to_update.append(device_state_history)
@@ -802,8 +819,8 @@ def UpdateGoneHost(hostname):
     if device.state == common.DeviceState.GONE:
       continue
     logging.debug("Set device %s to GONE.", device.device_serial)
-    device_state_history, device_history = _UpdateDeviceState(
-        device, common.DeviceState.GONE, now)
+    device_state_history, device_history = _UpdateDevicePropertiesAndGetHistory(
+        device, now, state=common.DeviceState.GONE)
     entities_to_update.append(device)
     if device_state_history:
       entities_to_update.append(device_state_history)

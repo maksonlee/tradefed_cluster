@@ -557,7 +557,6 @@ pytype_strict_library(
         third_party("flask"),
         third_party("protorpc:protorpc_all"),
         third_party("six"),
-        third_party("typing"),
     ],
 )
 

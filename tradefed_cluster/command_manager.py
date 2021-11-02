@@ -1020,11 +1020,11 @@ def GetCommandStateStats(request_id):
   """
   state_stats = {}
   for state in common.CommandState:
-    state_stats[str(state)] = 0
+    state_stats[state] = 0
 
   commands = GetCommands(request_id)
   for command in commands:
-    state_stats[str(command.state)] += 1
+    state_stats[command.state] += 1
 
   # GetCommands already orders by create_time
   create_time = None

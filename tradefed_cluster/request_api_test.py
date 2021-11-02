@@ -888,12 +888,12 @@ class RequestApiTest(api_test.ApiTest):
     message = protojson.decode_message(api_messages.CommandStateStats,
                                        api_response.body)
     stats = message.state_stats
-    self.assertEqual(stats[0].key, 'CANCELED')
-    self.assertEqual(stats[0].value, '0')
-    self.assertEqual(stats[1].key, 'COMPLETED')
-    self.assertEqual(stats[1].value, '0')
-    self.assertEqual(stats[5].key, 'RUNNING')
-    self.assertEqual(stats[5].value, '2')
+    self.assertEqual(stats[2].state, common.CommandState.RUNNING)
+    self.assertEqual(stats[2].count, 2)
+    self.assertEqual(stats[3].state, common.CommandState.CANCELED)
+    self.assertEqual(stats[3].count, 0)
+    self.assertEqual(stats[4].state, common.CommandState.COMPLETED)
+    self.assertEqual(stats[4].count, 0)
     self.assertEqual(message.create_time, START_TIME)
 
 

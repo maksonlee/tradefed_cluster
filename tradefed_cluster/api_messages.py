@@ -406,9 +406,15 @@ class CommandMessageCollection(messages.Message):
   page_token = messages.StringField(2)
 
 
+class CommandStateStat(messages.Message):
+  """The number of commands for a given state."""
+  state = messages.EnumField(common.CommandState, 1)
+  count = messages.IntegerField(2)
+
+
 class CommandStateStats(messages.Message):
   """Lists the number of commands for each state."""
-  state_stats = messages.MessageField(KeyValuePair, 1, repeated=True)
+  state_stats = messages.MessageField(CommandStateStat, 1, repeated=True)
   create_time = message_types.DateTimeField(2)
 
 

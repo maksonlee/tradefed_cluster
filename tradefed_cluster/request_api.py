@@ -520,9 +520,13 @@ class RequestApi(remote.Service):
     """Returns a list of key value pairs mapping command stats to counts."""
     stats, create_time = command_manager.GetCommandStateStats(
         request.request_id)
-    pair_messages = api_messages.MapToKeyValuePairMessages(stats)
 
-    return api_messages.CommandStateStats(state_stats=pair_messages,
+    stat_messages = []
+    if stats:
+      for k, v in stats.items():
+        stat_messages.append(api_messages.CommandStateStat(state=k, count=v))
+
+    return api_messages.CommandStateStats(state_stats=stat_messages,
                                           create_time=create_time)
 
 

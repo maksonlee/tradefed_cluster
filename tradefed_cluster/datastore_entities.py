@@ -2138,3 +2138,50 @@ class RawCommandEvent(ndb.Model):
   payload = ndb.JsonProperty(compressed=True)
   event_timestamp = ndb.DateTimeProperty()
   create_time = ndb.DateTimeProperty(auto_now_add=True)
+
+
+class ServiceConfig(ndb.Model):
+  """A service configuration model.
+
+  ServiceConfig entities to save TFC service configurations that can be easily
+  manually switched (through Datastore UI).
+
+  Attributes:
+    key: configuration key
+    value: configuration value in string
+    values: configuration values in string
+  """
+  key = ndb.StringProperty(required=True)
+  value = ndb.StringProperty()
+  # Used for list objects
+  values = ndb.StringProperty(repeated=True)
+
+  @classmethod
+  def GetConfigValue(cls, key):
+    """Helper to retrieve a configuration value given a key.
+
+    Args:
+      key: configuration key
+    Returns:
+      A configuration value or None if it does not exist.
+    """
+    config = cls.query(cls.key == key).get()
+    if config:
+      return config.value
+    else:
+      return None
+
+  @classmethod
+  def GetConfigValues(cls, key):
+    """Helper to retrieve a configuration values given a key.
+
+    Args:
+      key: configuration key
+    Returns:
+      A list of configuration value or empty list if it does not exist.
+    """
+    config = cls.query(cls.key == key).get()
+    if config:
+      return config.values
+    else:
+      return []

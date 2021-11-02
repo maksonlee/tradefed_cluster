@@ -629,6 +629,24 @@ class DatastoreEntitiesTest(testbed_dependent_test.TestbedDependentTest):
         _TEST_BENCH_MESSAGE,
         datastore_entities.ToMessage(_TEST_BENCH_ENTITY))
 
+  def testServiceConfig_getValue(self):
+    datastore_test_util.CreateServiceConfig('key1', value='value1')
+    datastore_test_util.CreateServiceConfig('key2')
+
+    self.assertEqual(
+        'value1', datastore_entities.ServiceConfig.GetConfigValue('key1'))
+    self.assertIsNone(datastore_entities.ServiceConfig.GetConfigValue('key2'))
+    self.assertIsNone(datastore_entities.ServiceConfig.GetConfigValue('key3'))
+
+  def testServiceConfig_getValues(self):
+    datastore_test_util.CreateServiceConfig('key1', values=['v1', 'v2'])
+    datastore_test_util.CreateServiceConfig('key2')
+
+    self.assertCountEqual(
+        ['v1', 'v2'], datastore_entities.ServiceConfig.GetConfigValues('key1'))
+    self.assertEmpty(datastore_entities.ServiceConfig.GetConfigValues('key2'))
+    self.assertEmpty(datastore_entities.ServiceConfig.GetConfigValues('key3'))
+
 
 if __name__ == '__main__':
   unittest.main()

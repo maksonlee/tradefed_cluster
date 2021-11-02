@@ -431,3 +431,13 @@ def CreateTestBench(cluster, run_target):
                                   name='sim_state',
                                   value='ABSENT',
                                   operator='=')])])]))
+
+
+def CreateServiceConfig(key, value=None, values=None):
+  """Craete a mock ServiceConfig entity."""
+  entity = datastore_entities.ServiceConfig(
+      key=key,
+      value=value,
+      values=(values or []))
+  entity.put()
+  return entity

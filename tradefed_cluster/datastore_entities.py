@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Datastore entity classes."""
 
 from __future__ import absolute_import
@@ -27,6 +26,8 @@ import dateutil.parser
 import six
 from tradefed_cluster import api_messages
 from tradefed_cluster import common
+from tradefed_cluster import env_config
+from tradefed_cluster.util import elasticsearch_client
 from tradefed_cluster.util import ndb_shim as ndb
 from tradefed_cluster.util import ndb_util
 
@@ -1813,6 +1814,18 @@ class DeviceInfo(ndb.Expando):
       repeated=True)
   recovery_state = ndb.StringProperty()
   last_recovery_time = ndb.DateTimeProperty()
+
+  def _post_put_hook(self, future):
+    if not env_config.CONFIG.use_elasticsearch:
+      return
+    client = elasticsearch_client.ElasticsearchClient(
+        url=env_config.CONFIG.elasticsearch_server)
+    device = client.GetDoc(common.ELASTIC_INDEX_DEVICES,
+                           self.device_serial)
+    if device and self.timestamp:
+      device_timestamp = device.get('timestamp')
+      if (not device_timestamp or self.timestamp > device_timestamp):
+        client.UpsertDoc(common.ELASTIC_INDEX_DEVICES, self.device_serial, self)
 
 
 @MessageConverter(DeviceInfo)

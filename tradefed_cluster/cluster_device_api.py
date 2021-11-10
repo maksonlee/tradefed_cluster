@@ -14,6 +14,7 @@
 """API module to serve cluster device service calls."""
 
 import datetime
+import json
 import logging
 import time
 
@@ -22,6 +23,7 @@ from protorpc import message_types
 from protorpc import messages
 from protorpc import remote
 
+from tradefed_cluster.util import elasticsearch_client
 from tradefed_cluster.util import ndb_shim as ndb
 
 from tradefed_cluster import api_common
@@ -30,6 +32,7 @@ from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import datastore_util
 from tradefed_cluster import device_manager
+from tradefed_cluster import env_config
 from tradefed_cluster import note_manager
 
 
@@ -67,7 +70,64 @@ class ClusterDeviceApi(remote.Service):
       flated_extra_info=messages.StringField(17),
       # TODO: Please use test_harnesses, this field is deprecated.
       test_harness=messages.StringField(18, repeated=True),
+      elastic_query=messages.StringField(19),
   )
+
+  def _GetValueFromExtraInfo(self, extra_info, key):
+    """Fetches a value from extra info by the given key.
+
+    Args:
+      extra_info: a key value pair list.
+      key: the key name in the extra info.
+
+    Returns:
+      a string value of the key.
+    """
+    for item in extra_info:
+      if item.get("key") == key:
+        return item.get("value")
+    return None
+
+  def FromElasticDocument(self, document):
+    """Fetches a value from extra info by the given key.
+
+    Args:
+      document: a item of source from elastic.
+
+    Returns:
+      a DeviceInfo object
+    """
+    extra_info = document.get("extra_info")
+    sim_state = self._GetValueFromExtraInfo(extra_info, "sim_state")
+    sim_operator = self._GetValueFromExtraInfo(extra_info, "sim_operator")
+    last_recovery_time = document.get("last_recovery_time")
+    if last_recovery_time is not None:
+      last_recovery_time = datetime.datetime.fromisoformat(last_recovery_time)
+    return api_messages.DeviceInfo(
+        device_serial=document.get("device_serial"),
+        lab_name=document.get("lab_name"),
+        cluster=document.get("cluster"),
+        host_group=document.get("host_group"),
+        hostname=document.get("hostname"),
+        run_target=document.get("run_target"),
+        pools=document.get("pools"),
+        build_id=document.get("build_id"),
+        product=document.get("product"),
+        product_variant=document.get("product_variant"),
+        sdk_version=document.get("sdk_version"),
+        state=document.get("state"),
+        timestamp=datetime.datetime.fromisoformat(document.get("timestamp")),
+        hidden=document.get("hidden"),
+        battery_level=document.get("battery_level"),
+        mac_address=document.get("mac_address"),
+        sim_state=sim_state,
+        sim_operator=sim_operator,
+        device_type=api_messages.DeviceTypeMessage(document.get("device_type")),
+        extra_info=extra_info,
+        test_harness=document.get("test_harness"),
+        recovery_state=document.get("recovery_state"),
+        flated_extra_info=document.get("flated_extra_info"),
+        last_recovery_time=last_recovery_time)
 
   @api_common.method(
       DEVICE_LIST_RESOURCE,
@@ -85,6 +145,19 @@ class ClusterDeviceApi(remote.Service):
       a DeviceInfoCollection object.
     """
     logging.debug("ClusterDeviceApi.NDBListDevices request: %s", request)
+    if (request.elastic_query is not None and
+        env_config.CONFIG.use_elasticsearch):  # pytype: disable=attribute-error
+      elastic_query = json.loads(request.elastic_query)
+      client = elasticsearch_client.ElasticsearchClient()
+      result, prev_cursor, next_cursor = client.Search(
+          common.ELASTIC_INDEX_DEVICES, elastic_query)
+      device_infos = [self.FromElasticDocument(d) for d in result]
+      return api_messages.DeviceInfoCollection(
+          device_infos=device_infos,
+          next_cursor=next_cursor,
+          prev_cursor=prev_cursor,
+          more=bool(next_cursor))
+
     query = datastore_entities.DeviceInfo.query().order(
                 datastore_entities.DeviceInfo.key)
     if request.lab_name:

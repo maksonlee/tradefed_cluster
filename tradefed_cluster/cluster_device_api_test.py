@@ -28,6 +28,8 @@ from tradefed_cluster import datastore_entities
 from tradefed_cluster import datastore_test_util
 from tradefed_cluster import device_manager
 from tradefed_cluster import note_manager
+from tradefed_cluster.util import elasticsearch_client
+from tradefed_cluster import env_config
 
 
 class ClusterDeviceApiTest(api_test.ApiTest):
@@ -54,6 +56,30 @@ class ClusterDeviceApiTest(api_test.ApiTest):
 
   def setUp(self):
     api_test.ApiTest.setUp(self)
+    env_config.CONFIG.use_elasticsearch = True
+    response = {
+        'device_serial': 'device_0',
+        'lab_name': 'lab-name-1',
+        'hostname': 'host_0',
+        'run_target': 'run_target',
+        'product': 'product',
+        'state': 'Available',
+        'timestamp': datetime.datetime(2015, 10, 9),
+        'battery_level': '100',
+        'hidden': False,
+        'cluster': 'free',
+        'host_group': 'host_group_01',
+        'pools': ['pool_01'],
+        'device_type': 'PHYSICAL',
+        'test_harness': 'tradefed'
+    }
+    mock_elasticsearch_client = mock.MagicMock()
+    mock_elasticsearch_client.GetDoc.return_value = response
+
+    self.elastic_patcher = mock.patch(
+        '__main__.elasticsearch_client.ElasticsearchClient',
+        return_value=mock_elasticsearch_client)
+    self.elastic_patcher.start()
     self.ndb_host_0 = datastore_test_util.CreateHost('free', 'host_0')
     self.ndb_device_0 = datastore_test_util.CreateDevice(
         'free', 'host_0', 'device_0', 'lab-name-1', timestamp=self.TIMESTAMP)
@@ -97,6 +123,10 @@ class ClusterDeviceApiTest(api_test.ApiTest):
         state='Allocated')
     device_history_1_key = self.device_history_1.put()
     self.history = [device_history_0_key, device_history_1_key]
+
+  def tearDown(self):
+    super().tearDown()
+    self.elastic_patcher.stop()
 
   def testListDevices(self):
     """Tests ListDevices returns all devices."""
@@ -1957,6 +1987,75 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual('FIXED', self.ndb_device_0.recovery_state)
     self.ndb_device_1 = self.ndb_device_1.key.get()
     self.assertEqual('FIXED', self.ndb_device_1.recovery_state)
+
+  @mock.patch.object(env_config.CONFIG, 'use_elasticsearch', True)
+  @mock.patch.object(elasticsearch_client, 'ElasticsearchClient')
+  def testListDevices_queryFromElasticsearch(self,
+                                             mock_elasticsearch_client_class):
+    """Tests ListDevices returns devices from elasticsearch."""
+    response = ([{
+        'device_serial': 'device_0',
+        'lab_name': 'Lab-1',
+        'hostname': 'host_0',
+        'run_target': 'run_target',
+        'product': 'product',
+        'state': 'Available',
+        'timestamp': '2015-10-09T00:05:23',
+        'battery_level': '100',
+        'hidden': False,
+        'cluster': 'free',
+        'host_group': 'host_group_01',
+        'pools': ['pool_01'],
+        'device_type': 'PHYSICAL',
+        'test_harness': 'tradefed',
+        'extra_info': [{
+            'key': 'sim_state',
+            'value': 'READY'
+        }, {
+            'key': 'sim_operator'
+        }, {
+            'key': 'product'
+        }, {
+            'key': 'battery_temperature',
+            'value': '28'
+        }],
+        'flated_extra_info': ['sim_state:READY', 'product:']
+    }], 'prev', 'next')
+    mock_elasticsearch_client = mock.MagicMock()
+    mock_elasticsearch_client.Search = mock.MagicMock(return_value=response)
+    mock_elasticsearch_client_class.return_value = mock_elasticsearch_client
+    api_request = {
+        'elastic_query':
+            ('{"size":10,"query":{"bool":{"must":[{"bool":{"should":[{"term": '
+             '{"lab_name.keyword": "Lab-1" }}]}}]}}}')
+    }
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterDeviceApi.ListDevices', api_request)
+    device_collection = protojson.decode_message(
+        api_messages.DeviceInfoCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertEqual(1, len(device_collection.device_infos))
+    for device in device_collection.device_infos:
+      self.assertEqual('Lab-1', device.lab_name)
+
+    query = {
+        'size': 10,
+        'query': {
+            'bool': {
+                'must': [{
+                    'bool': {
+                        'should': [{
+                            'term': {
+                                'lab_name.keyword': 'Lab-1'
+                            }
+                        }]
+                    }
+                }]
+            }
+        }
+    }
+    mock_elasticsearch_client.Search.assert_called_once_with(
+        common.ELASTIC_INDEX_DEVICES, query)
 
 
 if __name__ == '__main__':

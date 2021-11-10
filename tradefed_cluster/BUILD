@@ -244,7 +244,9 @@ pytype_strict_library(
         ":datastore_entities_lib",
         ":datastore_util_lib",
         ":device_manager_lib",
+        ":env_config_lib",
         ":note_manager_lib",
+        "//tradefed_cluster/util:elasticsearch_client_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
         third_party("endpoints:endpoints_library"),
         third_party("protorpc:protorpc_all"),
@@ -924,6 +926,8 @@ pytype_strict_library(
     deps = [
         ":api_messages_lib",
         ":common_lib",
+        ":env_config_lib",
+        "//tradefed_cluster/util:elasticsearch_client_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
         "//tradefed_cluster/util:ndb_util_lib",
         third_party("dateutil"),

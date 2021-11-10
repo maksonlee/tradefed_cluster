@@ -51,6 +51,9 @@ TASK_RESET_ERROR_MESSAGE = "A task reset by command attempt monitor."
 
 UNKNOWN_TEST_HARNESS_VERSION = "UNKNOWN"
 
+ELASTIC_INDEX_DEVICES = "devices"
+ELASTIC_INDEX_HOSTS = "hosts"
+
 
 class TooMuchContentionError(Exception):
   """Exception identifier used for retrying too much contention errors."""

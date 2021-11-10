@@ -89,7 +89,7 @@ ENV_TO_CONFIG = {
     ENV_DEV: EnvConfig(
         env_suffix='-' + ENV_ALPHA,
         zanzibar_server=ZANZIBAR_SERVER_DEV,
-        use_elasticsearch=True,
+        use_elasticsearch=False,
         elasticsearch_server='http://localhost:9200'
     ),
 }

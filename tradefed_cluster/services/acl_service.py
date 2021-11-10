@@ -133,6 +133,10 @@ def _CheckHostPermission(obj_id, permission, user_name):
   host_config = datastore_entities.HostConfig.get_by_id(obj_id)
   if not host_config:
     raise endpoints.NotFoundException(f'HostConfig({obj_id}) not found')
+  if host_config.owners:
+    for owner in host_config.owners:
+      if CheckMembership(user_name, owner):
+        return
   # skip checking if the host doesn't belong to any lab.
   if not host_config.lab_name:
     logging.warning('Failed to get lab_name from HostConfig(%s)',

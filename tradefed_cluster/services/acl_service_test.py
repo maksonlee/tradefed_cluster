@@ -67,7 +67,8 @@ class AclServiceTest(testbed_dependent_test.TestbedDependentTest):
     datastore_test_util.CreateHostConfig(
         'stub@lab.google.com',
         'stub_lab',
-        inventory_groups=['stub_inventory'])
+        inventory_groups=['stub_inventory'],
+        owners=['mdb-group:foo-group'],)
     datastore_test_util.CreateDevice(
         'stub_cluster',
         'stub@lab.google.com',
@@ -103,11 +104,14 @@ class AclServiceTest(testbed_dependent_test.TestbedDependentTest):
     self._acl_plugin.CheckPermission.assert_not_called()
 
   def testDeviceReaderPermission(self):
+    self._acl_plugin.CheckMembership.return_value = False
     self._acl_plugin.CheckPermission.return_value = None
     response = self.testapp.get(
         '/_ah/api/tradefed_cluster/v1/stub/stub_serial',
         headers={'AUTHENTICATED-USER': 'stub_user'})
     self.assertEqual(response.status_code, 204)
+    self._acl_plugin.CheckMembership.assert_called_once_with(
+        'stub_user', 'mdb-group:foo-group')
     self._acl_plugin.CheckPermission.assert_called_once_with(
         'stub_lab_stub_inventory',
         acl_service.Permission.reader,
@@ -134,6 +138,7 @@ class AclServiceTest(testbed_dependent_test.TestbedDependentTest):
           headers={'AUTHENTICATED-USER': 'stub_user'})
 
   def testDeviceOwnerPermission(self):
+    self._acl_plugin.CheckMembership.side_effect = [False]
     self._acl_plugin.CheckPermission.return_value = None
     response = self.testapp.put(
         '/_ah/api/tradefed_cluster/v1/stub/stub_serial',
@@ -158,7 +163,7 @@ class AclServiceTest(testbed_dependent_test.TestbedDependentTest):
   def testCheckLabOwners_NoUserGroup(self):
     self._acl_plugin.CheckPermission.side_effect = [
         endpoints.ForbiddenException]
-    self._acl_plugin.CheckMembership.side_effect = [False, True]
+    self._acl_plugin.CheckMembership.side_effect = [False, False, True]
     response = self.testapp.get(
         '/_ah/api/tradefed_cluster/v1/stub/stub_serial',
         headers={'AUTHENTICATED-USER': 'stub_user'})
@@ -168,6 +173,7 @@ class AclServiceTest(testbed_dependent_test.TestbedDependentTest):
         acl_service.Permission.reader,
         'stub_user')
     self.assertEqual([
+        mock.call('stub_user', 'mdb-group:foo-group'),
         mock.call('stub_user', 'labowner1'),
         mock.call('stub_user', 'labowner2')
     ], self._acl_plugin.CheckMembership.call_args_list)
@@ -175,7 +181,7 @@ class AclServiceTest(testbed_dependent_test.TestbedDependentTest):
   def testCheckLabOwners_Forbidden(self):
     self._acl_plugin.CheckPermission.side_effect = [
         endpoints.ForbiddenException]
-    self._acl_plugin.CheckMembership.side_effect = [False, False]
+    self._acl_plugin.CheckMembership.side_effect = [False, False, False]
     with self.assertRaisesRegex(webtest.AppError, r'403 .*'):
       self.testapp.put(
           '/_ah/api/tradefed_cluster/v1/stub/stub_serial',

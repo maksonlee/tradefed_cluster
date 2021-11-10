@@ -95,6 +95,10 @@ def CreateCommandAttempt(
       end_time=end_time,
       update_time=update_time,
       attempt_index=task.attempt_index if task else None,
-      run_index=task.run_index if task else None)
+      run_index=task.run_index if task else None,
+      total_test_count=1000,
+      failed_test_count=100,
+      passed_test_count=900,
+      failed_test_run_count=10)
   command_attempt.put()
   return command_attempt

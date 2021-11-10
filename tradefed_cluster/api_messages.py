@@ -398,6 +398,10 @@ class CommandMessage(messages.Message):
   allow_partial_device_match = messages.BooleanField(17, default=False)
   test_bench = messages.MessageField(TestBenchRequirement, 18)
   affinity_tag = messages.StringField(19)
+  total_test_count = messages.IntegerField(20)
+  failed_test_count = messages.IntegerField(21)
+  passed_test_count = messages.IntegerField(22)
+  failed_test_run_count = messages.IntegerField(23)
 
 
 class CommandMessageCollection(messages.Message):

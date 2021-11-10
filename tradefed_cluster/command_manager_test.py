@@ -447,6 +447,10 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     command = command_manager.GetCommand(request_id, command_id)
     self.assertEqual(common.CommandState.QUEUED, command.state)
     self.assertTrue(command.dirty)
+    self.assertEqual(command.total_test_count, 1000)
+    self.assertEqual(command.failed_test_count, 100)
+    self.assertEqual(command.passed_test_count, 900)
+    self.assertEqual(command.failed_test_run_count, 10)
 
     command = command_manager.UpdateState(
         request_id, command_id)

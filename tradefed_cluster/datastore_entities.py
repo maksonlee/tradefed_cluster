@@ -816,6 +816,10 @@ class Command(ndb.Model):
          device match is allowed or not
     test_bench: a TestBench object.
     affinity_tag: an affinity tag.
+    total_test_count: total test count for the latest command attempt.
+    failed_test_count: failed test count for the latest command attempt.
+    passed_test_count: passed test count for the latest command attempt.
+    failed_test_run_count: failed test run count for the latest command attempt.
   """
   request_id = ndb.StringProperty()
   name = ndb.StringProperty()
@@ -842,6 +846,10 @@ class Command(ndb.Model):
   allow_partial_device_match = ndb.BooleanProperty(default=False)
   test_bench = ndb.LocalStructuredProperty(TestBench)
   affinity_tag = ndb.StringProperty()
+  total_test_count = ndb.IntegerProperty()
+  failed_test_count = ndb.IntegerProperty()
+  passed_test_count = ndb.IntegerProperty()
+  failed_test_run_count = ndb.IntegerProperty()
 
 
 @MessageConverter(Command)
@@ -866,7 +874,11 @@ def CommandToMessage(command):
       error_reason=command.error_reason,
       allow_partial_device_match=command.allow_partial_device_match,
       test_bench=ToMessage(command.test_bench),
-      affinity_tag=command.affinity_tag)
+      affinity_tag=command.affinity_tag,
+      total_test_count=command.total_test_count,
+      failed_test_count=command.failed_test_count,
+      passed_test_count=command.passed_test_count,
+      failed_test_run_count=command.failed_test_run_count)
 
 
 class TestGroupStatus(ndb.Model):

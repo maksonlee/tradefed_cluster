@@ -589,20 +589,26 @@ def UpdateCommandAttempt(event):
   # If a command attempt state is already final, it should not be updated.
   orig_state = attempt_entity.state
   if common.IsFinalCommandState(orig_state):
-
     logging.warning(
         "Command attempt %s in %s final state cannot be updated to %s.",
         attempt_entity.task_id,
         orig_state,
         event.attempt_state)
     return False
-  elif event.attempt_state and orig_state != event.attempt_state:
+
+  command = None
+  if event.attempt_state and orig_state != event.attempt_state:
     attempt_entity.state = event.attempt_state
     attempt_state_changed = True
     command = GetCommand(event.request_id, event.command_id)
     command.dirty = True
-    entities_to_update.append(command)
   _UpdateCommandAttemptEntity(attempt_entity, event)
+  if command:
+    command.total_test_count = attempt_entity.total_test_count
+    command.failed_test_count = attempt_entity.failed_test_count
+    command.passed_test_count = attempt_entity.passed_test_count
+    command.failed_test_run_count = attempt_entity.failed_test_run_count
+    entities_to_update.append(command)
   entities_to_update.append(attempt_entity)
   ndb.put_multi(entities_to_update)
 

@@ -25,9 +25,10 @@ queue:
   bucket_size: 400
   target: tfc
 
-# A queue for request state notification
+# A queue for request and attempt state notifications
 - name: request-state-notification-queue
-  rate: 20/s
+  rate: 100/s
+  max_concurrent_requests: 100
   target: tfc
 
 # A queue for syncing commands attempts

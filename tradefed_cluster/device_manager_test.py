@@ -49,7 +49,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
           {
               "product": "unknown",
               "state": "Available",
-              "device_serial": "emulator-5554",
+              "device_serial": "test.mtv.corp.example.com:emulator-5554",
               "sdk_version": "unknown",
               "product_variant": "unknown",
               "build_id": "unknown",
@@ -158,7 +158,7 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
           {
               "product": "unknown",
               "state": "Available",
-              "device_serial": "emulator-5554",
+              "device_serial": "test.mtv.corp.example.com:emulator-5554",
               "sdk_version": "unknown",
               "product_variant": "unknown",
               "build_id": "unknown",
@@ -834,60 +834,6 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
             self.HOST_EVENT_NO_DEVICES_UPDATE["time"]),
         host.timestamp)
 
-  def testTransformDeviceSerial(self):
-    """Tests TransformDeviceSerial for regular device serials."""
-    hostname = "test.mtv.corp"
-    serial = "some-generic-serial"
-    result = device_manager._TransformDeviceSerial(hostname, serial)
-    self.assertEqual(serial, result)
-
-  def testTransformDeviceSerial_emulator(self):
-    """Tests TransformDeviceSerial for emulator device serials."""
-    hostname = "test.mtv.corp"
-    serial = "emulator-5554"
-    expected = "%s:%s" % (hostname, serial)
-    result = device_manager._TransformDeviceSerial(hostname, serial)
-    self.assertEqual(expected, result)
-
-  def testTransformDeviceSerial_tcpDevice(self):
-    """Tests TransformDeviceSerial for emulator device serials."""
-    hostname = "test.mtv.corp"
-    serial = "tcp-device-5554"
-    expected = "%s:%s" % (hostname, serial)
-    result = device_manager._TransformDeviceSerial(hostname, serial)
-    self.assertEqual(expected, result)
-
-  def testTransformDeviceSerial_nullDevice(self):
-    """Tests TransformDeviceSerial for null device serials."""
-    hostname = "test.mtv.corp"
-    serial = "null-device-0"
-    expected = "%s:%s" % (hostname, serial)
-    result = device_manager._TransformDeviceSerial(hostname, serial)
-    self.assertEqual(expected, result)
-
-  def testTransformDeviceSerial_gceDevice(self):
-    """Tests TransformDeviceSerial for gce device serials."""
-    hostname = "test.mtv.corp"
-    serial = "gce-device-0"
-    expected = "%s:%s" % (hostname, serial)
-    result = device_manager._TransformDeviceSerial(hostname, serial)
-    self.assertEqual(expected, result)
-
-  def testTransformDeviceSerial_localVirtualDevice(self):
-    """Tests TransformDeviceSerial for local virtual device serials."""
-    hostname = "test.mtv.corp"
-    serial = "local-virtual-device-0"
-    expected = "%s:%s" % (hostname, serial)
-    result = device_manager._TransformDeviceSerial(hostname, serial)
-    self.assertEqual(expected, result)
-
-  def testTransformDeviceSerial_emptySerial(self):
-    """Tests TransformDeviceSerial for empty device serials."""
-    hostname = "test.mtv.corp"
-    serial = ""
-    result = device_manager._TransformDeviceSerial(hostname, serial)
-    self.assertEqual("", result)
-
   def testUpdateDevices(self):
     """Test _updateDevices. 1 device (w/ empty serial) should be ignored."""
     hostname = self.HOST_EVENT["hostname"]
@@ -1132,30 +1078,6 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     devices = datastore_entities.DeviceInfo.query(ancestor=host.key).fetch()
     for d in devices:
       self.assertEqual("Gone", d.state)
-
-  def testGetDeviceType(self):
-    """Tests for _GetDeviceType."""
-    self.assertEqual(
-        api_messages.DeviceTypeMessage.EMULATOR,
-        device_manager._GetDeviceType("emulator-5554"))
-    self.assertEqual(
-        api_messages.DeviceTypeMessage.TCP,
-        device_manager._GetDeviceType("tcp-device-0"))
-    self.assertEqual(
-        api_messages.DeviceTypeMessage.NULL,
-        device_manager._GetDeviceType("null-device-1"))
-    self.assertEqual(
-        api_messages.DeviceTypeMessage.PHYSICAL,
-        device_manager._GetDeviceType("abc123"))
-    self.assertEqual(
-        api_messages.DeviceTypeMessage.GCE,
-        device_manager._GetDeviceType("gce-device-11"))
-    self.assertEqual(
-        api_messages.DeviceTypeMessage.REMOTE,
-        device_manager._GetDeviceType("remote-device-0"))
-    self.assertEqual(
-        api_messages.DeviceTypeMessage.LOCAL_VIRTUAL,
-        device_manager._GetDeviceType("local-virtual-device-0"))
 
   def testUpdateHostWithDeviceSnapshotEvent_newHost(self):
     # Test  _UpdateHostWithDeviceSnapshotEvent for a new host

@@ -1007,7 +1007,7 @@ def GetCommandsPage(request_id, state=None, page_size=10, page_token=None):
             else None)
 
   commands, next_cursor, _ = query.fetch_page(
-      page_size, cursor)
+      page_size, start_cursor=cursor)
 
   next_page_token = six.ensure_str(
       next_cursor.urlsafe()) if next_cursor else None

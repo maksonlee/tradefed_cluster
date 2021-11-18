@@ -807,7 +807,7 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
     self._AssertRequestEventMessageIsQueued(
         request_manager.CreateRequestEventMessage(request), mock_add)
 
-  def testGetCommandAttempts(self):
+  def testGetCommandAttempts_byRequestId(self):
     for _ in range(10):
       command = datastore_entities.Command(
           parent=self.request.key,
@@ -854,6 +854,51 @@ class RequestManagerTest(testbed_dependent_test.TestbedDependentTest):
       self.assertEqual(1000, command_attempt.total_test_count)
       self.assertEqual(100, command_attempt.failed_test_count)
       prev = command_attempt
+
+  def testGetCommandAttempts_byCommandId(self):
+    commands = []
+    for i in range(3):
+      command = datastore_entities.Command(
+          parent=self.request.key,
+          command_line="command_line",
+          cluster="cluster",
+          run_target="run_target",
+          run_count=1,
+          state=common.CommandState.COMPLETED,
+          start_time=self.START_TIME,
+          end_time=self.END_TIME)
+      commands.append(command)
+      command.put()
+      datastore_entities.CommandAttempt(
+          parent=command.key,
+          task_id="task_id",
+          attempt_id="attempt_id",
+          state=common.CommandState.UNKNOWN,
+          hostname="hostname",
+          device_serial="device_serial",
+          start_time=self.START_TIME,
+          end_time=self.END_TIME,
+          status="status",
+          error="error",
+          summary="summary",
+          total_test_count=i+1,
+          failed_test_count=i).put()
+
+    command_attempts = request_manager.GetCommandAttempts(self.request.key.id(),
+                                                          commands[0].key.id())
+
+    self.assertEqual(1, len(command_attempts))
+    self.assertEqual("task_id", command_attempts[0].task_id)
+    self.assertEqual("attempt_id", command_attempts[0].attempt_id)
+    self.assertEqual(common.CommandState.UNKNOWN, command_attempts[0].state)
+    self.assertEqual("hostname", command_attempts[0].hostname)
+    self.assertEqual("device_serial", command_attempts[0].device_serial)
+    self.assertEqual(self.START_TIME, command_attempts[0].start_time)
+    self.assertEqual(self.END_TIME, command_attempts[0].end_time)
+    self.assertEqual("status", command_attempts[0].status)
+    self.assertEqual("summary", command_attempts[0].summary)
+    self.assertEqual(1, command_attempts[0].total_test_count)
+    self.assertEqual(0, command_attempts[0].failed_test_count)
 
   def testGetCommandAttempt(self):
     command = datastore_entities.Command(

@@ -529,6 +529,24 @@ class RequestApi(remote.Service):
     return api_messages.CommandStateStats(state_stats=stat_messages,
                                           create_time=create_time)
 
+  @api_common.method(
+      endpoints.ResourceContainer(
+          message_types.VoidMessage,
+          request_id=messages.StringField(1, required=True),
+          command_id=messages.StringField(2, required=True)),
+      api_messages.CommandAttemptMessageCollection,
+      path="{request_id}/commands/{command_id}/command_attempts",
+      http_method="GET",
+      name="command_attempts")
+  def ListCommandAttempts(self, request):
+    """Returns a paginated list of commands."""
+    attempts = request_manager.GetCommandAttempts(request.request_id,
+                                                  request.command_id)
+    attempt_messages = [datastore_entities.ToMessage(attempt)
+                        for attempt in attempts]
+    return api_messages.CommandAttemptMessageCollection(
+        command_attempts=attempt_messages)
+
 
 def _SyncCommands(request_id):
   """Sync a request's commands."""

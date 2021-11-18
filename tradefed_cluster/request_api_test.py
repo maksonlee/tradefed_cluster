@@ -896,6 +896,84 @@ class RequestApiTest(api_test.ApiTest):
     self.assertEqual(stats[4].count, 0)
     self.assertEqual(message.create_time, START_TIME)
 
+  def testListCommandAttempts(self):
+    attempt = datastore_entities.CommandAttempt(
+        parent=self.command1.key,
+        id='attempt_id',
+        task_id='task_id',
+        attempt_id='attempt_id',
+        state=common.CommandState.RUNNING,
+        hostname='hostname',
+        device_serial='device_serial',
+        start_time=START_TIME,
+        end_time=END_TIME,
+        status='status',
+        error='error',
+        summary='summary',
+        total_test_count=1000,
+        failed_test_count=100,
+        failed_test_run_count=10)
+    attempt.put()
+    attempt = datastore_entities.CommandAttempt(
+        parent=self.command1.key,
+        id='attempt_id2',
+        task_id='task_id2',
+        attempt_id='attempt_id2',
+        state=common.CommandState.RUNNING,
+        hostname='hostname',
+        device_serial='device_serial',
+        start_time=START_TIME,
+        end_time=END_TIME,
+        status='status',
+        error='error',
+        summary='summary',
+        total_test_count=2000,
+        failed_test_count=200,
+        failed_test_run_count=20)
+    attempt.put()
+    attempt = datastore_entities.CommandAttempt(
+        parent=self.command2.key,
+        id='attempt_id3',
+        task_id='task_id3',
+        attempt_id='attempt_id3',
+        state=common.CommandState.RUNNING,
+        hostname='hostname',
+        device_serial='device_serial',
+        start_time=START_TIME,
+        end_time=END_TIME,
+        status='status',
+        error='error',
+        summary='summary',
+        total_test_count=3000,
+        failed_test_count=300,
+        failed_test_run_count=30)
+    attempt.put()
+
+    api_response = self.testapp.post_json(
+        '/_ah/api/RequestApi.ListCommandAttempts', {
+            'request_id': '1',
+            'command_id': '1'})
+    self.assertEqual('200 OK', api_response.status)
+
+    attempts_collection = protojson.decode_message(
+        api_messages.CommandAttemptMessageCollection, api_response.body)
+    attempts = attempts_collection.command_attempts
+    self.assertEqual(len(attempts), 2)
+    self.assertEqual(attempts[0].total_test_count, 1000)
+    self.assertEqual(attempts[1].total_test_count, 2000)
+
+  def testListCommandAttempts_noResults(self):
+    api_response = self.testapp.post_json(
+        '/_ah/api/RequestApi.ListCommandAttempts', {
+            'request_id': '1',
+            'command_id': '1'})
+    self.assertEqual('200 OK', api_response.status)
+
+    attempts_collection = protojson.decode_message(
+        api_messages.CommandAttemptMessageCollection, api_response.body)
+    attempts = attempts_collection.command_attempts
+    self.assertEqual(len(attempts), 0)
+
 
 if __name__ == '__main__':
   unittest.main()

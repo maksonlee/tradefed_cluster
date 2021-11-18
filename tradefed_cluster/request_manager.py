@@ -382,17 +382,24 @@ def GetRequestSummary(request_id):
   return summary
 
 
-def GetCommandAttempts(request_id):
+def GetCommandAttempts(request_id, command_id=None):
   """Returns all command attempt entities for the request in create time order.
 
   Args:
     request_id: request id, str
+    command_id: command id, str
   Returns:
     a list of CommandAttempt entities.
   """
-  request_key = ndb.Key(datastore_entities.Request, request_id,
-                        namespace=common.NAMESPACE)
-  query = datastore_entities.CommandAttempt.query(ancestor=request_key)
+  if command_id:
+    command_key = ndb.Key(datastore_entities.Request, request_id,
+                          datastore_entities.Command, command_id,
+                          namespace=common.NAMESPACE)
+    query = datastore_entities.CommandAttempt.query(ancestor=command_key)
+  else:
+    request_key = ndb.Key(datastore_entities.Request, request_id,
+                          namespace=common.NAMESPACE)
+    query = datastore_entities.CommandAttempt.query(ancestor=request_key)
   return sorted(query.fetch(), key=lambda x: x.create_time)
 
 

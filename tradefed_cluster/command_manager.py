@@ -33,6 +33,7 @@ from tradefed_cluster import api_messages
 from tradefed_cluster import command_task_store
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
+from tradefed_cluster import datastore_util
 from tradefed_cluster import env_config
 from tradefed_cluster import metric
 from tradefed_cluster import request_manager
@@ -1003,16 +1004,10 @@ def GetCommandsPage(request_id, state=None, page_size=10, page_token=None):
   if state is not None:
     query = query.filter(datastore_entities.Command.state == state)
 
-  cursor = (ndb.Cursor(urlsafe=six.ensure_str(page_token)) if page_token
-            else None)
+  commands, _, next_cursor = datastore_util.FetchPage(
+      query, page_size=page_size, page_cursor=page_token)
 
-  commands, next_cursor, _ = query.fetch_page(
-      page_size, start_cursor=cursor)
-
-  next_page_token = six.ensure_str(
-      next_cursor.urlsafe()) if next_cursor else None
-
-  return commands, next_page_token
+  return commands, next_cursor
 
 
 def GetCommandStateStats(request_id):

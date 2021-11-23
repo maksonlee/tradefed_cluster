@@ -550,6 +550,7 @@ pytype_strict_library(
         ":command_task_store_lib",
         ":common_lib",
         ":datastore_entities_lib",
+        ":datastore_util_lib",
         ":env_config_lib",
         ":metric_lib",
         ":request_manager_lib",

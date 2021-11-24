@@ -69,7 +69,6 @@ py_test(
     deps = [
         ":lab_config_lib",
         third_party("six"),
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],
 )
 

@@ -53,7 +53,6 @@ py_test(
         ":api_messages_lib",
         ":api_test_lib",
         ":datastore_test_util_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/services:acl_service_lib",
         third_party("protorpc:protorpc_all"),
     ],
@@ -150,7 +149,6 @@ py_test(
         ":api_messages_lib",
         ":api_test_lib",
         ":datastore_entities_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
@@ -228,7 +226,6 @@ py_test(
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],
 )
 
@@ -265,7 +262,6 @@ py_test(
         ":api_test_lib",
         ":datastore_test_util_lib",
         third_party("mock"),
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
@@ -302,7 +298,6 @@ py_test(
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
@@ -335,7 +330,6 @@ py_test(
         ":api_test_lib",
         ":datastore_entities_lib",
         ":datastore_test_util_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],
 )
 
@@ -365,7 +359,6 @@ py_test(
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
@@ -400,7 +393,6 @@ py_test(
         third_party("hamcrest"),
         third_party("mock"),
         third_party("webtest"),
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
@@ -426,7 +418,6 @@ py_test(
     deps = [
         ":command_error_type_config_lib",
         ":testbed_dependent_test_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//third_party/py/absl/testing:parameterized",
     ],
 )
@@ -453,10 +444,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
-    deps = [
-        ":api_test_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
-    ],
+    deps = [":api_test_lib"],
 )
 
 pytype_strict_library(
@@ -489,7 +477,6 @@ py_test(
         ":command_event_handler_lib",
         ":command_event_test_util",
         ":testbed_dependent_test_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
         third_party("hamcrest"),
         third_party("mock"),
@@ -520,7 +507,6 @@ py_test(
         ":command_event_lib",
         ":command_event_test_util",
         third_party("mock"),
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],
 )
 
@@ -582,7 +568,6 @@ py_test(
         ":metric_lib",
         ":request_manager_lib",
         ":testbed_dependent_test_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
         third_party("hamcrest"),
         third_party("mock"),
@@ -599,7 +584,6 @@ py_test(
     deps = [
         ":command_lib",
         ":testbed_dependent_test_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
         third_party("hamcrest"),
         third_party("mock"),
@@ -644,7 +628,6 @@ py_test(
         ":affinity_manager_lib",
         ":api_test_lib",
         ":datastore_test_util_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
@@ -674,7 +657,6 @@ py_test(
         ":command_task_matcher_lib",
         ":testbed_dependent_test_lib",
         third_party("mock"),
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],
 )
 
@@ -704,7 +686,6 @@ py_test(
         ":api_test_lib",
         ":datastore_test_util_lib",
         third_party("mock"),
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],
 )
 
@@ -733,7 +714,6 @@ py_test(
         ":command_task_store_lib",
         ":testbed_dependent_test_lib",
         third_party("mock"),
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],
 )
 
@@ -771,7 +751,6 @@ py_test(
         third_party("hamcrest"),
         third_party("mock"),
         third_party("webtest"),
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],
 )
 
@@ -802,7 +781,6 @@ py_test(
     deps = [
         ":common_lib",
         third_party("six"),
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],
 )
 
@@ -881,7 +859,6 @@ py_test(
         ":testbed_dependent_test_lib",
         third_party("cloudstorage"),
         third_party("six"),
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
@@ -914,7 +891,6 @@ py_test(
         ":api_test_lib",
         ":datastore_test_util_lib",
         ":request_sync_monitor_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
@@ -948,7 +924,6 @@ py_test(
         ":datastore_entities_lib",
         ":datastore_test_util_lib",
         ":testbed_dependent_test_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
@@ -978,7 +953,6 @@ py_test(
         ":datastore_test_util_lib",
         ":datastore_util_lib",
         ":testbed_dependent_test_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
         third_party("six"),
     ],
@@ -1025,7 +999,6 @@ py_test(
         third_party("mock"),
         third_party("webtest"),
         third_party("six"),
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],
 )
 
@@ -1062,7 +1035,6 @@ py_test(
         third_party("mock"),
         third_party("six"),
         third_party("webtest"),
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],
 )
 
@@ -1097,7 +1069,6 @@ py_test(
         ":datastore_test_util_lib",
         ":device_manager_lib",
         ":testbed_dependent_test_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
         third_party("hamcrest"),
     ],
@@ -1137,7 +1108,6 @@ py_test(
         ":datastore_test_util_lib",
         ":device_monitor_lib",
         ":testbed_dependent_test_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
         third_party("mock"),
         third_party("webtest"),
@@ -1168,10 +1138,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
-    deps = [
-        ":api_test_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
-    ],
+    deps = [":api_test_lib"],
 )
 
 pytype_strict_library(
@@ -1201,7 +1168,6 @@ py_test(
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],
 )
 
@@ -1232,7 +1198,6 @@ py_test(
         ":api_test_lib",
         ":datastore_test_util_lib",
         ":device_blocklist_api_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],
 )
 
@@ -1258,7 +1223,6 @@ py_test(
         ":datastore_test_util_lib",
         ":device_blocker_lib",
         ":testbed_dependent_test_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],
 )
 
@@ -1348,7 +1312,6 @@ py_test(
     deps = [
         ":api_test_lib",
         ":common_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],
 )
 
@@ -1371,7 +1334,6 @@ py_test(
         ":api_messages_lib",
         ":host_event_lib",
         third_party("mock"),
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],
 )
 
@@ -1429,7 +1391,6 @@ py_test(
         ":metric_lib",
         third_party("mock"),
         third_party("webtest"),
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],
 )
 
@@ -1461,7 +1422,6 @@ py_test(
         ":datastore_test_util_lib",
         ":note_manager_lib",
         ":testbed_dependent_test_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
@@ -1493,7 +1453,6 @@ py_test(
         ":notification_handler_lib",
         ":testbed_dependent_test_lib",
         third_party("mock"),
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],
 )
 
@@ -1529,7 +1488,6 @@ py_test(
         third_party("mock"),
         third_party("six"),
         third_party("webtest"),
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],
 )
 
@@ -1562,7 +1520,6 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":api_test_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
@@ -1591,10 +1548,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
-    deps = [
-        ":api_test_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
-    ],
+    deps = [":api_test_lib"],
 )
 
 pytype_strict_library(
@@ -1627,7 +1581,6 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":api_test_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )
@@ -1664,7 +1617,6 @@ py_test(
         ":env_config_lib",
         ":request_manager_lib",
         ":testbed_dependent_test_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster/util:ndb_shim_lib",
         third_party("hamcrest"),
         third_party("mock"),
@@ -1731,7 +1683,6 @@ py_test(
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],
 )
 

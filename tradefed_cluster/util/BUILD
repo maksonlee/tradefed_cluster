@@ -66,7 +66,6 @@ py_test(
     deps = [
         ":email_sender_lib",
         third_party("mock"),
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster:testbed_dependent_test_lib",
     ],
 )
@@ -134,7 +133,6 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":pubsub_client_lib",
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
         "//tradefed_cluster:testbed_dependent_test_lib",
         third_party("mock"),
     ],
@@ -223,7 +221,6 @@ py_test(
     deps = [
         ":datastore_emulator_lib",
         third_party("mock"),
-        "//net/proto2/python/public:use_pure_python",  # Automatically added go/proto_python_default
     ],
 )
 

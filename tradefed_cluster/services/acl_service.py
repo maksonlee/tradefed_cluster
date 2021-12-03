@@ -98,15 +98,14 @@ def _CheckDevicePermission(obj_id, permission, user_name):
     obj_id: the DeviceInfo id string
     permission: the access permission type
     user_name: the user name
-  Raises:
-    ResourceNotFoundError: if the DeviceInfo doesn't exist
   """
   device = (datastore_entities.DeviceInfo.query()
             .filter(
                 datastore_entities.DeviceInfo.device_serial == obj_id)
             .order(-datastore_entities.DeviceInfo.timestamp).get())
+  # skip check if device doesn't exist
   if not device:
-    raise endpoints.NotFoundException(f'Device({obj_id}) not found')
+    return
   # skip checking if the device lost hostname information.
   if not device.hostname:
     return
@@ -125,14 +124,14 @@ def _CheckHostPermission(obj_id, permission, user_name):
     permission: the access permission type
     user_name: the user name
   Raises:
-    ResourceNotFoundError: if the HostConfig doesn't exist
     ForbiddenError: if the user has no permissions
   Returns:
     Nothing
   """
   host_config = datastore_entities.HostConfig.get_by_id(obj_id)
   if not host_config:
-    raise endpoints.NotFoundException(f'HostConfig({obj_id}) not found')
+    logging.info('HostConfig(%s) not found, skipped acl check', obj_id)
+    return
   if host_config.owners:
     for owner in host_config.owners:
       if CheckMembership(user_name, owner):
@@ -157,6 +156,11 @@ def _CheckHostPermission(obj_id, permission, user_name):
       pass
   # checks if the user is a lab owner.
   lab_config = datastore_entities.LabConfig.get_by_id(host_config.lab_name)
+  # skip if the host doesn't belong to any lab or no lab owner configed.
+  if not lab_config or not lab_config.owners:
+    logging.info('LabConfig(%s) not found or no owners, skipped acl check',
+                 host_config.lab_name)
+    return
   if lab_config.owners:
     for user_group in lab_config.owners:
       if CheckMembership(user_name, user_group):

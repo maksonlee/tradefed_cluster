@@ -117,14 +117,14 @@ class AclServiceTest(testbed_dependent_test.TestbedDependentTest):
         acl_service.Permission.reader,
         'stub_user')
 
-  def testDeviceReaderPermission_NoDevice(self):
+  def testDeviceReaderPermission_SkipWhenNoDevice(self):
     self._acl_plugin.CheckPermission.return_value = None
-    with self.assertRaisesRegex(
-        webtest.AppError,
-        r'404 Device\(foo_serial\) not found .*'):
-      self.testapp.get(
-          '/_ah/api/tradefed_cluster/v1/stub/foo_serial',
-          headers={'AUTHENTICATED-USER': 'stub_user'})
+
+    response = self.testapp.get(
+        '/_ah/api/tradefed_cluster/v1/stub/foo_serial',
+        headers={'AUTHENTICATED-USER': 'stub_user'})
+
+    self.assertEqual(response.status_code, 204)
 
   def testDeviceReaderPermission_Forbidden(self):
     self._acl_plugin.CheckPermission.side_effect = [
@@ -186,6 +186,25 @@ class AclServiceTest(testbed_dependent_test.TestbedDependentTest):
       self.testapp.put(
           '/_ah/api/tradefed_cluster/v1/stub/stub_serial',
           headers={'AUTHENTICATED-USER': 'stub_user'})
+
+  def testCheckLabOwners_ByPassNoOwners(self):
+    datastore_test_util.CreateLabConfig(
+        'stub_lab2', [])
+    datastore_test_util.CreateHostConfig(
+        'stub2@lab.google.com',
+        'stub_lab2')
+    datastore_test_util.CreateDevice(
+        'stub_cluster2',
+        'stub2@lab.google.com',
+        'stub_serial2')
+
+    response = self.testapp.get(
+        '/_ah/api/tradefed_cluster/v1/stub/stub_serial2',
+        headers={'AUTHENTICATED-USER': 'random_user'})
+
+    self.assertEqual(response.status_code, 204)
+    self._acl_plugin.CheckPermission.assert_not_called()
+
 
 if __name__ == '__main__':
   unittest.main()

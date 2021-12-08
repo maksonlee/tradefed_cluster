@@ -36,14 +36,6 @@ PredefinedMessageType = common.PredefinedMessageType
 RequestState = common.RequestState
 HostUpdateState = common.HostUpdateState
 
-# Device serial prefixes used to determine device types.
-TCP_DEVICE_PREFIX = "tcp-device"
-EMULATOR_DEVICE_PREFIX = "emulator"
-NULL_DEVICE_PREFIX = "null-device"
-GCE_DEVICE_PREFIX = "gce-device"
-REMOTE_DEVICE_PREFIX = "remote-device"
-LOCAL_VIRTUAL_DEVICE_PREFIX = "local-virtual-device"
-
 
 class NonEmptyStringField(messages.StringField):
   """A StringField can not be empty or all whitespace."""
@@ -611,40 +603,6 @@ class DeviceTypeMessage(messages.Enum):
   GCE = 4
   REMOTE = 5
   LOCAL_VIRTUAL = 6
-
-
-def GetDeviceType(serial):
-  """Helper to get a device type from a serial.
-
-  Args:
-    serial: Device serial
-
-  Returns:
-    A DeviceTypeMessage for the given serial
-  """
-  # If a serial has a host prefix, remove it.
-  if ":" in serial:
-    serial = serial.split(":", 2)[1]
-
-  if serial.startswith(EMULATOR_DEVICE_PREFIX):
-    return DeviceTypeMessage.EMULATOR
-
-  if serial.startswith(TCP_DEVICE_PREFIX):
-    return DeviceTypeMessage.TCP
-
-  if serial.startswith(NULL_DEVICE_PREFIX):
-    return DeviceTypeMessage.NULL
-
-  if serial.startswith(GCE_DEVICE_PREFIX):
-    return DeviceTypeMessage.GCE
-
-  if serial.startswith(REMOTE_DEVICE_PREFIX):
-    return DeviceTypeMessage.REMOTE
-
-  if serial.startswith(LOCAL_VIRTUAL_DEVICE_PREFIX):
-    return DeviceTypeMessage.LOCAL_VIRTUAL
-
-  return DeviceTypeMessage.PHYSICAL
 
 
 class DeviceInfo(messages.Message):

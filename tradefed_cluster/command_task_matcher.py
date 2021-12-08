@@ -161,8 +161,6 @@ class CommandTaskMatcher(object):
     attributes = {}
     attributes['build_id'] = device.build_id
     attributes['device_serial'] = device.device_serial
-    attributes['device_type'] = str(
-        api_messages.GetDeviceType(device.device_serial))
     attributes['hostname'] = device.hostname
     attributes['product'] = device.product
     attributes['product_variant'] = device.product_variant

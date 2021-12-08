@@ -393,33 +393,6 @@ class ApiMessagesTest(api_test.ApiTest):
     with self.assertRaises(AssertionError):
       datastore_entities.ToMessage(fake_host_entity)
 
-  def testGetDeviceType(self):
-    """Tests GetDeviceType."""
-    self.assertEqual(
-        api_messages.DeviceTypeMessage.EMULATOR,
-        api_messages.GetDeviceType('emulator-5554'))
-    self.assertEqual(
-        api_messages.DeviceTypeMessage.EMULATOR,
-        api_messages.GetDeviceType('test.google.com:emulator-5554'))
-    self.assertEqual(
-        api_messages.DeviceTypeMessage.TCP,
-        api_messages.GetDeviceType('tcp-device-0'))
-    self.assertEqual(
-        api_messages.DeviceTypeMessage.NULL,
-        api_messages.GetDeviceType('null-device-1'))
-    self.assertEqual(
-        api_messages.DeviceTypeMessage.PHYSICAL,
-        api_messages.GetDeviceType('abc123'))
-    self.assertEqual(
-        api_messages.DeviceTypeMessage.GCE,
-        api_messages.GetDeviceType('gce-device-11'))
-    self.assertEqual(
-        api_messages.DeviceTypeMessage.REMOTE,
-        api_messages.GetDeviceType('remote-device-0'))
-    self.assertEqual(
-        api_messages.DeviceTypeMessage.LOCAL_VIRTUAL,
-        api_messages.GetDeviceType('local-virtual-device-0'))
-
   def _CreateMockHostInfoEntity(self):
     """Helper function to get mock host info entity."""
     d1_count = datastore_entities.DeviceCountSummary(

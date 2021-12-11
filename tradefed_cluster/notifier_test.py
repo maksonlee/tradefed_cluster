@@ -33,8 +33,6 @@ from tradefed_cluster import testbed_dependent_test
 
 TIMESTAMP = datetime.datetime(2016, 12, 1, 0, 0, 0)
 REQUEST_ID = '1234'
-COMMAND_ID = '100'
-ATTEMPT_ID = '1'
 
 
 class NotifierTest(testbed_dependent_test.TestbedDependentTest):
@@ -47,8 +45,6 @@ class NotifierTest(testbed_dependent_test.TestbedDependentTest):
     self.mock_pubsub_client = self.patcher.start()
 
     self._request_id = int(REQUEST_ID)
-    self._command_id = int(COMMAND_ID)
-    self._attempt_id = int(ATTEMPT_ID)
     self.result_link = ('http://sponge.corp.example.com/invocation?'
                         'tab=Test+Cases&show=FAILED&id=12345678-abcd')
     self.testapp = webtest.TestApp(notifier.APP)
@@ -103,32 +99,6 @@ class NotifierTest(testbed_dependent_test.TestbedDependentTest):
     self._AssertMessagePublished(
         event_message, notifier.REQUEST_EVENT_PUBSUB_TOPIC)
 
-  def testHandleObjectStateChangeEvent_attemptEvent(self):
-    request = self._CreateTestRequest(state=common.RequestState.COMPLETED)
-    command = self._CreateTestCommand(request,
-                                      state=common.CommandState.COMPLETED)
-    attempt = self._CreateTestCommandAttempt(
-        command,
-        state=common.CommandState.COMPLETED,
-        total_test_count=5,
-        failed_test_count=1,
-        failed_test_run_count=1,
-        start_time=datetime.datetime(2016, 12, 1, 0, 0, 0),
-        end_time=datetime.datetime(2016, 12, 1, 0, 0, 1))
-
-    event_message = api_messages.CommandAttemptEventMessage(
-        type=common.ObjectEventType.COMMAND_ATTEMPT_STATE_CHANGED,
-        attempt=datastore_entities.CommandAttemptToMessage(attempt),
-        old_state=common.CommandState.RUNNING,
-        new_state=common.CommandState.COMPLETED,
-        event_time=TIMESTAMP)
-
-    self.testapp.post(
-        notifier.OBJECT_EVENT_QUEUE_HANDLER_PATH,
-        protojson.encode_message(event_message))
-    self._AssertMessagePublished(
-        event_message, notifier.COMMAND_ATTEMPT_EVENT_PUBSUB_TOPIC)
-
   def _CreateTestRequest(self, state=common.RequestState.UNKNOWN):
     """Creates a Request for testing purposes."""
     request = datastore_test_util.CreateRequest(
@@ -144,43 +114,6 @@ class NotifierTest(testbed_dependent_test.TestbedDependentTest):
     request.put()
     self._request_id += 1
     return request
-
-  def _CreateTestCommand(self, request, state, run_count=1):
-    """Creates a Command associated with a REQUEST."""
-    command = datastore_entities.Command(
-        parent=request.key,
-        id=str(self._command_id),
-        command_line='%s --command-id %d' % (
-            request.command_infos[0].command_line, self._command_id),
-        cluster='cluster',
-        run_target='run_target',
-        run_count=run_count,
-        state=state)
-    command.put()
-    self._command_id += 1
-    return command
-
-  def _CreateTestCommandAttempt(self, command, state, total_test_count=1,
-                                failed_test_count=1, failed_test_run_count=1,
-                                start_time=None, end_time=None):
-    """Creates a CommandAttempt associated with a Command."""
-    command_attempt = datastore_entities.CommandAttempt(
-        parent=command.key,
-        id=str(self._attempt_id),
-        command_id=command.key.id(),
-        task_id='task_id',
-        attempt_id='attempt_id',
-        state=state,
-        summary='summary: %s\n' % self.result_link,
-        error='error' if state == common.CommandState.ERROR else None,
-        total_test_count=total_test_count,
-        failed_test_count=failed_test_count,
-        failed_test_run_count=failed_test_run_count,
-        start_time=start_time,
-        end_time=end_time)
-    command_attempt.put()
-    self._attempt_id += 1
-    return command_attempt
 
   def _AssertMessagePublished(self, message, pubsub_topic):
     data = common.UrlSafeB64Encode(protojson.encode_message(message))

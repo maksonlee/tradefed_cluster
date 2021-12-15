@@ -1133,30 +1133,6 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     for d in devices:
       self.assertEqual("Gone", d.state)
 
-  def testGetDeviceType(self):
-    """Tests for _GetDeviceType."""
-    self.assertEqual(
-        api_messages.DeviceTypeMessage.EMULATOR,
-        device_manager._GetDeviceType("emulator-5554"))
-    self.assertEqual(
-        api_messages.DeviceTypeMessage.TCP,
-        device_manager._GetDeviceType("tcp-device-0"))
-    self.assertEqual(
-        api_messages.DeviceTypeMessage.NULL,
-        device_manager._GetDeviceType("null-device-1"))
-    self.assertEqual(
-        api_messages.DeviceTypeMessage.PHYSICAL,
-        device_manager._GetDeviceType("abc123"))
-    self.assertEqual(
-        api_messages.DeviceTypeMessage.GCE,
-        device_manager._GetDeviceType("gce-device-11"))
-    self.assertEqual(
-        api_messages.DeviceTypeMessage.REMOTE,
-        device_manager._GetDeviceType("remote-device-0"))
-    self.assertEqual(
-        api_messages.DeviceTypeMessage.LOCAL_VIRTUAL,
-        device_manager._GetDeviceType("local-virtual-device-0"))
-
   def testUpdateHostWithDeviceSnapshotEvent_newHost(self):
     # Test  _UpdateHostWithDeviceSnapshotEvent for a new host
     event = host_event.HostEvent(**self.HOST_EVENT)

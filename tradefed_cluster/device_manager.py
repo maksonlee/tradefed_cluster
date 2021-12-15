@@ -42,24 +42,17 @@ MAX_HOST_HISTORY_SIZE = 100
 DEFAULT_HOST_HISTORY_SIZE = 10
 DEFAULT_HOST_UPDATE_STATE_HISTORY_SIZE = 10
 
-TCP_DEVICE_PREFIX = "tcp-device"
-EMULATOR_DEVICE_PREFIX = "emulator"
-NULL_DEVICE_PREFIX = "null-device"
-GCE_DEVICE_PREFIX = "gce-device"
-REMOTE_DEVICE_PREFIX = "remote-device"
-LOCAL_VIRTUAL_DEVICE_PREFIX = "local-virtual-device"
-
 LOCALHOST_IP = "127.0.0.1"
 
 UNKNOWN_PROPERTY = "unknown"
 
 NON_PHYSICAL_DEVICES_PREFIXES = (
-    TCP_DEVICE_PREFIX,
-    EMULATOR_DEVICE_PREFIX,
-    NULL_DEVICE_PREFIX,
-    GCE_DEVICE_PREFIX,
-    REMOTE_DEVICE_PREFIX,
-    LOCAL_VIRTUAL_DEVICE_PREFIX)
+    api_messages.TCP_DEVICE_PREFIX,
+    api_messages.EMULATOR_DEVICE_PREFIX,
+    api_messages.NULL_DEVICE_PREFIX,
+    api_messages.GCE_DEVICE_PREFIX,
+    api_messages.REMOTE_DEVICE_PREFIX,
+    api_messages.LOCAL_VIRTUAL_DEVICE_PREFIX)
 
 DEVICE_SERIAL_KEY = "device_serial"
 RUN_TARGET_KEY = "run_target"
@@ -379,39 +372,6 @@ def _TransformDeviceSerial(hostname, serial):
     return serial
 
 
-def _GetDeviceType(serial):
-  """Helper to get a device type from a serial.
-
-  Args:
-    serial: Device serial
-  Returns:
-    An api_messages.DeviceTypeMessage for the given serial
-  """
-  # If a serial has a host prefix, remove it.
-  if ":" in serial:
-    serial = serial.split(":", 2)[1]
-
-  if serial.startswith(EMULATOR_DEVICE_PREFIX):
-    return api_messages.DeviceTypeMessage.EMULATOR
-
-  if serial.startswith(TCP_DEVICE_PREFIX):
-    return api_messages.DeviceTypeMessage.TCP
-
-  if serial.startswith(NULL_DEVICE_PREFIX):
-    return api_messages.DeviceTypeMessage.NULL
-
-  if serial.startswith(GCE_DEVICE_PREFIX):
-    return api_messages.DeviceTypeMessage.GCE
-
-  if serial.startswith(REMOTE_DEVICE_PREFIX):
-    return api_messages.DeviceTypeMessage.REMOTE
-
-  if serial.startswith(LOCAL_VIRTUAL_DEVICE_PREFIX):
-    return api_messages.DeviceTypeMessage.LOCAL_VIRTUAL
-
-  return api_messages.DeviceTypeMessage.PHYSICAL
-
-
 def _UpdateDevicesInNDB(event):
   """Update the device entities to ndb with data from the given host event.
 
@@ -476,7 +436,7 @@ def _UpdateDeviceInNDB(device, device_key, device_data, host_event):
   entities_to_update = []
   device_serial = _TransformDeviceSerial(
       host_event.hostname, device_data.get(DEVICE_SERIAL_KEY))
-  device_type = _GetDeviceType(device_serial)
+  device_type = api_messages.GetDeviceType(device_serial)
 
   run_target = device_data.get(RUN_TARGET_KEY)
   product = device_data.get(PRODUCT_KEY)

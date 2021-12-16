@@ -33,6 +33,8 @@ PUBSUB_API_VERSION = 'v1beta2'
 
 REQUEST_EVENT_PUBSUB_TOPIC = 'projects/%s/topics/%s' % (
     env_config.CONFIG.app_id, 'request_event')
+COMMAND_ATTEMPT_EVENT_PUBSUB_TOPIC = 'projects/%s/topics/%s' % (
+    env_config.CONFIG.app_id, 'command_attempt_event')
 OBJECT_EVENT_QUEUE_HANDLER_PATH = (
     '/_ah/queue/%s' % common.OBJECT_EVENT_QUEUE)
 
@@ -43,6 +45,7 @@ def _CreatePubsubClient():
   """Create a client for Google Cloud Pub/Sub."""
   client = pubsub_client.PubSubClient()
   client.CreateTopic(REQUEST_EVENT_PUBSUB_TOPIC)
+  client.CreateTopic(COMMAND_ATTEMPT_EVENT_PUBSUB_TOPIC)
   return client
 
 _PubsubClient = lazy_object_proxy.Proxy(_CreatePubsubClient)  
@@ -88,7 +91,11 @@ def HandleObjectStateChangeEvent():
         'payload may not be compressed: %s', encoded_message, exc_info=True)
   data = json.loads(encoded_message)
   message_type = data.get('type')
-  if message_type == common.ObjectEventType.REQUEST_STATE_CHANGED:
+  if message_type == common.ObjectEventType.COMMAND_ATTEMPT_STATE_CHANGED:
+    pubsub_topic = COMMAND_ATTEMPT_EVENT_PUBSUB_TOPIC
+    logging.info('Notifying Attempt %s state changed to %s.',
+                 data.get('attempt').get('attempt_id'), data.get('new_state'))
+  elif message_type == common.ObjectEventType.REQUEST_STATE_CHANGED:
     pubsub_topic = REQUEST_EVENT_PUBSUB_TOPIC
     logging.info('Notifying Request %s state changed to %s.',
                  data.get('request_id'), data.get('new_state'))

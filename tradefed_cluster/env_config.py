@@ -40,7 +40,7 @@ class EnvConfig(env_util.EnvConfig):
     self.event_queue_name = None
     self.object_event_filter = [
         common.ObjectEventType.REQUEST_STATE_CHANGED,
-        common.ObjectEventType.COMMAND_ATTEMPT_STATE_CHANGED]
+    ]
 
     self.device_info_snapshot_file_format = '/device_info_snapshots_dev/%s.gz'
     self.host_info_snapshot_file_format = '/host_info_snapshots_dev/%s.gz'

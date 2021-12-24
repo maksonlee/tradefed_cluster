@@ -176,7 +176,6 @@ pytype_strict_library(
     ],
     srcs_version = "PY2AND3",
     deps = [
-        ":google_import_fixer",
         third_party("google/auth:__init__"),
         third_party("google/auth:compute_engine/__init__"),
         third_party("google/cloud/ndb"),
@@ -222,11 +221,4 @@ py_test(
         ":datastore_emulator_lib",
         third_party("mock"),
     ],
-)
-
-py_library(
-    name = "google_import_fixer",
-    srcs = ["google_import_fixer.py"],
-    srcs_version = "PY2AND3",
-    visibility = ["//third_party/py/multitest_transport:__subpackages__"],
 )

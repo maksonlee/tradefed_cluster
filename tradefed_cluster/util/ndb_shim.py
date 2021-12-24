@@ -20,7 +20,6 @@ from __future__ import print_function
 import functools
 from six.moves import map
 
-import tradefed_cluster.util.google_import_fixer  #  pylint: disable=unused-import
 from google import auth
 from google.cloud import ndb
 from google.cloud.ndb import context as context_module

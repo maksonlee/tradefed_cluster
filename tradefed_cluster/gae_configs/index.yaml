@@ -73,6 +73,16 @@ indexes:
 
 - kind: DeviceInfo
   properties:
+  - name: hidden
+  - name: product
+
+- kind: DeviceInfo
+  properties:
+  - name: hidden
+  - name: product_variant
+
+- kind: DeviceInfo
+  properties:
   - name: device_serial
   - name: timestamp
     direction: desc

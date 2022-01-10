@@ -335,6 +335,8 @@ class FilterHintType(messages.Enum):
   HOST_STATE = 7
   HOST_GROUP = 8
   UPDATE_STATE = 9
+  PRODUCT = 10
+  PRODUCT_VARIANT = 11
 
 
 class Operator(messages.Enum):

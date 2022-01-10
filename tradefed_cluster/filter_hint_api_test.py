@@ -97,11 +97,15 @@ class FilterHintApiTest(api_test.ApiTest):
         cluster='free',
         hostname='host_0',
         device_serial='device_0',
+        product='shamu',
+        product_variant='shamu_0',
         run_target='shamu')
     datastore_test_util.CreateDevice(
         cluster='free',
         hostname='host_0',
         device_serial='device_1',
+        product='shamu',
+        product_variant='shamu_1',
         run_target='shamu')
 
     datastore_test_util.CreateHost(cluster='free', hostname='host_1')
@@ -109,12 +113,14 @@ class FilterHintApiTest(api_test.ApiTest):
         cluster='free',
         hostname='host_1',
         device_serial='device_2',
+        product='hammerhead',
         run_target='hammerhead')
     datastore_test_util.CreateHost(cluster='presubmit', hostname='host_2')
     datastore_test_util.CreateDevice(
         cluster='presubmit',
         hostname='host_2',
         device_serial='device_3',
+        product='hammerhead',
         run_target='hammerhead')
 
   def testListHostnames(self):
@@ -296,6 +302,32 @@ class FilterHintApiTest(api_test.ApiTest):
     self.assertEqual(states[6].value, api_messages.HostUpdateState.ERRORED.name)
     self.assertEqual(
         states[7].value, api_messages.HostUpdateState.SUCCEEDED.name)
+
+  def testListProduct(self):
+    """Tests ListProducts."""
+    self._setUpRunTarget()
+    api_request = {'type': 'PRODUCT'}
+    api_response = self.testapp.post_json(
+        '/_ah/api/FilterHintApi.ListFilterHints', api_request)
+    product_collection = protojson.decode_message(
+        api_messages.FilterHintCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertCountEqual(['shamu', 'hammerhead'],
+                          [p.value for p in product_collection.filter_hints])
+
+  def testListProductVariant(self):
+    """Tests ListProducts."""
+    self._setUpRunTarget()
+    api_request = {'type': 'PRODUCT_VARIANT'}
+    api_response = self.testapp.post_json(
+        '/_ah/api/FilterHintApi.ListFilterHints', api_request)
+    product_variant_collection = protojson.decode_message(
+        api_messages.FilterHintCollection, api_response.body)
+    self.assertEqual('200 OK', api_response.status)
+    self.assertCountEqual(
+        ['shamu_0', 'shamu_1'],
+        [p.value for p in product_variant_collection.filter_hints])
+
 
 if __name__ == '__main__':
   unittest.main()

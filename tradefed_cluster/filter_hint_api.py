@@ -69,6 +69,10 @@ class FilterHintApi(remote.Service):
       return self._ListHostGroup()
     elif request.type == common.FilterHintType.UPDATE_STATE:
       return self._ListHostUpdateStates()
+    elif request.type == common.FilterHintType.PRODUCT:
+      return self._ListProducts()
+    elif request.type == common.FilterHintType.PRODUCT_VARIANT:
+      return self._ListProductVariants()
     else:
       raise endpoints.BadRequestException("Invalid type: %s" % request.type)
 
@@ -168,3 +172,25 @@ class FilterHintApi(remote.Service):
         for state in api_messages.HostUpdateState
     ]
     return api_messages.FilterHintCollection(filter_hints=infos)
+
+  def _ListProducts(self):
+    """Fetches a list of distinct products."""
+    entities = datastore_entities.DeviceInfo.query(
+        projection=[datastore_entities.DeviceInfo.product],
+        distinct=True).filter(
+            datastore_entities.DeviceInfo.hidden == False)      products = [
+        api_messages.FilterHintMessage(value=item.product)
+        for item in entities if item.product
+    ]
+    return api_messages.FilterHintCollection(filter_hints=products)
+
+  def _ListProductVariants(self):
+    """Fetches a list of distinct product variants."""
+    entities = datastore_entities.DeviceInfo.query(
+        projection=[datastore_entities.DeviceInfo.product_variant],
+        distinct=True).filter(
+            datastore_entities.DeviceInfo.hidden == False)      product_variants = [
+        api_messages.FilterHintMessage(value=item.product_variant)
+        for item in entities if item.product_variant
+    ]
+    return api_messages.FilterHintCollection(filter_hints=product_variants)

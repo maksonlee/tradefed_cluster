@@ -52,7 +52,8 @@ def FetchPage(query, page_size, page_cursor=None, backwards=False,
         ndb.Cursor(urlsafe=six.ensure_str(page_cursor)),
         result_filter)
     if not more and len(results) < page_size:
-      return FetchPage(query, page_size)
+      # did not find enough results, fetch first page instead
+      return FetchPage(query, page_size, result_filter=result_filter)
     results.reverse()
     next_cursor = page_cursor
     prev_cursor = cursor.urlsafe() if more else None

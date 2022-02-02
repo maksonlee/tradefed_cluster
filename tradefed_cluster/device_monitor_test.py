@@ -876,6 +876,9 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
          "['sa1'] are going to expire."),
         host.bad_reason)
 
+  def testUpdateHostBadness_doesntExist(self):
+    device_monitor._UpdateHostBadness('fakeHost')
+
   @mock.patch.object(common, 'Now')
   def testUpdateHostBadness_becomeGood(self, mock_now):
     now_seconds = 1632707046

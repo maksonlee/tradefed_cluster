@@ -508,6 +508,10 @@ def _CheckServiceAccountKeyExpiration(hostname):
 def _UpdateHostBadness(hostname):
   """Check if the host is bad or not."""
   host_info = device_manager.GetHost(hostname)
+  if not host_info:
+    logging.info('Host %s not found', hostname)
+    return
+
   reason = ''
   if host_info.host_state == api_messages.HostState.GONE:
     reason += 'Host is gone.'

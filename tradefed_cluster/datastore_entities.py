@@ -218,7 +218,7 @@ class TestContext(ndb.Model):
     env_vars: addtional env. variables.
     test_resources: additional test resources.
   """
-  command_line = ndb.StringProperty()
+  command_line = ndb.TextProperty()
   env_vars = ndb.JsonProperty()
   test_resources = ndb.StructuredProperty(TestResource, repeated=True)
 
@@ -725,7 +725,7 @@ class TestEnvironment(ndb.Model):
   java_properties = ndb.JsonProperty()
   context_file_pattern = ndb.StringProperty()
   extra_context_files = ndb.StringProperty(repeated=True)
-  retry_command_line = ndb.StringProperty()
+  retry_command_line = ndb.TextProperty()
   log_level = ndb.EnumProperty(common.LogLevel)
   tradefed_config_objects = ndb.LocalStructuredProperty(
       TradefedConfigObject, repeated=True)

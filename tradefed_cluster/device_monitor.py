@@ -20,11 +20,11 @@ from __future__ import print_function
 
 import collections
 import datetime
+import functools
 import json
 import logging
 
 import flask
-import lazy_object_proxy
 from protorpc import protojson
 import six
 
@@ -344,14 +344,13 @@ def _SyncHost(hostname):
 
 
 # TODO: Merge this code to notifier.
+@functools.lru_cache()
 def _CreatePubsubClient():
   """Create a client for Google Cloud Pub/Sub."""
   client = pubsub_client.PubSubClient()
   client.CreateTopic(HOST_AND_DEVICE_PUBSUB_TOPIC)
   return client
 
-
-_PubsubClient = lazy_object_proxy.Proxy(_CreatePubsubClient)  
 
 def _PublishHostMessage(hostname):
   """Publish host message to pubsub."""
@@ -368,7 +367,7 @@ def _PublishHostMessage(hostname):
   msg_dict = json.loads(encoded_message)
   msg_dict['publish_timestamp'] = common.Now().isoformat()
   data = common.UrlSafeB64Encode(json.dumps(msg_dict))
-  _PubsubClient.PublishMessages(
+  _CreatePubsubClient().PublishMessages(
       HOST_AND_DEVICE_PUBSUB_TOPIC,
       [{
           'data': data,

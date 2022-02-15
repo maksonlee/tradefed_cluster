@@ -649,13 +649,14 @@ class DeviceMonitorTest(testbed_dependent_test.TestbedDependentTest):
       self.assertEqual(common.DeviceState.GONE, device_histories[0].state)
 
   @mock.patch.object(common, 'Now')
-  @mock.patch.object(device_monitor, '_PubsubClient')
+  @mock.patch.object(device_monitor, '_CreatePubsubClient')
   def testPublishHostMessage(self, mock_pubsub_client, mock_now):
     now = datetime.datetime(2019, 11, 14, 10, 10)
     mock_now.return_value = now
     device_monitor._PublishHostMessage(self.host1.hostname)
 
-    topic, messages = mock_pubsub_client.PublishMessages.call_args[0]
+    topic, messages = (
+        mock_pubsub_client.return_value.PublishMessages.call_args[0])
     self.assertEqual(device_monitor.HOST_AND_DEVICE_PUBSUB_TOPIC, topic)
     message = messages[0]
     self.assertEqual('host', message['attributes']['type'])

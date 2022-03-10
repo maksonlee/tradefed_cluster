@@ -1405,7 +1405,6 @@ pytype_strict_library(
         ":env_config_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
         "//tradefed_cluster/util:pubsub_client_lib",
-        third_party("lazy_object_proxy"),
         third_party("protorpc:protorpc_all"),
     ],
 )
@@ -1468,7 +1467,6 @@ pytype_strict_library(
         "//tradefed_cluster/services:task_scheduler_lib",
         "//tradefed_cluster/util:pubsub_client_lib",
         third_party("flask"),
-        third_party("lazy_object_proxy"),
     ],
 )
 

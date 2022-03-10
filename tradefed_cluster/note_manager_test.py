@@ -159,10 +159,12 @@ class NoteManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(1, message.used_count)
 
   @mock.patch.object(note_manager, "_Now")
-  @mock.patch.object(note_manager, "_PubsubClient")
-  def testPublishMessage(self, mock_pubsub_client, mock_now):
+  @mock.patch.object(note_manager, "_CreatePubsubClient")
+  def testPublishMessage(self, mock_pubsub_factory, mock_now):
     now = datetime.datetime(2020, 4, 14, 10, 10)
     mock_now.return_value = now
+    mock_pubsub_client = mock.MagicMock()
+    mock_pubsub_factory.return_value = mock_pubsub_client
     device_note = datastore_test_util.CreateNote(
         device_serial="serial_1", timestamp=now)
     device_note_msg = api_messages.Note(

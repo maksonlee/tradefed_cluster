@@ -13,13 +13,12 @@
 # limitations under the License.
 
 """A notifier module to publish request events via Cloud Pub/Sub."""
-
+import functools
 import json
 import logging
 import zlib
 
 import flask
-import lazy_object_proxy
 
 from tradefed_cluster import common
 from tradefed_cluster import env_config
@@ -41,6 +40,7 @@ OBJECT_EVENT_QUEUE_HANDLER_PATH = (
 APP = flask.Flask(__name__)
 
 
+@functools.lru_cache()
 def _CreatePubsubClient():
   """Create a client for Google Cloud Pub/Sub."""
   client = pubsub_client.PubSubClient()
@@ -48,7 +48,6 @@ def _CreatePubsubClient():
   client.CreateTopic(COMMAND_ATTEMPT_EVENT_PUBSUB_TOPIC)
   return client
 
-_PubsubClient = lazy_object_proxy.Proxy(_CreatePubsubClient)  
 
 def _SendEventMessage(encoded_message, pubsub_topic):
   """Sends a message to the event queue notifying a state change event.
@@ -62,7 +61,7 @@ def _SendEventMessage(encoded_message, pubsub_topic):
   queue = env_config.CONFIG.event_queue_name
   if env_config.CONFIG.use_google_api:
     data = common.UrlSafeB64Encode(encoded_message)
-    _PubsubClient.PublishMessages(pubsub_topic, [{'data': data}])
+    _CreatePubsubClient().PublishMessages(pubsub_topic, [{'data': data}])
   elif queue:
     task_scheduler.AddTask(
         queue_name=queue,

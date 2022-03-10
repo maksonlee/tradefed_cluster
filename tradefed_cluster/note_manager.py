@@ -11,20 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""A module for note management."""
 
+"""A module for note management."""
 import datetime
+import functools
 import logging
 
-import lazy_object_proxy
-
 from protorpc import protojson
-
-from tradefed_cluster.util import ndb_shim as ndb
 
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import env_config
+from tradefed_cluster.util import ndb_shim as ndb
 from tradefed_cluster.util import pubsub_client
 
 
@@ -128,6 +126,7 @@ def _Now():
   return datetime.datetime.utcnow()
 
 
+@functools.lru_cache()
 def _CreatePubsubClient():
   """Create a client for Google Cloud Pub/Sub."""
   client = pubsub_client.PubSubClient()
@@ -135,8 +134,6 @@ def _CreatePubsubClient():
   client.CreateTopic(HOST_NOTE_PUBSUB_TOPIC)
   return client
 
-
-_PubsubClient = lazy_object_proxy.Proxy(_CreatePubsubClient)  
 
 def PublishMessage(device_note_message, event_type):
   """Publish device note event message to pubsub."""
@@ -154,7 +151,7 @@ def PublishMessage(device_note_message, event_type):
   else:
     data_type = "hostNote"
     topic = HOST_NOTE_PUBSUB_TOPIC
-  _PubsubClient.PublishMessages(topic, [{
+  _CreatePubsubClient().PublishMessages(topic, [{
       "data": data,
       "attributes": {
           "type": data_type,

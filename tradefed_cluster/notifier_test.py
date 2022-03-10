@@ -41,10 +41,9 @@ class NotifierTest(testbed_dependent_test.TestbedDependentTest):
 
   def setUp(self):
     super(NotifierTest, self).setUp()
-    self.patcher = mock.patch('__main__.notifier._PubsubClient')
-    self.now_patch = mock.patch.object(common, 'Now', return_value=TIMESTAMP)
-    self.now_patch.start()
-    self.mock_pubsub_client = self.patcher.start()
+    self.enter_context(mock.patch.object(common, 'Now', return_value=TIMESTAMP))
+    self.mock_pubsub_client = self.enter_context(
+        mock.patch.object(notifier, '_CreatePubsubClient'))()
 
     self._request_id = int(REQUEST_ID)
     self._command_id = int(COMMAND_ID)
@@ -52,11 +51,6 @@ class NotifierTest(testbed_dependent_test.TestbedDependentTest):
     self.result_link = ('http://sponge.corp.example.com/invocation?'
                         'tab=Test+Cases&show=FAILED&id=12345678-abcd')
     self.testapp = webtest.TestApp(notifier.APP)
-
-  def tearDown(self):
-    self.patcher.stop()
-    self.now_patch.stop()
-    super(NotifierTest, self).tearDown()
 
   def testHandleObjectStateChangeEvent_requestEvent(self):
     request = self._CreateTestRequest(state=common.RequestState.COMPLETED)

@@ -32,7 +32,6 @@ PACKAGE_MAP = {
     "googledatastore/v1:googledatastore": "googledatastore",
     "hamcrest": "PyHamcrest",
     "jinja2": "Jinja2",
-    "lazy_object_proxy": "lazy-object-proxy",
     "oauth2client_1_4_12_plus": "oauth2client",
     "oauth2client_4_0": "oauth2client",
     "portpicker": "portpicker",

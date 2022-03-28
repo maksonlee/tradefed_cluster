@@ -1068,11 +1068,17 @@ def CancelCommands(request_id, cancel_reason=None):
   for command in commands:
     if common.IsFinalCommandState(command.state):
       continue
-    _DoCancelCommand(request_id, command.key.id(), cancel_reason)
+    Cancel(request_id, command.key.id(), cancel_reason)
 
 
 def Cancel(request_id, command_id, cancel_reason=None):
   """Cancel a command.
+
+  Task is canceled in a different transaction then command + request to avoid
+  ndb limitations. This may result in Tasks being canceled first and
+  command + request cancellation fails, which leaves a command with no active
+  task. Command Mmonitor should eventually cancel it.
+  As long as we retry the cancellation we should be ok.
 
   Args:
     request_id: request id, str
@@ -1081,6 +1087,16 @@ def Cancel(request_id, command_id, cancel_reason=None):
   Returns:
     command: a command entity, read only
   """
+  command = GetCommand(request_id, command_id)
+  if common.IsFinalCommandState(command.state):
+    logging.info(
+        "Cannot cancel command %s; already in a final state %s",
+        command.key, command.state)
+    return command
+
+  if command.state != common.CommandState.UNKNOWN:
+    DeleteTasks(command)
+
   return _DoCancelCommand(request_id, command_id, cancel_reason)
 
 
@@ -1088,13 +1104,6 @@ def Cancel(request_id, command_id, cancel_reason=None):
 def _DoCancelCommand(request_id, command_id, cancel_reason):
   """Do cancel a command."""
   command = GetCommand(request_id, command_id)
-  if common.IsFinalCommandState(command.state):
-    logging.info(
-        "Cannot cancel command %s; already in a final state %s",
-        command.key, command.state)
-    return command
-  if command.state != common.CommandState.UNKNOWN:
-    DeleteTasks(command)
   command.state = common.CommandState.CANCELED
   command.cancel_reason = cancel_reason or common.CancelReason.UNKNOWN
   command.dirty = False

@@ -4,7 +4,7 @@ This file maps build rules used in the project to Bazel build rules.
 """
 
 load("@com_google_protobuf//:protobuf.bzl", _py_proto_library = "py_proto_library")
-load("@rules_appengine//appengine:py_appengine.bzl", _py_appengine_binary = "py_appengine_binary", _py_appengine_test = "py_appengine_test")
+load("@rules_appengine//appengine:py_appengine.bzl", _py_appengine_binary = "py_appengine_binary")
 load("@rules_proto//proto:defs.bzl", _proto_library = "proto_library")
 load("@rules_python//python:defs.bzl", _py_binary = "py_binary", _py_library = "py_library", _py_test = "py_test")
 load("@third_party//:requirements.bzl", _requirement = "requirement")
@@ -127,12 +127,6 @@ def py_appengine_binary(**kwargs):
 def py_appengine_library(**kwargs):
     kwargs.pop("envs", None)
     _py_library(**kwargs)
-
-def py_appengine_test(**kwargs):
-    kwargs.pop("envs", None)
-    kwargs.pop("python_version", None)
-    kwargs.pop("use_public_sdk", None)
-    _py_appengine_test(**kwargs)
 
 def py_binary(**kwargs):
     _dedup_deps(kwargs)

@@ -70,7 +70,7 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
 
   def _CreateCommand(
       self, request_id=REQUEST_ID, run_count=1, priority=None,
-      command_line="command_line1", state=None):
+      command_line="command_line1"):
     """Helper to create a command."""
     command = command_manager.CreateCommands(
         request_id=request_id,
@@ -82,7 +82,6 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
                 run_count=run_count,
                 shard_count=1),
         ],
-        state=state,
         priority=priority,
         shard_indexes=[0],
         request_plugin_data={
@@ -1106,16 +1105,6 @@ class CommandManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual(len(tasks), 0)
     command = command.key.get(use_cache=False)
     self.assertEqual(common.CommandState.CANCELED, command.state)
-
-  def testCancelCommands_isFinal(self):
-    """Tests cancelling all commands for a request ID."""
-    command = self._CreateCommand(
-        run_count=2, state=common.CommandState.COMPLETED)
-    command_manager.CancelCommands(request_id=REQUEST_ID)
-    tasks = command_manager.GetActiveTasks(command)
-    self.assertEqual(len(tasks), 0)
-    command = command.key.get(use_cache=False)
-    self.assertEqual(common.CommandState.COMPLETED, command.state)
 
   @mock.patch.object(common, "Now")
   def testTouch(self, mock_now):

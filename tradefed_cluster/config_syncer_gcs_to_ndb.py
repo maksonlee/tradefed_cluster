@@ -397,12 +397,12 @@ def _UpdateHostGroupPermissions(lab_to_unified_lab_config):
       if group.direct_vars.get(_OWNERS):
         acl_service.SyncUserPermissions(
             group_id,
-            acl_service.Permission.owner.value,
+            acl_service.Permission.owner,
             group.direct_vars[_OWNERS])
       if group.direct_vars.get(_READERS):
         acl_service.SyncUserPermissions(
             group_id,
-            acl_service.Permission.reader.value,
+            acl_service.Permission.reader,
             group.direct_vars[_READERS])
 
 

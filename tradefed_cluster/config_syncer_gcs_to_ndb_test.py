@@ -25,6 +25,7 @@ from tradefed_cluster import testbed_dependent_test
 from tradefed_cluster.configs import lab_config as lab_config_util
 from tradefed_cluster.configs import unified_lab_config as unified_lab_config_util
 from tradefed_cluster.util import ndb_shim as ndb
+from tradefed_cluster.services import acl_service
 
 TEST_DATA_PATH = 'test_yaml'
 LAB_CONFIG_FILE = 'dockerized-tf.yaml'
@@ -325,27 +326,29 @@ class ConfigSyncerGCSToNdbTest(testbed_dependent_test.TestbedDependentTest):
                      LAB_INV_FILE),
         config_syncer_gcs_to_ndb._GcsDataLoader())
     config_syncer_gcs_to_ndb._UpdateHostGroupPermissions({'lab1': config})
-    self.assertEqual(
-        [
-            mock.call('lab1_all', []),
-            mock.call('lab1_ungrouped', ['lab1_all', 'lab1_all']),
-            mock.call('lab1_jump', ['lab1_all', 'lab1_server']),
-            mock.call('lab1_dhcp', ['lab1_all', 'lab1_server']),
-            mock.call('lab1_pxe', ['lab1_all', 'lab1_server']),
-            mock.call('lab1_server', ['lab1_all']),
-            mock.call('lab1_pixellab', ['lab1_all']),
-            mock.call('lab1_tf', ['lab1_all']),
-            mock.call('lab1_dtf', ['lab1_all', 'lab1_tf']),
-            mock.call('lab1_storage_tf', ['lab1_all', 'lab1_tf']),
-            mock.call('lab1_mh', ['lab1_all'])
-        ],
-        mock_sync_parent.call_args_list)
-    self.assertEqual(
-        [mock.call('lab1_all', 'owner', ['mdb-group:some_owner', 'foo', 'bar']),
-         mock.call('lab1_all', 'reader', ['mdb-group:some_reader']),
-         mock.call('lab1_storage_tf', 'owner', ['mdb-group:storage_owner']),
-         mock.call('lab1_mh', 'owner', ['mdb-group:mh_owner'])],
-        mock_sync_permission.call_args_list)
+    self.assertEqual([
+        mock.call('lab1_all', []),
+        mock.call('lab1_ungrouped', ['lab1_all', 'lab1_all']),
+        mock.call('lab1_jump', ['lab1_all', 'lab1_server']),
+        mock.call('lab1_dhcp', ['lab1_all', 'lab1_server']),
+        mock.call('lab1_pxe', ['lab1_all', 'lab1_server']),
+        mock.call('lab1_server', ['lab1_all']),
+        mock.call('lab1_pixellab', ['lab1_all']),
+        mock.call('lab1_tf', ['lab1_all']),
+        mock.call('lab1_dtf', ['lab1_all', 'lab1_tf']),
+        mock.call('lab1_storage_tf', ['lab1_all', 'lab1_tf']),
+        mock.call('lab1_mh', ['lab1_all'])
+    ], mock_sync_parent.call_args_list)
+    self.assertEqual([
+        mock.call('lab1_all', acl_service.Permission.owner,
+                  ['mdb-group:some_owner', 'foo', 'bar']),
+        mock.call('lab1_all', acl_service.Permission.reader,
+                  ['mdb-group:some_reader']),
+        mock.call('lab1_storage_tf', acl_service.Permission.owner,
+                  ['mdb-group:storage_owner']),
+        mock.call('lab1_mh', acl_service.Permission.owner,
+                  ['mdb-group:mh_owner'])
+    ], mock_sync_permission.call_args_list)
 
 
 if __name__ == '__main__':

@@ -154,8 +154,7 @@ def GetLeasableTasks(cluster, run_targets):
       datastore_entities.CommandTask.query(
           datastore_entities.CommandTask.cluster == cluster,
           datastore_entities.CommandTask.leasable == True,            namespace=common.NAMESPACE)
-      .order(-datastore_entities.CommandTask.priority,
-             datastore_entities.CommandTask.key))
+      .order(-datastore_entities.CommandTask.priority))
 
   run_target_set = set(run_targets)
   for task in tasks:

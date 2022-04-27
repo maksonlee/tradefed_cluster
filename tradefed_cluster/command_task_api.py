@@ -224,7 +224,16 @@ class CommandTaskApi(remote.Service):
     leased_tasks = []
     leasable_tasks = command_task_store.GetLeasableTasks(
         cluster, matcher.GetRunTargets())
+
+    # Deadline to return a response. Tradefed may timeout requests after 90s, so
+    # if we haven't been able to lease enough tasks, just terminate and return
+    # what we have, instead of risking allocating tasks only for Tradefed not to
+    # receive it.
+    # TODO: Consider removing if we've fully mitigated the issue.
+    deadline = Now() + datetime.timedelta(seconds=50)
     for task in leasable_tasks:
+      if Now() > deadline:
+        break
       affinity_tag, target_affinity_tags = self._GetTargetAffinityTags(
           task.task_id)
       logging.debug(

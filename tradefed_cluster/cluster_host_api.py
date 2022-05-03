@@ -31,6 +31,7 @@ from tradefed_cluster import device_manager
 from tradefed_cluster import harness_image_metadata_syncer
 from tradefed_cluster import host_event
 from tradefed_cluster import note_manager
+from tradefed_cluster.services import acl_service
 
 
 _DEFAULT_LIST_NOTES_COUNT = 10
@@ -903,7 +904,10 @@ class ClusterHostApi(remote.Service):
       if not config or not config.enable_ui_update:
         hosts_not_enabled.append(hostname)
         continue
-      if request.user not in config.owners:
+      try:
+        acl_service.CheckResourcePermission(
+            request.user, acl_service.Permission.owner, hostname=hostname)
+      except endpoints.ForbiddenException:
         hosts_no_permission.append(hostname)
         continue
       if not metadata:

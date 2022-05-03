@@ -16,6 +16,7 @@
 import datetime
 import json
 import unittest
+import endpoints
 
 import mock
 from protorpc import protojson
@@ -30,6 +31,7 @@ from tradefed_cluster import datastore_entities
 from tradefed_cluster import datastore_test_util
 from tradefed_cluster import device_manager
 from tradefed_cluster import note_manager
+from tradefed_cluster.services import acl_service
 
 
 class ClusterHostApiTest(api_test.ApiTest):
@@ -109,6 +111,14 @@ class ClusterHostApiTest(api_test.ApiTest):
         timestamp=self.TIMESTAMP,
         message='Hello, World')
     self.note.put()
+
+    self.check_permission_patcher = mock.patch(
+        '__main__.cluster_host_api.acl_service.CheckResourcePermission')
+    self.mock_check_permission = self.check_permission_patcher.start()
+
+  def tearDown(self):
+    self.check_permission_patcher.stop()
+    api_test.ApiTest.tearDown(self)
 
   def AssertEqualHostInfo(self, host_entity, host_message):
     # Helper to compare host entities and messages
@@ -2229,6 +2239,10 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual(hostname2, host_update_state.hostname)
     self.assertEqual(api_messages.HostUpdateState.PENDING,
                      host_update_state.state)
+    self.mock_check_permission.assert_has_calls([
+        mock.call(owner, acl_service.Permission.owner, hostname=hostname1),
+        mock.call(owner, acl_service.Permission.owner, hostname=hostname2),
+    ])
 
   def testBatchUpdateHostMetadata_succeedsWithExistingMetadata(self):
     """Test batch set test_harness_image for hosts."""
@@ -2279,6 +2293,11 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual(api_messages.HostUpdateState.PENDING,
                      host_update_state.state)
 
+    self.mock_check_permission.assert_has_calls([
+        mock.call(owner, acl_service.Permission.owner, hostname=hostname1),
+        mock.call(owner, acl_service.Permission.owner, hostname=hostname2),
+    ])
+
   def testBatchUpdateHostMetadata_succeedsWithUnchangedImage(self):
     """Test batch set test_harness_image for hosts."""
     hostname = 'host1'
@@ -2311,6 +2330,9 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertEqual(image_name_new, host_metadata.test_harness_image)
     # No update should start in this case, because the image is not changed.
     self.assertIsNone(datastore_entities.HostUpdateState.get_by_id(hostname))
+    self.mock_check_permission.assert_has_calls([
+        mock.call(owner, acl_service.Permission.owner, hostname=hostname),
+    ])
 
   def testBatchUpdateHostMetadata_failUserNotPermitted(self):
     """Test batch set test_harness_image for hosts."""
@@ -2318,6 +2340,7 @@ class ClusterHostApiTest(api_test.ApiTest):
     hostname2 = 'host2'
     lab_name = 'alab'
     owner = 'user1'
+    no_access_user = 'wrongperson'
     repo_name = 'test_repo'
     tag_old = 'old'
     tag_new = 'new'
@@ -2336,10 +2359,12 @@ class ClusterHostApiTest(api_test.ApiTest):
     datastore_test_util.CreateTestHarnessImageMetadata(
         repo_name=repo_name, digest='d2', current_tags=[tag_new])
 
+    self.mock_check_permission.side_effect = endpoints.ForbiddenException()
+
     api_request = {
         'hostnames': [hostname1, hostname2],
         'test_harness_image': image_name_new,
-        'user': 'wrongperson',
+        'user': no_access_user,
     }
     api_response = self.testapp.post_json(
         '/_ah/api/ClusterHostApi.BatchUpdateHostMetadata',
@@ -2351,6 +2376,12 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertIn(expected_error_msg, api_response.body)
     self.assertIsNone(datastore_entities.HostUpdateState.get_by_id(hostname1))
     self.assertIsNone(datastore_entities.HostUpdateState.get_by_id(hostname2))
+    self.mock_check_permission.assert_has_calls([
+        mock.call(
+            no_access_user, acl_service.Permission.owner, hostname=hostname1),
+        mock.call(
+            no_access_user, acl_service.Permission.owner, hostname=hostname2),
+    ])
 
   def testBatchUpdateHostMetadata_failHostNotEnabled(self):
     """Test batch set test_harness_image for hosts."""
@@ -2391,6 +2422,7 @@ class ClusterHostApiTest(api_test.ApiTest):
     self.assertIn(expected_error_msg, api_response.body)
     self.assertIsNone(datastore_entities.HostUpdateState.get_by_id(hostname1))
     self.assertIsNone(datastore_entities.HostUpdateState.get_by_id(hostname2))
+    self.mock_check_permission.assert_not_called()
 
   def testGetHostResource(self):
     """Tests GetHostResource."""

@@ -281,6 +281,7 @@ pytype_strict_library(
         ":harness_image_metadata_syncer_lib",
         ":host_event_lib",
         ":note_manager_lib",
+        "//tradefed_cluster/services:acl_service_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
         third_party("endpoints:endpoints_library"),
         third_party("protorpc:protorpc_all"),
@@ -298,7 +299,9 @@ py_test(
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
+        "//tradefed_cluster/services:acl_service_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
+        third_party("endpoints:endpoints_library"),
     ],
 )
 

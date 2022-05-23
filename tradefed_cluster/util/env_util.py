@@ -15,6 +15,7 @@
 """A module for configurations for different environments."""
 
 import os
+from google.appengine.api import full_app_id
 
 ENV_PROD = 'prod'
 ENV_STAGING = 'staging'
@@ -23,7 +24,7 @@ ENV_BUILD_QA = 'build-qa'
 ENV_QA = 'qa'
 ENV_DEV = 'dev'
 
-APP_ID = os.environ.get('APPLICATION_ID', '')
+APP_ID = full_app_id.get()
 if '~' in APP_ID:
   _, APP_ID = APP_ID.split('~', 1)
 # Indicates whether it is running in a development server.

@@ -31,14 +31,14 @@ from tradefed_cluster.util import ndb_shim as ndb
 REQUEST_SYNC_QUEUE = 'request-sync-queue'
 REQUEST_ID_KEY = 'request_id'
 
-# Wait 1 second if there were events.
-SHORT_SYNC_COUNTDOWN_SECS = 1
+# Wait 15 seconds if there were events.
+SHORT_SYNC_COUNTDOWN_SECS = 15
 
-# Wait 10 seconds before checking again if there are no events
-LONG_SYNC_COUNTDOWN_SECS = 10
+# Wait 1 minute before checking again if there are no events
+LONG_SYNC_COUNTDOWN_SECS = 60
 
-# Force a check for events at least once every minute
-FORCE_REQUEST_SYNC_SECS = 60
+# Force a check for events at least once every 5 minutes
+FORCE_REQUEST_SYNC_SECS = 60 * 5
 
 APP = flask.Flask(__name__)
 

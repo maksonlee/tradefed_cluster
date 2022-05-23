@@ -90,7 +90,7 @@ class RequestMonitorTest(testbed_dependent_test.TestbedDependentTest):
     request_sync_monitor.Monitor(REQUEST_ID)
     sync_key = request_sync_monitor.GetRequestSyncStatusKey(REQUEST_ID)
     sync_status = sync_key.get()
-    sync_status.last_sync_time = now - datetime.timedelta(minutes=2)
+    sync_status.last_sync_time = now - datetime.timedelta(minutes=6)
     sync_status.put()
 
     self.assertTrue(request_sync_monitor._UpdateSyncStatus(REQUEST_ID))

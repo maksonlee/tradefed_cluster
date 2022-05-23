@@ -102,6 +102,12 @@ class CommandEvent(object):
       self.error = "Device allocation failed: %s" % (
           self.error or "Device did not meet command requirements")
       return
+    if self.type == common.InvocationEventType.UNLEASED:
+      # TF couldn't run the command so it returns the lease to be rescheduled
+      self.attempt_state = common.CommandState.CANCELED
+      self.error = "Command was unleased: %s" % (
+          self.error or "invocation was unleased")
+      return
     if self.type == common.InvocationEventType.CONFIGURATION_ERROR:
       if self.error_status == common.TF_ERROR_STATUS_CUSTOMER_ISSUE:
         self.attempt_state = common.CommandState.FATAL

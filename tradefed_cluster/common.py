@@ -279,6 +279,7 @@ class InvocationEventType(object):
   TEST_RUN_IN_PROGRESS = "TestRunInProgress"
   INVOCATION_COMPLETED = "InvocationCompleted"
   INVOCATION_ENDED = "InvocationEnded"
+  UNLEASED = "Unleased"
 
 
 class ObjectEventType(object):

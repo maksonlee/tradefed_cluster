@@ -18,7 +18,6 @@ import datetime
 import logging
 import uuid
 
-import grpc
 from protorpc import messages
 from protorpc import remote
 
@@ -265,8 +264,7 @@ class CommandTaskApi(remote.Service):
           for device in matched_devices:
             affinity_manager.SetDeviceAffinity(
                 device.device_serial, affinity_tag)
-      except grpc.RpcError as e:
-        # Datastore entities can only be written to once per second.  If we fail
+      except Exception as e:          # Datastore entities can only be written to once per second.  If we fail
         # to update the command or task, log the error, and try leasing other
         # tasks.
         logging.warning("Error leasing task %s: %s", task.task_id, e)

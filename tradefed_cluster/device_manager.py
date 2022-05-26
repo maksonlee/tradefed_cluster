@@ -394,7 +394,6 @@ def _UpdateDevicesInNDB(event):
   logging.debug("Updated %d devices in ndb.", len(event.device_info))
 
 
-@ndb.transactional()
 def _DoUpdateDevicesInNDB(reported_devices, event):
   """Update device entities to ndb.
 
@@ -657,7 +656,6 @@ def _UpdateGoneDevicesInNDB(hostname, reported_devices, timestamp):
     logging.debug("Updated %d missing devices.", len(missing_device_keys))
 
 
-@ndb.transactional()
 def _DoUpdateGoneDevicesInNDB(missing_device_keys, timestamp):
   """Do update gone devices in NDB within transactional."""
   entities_to_update = []

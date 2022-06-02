@@ -77,6 +77,11 @@ class TaskStoreTest(testbed_dependent_test.TestbedDependentTest):
     command_task_store.CreateTask(self.command_task_args1)
     command_task_store.CreateTask(self.command_task_args2)
 
+    # Avoid randomness in tests.
+    def MockRandom():
+      return 0
+    command_task_store.Random = MockRandom
+
   def testGetTask(self):
     task = command_task_store.GetTask('task_id1')
     self.assertEqual('task_id1', task.key.id())

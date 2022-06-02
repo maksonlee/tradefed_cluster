@@ -17,6 +17,7 @@
 import dataclasses
 import datetime
 import logging
+import random
 
 from typing import Dict, Optional, Any
 
@@ -141,6 +142,10 @@ def RescheduleTask(task_id, run_index, attempt_index):
         '%s doesn\'t exist in task store, don\'t reschedule', str(task_id))
 
 
+def Random():
+  return random.random()
+
+
 def GetLeasableTasks(cluster, run_targets):
   """Get leasable tasks from datastore.
 
@@ -156,11 +161,44 @@ def GetLeasableTasks(cluster, run_targets):
           datastore_entities.CommandTask.leasable == True,            namespace=common.NAMESPACE)
       .order(-datastore_entities.CommandTask.priority))
 
+  # Because Datastore will always return the tasks from the above query in the
+  # same order, this means that multiple hosts trying to lease tasks for the
+  # same cluster will also iterate over the tasks in the exact same order, which
+  # will result in contention since a task can only be leased by a single host.
+  #   [A, B, C, D, E, F, G, ...]
+  #
+  # There isn't a good solution to modifying the query for this, due to
+  # Datastore constraints, but we can instead return a random list, where the
+  # probability of a task appearing is weighed by its index in the sequence.
+  #   [A(100%), B(50%), C(50%), D(25%), E(25%), F(25%), G(25%), ...]
+  #
+  # This is nearly equivalent to choosing a random element from
+  # exponentially-increasing groups:
+  #   [{A(100%)}, {B(50%), C(50%)}, {D(25%), E(25%), F(25%), G(25%)}, ...]
+  #
+  # But the former is easier to test, and we can tune the weights to allow for
+  # heavier weighing towards elements at the beginning of the list, at the cost
+  # of increased lease contention.
+  #
+  # This method is similar to how randomized exponential backoff is used for
+  # collision avoidance.
+  # https://en.wikipedia.org/wiki/Exponential_backoff#Collision_avoidance
+  i, bucket = 0, 2
+  p = 1
+
   run_target_set = set(run_targets)
   for task in tasks:
     if not set(task.run_targets).issubset(run_target_set):
       continue
-    yield task
+
+    if Random() < p:
+      yield task
+    else:
+      logging.info('Skipping leasable task %s', task.key.id())
+    i += 1
+    if i == bucket:
+      p = 1 / bucket
+      bucket = bucket * 2
 
 
 @ndb.transactional()

@@ -52,7 +52,6 @@ def Render(template_dir, template_name, **kwargs):
   """
   jinja_env = jinja2.Environment(
       loader=jinja2.FileSystemLoader(template_dir),
-      extensions=['jinja2.ext.autoescape'],
       autoescape=True,
       variable_start_string='[[',
       variable_end_string=']]'

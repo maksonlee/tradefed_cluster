@@ -188,7 +188,7 @@ def GetLeasableTasks(cluster, run_targets):
 
   run_target_set = set(run_targets)
   for task in tasks:
-    if not set(task.run_targets).issubset(run_target_set):
+    if not task or not set(task.run_targets).issubset(run_target_set):
       continue
 
     if Random() < p:

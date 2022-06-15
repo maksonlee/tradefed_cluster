@@ -388,6 +388,7 @@ def _UpdateHostGroupPermissions(lab_to_unified_lab_config):
   """Updates parent relations and group permissions."""
   for lab_name, lab_config in lab_to_unified_lab_config.items():
     for group in lab_config.ListGroups():
+      logging.debug('Updating permissions for %s in %s', group.name, lab_name)
       group_id = datastore_entities.HostGroupConfig.CreateId(
           lab_name, group.name)
       acl_service.SyncParentObjects(

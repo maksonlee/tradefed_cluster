@@ -28,7 +28,7 @@ APP_ID = full_app_id.get()
 if '~' in APP_ID:
   _, APP_ID = APP_ID.split('~', 1)
 # Indicates whether it is running in a development server.
-if os.environ.get('SERVER_SOFTWARE', 'Development').startswith('Development'):
+if os.environ.get('GAE_ENV', '') == 'localdev':
   ENV = ENV_DEV
 elif APP_ID.endswith('-staging'):
   ENV = ENV_STAGING

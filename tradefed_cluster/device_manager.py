@@ -160,13 +160,9 @@ def _UpdateHostWithHostChangedEvent(event):
       event.test_harness_version or host.test_harness_version)
   host.extra_info = event.data or host.extra_info
   host.hidden = False
-  host_state_history, host_history = _UpdateHostState(
-      host, event.host_state, event.timestamp)
   entities_to_update = [host]
-  if host_state_history:
-    entities_to_update.append(host_state_history)
-  if host_history:
-    entities_to_update.append(host_history)
+  _UpdateHostStateAndHistory(
+      host, event.host_state, event.timestamp, entities_to_update)
   ndb.put_multi(entities_to_update)
   return
 
@@ -246,19 +242,40 @@ def _UpdateHostWithDeviceSnapshotEvent(event):
     host.clusters = event.next_cluster_ids[:]
   host.pools = event.pools
   entities_to_update = [host]
-  if _IsNewTestHarnessInstance(host, event):
-    # If it's a new instance, we change the host state to RUNNING.
-    host_state_history, host_history = _UpdateHostState(
-        host, api_messages.HostState.RUNNING, event.timestamp)
-    if host_state_history:
-      entities_to_update.append(host_state_history)
-    if host_history:
-      entities_to_update.append(host_history)
+  if event.test_harness == common.TestHarness.TRADEFED:
+    if _IsNewTestHarnessInstance(host, event):
+      # If it's a new instance, we change the host state to RUNNING.
+      _UpdateHostStateAndHistory(
+          host,
+          api_messages.HostState.RUNNING,
+          event.timestamp,
+          entities_to_update)
+  elif event.host_state and host.host_state != event.host_state:
+    # Update host state for non tradefed hosts if its state has changed
+    _UpdateHostStateAndHistory(
+        host, event.host_state, event.timestamp, entities_to_update)
   # Extra info need to be update after checking _IsNewTestHarnessInstance,
   # since we use insit_harness_start_time_ms in extra info.
   host.extra_info = event.data
   ndb.put_multi(entities_to_update)
   return host
+
+
+def _UpdateHostStateAndHistory(host, state, timestamp, entities_to_update):
+  """Update host state as well as the history.
+
+  Args:
+    host: a datastore_entities.HostInfo object.
+    state: new host state.
+    timestamp: the timestamp when the host state changed.
+    entities_to_update: the array of historical entities.
+  """
+  host_state_history, host_history = _UpdateHostState(
+      host, state, timestamp)
+  if host_state_history:
+    entities_to_update.append(host_state_history)
+  if host_history:
+    entities_to_update.append(host_history)
 
 
 def _IsNewTestHarnessInstance(host, event):
@@ -764,13 +781,9 @@ def UpdateGoneHost(hostname):
     return
   entities_to_update = []
   now = common.Now()
-  host_state_history, host_history = _UpdateHostState(
-      host, api_messages.HostState.GONE, now)
   entities_to_update.append(host)
-  if host_state_history:
-    entities_to_update.append(host_state_history)
-  if host_history:
-    entities_to_update.append(host_history)
+  _UpdateHostStateAndHistory(
+      host, api_messages.HostState.GONE, now, entities_to_update)
   devices = GetDevicesOnHost(hostname)
   for device in devices or []:
     if device.state == common.DeviceState.GONE:

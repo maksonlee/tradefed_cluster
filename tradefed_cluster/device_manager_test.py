@@ -294,6 +294,17 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
       "event_type": "DEVICE_SNAPSHOT",
   }
 
+  HOST_EVENT_WITH_TEST_HARNESS_AND_STATE = {
+      "time": 1431712965,
+      "data": {},
+      "cluster": "presubmit",
+      "hostname": "test-2.mtv.corp.example.com",
+      "event_type": "DEVICE_SNAPSHOT",
+      "device_infos": [],
+      "test_harness": "MOBILEHARNESS",
+      "state": "GONE"
+  }
+
   def testIsHostEventValid(self):
     """Tests IsHostEventValid for a valid event."""
     self.assertTrue(device_manager.IsHostEventValid(self.HOST_EVENT))
@@ -754,6 +765,18 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertEqual("harness_v2", host.test_harness_version)
     device = device_manager.GetDevice(device_serial="new_harness_device")
     self.assertEqual("NEW_HARNESS", device.test_harness)
+    self.assertEqual(api_messages.HostState.UNKNOWN, host.host_state)
+
+  def testHandleDeviceSnapshot_withTestHarnessAndState(self):
+    """Tests that HandleDeviceSnapshot handle event with test harness."""
+    event = host_event.HostEvent(**self.HOST_EVENT_WITH_TEST_HARNESS_AND_STATE)
+    device_manager.HandleDeviceSnapshotWithNDB(event)
+
+    hostname = self.HOST_EVENT_WITH_TEST_HARNESS_AND_STATE["hostname"]
+    host = device_manager.GetHost(hostname)
+    self.assertIsNotNone(host)
+    self.assertEqual("MOBILEHARNESS", host.test_harness)
+    self.assertEqual(api_messages.HostState.GONE, host.host_state)
 
   def testUpdateGoneDevicesInNDB_alreadyGone(self):
     """Tests that devices are updated."""

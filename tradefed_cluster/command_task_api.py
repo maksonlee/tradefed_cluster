@@ -229,7 +229,7 @@ class CommandTaskApi(remote.Service):
     # what we have, instead of risking allocating tasks only for Tradefed not to
     # receive it.
     # TODO: Consider removing if we've fully mitigated the issue.
-    deadline = Now() + datetime.timedelta(seconds=50)
+    deadline = Now() + datetime.timedelta(seconds=45)
     for task in leasable_tasks:
       if Now() > deadline:
         break

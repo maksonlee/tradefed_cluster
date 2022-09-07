@@ -771,7 +771,6 @@ def GetDevicesOnHost(hostname):
           .filter(datastore_entities.DeviceInfo.hidden == False)            .fetch())
 
 
-@ndb.transactional()
 def UpdateGoneHost(hostname):
   """Set a host and its devices to GONE."""
   logging.info("Set host %s and its devices to GONE.", hostname)
@@ -800,7 +799,6 @@ def UpdateGoneHost(hostname):
   ndb.put_multi(entities_to_update)
 
 
-@ndb.transactional()
 def HideHost(hostname):
   """Hide a host and its devices."""
   logging.info("Hide host %s.", hostname)
@@ -827,7 +825,6 @@ def HideHost(hostname):
   return host
 
 
-@ndb.transactional()
 def RestoreHost(hostname):
   """Restore a host and its devices."""
   logging.info("Restore host %s.", hostname)

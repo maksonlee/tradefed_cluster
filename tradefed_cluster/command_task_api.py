@@ -211,10 +211,10 @@ class CommandTaskApi(remote.Service):
       command_manager.AddToSyncCommandAttemptQueue(attempt_entity)
       attempt_entity.put()
 
-      task = command_task_store.GetTask(task.task_id)
-      if task:
-        task.attempt_id = attempt_id
-        task.put()
+      stored_task = command_task_store.GetTask(task.task_id)
+      if stored_task:
+        stored_task.attempt_id = attempt_id
+        stored_task.put()
       else:
         logging.warning("No task found with id %s", task.task_id)
 

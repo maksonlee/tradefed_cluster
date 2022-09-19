@@ -119,6 +119,17 @@ def HandleDeviceSnapshotWithNDB(event):
   if event.type in HOST_STATE_CHANGED_TYPES:
     _UpdateHostWithHostChangedEvent(event)
   elif event.type in DEVICE_SNAPSHOT_TYPES:
+    # TODO: It would be better to filter events of the extra test
+    # harness from the source.
+    # Skip DeviceSnapshotEvents from other test harness if the TRADEFED is
+    # RUNNING to keep consistency of device states.
+    if (host and host.test_harness == common.TestHarness.TRADEFED and
+        host.host_state == api_messages.HostState.RUNNING and
+        host.test_harness != event.test_harness):
+      logging.info(
+          "Ignoring DeviceSnapshotEvent from %s for host [%s] because TF is running.",
+          event.test_harness, event.hostname)
+      return
     _UpdateDevicesInNDB(event)
     host = _UpdateHostWithDeviceSnapshotEvent(event)
     _CountDeviceForHost(event.hostname)

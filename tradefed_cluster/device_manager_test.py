@@ -305,6 +305,48 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
       "state": "GONE"
   }
 
+  HOST_EVENT_WITH_EMULATOR = {
+      "time": 1331712965,
+      "data": {},
+      "cluster": "test",
+      "hostname": "test.mtv.corp.example.com",
+      "tf_version": "0001",
+      "event_type": "DEVICE_SNAPSHOT",
+      "device_infos": [
+          {
+              "product": "unknown",
+              "state": "Available",
+              "device_serial": "emulator-5554",
+              "sdk_version": "unknown",
+              "product_variant": "unknown",
+              "build_id": "unknown",
+              "run_target": "emulator",
+              "battery_level": "unknown"
+          },
+      ]
+  }
+
+  HOST_EVENT_WITH_EMULATOR_UNDER_OTHER_TEST_HARNESS = {
+      "time": 1331712990,
+      "data": {},
+      "cluster": "test",
+      "hostname": "test.mtv.corp.example.com",
+      "event_type": "DEVICE_SNAPSHOT",
+      "test_harness": "MOBILEHARNESS",
+      "device_infos": [
+          {
+              "product": "unknown",
+              "state": "Allocated",
+              "device_serial": "emulator-5554",
+              "sdk_version": "unknown",
+              "product_variant": "unknown",
+              "build_id": "unknown",
+              "run_target": "emulator",
+              "battery_level": "unknown"
+          },
+      ]
+  }
+
   def testIsHostEventValid(self):
     """Tests IsHostEventValid for a valid event."""
     self.assertTrue(device_manager.IsHostEventValid(self.HOST_EVENT))
@@ -777,6 +819,31 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     self.assertIsNotNone(host)
     self.assertEqual("MOBILEHARNESS", host.test_harness)
     self.assertEqual(api_messages.HostState.GONE, host.host_state)
+
+  def testHandleDeviceSnapshot_skipEventFromDifferentTestHarness(self):
+    """Tests that HandleDeviceSnapshot skips the event."""
+    tf_host_event = host_event.HostEvent(**self.HOST_EVENT_WITH_EMULATOR)
+    device_manager.HandleDeviceSnapshotWithNDB(tf_host_event)
+
+    hostname = self.HOST_EVENT_WITH_EMULATOR["hostname"]
+    host = device_manager.GetHost(hostname)
+    self.assertIsNotNone(host)
+    self.assertEqual("TRADEFED", host.test_harness)
+    self.assertEqual(api_messages.HostState.RUNNING, host.host_state)
+    device_0 = device_manager.GetDevice(device_serial=self.EMULATOR_SERIAL)
+    self.assertIsNotNone(device_0)
+    self.assertEqual("Available", device_0.state)
+
+    mh_host_event = host_event.HostEvent(
+        **self.HOST_EVENT_WITH_EMULATOR_UNDER_OTHER_TEST_HARNESS)
+    device_manager.HandleDeviceSnapshotWithNDB(mh_host_event)
+    host = device_manager.GetHost(hostname)
+    self.assertIsNotNone(host)
+    self.assertEqual("TRADEFED", host.test_harness)
+    self.assertEqual(api_messages.HostState.RUNNING, host.host_state)
+    device_0 = device_manager.GetDevice(device_serial=self.EMULATOR_SERIAL)
+    self.assertIsNotNone(device_0)
+    self.assertEqual("Available", device_0.state)
 
   def testUpdateGoneDevicesInNDB_alreadyGone(self):
     """Tests that devices are updated."""

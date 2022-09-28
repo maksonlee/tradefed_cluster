@@ -32,6 +32,7 @@ from tradefed_cluster.util import ndb_shim as ndb
 
 REQUEST_QUEUE = "test-request-queue"
 SPONGE_URI_PATTERN = r".*(https?://(?:sponge|g3c).corp.example.com\S*).*"
+MAX_STR_FIELD_SIZE = 5000
 
 
 class RequestSummary(object):
@@ -231,6 +232,10 @@ def CreateRequestEventMessage(request):
 
   for command in commands:
     run_count = command.run_count
+    command.command_line = (
+        command.command_line[:MAX_STR_FIELD_SIZE]
+        if command.command_line else "")
+
     for attempt in reversed(attempts):
       if attempt.key.parent() != command.key:
         continue
@@ -241,7 +246,9 @@ def CreateRequestEventMessage(request):
         if run_time > 0:
           total_run_time_sec += run_time
 
-      summary = attempt.summary or "No summary available."
+      summary = (
+          attempt.summary[:MAX_STR_FIELD_SIZE]
+          if attempt.summary else "No summary available.")
       result_match = re.match(SPONGE_URI_PATTERN, summary)
       result_link = result_match.group(1) if result_match else ""
 
@@ -267,7 +274,9 @@ def CreateRequestEventMessage(request):
       elif (attempt.state in (common.CommandState.ERROR,
                               common.CommandState.FATAL)
             and attempt.state == command.state):
-        error = attempt.error or "No error message available."
+        error = (
+            attempt.error[:MAX_STR_FIELD_SIZE]
+            if attempt.error else "No error message available.")
         # Set request's error_type and reason as first non-empty error's
         # mapping value
         if error_type is None and attempt.error:

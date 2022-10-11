@@ -1905,6 +1905,15 @@ class ClusterDeviceApiTest(api_test.ApiTest):
     self.assertEqual(common.DeviceState.AVAILABLE,
                      device_history_collection.histories[2].state)
 
+  def testListDeviceHistories_noDevices(self):
+    """Tests ListHistories erros when the device doesn't exist."""
+    api_request = {'device_serial': 'fake-device-serial'}
+    api_response = self.testapp.post_json(
+        '/_ah/api/ClusterDeviceApi.ListHistories',
+        api_request,
+        expect_errors=True)
+    self.assertEqual('404 Not Found', api_response.status)
+
   def testListDeviceHistories_withCursorAndOffsetAndBackwards(self):
     """Tests ListHistories returns histories applying a count and offset."""
     device_manager._CreateDeviceInfoHistory(self.ndb_device_0).put()

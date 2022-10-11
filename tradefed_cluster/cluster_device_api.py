@@ -219,11 +219,11 @@ class ClusterDeviceApi(remote.Service):
         return
       if request.host_groups and device.host_group not in request.host_groups:
         return
-      if not request.include_offline_devices and \
-          device.state not in common.DEVICE_ONLINE_STATES:
+      if (not request.include_offline_devices and
+          device.state not in common.DEVICE_ONLINE_STATES):
         return
-      if request.device_types and \
-          device.device_type not in request.device_types:
+      if (request.device_types and
+          device.device_type not in request.device_types):
         return
       if test_harnesses and device.test_harness not in test_harnesses:
         return
@@ -760,6 +760,10 @@ class ClusterDeviceApi(remote.Service):
       an api_messages.DeviceInfoHistoryCollection object.
     """
     device = device_manager.GetDevice(device_serial=request.device_serial)
+    if not device:
+      raise endpoints.NotFoundException(
+          f"Device {request.device_serial} does not exist.")
+
     query = (
         datastore_entities.DeviceInfoHistory.query(ancestor=device.key).order(
             -datastore_entities.DeviceInfoHistory.timestamp))

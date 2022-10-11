@@ -259,9 +259,18 @@ py_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
+        ":api_messages_lib",
         ":api_test_lib",
+        ":common_lib",
+        ":datastore_entities_lib",
         ":datastore_test_util_lib",
         third_party("mock"),
+        ":device_manager_lib",
+        ":env_config_lib",
+        ":note_manager_lib",
+        "//third_party/py/protorpc:protorpc_all",
+        "//third_party/py/pytz",
+        "//tradefed_cluster/util:elasticsearch_client_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )

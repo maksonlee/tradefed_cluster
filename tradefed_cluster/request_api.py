@@ -48,8 +48,9 @@ class RequestApi(remote.Service):
       endpoints.UnauthorizedException if a request is not authorized
     """
     user = endpoints.get_current_user()
-    if not user:
-      raise endpoints.UnauthorizedException("A request is not authenticated.")
+    # TODO: Block unauthenticated requests
+    # if not user:
+    #   raise endpoints.UnauthorizedException("A request is not authenticated.")
 
     logging.info("request from user %s", user)
     # TODO: Add additional authorization logic here.
@@ -68,6 +69,8 @@ class RequestApi(remote.Service):
       affinity_tag,
       test_environment,
       test_resources):
+    # TODO: figure a better way for auth.
+    self._CheckAuth()
     new_request = request_manager.CreateRequest(
         user=user,
         command_infos=[
@@ -110,8 +113,6 @@ class RequestApi(remote.Service):
       a new request object with a valid ID.
     """
     logging.info("NewRequest: %s", request)
-    # TODO: figure a better way for auth.
-    # self._CheckAuth()
     new_request = self._CreateRequest(
         user=request.user,
         command_infos=[
@@ -251,7 +252,7 @@ class RequestApi(remote.Service):
       the test request
     """
     # TODO: figure a better auth check.
-    # self._CheckAuth()
+    self._CheckAuth()
     request_id = str(api_request.request_id)
     cur_request = request_manager.GetRequest(request_id)
     if not cur_request:

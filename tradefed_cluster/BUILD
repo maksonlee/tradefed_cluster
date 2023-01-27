@@ -1494,6 +1494,8 @@ py_test(
         ":env_config_lib",
         ":notifier_lib",
         ":testbed_dependent_test_lib",
+        "//pyglib:stringutil",
+        "//tradefed_cluster/services:task_scheduler_lib",
         third_party("mock"),
         third_party("six"),
         third_party("webtest"),

@@ -106,7 +106,8 @@ class NotificationHandlerTest(testbed_dependent_test.TestbedDependentTest):
     mock_add_task.assert_called_once_with(
         queue_name=common.OBJECT_EVENT_QUEUE,
         payload=mock.ANY,
-        transactional=True)
+        transactional=True,
+        ndb_store_oversized_task=True)
     payload = zlib.decompress(mock_add_task.call_args[1]["payload"])
     task = json.loads(payload)
     self.assertEqual("1", task["request_id"])
@@ -129,7 +130,8 @@ class NotificationHandlerTest(testbed_dependent_test.TestbedDependentTest):
     mock_add_task.assert_called_once_with(
         queue_name=common.OBJECT_EVENT_QUEUE,
         payload=mock.ANY,
-        transactional=True)
+        transactional=True,
+        ndb_store_oversized_task=True)
     payload = zlib.decompress(mock_add_task.call_args[1]["payload"])
     task = json.loads(payload)
     self.assertEqual("1", task["request_id"])

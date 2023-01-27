@@ -200,7 +200,8 @@ def SendRequestStateNotification(request_id, message):
   request = GetRequest(request_id)
   payload = zlib.compress(six.ensure_binary(protojson.encode_message(message)))  # pytype: disable=module-attr
   task_scheduler.AddTask(
-      queue_name=common.OBJECT_EVENT_QUEUE, payload=payload, transactional=True)
+      queue_name=common.OBJECT_EVENT_QUEUE, payload=payload, transactional=True,
+      ndb_store_oversized_task=True)
   request.notify_state_change = False
   request.put()
   return request

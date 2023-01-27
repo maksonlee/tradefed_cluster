@@ -71,6 +71,25 @@ def _SendEventMessage(encoded_message, pubsub_topic):
         'Unabled to notify events: use_google_api=False and queue is null')
 
 
+def _TryDecompressMessage(message):
+  """Try use zlib to decompress bytes message.
+
+  Args:
+    message: bytes, the encoded message payload.
+
+  Returns:
+    bytes, the decompressed message; or the original encoded message itself if
+      it cannot be decompressed (because it is not a compressed message).
+  """
+  try:
+    return zlib.decompress(message)
+  except zlib.error:
+    logging.warning(
+        'Cannot decompress and returning original message, '
+        'because payload may not be compressed: %s', message, exc_info=True)
+  return message
+
+
 # The below handler is served in frontend module.
 @APP.route(OBJECT_EVENT_QUEUE_HANDLER_PATH, methods=['POST'])
 def HandleObjectStateChangeEvent():
@@ -83,12 +102,23 @@ def HandleObjectStateChangeEvent():
     return '' since flask requires return non-None.
   """
   encoded_message = flask.request.get_data()
-  try:
-    encoded_message = zlib.decompress(encoded_message)
-  except zlib.error:
-    logging.warning(
-        'payload may not be compressed: %s', encoded_message, exc_info=True)
+
+  # _TryDecompressMessage is for dealing with compressed data.
+  # Check TASK_ENTITY_ID_KEY is for dealing with data payload delivered in ndb.
+  # Without decompressing, it cannot read the key inside the initial message,
+  # so we end up _TryDecompressMessage twice.
+  encoded_message = _TryDecompressMessage(encoded_message)
   data = json.loads(encoded_message)
+
+  # The ID is only set when reading task payloads from NDB.
+  task_entity_id = None
+  if task_scheduler.TASK_ENTITY_ID_KEY in data:
+    task_entity_id = data[task_scheduler.TASK_ENTITY_ID_KEY]
+    encoded_message = task_scheduler.FetchPayloadFromTaskEntity(
+        task_entity_id)
+    encoded_message = _TryDecompressMessage(encoded_message)
+    data = json.loads(encoded_message)
+
   message_type = data.get('type')
   if message_type == common.ObjectEventType.COMMAND_ATTEMPT_STATE_CHANGED:
     pubsub_topic = COMMAND_ATTEMPT_EVENT_PUBSUB_TOPIC
@@ -100,6 +130,8 @@ def HandleObjectStateChangeEvent():
                  data.get('request_id'), data.get('new_state'))
   else:
     logging.warning('Unknown message type (%s), ignore.', message_type)
+    task_scheduler.DeleteTaskEntity(task_entity_id)
     return common.HTTP_OK
   _SendEventMessage(encoded_message, pubsub_topic)
+  task_scheduler.DeleteTaskEntity(task_entity_id)
   return common.HTTP_OK

@@ -127,6 +127,7 @@ pytype_strict_library(
     ],
     srcs_version = "PY2AND3",
     deps = [
+        "//pyglib:stringutil",
         "//tradefed_cluster:common_lib",
         "//tradefed_cluster:env_config_lib",
         "//tradefed_cluster/plugins:base_lib",
@@ -144,6 +145,7 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":task_scheduler_lib",
+        "//pyglib:stringutil",
         "//tradefed_cluster:env_config_lib",
         "//tradefed_cluster:testbed_dependent_test_lib",
         "//tradefed_cluster/util:ndb_shim_lib",

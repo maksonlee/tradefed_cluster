@@ -15,6 +15,7 @@
 """Unit tests for task_scheduler module."""
 
 import datetime
+import json
 import pickle
 import threading
 import unittest
@@ -26,6 +27,9 @@ from tradefed_cluster import testbed_dependent_test
 from tradefed_cluster.plugins import base as plugins_base
 from tradefed_cluster.services import task_scheduler
 from tradefed_cluster.util import ndb_shim as ndb
+
+from google3.pyglib import stringutil
+
 
 _object = threading.local()
 
@@ -57,6 +61,43 @@ class TaskSchedulerTest(testbed_dependent_test.TestbedDependentTest):
         eta=None,
         target=None)
     self.assertEqual(mock_task, task)
+
+  def testAddTask_taskTooLargeButNotStoreInNDB(self):
+    large_payload = 'payload' + 'x' * task_scheduler.MAX_TASK_SIZE_BYTES
+
+    with self.assertRaises(task_scheduler.TaskTooLargeError):
+      task_scheduler.AddTask(
+          queue_name='queue_name', payload=large_payload,
+          ndb_store_oversized_task=False)
+
+  def testAddTask_taskTooLargeAndStoreInNDB(self):
+    large_payload = 'payload' + 'x' * task_scheduler.MAX_TASK_SIZE_BYTES
+    large_payload = stringutil.ensure_binary(large_payload)
+    task_key = task_scheduler._TaskEntity(data=large_payload).put()
+
+    with mock.patch('__main__.task_scheduler._TaskEntity.put',
+                    return_value=task_key):
+      mock_task = mock.MagicMock()
+      self.mock_add.return_value = mock_task
+
+      task = task_scheduler.AddTask(
+          queue_name='queue_name', payload=large_payload,
+          ndb_store_oversized_task=True)
+
+      expected_new_payload_dict = {
+          task_scheduler.TASK_ENTITY_ID_KEY: task_key.id(),
+      }
+      expected_new_payload_binary = stringutil.ensure_binary(
+          json.dumps(expected_new_payload_dict))
+
+      self.mock_add.assert_called_once_with(
+          queue_name='queue_name',
+          payload=expected_new_payload_binary,
+          task_name=None,
+          eta=None,
+          target=None)
+      self.assertEqual(task_key.get().data, large_payload)
+      self.assertEqual(mock_task, task)
 
   def testAddTask_withTransaction(self):
     self.mock_add.return_value = mock.MagicMock()
@@ -170,6 +211,31 @@ class TaskSchedulerTest(testbed_dependent_test.TestbedDependentTest):
 
     # Large payload is handled transactionally and not added on failure
     self.mock_add.assert_not_called()
+
+  def testFetchPayloadFromTaskEntity(self):
+    large_payload = 'payload' + 'x' * task_scheduler.MAX_TASK_SIZE_BYTES
+    large_payload = stringutil.ensure_binary(large_payload)
+    task_key = task_scheduler._TaskEntity(data=large_payload).put()
+
+    task_key_id = task_key.id()
+    self.assertEqual(
+        large_payload,
+        task_scheduler.FetchPayloadFromTaskEntity(task_key_id))
+
+  def testDeleteTaskEntity(self):
+    large_payload = 'payload' + 'x' * task_scheduler.MAX_TASK_SIZE_BYTES
+    large_payload = stringutil.ensure_binary(large_payload)
+    task_key = task_scheduler._TaskEntity(data=large_payload).put()
+    task_key_id = task_key.id()
+
+    self.assertIsNotNone(task_key.get())
+    # Test delete a task that exist
+    task_scheduler.DeleteTaskEntity(task_key_id)
+    self.assertIsNone(task_key.get())
+    # Ensure no error when deleting a task doesn't exist.
+    task_scheduler.DeleteTaskEntity(task_entity_id='non-existent')
+    # Ensure no error when deleting a task without providing an ID.
+    task_scheduler.DeleteTaskEntity(task_entity_id=None)
 
 
 if __name__ == '__main__':

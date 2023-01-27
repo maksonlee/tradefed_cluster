@@ -16,6 +16,7 @@
 
 This module is developed to replace the legacy usage of GAE Taskqueue.
 """
+import json
 import logging
 import pickle
 import types
@@ -23,6 +24,7 @@ import uuid
 
 import flask
 
+from google3.pyglib import stringutil
 
 from tradefed_cluster import common
 from tradefed_cluster import env_config
@@ -66,6 +68,22 @@ class _CallableTaskEntity(ndb.Model):
   payload with the task queue entry.
   """
   data = ndb.BlobProperty(required=True)
+
+
+# The dict key name with which the field stores NDB ID for an _TaskEntity.
+TASK_ENTITY_ID_KEY = "taskEntityId"
+
+
+class _TaskEntity(ndb.Model):
+  """Datastore representation of a task.
+
+  Similar to _CallableTaskEntity, this is used in cases when the deferred task
+  is too big to be included as payload with the task queue entry. But this
+  is implemented as an alernative to the former, so that it's also suitable for
+  tasks not implemented as "callable task".
+  """
+  data = ndb.BlobProperty(required=True)
+  create_time = ndb.DateTimeProperty(auto_now_add=True)
 
 
 def _GetTaskScheduler():
@@ -118,7 +136,8 @@ def _AddTask(
 
 
 def AddTask(
-    queue_name, payload, target=None, name=None, eta=None, transactional=False):
+    queue_name, payload, target=None, name=None, eta=None, transactional=False,
+    ndb_store_oversized_task=False):
   """Schedule a task.
 
   Args:
@@ -129,16 +148,74 @@ def AddTask(
     eta: a ETA for task execution (optional).
     transactional: a flag to indicate whether this task should be tied to
         datastore transaction.
+    ndb_store_oversized_task: bool, whether to store overized task entity into
+        NDB.
+
+  Raises:
+    TaskTooLargeError: when task payload is oversized, and not to be delivered
+      through ndb.
+
   Returns:
     a Task object.
   """
-  return _AddTask(
-      queue_name=queue_name,
-      payload=payload,
-      target=target,
-      name=name,
-      eta=eta,
-      transactional=transactional)
+  try:
+    return _AddTask(
+        queue_name=queue_name,
+        payload=payload,
+        target=target,
+        name=name,
+        eta=eta,
+        transactional=transactional)
+  except TaskTooLargeError:
+    if not ndb_store_oversized_task:
+      logging.exception("Overisized task is not delivered.")
+      raise
+    entity_key = _TaskEntity(data=stringutil.ensure_binary(payload)).put()
+    new_payload_dict = {
+        TASK_ENTITY_ID_KEY: entity_key.id(),
+    }
+    new_payload_binary = stringutil.ensure_binary(json.dumps(new_payload_dict))
+    logging.info("Stored oversized task as NDB _TaskEntity: %s.", entity_key)
+    return _AddTask(
+        queue_name=queue_name,
+        payload=new_payload_binary,
+        target=target,
+        name=name,
+        eta=eta,
+        transactional=transactional)
+
+
+def FetchPayloadFromTaskEntity(task_entity_id):
+  """Fetch a TaskEntity From NDB.
+
+  Args:
+    task_entity_id: the NDB entity ID of a _TaskEntity.
+
+  Returns:
+    Bytes, the payload data; or None if not found.
+  """
+  task_entity = _TaskEntity.get_by_id(task_entity_id)
+  if not task_entity:
+    logging.warning("Cannot find _TaskEntity by ID: %s.", task_entity_id)
+    return
+  logging.info(
+      "Found _TaskEntity by ID: %s. ", task_entity_id)
+  payload_data = task_entity.data
+  return payload_data
+
+
+def DeleteTaskEntity(task_entity_id):
+  """"Delete a TaskEntity in NDB.
+
+  Args:
+    task_entity_id: the NDB entity ID of a _TaskEntity.
+  """
+  if not task_entity_id:
+    logging.info("No operation is needed, for empty task_entity_id.")
+    return
+  logging.info("Deleting _TaskEntity by ID: %s (if it exists).", task_entity_id)
+  task_entity_key = ndb.Key(_TaskEntity, task_entity_id)
+  task_entity_key.delete()
 
 
 def DeleteTask(queue_name, task_name):

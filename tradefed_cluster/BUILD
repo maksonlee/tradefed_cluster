@@ -1,9 +1,18 @@
+load("//tools/build_defs/license:license.bzl", "license")
 load("//tools/build_defs/testing:bzl_library.bzl", "bzl_library")
 
 # A test infra software for Android testing labs.
 load("//tradefed_cluster:adapter.bzl", "py_library", "pytype_strict_library", "third_party")
 
-package(default_visibility = [":tradefed_cluster_clients"])
+package(
+    default_applicable_licenses = ["//tradefed_cluster:license"],
+    default_visibility = [":tradefed_cluster_clients"],
+)
+
+license(
+    name = "license",
+    package_name = "tradefed_cluster",
+)
 
 licenses(["notice"])
 

@@ -25,7 +25,6 @@ from protorpc import protojson
 from tradefed_cluster import api_messages
 from tradefed_cluster import api_test
 from tradefed_cluster import datastore_test_util
-from tradefed_cluster.services import acl_service
 
 
 class AclCheckApiTest(api_test.ApiTest):
@@ -57,10 +56,10 @@ class AclCheckApiTest(api_test.ApiTest):
             }
         })
 
-  def testAuthAccountPrinciples_jumpHostHaveAccess(self):
+  @mock.patch('tradefed_cluster.services.acl_service.CheckMembership')
+  def testAuthAccountPrinciples_jumpHostHaveAccess(self, mock_check_membership):
     self.createRootGroup()
-    acl_service.CheckMembership = mock.MagicMock(
-        side_effect=[False, False, True])
+    mock_check_membership.side_effect = [False, False, True]
     api_request = {
         'hostname': 'mock.host.google.com',
         'host_account': 'android-test',
@@ -72,15 +71,16 @@ class AclCheckApiTest(api_test.ApiTest):
                                                   api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertTrue(account_principals.has_access)
-    self.assertEqual(acl_service.CheckMembership.call_count, 3)
-    acl_service.CheckMembership.assert_has_calls([
+    self.assertEqual(mock_check_membership.call_count, 3)
+    mock_check_membership.assert_has_calls([
         mock.call('mock-user', 'principalC'),
         mock.call('mock-user', 'principalD'),
         mock.call('mock-user', 'principalA'),
     ])
 
-  def testAuthAccountPrinciples_jumpHostNoAccess(self):
-    acl_service.CheckMembership = mock.MagicMock(return_value=False)
+  @mock.patch('tradefed_cluster.services.acl_service.CheckMembership')
+  def testAuthAccountPrinciples_jumpHostNoAccess(self, mock_check_membership):
+    mock_check_membership.return_value = False
     api_request = {
         'hostname': 'mock.host.google.com',
         'host_account': 'android-test',
@@ -92,12 +92,15 @@ class AclCheckApiTest(api_test.ApiTest):
                                                   api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertFalse(account_principals.has_access)
-    acl_service.CheckMembership.assert_has_calls([
+    mock_check_membership.assert_has_calls([
         mock.call('mock-user', 'principalA'),
-        mock.call('mock-user', 'principalB')
+        mock.call('mock-user', 'principalB'),
     ])
 
-  def testAuthAccountPrinciples_hostGroupHaveAccess(self):
+  @mock.patch('tradefed_cluster.services.acl_service.CheckMembership')
+  def testAuthAccountPrinciples_hostGroupHaveAccess(
+      self, mock_check_membership
+  ):
     datastore_test_util.CreateHostConfig(
         'mock2.host.google.com',
         'foo-lab',
@@ -106,8 +109,7 @@ class AclCheckApiTest(api_test.ApiTest):
             'jump',
         ])
     self.createRootGroup()
-    acl_service.CheckMembership = mock.MagicMock(
-        side_effect=[False, False, True])
+    mock_check_membership.side_effect = [False, False, True]
     api_request = {
         'hostname': 'mock2.host.google.com',
         'host_account': 'bar-admin',
@@ -119,19 +121,20 @@ class AclCheckApiTest(api_test.ApiTest):
                                                   api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertTrue(account_principals.has_access)
-    self.assertEqual(acl_service.CheckMembership.call_count, 3)
-    acl_service.CheckMembership.assert_has_calls([
+    self.assertEqual(mock_check_membership.call_count, 3)
+    mock_check_membership.assert_has_calls([
         mock.call('mock-user', 'principalC'),
         mock.call('mock-user', 'principalD'),
-        mock.call('mock-user', 'principalA')
+        mock.call('mock-user', 'principalA'),
     ])
 
-  def testAuthAccountPrinciples_hostGroupNoAccess(self):
+  @mock.patch('tradefed_cluster.services.acl_service.CheckMembership')
+  def testAuthAccountPrinciples_hostGroupNoAccess(self, mock_check_membership):
     datastore_test_util.CreateHostConfig(
         'mock2.host.google.com', 'foo-lab', inventory_groups=['bar', 'server'])
     datastore_test_util.CreateHostGroupConfig('bar', 'foo-lab')
     datastore_test_util.CreateHostGroupConfig('server', 'foo-lab')
-    acl_service.CheckMembership = mock.MagicMock(return_value=True)
+    mock_check_membership.return_value = True
     api_request = {
         'hostname': 'mock2.host.google.com',
         'host_account': 'bar-admin',
@@ -143,7 +146,7 @@ class AclCheckApiTest(api_test.ApiTest):
                                                   api_response.body)
     self.assertEqual('200 OK', api_response.status)
     self.assertFalse(account_principals.has_access)
-    acl_service.CheckMembership.assert_not_called()
+    mock_check_membership.assert_not_called()
 
   def testAuthAccountPrinciples_noHost(self):
     with self.assertRaisesRegex(Exception,
@@ -155,10 +158,12 @@ class AclCheckApiTest(api_test.ApiTest):
               'user_name': 'mock-user'
           })
 
-  def testAuthAccountPrinciples_noUser(self):
+  @mock.patch('tradefed_cluster.services.acl_service.CheckMembership')
+  def testAuthAccountPrinciples_noUser(self, mock_check_membership):
     self.createRootGroup()
-    acl_service.CheckMembership = mock.MagicMock(
-        side_effect=endpoints.NotFoundException('mock error message'))
+    mock_check_membership.side_effect = endpoints.NotFoundException(
+        message='mock error message'
+    )
     with self.assertRaisesRegex(Exception, 'mock error message'):
       self.testapp.post_json(
           '/_ah/api/AclApi.CheckSshAccessible',
@@ -168,8 +173,9 @@ class AclCheckApiTest(api_test.ApiTest):
               'user_name': 'mock-user'
           })
 
-  def testCheckAccessPermission_deviceOwner(self):
-    acl_service.CheckResourcePermission = mock.MagicMock(return_value=None)
+  @mock.patch('tradefed_cluster.services.acl_service.CheckResourcePermission')
+  def testCheckAccessPermission_deviceOwner(self, mock_check_permission):
+    mock_check_permission.return_value = None
     response = self.testapp.post_json(
         '/_ah/api/AclApi.CheckAccessPermission', {
             'resource_type': 'device',
@@ -182,9 +188,9 @@ class AclCheckApiTest(api_test.ApiTest):
     self.assertEqual('200 OK', response.status)
     self.assertTrue(account_principals.has_access)
 
-  def testCheckAccessPermission_deviceNoAccess(self):
-    acl_service.CheckResourcePermission = mock.MagicMock(
-        side_effect=endpoints.ForbiddenException)
+  @mock.patch('tradefed_cluster.services.acl_service.CheckResourcePermission')
+  def testCheckAccessPermission_deviceNoAccess(self, mock_check_permission):
+    mock_check_permission.side_effect = endpoints.ForbiddenException
     response = self.testapp.post_json(
         '/_ah/api/AclApi.CheckAccessPermission', {
             'resource_type': 'device',
@@ -214,6 +220,47 @@ class AclCheckApiTest(api_test.ApiTest):
               'user_name': 'stub_user',
               'resource_id': 'stub_serial'
           })
+
+  @mock.patch('tradefed_cluster.services.acl_service.CheckMembership')
+  @mock.patch('logging.error')
+  def testCheckAccessPermission_unformattedPrinciple(
+      self, mock_log, mock_check_membership):
+    mock_check_membership.return_value = True
+    datastore_test_util.CreateLabConfig('unformatted-lab', ('groupA', 'groupB'))
+    datastore_test_util.CreateHostGroupConfig(
+        'unformatted-group',
+        'unformatted-lab',
+        account_principals={
+            'bar-admin': {'principals': [{'foo': 'bar'}, {'bar': 'baz'}]}
+        },
+    )
+    self.createRootGroup()
+    datastore_test_util.CreateHostConfig(
+        'mock2.host.google.com',
+        'unformatted-lab',
+        inventory_groups=[
+            'unformatted-group',
+        ],
+    )
+    api_request = {
+        'hostname': 'mock2.host.google.com',
+        'host_account': 'bar-admin',
+        'user_name': 'mock-user',
+    }
+
+    api_response = self.testapp.post_json(
+        '/_ah/api/AclApi.CheckSshAccessible', api_request
+    )
+
+    account_principals = protojson.decode_message(
+        api_messages.AclCheckResult, api_response.body
+    )
+    mock_log.assert_called_once_with(
+        'host group %s got wrong account principle formate', 'unformatted-group'
+    )
+    self.assertEqual('200 OK', api_response.status)
+    self.assertFalse(account_principals.has_access)
+
 
 if __name__ == '__main__':
   unittest.main()

@@ -126,10 +126,13 @@ class AclApi(remote.Service):
     """
     if not host_group.account_principals:
       return False
-    for principal in host_group.account_principals.get(host_account, {}).get(
-        _PRINCIPALS_KEY, []):
-      if acl_service.CheckMembership(user_name, principal):
-        return True
+    account_principals = host_group.account_principals.get(
+        host_account, {}
+    ).get(_PRINCIPALS_KEY, [])
+    if self._CheckAssessibilityForPrincipals(
+        user_name, account_principals, host_group.name
+    ):
+      return True
     return False
 
   def _CheckAccessibilityForHostGroup(self, user_name, host_group):
@@ -146,9 +149,23 @@ class AclApi(remote.Service):
         not host_group.account_principals.values()):
       return False
     for account_info in host_group.account_principals.values():
-      for principal in account_info.get(_PRINCIPALS_KEY, []):
-        if acl_service.CheckMembership(user_name, principal):
-          return True
+      if self._CheckAssessibilityForPrincipals(
+          user_name, account_info.get(_PRINCIPALS_KEY, []), host_group.name
+      ):
+        return True
+    return False
+
+  def _CheckAssessibilityForPrincipals(
+      self, user_name, principals, host_group_name
+  ):
+    for principal in principals:
+      if not isinstance(principal, str):
+        logging.error(
+            "host group %s got wrong account principle formate", host_group_name
+        )
+        return False
+      if acl_service.CheckMembership(user_name, principal):
+        return True
     return False
 
   @api_common.method(
@@ -161,14 +178,16 @@ class AclApi(remote.Service):
     """Checks user access permission."""
     try:
       resource = acl_service.Resource(request.resource_type)
-    except ValueError:
+    except ValueError as err:
       raise endpoints.BadRequestException(
-          f"Unsupported resource {request.resource_type}")
+          f"Unsupported resource {request.resource_type}"
+      ) from err
     try:
       permission = acl_service.Permission(request.permission)
-    except ValueError:
+    except ValueError as err:
       raise endpoints.BadRequestException(
-          f"Unsupported permission {request.permission}")
+          f"Unsupported permission {request.permission}"
+      ) from err
     try:
       if resource == acl_service.Resource.device:
         acl_service.CheckResourcePermission(

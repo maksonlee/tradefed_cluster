@@ -62,6 +62,7 @@ py_test(
         ":api_messages_lib",
         ":api_test_lib",
         ":datastore_test_util_lib",
+        "//third_party/py/endpoints:endpoints_library",
         "//tradefed_cluster/services:acl_service_lib",
         third_party("protorpc:protorpc_all"),
     ],

@@ -145,8 +145,8 @@ class NotifierTest(testbed_dependent_test.TestbedDependentTest):
         result_links=[self.result_link],
         total_run_time_sec=3,
         event_time=TIMESTAMP)
-    event_message_binary = zlib.compress(six.ensure_binary(
-        protojson.encode_message(event_message)))
+    event_message_binary = six.ensure_binary(
+        protojson.encode_message(event_message))
     task_entity_key = task_scheduler._TaskEntity(
         data=event_message_binary).put()
     task_queue_payload_dict = {

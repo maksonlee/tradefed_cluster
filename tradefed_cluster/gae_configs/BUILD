@@ -1,7 +1,10 @@
 load("//tools/build_defs/testing:bzl_library.bzl", "bzl_library")
 load("//tradefed_cluster:adapter.bzl", "pytype_strict_binary", "third_party_py3")
 
-package(default_visibility = ["//visibility:public"])
+package(
+    default_applicable_licenses = ["//tradefed_cluster:license"],
+    default_visibility = ["//visibility:public"],
+)
 
 licenses(["notice"])
 

@@ -8,7 +8,10 @@
 #   Tools for configs.
 load("//tradefed_cluster:adapter.bzl", "proto_library", "py_library", "py_proto_library", "third_party")
 
-package(default_visibility = ["//tradefed_cluster:tradefed_cluster_clients"])
+package(
+    default_applicable_licenses = ["//tradefed_cluster:license"],
+    default_visibility = ["//tradefed_cluster:tradefed_cluster_clients"],
+)
 
 licenses(["notice"])
 

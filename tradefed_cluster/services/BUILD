@@ -1,6 +1,9 @@
 load("//tradefed_cluster:adapter.bzl", "pytype_strict_library", "third_party")
 
-package(default_visibility = ["//tradefed_cluster:tradefed_cluster_clients"])
+package(
+    default_applicable_licenses = ["//tradefed_cluster:license"],
+    default_visibility = ["//tradefed_cluster:tradefed_cluster_clients"],
+)
 
 licenses(["notice"])
 

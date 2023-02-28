@@ -130,7 +130,8 @@ def GetDeviceAffinityInfos(
     a list of device affinity infos.
   """
   keys = [
-      ndb.Key(            datastore_entities.DeviceAffinityInfo,
+      ndb.Key(  
+          datastore_entities.DeviceAffinityInfo,
           device_serial,
           namespace=common.NAMESPACE) for device_serial in device_serials
   ]
@@ -225,7 +226,8 @@ def GetTaskAffinityInfos(
     a list of task affinity infos.
   """
   keys = [
-      ndb.Key(            datastore_entities.TaskAffinityInfo,
+      ndb.Key(  
+          datastore_entities.TaskAffinityInfo,
           task_id,
           namespace=common.NAMESPACE) for task_id in task_ids
   ]
@@ -254,7 +256,8 @@ def GetAffinityStatuses(
     the affinity statuses.
   """
   keys = [
-      ndb.Key(            datastore_entities.AffinityStatus,
+      ndb.Key(  
+          datastore_entities.AffinityStatus,
           affinity_tag,
           namespace=common.NAMESPACE) for affinity_tag in affinity_tags
   ]

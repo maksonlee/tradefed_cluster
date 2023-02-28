@@ -167,7 +167,8 @@ def _ProcessCommandEvents(request_id):
     try:
       commander.ProcessCommandEvent(event)
       raw_events_keys_to_delete.append(raw_event.key)
-    except Exception as e:        logging.warning('Error while processing event: %s', event, exc_info=True)
+    except Exception as e:  
+      logging.warning('Error while processing event: %s', event, exc_info=True)
       error = e
       break
 

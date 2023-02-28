@@ -23,6 +23,7 @@ from protorpc import message_types
 from protorpc import messages
 from protorpc import remote
 
+
 from tradefed_cluster import api_common
 from tradefed_cluster import api_messages
 from tradefed_cluster import datastore_entities
@@ -34,6 +35,7 @@ ZERO_TIME = datetime.time()
 
 
 # Camel case used on API messages.
+
 class DeviceSnapshot(messages.Message):
   """Snapshot of all the devices for a given report date."""
   date = message_types.DateTimeField(1, required=True)

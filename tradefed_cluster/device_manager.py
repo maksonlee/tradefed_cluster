@@ -26,6 +26,7 @@ import uuid
 import six
 from six.moves import zip
 
+
 from tradefed_cluster import affinity_manager
 from tradefed_cluster import api_messages
 from tradefed_cluster import common
@@ -335,7 +336,8 @@ def _CountDeviceForHost(hostname):
   devices = (
       datastore_entities.DeviceInfo
       .query(ancestor=ndb.Key(datastore_entities.HostInfo, hostname))
-      .filter(datastore_entities.DeviceInfo.hidden == False)        .fetch(projection=[
+      .filter(datastore_entities.DeviceInfo.hidden == False)  
+      .fetch(projection=[
           datastore_entities.DeviceInfo.run_target,
           datastore_entities.DeviceInfo.state]))
   _DoCountDeviceForHost(host, devices)
@@ -672,7 +674,8 @@ def _UpdateGoneDevicesInNDB(hostname, reported_devices, timestamp):
   device_keys = (
       datastore_entities.DeviceInfo
       .query(ancestor=ndb.Key(datastore_entities.HostInfo, hostname))
-      .filter(datastore_entities.DeviceInfo.hidden == False)        .fetch(keys_only=True))
+      .filter(datastore_entities.DeviceInfo.hidden == False)  
+      .fetch(keys_only=True))
   missing_device_keys = []
   for device_key in device_keys:
     if device_key.id() in reported_devices:
@@ -779,7 +782,8 @@ def GetDevicesOnHost(hostname):
   """Get device entities on a host."""
   return (datastore_entities.DeviceInfo
           .query(ancestor=ndb.Key(datastore_entities.HostInfo, hostname))
-          .filter(datastore_entities.DeviceInfo.hidden == False)            .fetch())
+          .filter(datastore_entities.DeviceInfo.hidden == False)  
+          .fetch())
 
 
 def UpdateGoneHost(hostname):
@@ -1192,7 +1196,8 @@ def GetRunTargetsFromNDB(cluster=None):
   query = datastore_entities.DeviceInfo.query(
       projection=[datastore_entities.DeviceInfo.run_target],
       distinct=True).filter(
-          datastore_entities.DeviceInfo.hidden == False)    if cluster:
+          datastore_entities.DeviceInfo.hidden == False)  
+  if cluster:
     query = query.filter(
         datastore_entities.DeviceInfo.clusters == cluster)
   return (h.run_target for h in query if h.run_target)

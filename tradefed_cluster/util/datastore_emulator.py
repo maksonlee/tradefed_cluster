@@ -42,7 +42,8 @@ class DatastoreEmulatorFactory(datastore_emulator.DatastoreEmulatorFactory):
         else tempfile.mkdtemp())
 
     # Disable bad lint cause the class name is the same as the parent class
-        super(DatastoreEmulatorFactory, self).__init__(
+    
+    super(DatastoreEmulatorFactory, self).__init__(
         working_directory,
         os.getenv('DATASTORE_EMULATOR_ZIP_PATH'),
         os.getenv('JAVA_HOME'))

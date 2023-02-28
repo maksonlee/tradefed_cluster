@@ -23,6 +23,7 @@ from protorpc import remote
 
 from tradefed_cluster.util import ndb_shim as ndb
 
+
 from tradefed_cluster import affinity_manager
 from tradefed_cluster import api_common
 from tradefed_cluster import api_messages
@@ -135,7 +136,8 @@ class CommandTaskApi(remote.Service):
             break
         if matcher.IsEmpty():
           break
-            except:
+      
+      except:
         logging.exception(
             'Failed to lease tasks for "%s" cluster. Skipping...',
             cluster)
@@ -264,7 +266,8 @@ class CommandTaskApi(remote.Service):
           for device in matched_devices:
             affinity_manager.SetDeviceAffinity(
                 device.device_serial, affinity_tag)
-      except Exception as e:          # Datastore entities can only be written to once per second.  If we fail
+      except Exception as e:  
+        # Datastore entities can only be written to once per second.  If we fail
         # to update the command or task, log the error, and try leasing other
         # tasks.
         logging.warning("Error leasing task %s: %s", task.task_id, e)

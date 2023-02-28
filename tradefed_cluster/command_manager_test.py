@@ -28,6 +28,7 @@ import mock
 from protorpc import protojson
 from six.moves import range
 
+
 from tradefed_cluster import api_messages
 from tradefed_cluster import command_event_test_util
 from tradefed_cluster import command_manager

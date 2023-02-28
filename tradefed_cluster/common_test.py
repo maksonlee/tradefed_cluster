@@ -21,6 +21,7 @@ from tradefed_cluster import common
 
 
 # GPyLint does not recognize the ClassProperty in the common module.
+
 class TestIntState(int):
 
   def __new__(cls, value):

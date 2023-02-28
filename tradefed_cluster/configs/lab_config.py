@@ -22,10 +22,12 @@ import six
 
 import strictyaml as syaml
 
+
 try:
   from google.protobuf import json_format
 except ImportError:
   from google3.net.proto2.python.public import json_format
+
 
 from tradefed_cluster.configs import lab_config_pb2
 
@@ -35,8 +37,10 @@ try:
   os.environ['ANSIBLE_LOCAL_TEMP'] = '/tmp'
   # unified_lab_config depends on ansible.
   from tradefed_cluster.configs import unified_lab_config as unified_lab_config_util
-except Exception as e:    logging.warning('Fail to import ansible package:\n%s', e)
+except Exception as e:  
+  logging.warning('Fail to import ansible package:\n%s', e)
   ansible_import_error = e
+
 
 logger = logging.getLogger(__name__)
 

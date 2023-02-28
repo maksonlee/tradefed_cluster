@@ -23,6 +23,7 @@ from protorpc import remote
 
 from tradefed_cluster.util import ndb_shim as ndb
 
+
 from tradefed_cluster import api_common
 from tradefed_cluster import api_messages
 from tradefed_cluster import command_manager

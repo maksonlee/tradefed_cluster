@@ -19,6 +19,7 @@ from unittest import mock
 
 import six
 
+
 from tradefed_cluster import config_syncer_gcs_to_ndb
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import testbed_dependent_test

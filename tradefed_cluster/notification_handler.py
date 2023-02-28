@@ -18,6 +18,7 @@ import logging
 
 import flask
 
+
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import request_manager
@@ -41,7 +42,8 @@ def HandleNotification(fake=None):
 def NotifyPendingRequestStateChanges():
   """Notify all states that have the notify_test_status flag set."""
   keys = (datastore_entities.Request.query(namespace=common.NAMESPACE)
-                    .filter(datastore_entities.Request.notify_state_change == True)
+          
+          .filter(datastore_entities.Request.notify_state_change == True)
           .fetch(keys_only=True))
   for k in keys:
     task_scheduler.AddCallableTask(

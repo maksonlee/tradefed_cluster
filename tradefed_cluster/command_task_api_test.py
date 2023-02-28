@@ -23,16 +23,19 @@ from protorpc import protojson
 
 from tradefed_cluster.util import ndb_shim as ndb
 
+
 from tradefed_cluster import affinity_manager
 from tradefed_cluster import api_messages
 from tradefed_cluster import api_test
 from tradefed_cluster import command_manager
 from tradefed_cluster import command_task_api
-from tradefed_cluster import command_task_matcher  from tradefed_cluster import command_task_store
+from tradefed_cluster import command_task_matcher  
+from tradefed_cluster import command_task_store
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import datastore_test_util
-from tradefed_cluster import env_config  from tradefed_cluster import metric
+from tradefed_cluster import env_config  
+from tradefed_cluster import metric
 
 
 TIMESTAMP = datetime.datetime(2018, 4, 30, 0, 0, 0)

@@ -21,6 +21,7 @@ import re
 
 import flask
 
+
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import datastore_util
@@ -31,6 +32,7 @@ from tradefed_cluster.services import acl_service
 from tradefed_cluster.services import file_storage
 from tradefed_cluster.util import ndb_shim as ndb
 
+
 # Ansible package depends on certain environment variable.
 ansible_import_error = None
 try:
@@ -38,7 +40,8 @@ try:
   from ansible.parsing import dataloader
   # unified_lab_config depends on ansible, so need to import after ansible.
   from tradefed_cluster.configs import unified_lab_config as unified_lab_config_util
-except Exception as e:    logging.warning('Fail to import ansible package:\n%s', e)
+except Exception as e:  
+  logging.warning('Fail to import ansible package:\n%s', e)
   ansible_import_error = e
 
 

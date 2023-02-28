@@ -23,6 +23,7 @@ from typing import Dict, Optional, Any
 
 from tradefed_cluster.util import ndb_shim as ndb
 
+
 from tradefed_cluster import affinity_manager
 from tradefed_cluster import api_messages
 from tradefed_cluster import common
@@ -158,7 +159,8 @@ def GetLeasableTasks(cluster, run_targets):
   tasks = (
       datastore_entities.CommandTask.query(
           datastore_entities.CommandTask.cluster == cluster,
-          datastore_entities.CommandTask.leasable == True,            namespace=common.NAMESPACE)
+          datastore_entities.CommandTask.leasable == True,  
+          namespace=common.NAMESPACE)
       .order(-datastore_entities.CommandTask.priority))
 
   # Because Datastore will always return the tasks from the above query in the

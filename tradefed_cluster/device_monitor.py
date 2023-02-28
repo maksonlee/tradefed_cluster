@@ -28,6 +28,7 @@ from protorpc import protojson
 import six
 
 
+
 from tradefed_cluster import api_messages
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
@@ -239,7 +240,8 @@ def _ScanHosts():
   hosts = []
   query = (
       datastore_entities.HostInfo.query()
-      .filter(datastore_entities.HostInfo.hidden == False))    # LINT.IfChange(scan_host_projection)
+      .filter(datastore_entities.HostInfo.hidden == False))  
+  # LINT.IfChange(scan_host_projection)
   projection = [
       datastore_entities.HostInfo.lab_name,
       datastore_entities.HostInfo.physical_cluster,

@@ -19,6 +19,7 @@ import unittest
 
 import mock
 
+
 from tradefed_cluster import api_test
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import device_manager

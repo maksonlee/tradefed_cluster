@@ -17,6 +17,7 @@
 from tradefed_cluster.plugins import base
 from tradefed_cluster.plugins import noop_plugin  
 
+
 def GetPlugin(name, **kwargs):
   """Returns a plugin instance registered with the given name.
 

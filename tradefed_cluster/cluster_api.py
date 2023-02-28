@@ -18,6 +18,7 @@ from protorpc import message_types
 from protorpc import messages
 from protorpc import remote
 
+
 from tradefed_cluster import api_common
 from tradefed_cluster import api_messages
 from tradefed_cluster import datastore_entities
@@ -112,11 +113,13 @@ class ClusterApi(remote.Service):
     """
     hosts = (datastore_entities.HostInfo.query()
              .filter(datastore_entities.HostInfo.clusters == cluster_id)
-             .filter(datastore_entities.HostInfo.hidden == False)               .fetch())
+             .filter(datastore_entities.HostInfo.hidden == False)  
+             .fetch())
     host_msgs = []
     for host in hosts:
       devices = (datastore_entities.DeviceInfo.query(ancestor=host.key)
-                 .filter(datastore_entities.DeviceInfo.hidden == False)                   .fetch())
+                 .filter(datastore_entities.DeviceInfo.hidden == False)  
+                 .fetch())
       host_msgs.append(datastore_entities.ToMessage(host, devices))
     return host_msgs
 

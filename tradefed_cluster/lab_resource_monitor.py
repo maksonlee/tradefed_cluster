@@ -63,7 +63,8 @@ def _Pull(topic):
           _ProcessMessage(data)
           message_count += 1
           ack_ids.append(message.get('ackId'))
-        except Exception:            logging.exception('error processing message: %s', message)
+        except Exception:  
+          logging.exception('error processing message: %s', message)
     finally:
       if ack_ids:
         pubsub_client.AcknowledgeMessages(PUBSUB_SUBSCRIPTION, ack_ids)

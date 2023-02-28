@@ -24,12 +24,14 @@ import hamcrest
 import mock
 from six.moves import range
 
+
 from tradefed_cluster import api_test
 from tradefed_cluster import command_manager
 from tradefed_cluster import command_monitor
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
-from tradefed_cluster import env_config  from tradefed_cluster import request_manager
+from tradefed_cluster import env_config  
+from tradefed_cluster import request_manager
 from tradefed_cluster import request_sync_monitor
 from tradefed_cluster.util import ndb_shim as ndb
 

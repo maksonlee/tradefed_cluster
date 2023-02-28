@@ -24,6 +24,7 @@ import unittest
 
 import mock
 
+
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
 from tradefed_cluster import lab_resource_monitor

@@ -21,6 +21,7 @@ import hamcrest
 import mock
 import webtest
 
+
 from tradefed_cluster import command_event_test_util
 from tradefed_cluster import command_manager
 from tradefed_cluster import command_monitor
@@ -308,7 +309,8 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
       self, plugin, schedule_tasks, monitor):
     request_id = "1001"
     command_infos = [
-        datastore_entities.CommandInfo(              command_line="command_line %04d" % i,
+        datastore_entities.CommandInfo(  
+            command_line="command_line %04d" % i,
             cluster="cluster %04d" % i,
             run_target="run_target %04d" % i,
             run_count=1,
@@ -338,7 +340,8 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
       self.assertIsNone(command.shard_count)
     plugin.OnCreateCommands.assert_has_calls([
         mock.call([
-            plugin_base.CommandInfo(                  command_id=int(command.key.id()),
+            plugin_base.CommandInfo(  
+                command_id=int(command.key.id()),
                 command_line=command.command_line,
                 run_count=command.run_count,
                 shard_count=1,
@@ -642,7 +645,8 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
     # Test ProcessCommandEvent for a non-final state with deletion
     request_id = "1001"
     command_infos = [
-        datastore_entities.CommandInfo(              command_line="command_line %04d" % i,
+        datastore_entities.CommandInfo(  
+            command_line="command_line %04d" % i,
             cluster="cluster %04d" % i,
             run_target="run_target %04d" % i,
             run_count=1,
@@ -749,7 +753,8 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
   def testCheckPendingCommands(self, schedule_tasks, monitor):
     request_id = "1001"
     command_infos = [
-        datastore_entities.CommandInfo(              command_line="command_line %04d" % i,
+        datastore_entities.CommandInfo(  
+            command_line="command_line %04d" % i,
             cluster="cluster %04d" % i,
             run_target="run_target %04d" % i,
             run_count=1,
@@ -795,7 +800,8 @@ class CommanderTest(testbed_dependent_test.TestbedDependentTest):
       self, schedule_tasks, monitor):
     request_id = "1001"
     command_infos = [
-        datastore_entities.CommandInfo(              command_line="command_line %04d" % i,
+        datastore_entities.CommandInfo(  
+            command_line="command_line %04d" % i,
             cluster="cluster %04d" % i,
             run_target="run_target %04d" % i,
             run_count=1,

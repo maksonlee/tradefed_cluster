@@ -68,7 +68,8 @@ def RetryNdbContentionErrors(f):
   def Wrapper(*args, **kwargs):
     try:
       return f(*args, **kwargs)
-    except Exception as e:        exception_message = str(e)
+    except Exception as e:  
+      exception_message = str(e)
       if "too much contention" in exception_message:
         raise TooMuchContentionError(exception_message)
       # If not matched by the parser will be raised.

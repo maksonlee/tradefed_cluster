@@ -22,6 +22,7 @@ from protorpc import remote
 
 from tradefed_cluster.util import ndb_shim as ndb
 
+
 from tradefed_cluster import api_common
 from tradefed_cluster import api_messages
 from tradefed_cluster import common
@@ -125,6 +126,7 @@ class ClusterHostApi(remote.Service):
 
     if not request.include_hidden:
       query = query.filter(datastore_entities.HostInfo.hidden == False)  
+
     if request.flated_extra_info:
       query = query.filter(datastore_entities.HostInfo.flated_extra_info ==
                            request.flated_extra_info)
@@ -212,7 +214,8 @@ class ClusterHostApi(remote.Service):
         device_query = datastore_entities.DeviceInfo.query(ancestor=host.key)
         if not request.include_hidden:
           device_query = device_query.filter(
-              datastore_entities.DeviceInfo.hidden == False)          devices = device_query.fetch()
+              datastore_entities.DeviceInfo.hidden == False)  
+        devices = device_query.fetch()
       host_infos.append(datastore_entities.ToMessage(
           host, devices=devices,
           host_update_state_entity=host_update_state))
@@ -259,7 +262,8 @@ class ClusterHostApi(remote.Service):
     device_query = datastore_entities.DeviceInfo.query(ancestor=host.key)
     if not request.include_hidden:
       device_query = device_query.filter(
-          datastore_entities.DeviceInfo.hidden == False)      devices = device_query.fetch()
+          datastore_entities.DeviceInfo.hidden == False)  
+    devices = device_query.fetch()
 
     host_update_state = ndb.Key(
         datastore_entities.HostUpdateState, hostname).get()

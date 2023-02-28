@@ -27,13 +27,15 @@ import mock
 from six.moves import range
 import webtest
 
+
 from tradefed_cluster import command_attempt_monitor
 from tradefed_cluster import command_event_test_util
 from tradefed_cluster import command_manager
 from tradefed_cluster import commander
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
-from tradefed_cluster import env_config  from tradefed_cluster import request_manager
+from tradefed_cluster import env_config  
+from tradefed_cluster import request_manager
 from tradefed_cluster import testbed_dependent_test
 from tradefed_cluster.util import ndb_shim as ndb
 

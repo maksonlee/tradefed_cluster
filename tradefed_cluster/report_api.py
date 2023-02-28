@@ -28,6 +28,7 @@ from protorpc import messages
 from protorpc import remote
 import six
 
+
 from tradefed_cluster import api_common
 from tradefed_cluster import device_info_reporter
 
@@ -37,6 +38,7 @@ ZERO_TIME = datetime.time()
 
 
 # Disabling invalid-name pylint to allow camel cases.
+
 class RecordGroup(messages.Message):
   """A count of devices matching the criteria for a given group."""
   groupByField = messages.StringField(1, required=True)

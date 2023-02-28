@@ -32,6 +32,7 @@ from tradefed_cluster.util import ndb_util
 
 
 
+
 # Constant to hold a time of 0 (0 hours, 0 minutes, 0 seconds)
 ZERO_TIME = datetime.time()
 
@@ -69,9 +70,11 @@ def ToMessage(entity, *args, **kwargs):
   """A utility method to convert a datastore entity into an API message."""
   if entity is None:
     return None
-    assert type(entity) in _CONVERTER_DISPATCH_DICT, (
+  
+  assert type(entity) in _CONVERTER_DISPATCH_DICT, (
       'Converter for "%s" not defined.' % type(entity).__name__)
-    return _CONVERTER_DISPATCH_DICT[type(entity)](entity, *args, **kwargs)
+  
+  return _CONVERTER_DISPATCH_DICT[type(entity)](entity, *args, **kwargs)
 
 
 class AffinityStatus(ndb.Model):
@@ -560,7 +563,8 @@ def CommandInfoToMessage(entity):
       test_bench=ToMessage(entity.test_bench))
 
 
-def _Request_AddCommandInfo(obj):    """Upgrade function for legacy Request objects."""
+def _Request_AddCommandInfo(obj):  
+  """Upgrade function for legacy Request objects."""
   obj.command_infos = [
       CommandInfo(
           command_line=obj.depr_command_line,

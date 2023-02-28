@@ -22,6 +22,7 @@ import zlib
 import flask
 import six
 
+
 from tradefed_cluster import command_event
 from tradefed_cluster import command_manager
 from tradefed_cluster import commander
@@ -105,7 +106,8 @@ def LogCommandEventMetrics(command, event):
           run_target=command.run_target,
           command_action=TIMING_DATA_FIELDS_TO_COMMAND_ACTIONS[key],
           latency_secs=latency_secs)
-  except:      # Protecting against bad data
+  except:  
+    # Protecting against bad data
     logging.warning("Failed to report timing metrics.", exc_info=True)
 
 
@@ -163,7 +165,8 @@ def HandleCommandEvent():
         logging.warning("Ignore unknown state event:\n%s.", event)
         continue
       ProcessCommandEvent(event)
-    except Exception as e:        exception = e
+    except Exception as e:  
+      exception = e
       logging.warning(
           "Failed to process event, will retry: obj=%s", _Truncate(obj),
           exc_info=True)
@@ -173,5 +176,6 @@ def HandleCommandEvent():
     logging.warning("%d/%d command events failed to process.", len(failed_objs),
                     len(objs))
     if len(failed_objs) == len(objs) and exception:
-      raise exception      EnqueueCommandEvents(failed_objs)
+      raise exception  
+    EnqueueCommandEvents(failed_objs)
   return common.HTTP_OK

@@ -19,6 +19,7 @@ from __future__ import print_function
 import functools
 from six.moves import map
 
+
 from google import auth
 from google.cloud import ndb
 from google.cloud.ndb import context as context_module

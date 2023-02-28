@@ -28,6 +28,7 @@ from six.moves import zip
 
 from tradefed_cluster.util import ndb_shim as ndb
 
+
 from tradefed_cluster import api_messages
 from tradefed_cluster import api_test
 from tradefed_cluster import common

@@ -80,7 +80,8 @@ class FilterHintApi(remote.Service):
     """Fetches a list of pool."""
     entities = datastore_entities.HostInfo.query(
         projection=[datastore_entities.HostInfo.pools], distinct=True).filter(
-            datastore_entities.HostInfo.hidden == False).fetch(                  projection=[datastore_entities.HostInfo.pools])
+            datastore_entities.HostInfo.hidden == False).fetch(  
+                projection=[datastore_entities.HostInfo.pools])
     mergedlist = []
     for item in entities:
       mergedlist += item.pools
@@ -109,7 +110,8 @@ class FilterHintApi(remote.Service):
   def _ListHosts(self):
     """Fetches a list of hostnames."""
     entities = datastore_entities.HostInfo.query().filter(
-        datastore_entities.HostInfo.hidden == False).fetch(keys_only=True)      infos = [
+        datastore_entities.HostInfo.hidden == False).fetch(keys_only=True)  
+    infos = [
         api_messages.FilterHintMessage(value=str(item.id()))
         for item in entities
     ]
@@ -120,7 +122,8 @@ class FilterHintApi(remote.Service):
     entities = datastore_entities.HostInfo.query(
         projection=[datastore_entities.HostInfo.test_harness],
         distinct=True).filter(
-            datastore_entities.HostInfo.hidden == False).fetch(                  projection=[datastore_entities.HostInfo.test_harness])
+            datastore_entities.HostInfo.hidden == False).fetch(  
+                projection=[datastore_entities.HostInfo.test_harness])
     infos = [
         api_messages.FilterHintMessage(value=item.test_harness)
         for item in entities
@@ -132,7 +135,8 @@ class FilterHintApi(remote.Service):
     entities = datastore_entities.HostInfo.query(
         projection=[datastore_entities.HostInfo.test_harness_version],
         distinct=True).filter(
-            datastore_entities.HostInfo.hidden == False).fetch(                  projection=[datastore_entities.HostInfo.test_harness_version])
+            datastore_entities.HostInfo.hidden == False).fetch(  
+                projection=[datastore_entities.HostInfo.test_harness_version])
     infos = [
         api_messages.FilterHintMessage(value=item.test_harness_version)
         for item in entities
@@ -158,7 +162,8 @@ class FilterHintApi(remote.Service):
     entities = datastore_entities.HostInfo.query(
         projection=[datastore_entities.HostInfo.host_group],
         distinct=True).filter(
-            datastore_entities.HostInfo.hidden == False).fetch(                  projection=[datastore_entities.HostInfo.host_group])
+            datastore_entities.HostInfo.hidden == False).fetch(  
+                projection=[datastore_entities.HostInfo.host_group])
     infos = [
         api_messages.FilterHintMessage(value=item.host_group)
         for item in entities
@@ -178,7 +183,8 @@ class FilterHintApi(remote.Service):
     entities = datastore_entities.DeviceInfo.query(
         projection=[datastore_entities.DeviceInfo.product],
         distinct=True).filter(
-            datastore_entities.DeviceInfo.hidden == False)      products = [
+            datastore_entities.DeviceInfo.hidden == False)  
+    products = [
         api_messages.FilterHintMessage(value=item.product)
         for item in entities if item.product
     ]
@@ -189,7 +195,8 @@ class FilterHintApi(remote.Service):
     entities = datastore_entities.DeviceInfo.query(
         projection=[datastore_entities.DeviceInfo.product_variant],
         distinct=True).filter(
-            datastore_entities.DeviceInfo.hidden == False)      product_variants = [
+            datastore_entities.DeviceInfo.hidden == False)  
+    product_variants = [
         api_messages.FilterHintMessage(value=item.product_variant)
         for item in entities if item.product_variant
     ]

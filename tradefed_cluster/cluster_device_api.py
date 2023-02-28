@@ -26,6 +26,7 @@ from protorpc import remote
 from tradefed_cluster.util import elasticsearch_client
 from tradefed_cluster.util import ndb_shim as ndb
 
+
 from tradefed_cluster import api_common
 from tradefed_cluster import api_messages
 from tradefed_cluster import common
@@ -175,6 +176,7 @@ class ClusterDeviceApi(remote.Service):
     # in(hostnames), but it was not scalable at all.
     if not request.include_hidden:
       query = query.filter(datastore_entities.DeviceInfo.hidden == False)  
+
     if request.product:
       query = query.filter(
           datastore_entities.DeviceInfo.product == request.product)

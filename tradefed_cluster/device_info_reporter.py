@@ -28,6 +28,7 @@ import dateutil.parser
 import flask
 import six
 
+
 from tradefed_cluster import api_messages
 from tradefed_cluster import common
 from tradefed_cluster import datastore_entities
@@ -198,7 +199,8 @@ def GetHostsToReport(cluster_prefix=None):
   """
   query = (datastore_entities.HostInfo.query()
            .filter(
-               datastore_entities.HostInfo.hidden == False))    if cluster_prefix:
+               datastore_entities.HostInfo.hidden == False))  
+  if cluster_prefix:
     query = query.filter(
         datastore_entities.HostInfo.physical_cluster >= cluster_prefix).filter(
             datastore_entities.HostInfo.physical_cluster <
@@ -215,7 +217,8 @@ def GetDevicesToReport(cluster_prefix=None):
     A list of physical devices.
   """
   query = (datastore_entities.DeviceInfo.query()
-           .filter(datastore_entities.DeviceInfo.hidden == False)             .filter(datastore_entities.DeviceInfo.device_type ==
+           .filter(datastore_entities.DeviceInfo.hidden == False)  
+           .filter(datastore_entities.DeviceInfo.device_type ==
                    api_messages.DeviceTypeMessage.PHYSICAL))
   if cluster_prefix:
     query = (

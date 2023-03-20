@@ -35,7 +35,7 @@ class RegexDispatcherTest(testbed_dependent_test.TestbedDependentTest):
         (r'/test', CreateMockApp(status_code=200)),
         (r'/(hello|world)(/.*)?', CreateMockApp(status_code=201)),
     ])
-    client = werkzeug.test.Client(dispatcher, werkzeug.wrappers.BaseResponse)
+    client = werkzeug.test.Client(dispatcher, werkzeug.wrappers.Response)
 
     # Exact match
     self.assertEqual(client.get('/test').status_code, 200)

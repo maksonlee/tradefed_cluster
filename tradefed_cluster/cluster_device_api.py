@@ -599,7 +599,10 @@ class ClusterDeviceApi(remote.Service):
     ]
     note_entities = ndb.get_multi(keys)
     for key, note_entity in zip(keys, note_entities):
-      if not note_entity or note_entity.device_serial != request.device_serial:
+      if not note_entity:
+        logging.warning("Note does not exist for key %s", key)
+        continue
+      if note_entity.device_serial != request.device_serial:
         raise endpoints.BadRequestException(
             "Note<id:{0}> does not exist under device<serial:{1}>.".format(
                 key.id(), note_entity.device_serial))

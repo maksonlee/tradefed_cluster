@@ -265,7 +265,7 @@ class CommandTaskApiTest(api_test.ApiTest):
           test_bench=datastore_entities.TestBench(
               cluster='cluster', host=datastore_entities.Host()))
       task_keys.append(task.put())
-    command_task_api.CommandTaskApi()._CreateCommandAttempt(leased_tasks)
+      command_task_api.CommandTaskApi()._CreateCommandAttempt(t)
     attempts = command_manager.GetCommandAttempts(request_id='request_id',
                                                   command_id='command_id')
 
@@ -376,85 +376,113 @@ class CommandTaskApiTest(api_test.ApiTest):
     self.assertIsNone(task.shard_count)
     self.assertIsNone(task.shard_index)
 
-    create_command_attempt.assert_has_calls([mock.call([
-        command_task_api.CommandTask(
-            task_id='1001-2-0',
-            request_id='1001',
-            command_id='2',
-            command_line='command',
-            device_serials=['d1'],
-            run_index=0,
-            attempt_index=0,
-            plugin_data=[
-                api_messages.KeyValuePair(key='ants_invocation_id',
-                                          value='i123'),
-                api_messages.KeyValuePair(key='ants_work_unit_id',
-                                          value='w123'),
-                api_messages.KeyValuePair(key='host_group', value='cluster'),
-                api_messages.KeyValuePair(key='hostname', value='hostname'),
-                api_messages.KeyValuePair(key='lab_name', value='alab'),
-                api_messages.KeyValuePair(
-                    key='tfc_command_attempt_queue_end_timestamp',
-                    value='1525071600000'),
-                api_messages.KeyValuePair(
-                    key='tfc_command_attempt_queue_start_timestamp',
-                    value='1525071600000'),
-            ]),
-        command_task_api.CommandTask(
-            task_id='1001-3-0',
-            request_id='1001',
-            command_id='3',
-            command_line='command',
-            device_serials=['d3'],
-            run_index=0,
-            attempt_index=0,
-            plugin_data=[
-                api_messages.KeyValuePair(key='ants_invocation_id', value=''),
-                api_messages.KeyValuePair(key='ants_work_unit_id', value=''),
-                api_messages.KeyValuePair(key='host_group', value='cluster'),
-                api_messages.KeyValuePair(key='hostname', value='hostname'),
-                api_messages.KeyValuePair(key='lab_name', value='alab'),
-                api_messages.KeyValuePair(
-                    key='tfc_command_attempt_queue_end_timestamp',
-                    value='1525071600000'),
-                api_messages.KeyValuePair(
-                    key='tfc_command_attempt_queue_start_timestamp',
-                    value='1525071600000'),
-            ])
-    ])])
+    create_command_attempt.assert_has_calls([
+        mock.call(
+            command_task_api.CommandTask(
+                task_id='1001-2-0',
+                request_id='1001',
+                command_id='2',
+                command_line='command',
+                device_serials=['d1'],
+                run_index=0,
+                attempt_index=0,
+                plugin_data=[
+                    api_messages.KeyValuePair(
+                        key='ants_invocation_id', value='i123'
+                    ),
+                    api_messages.KeyValuePair(
+                        key='ants_work_unit_id', value='w123'
+                    ),
+                    api_messages.KeyValuePair(
+                        key='host_group', value='cluster'
+                    ),
+                    api_messages.KeyValuePair(key='hostname', value='hostname'),
+                    api_messages.KeyValuePair(key='lab_name', value='alab'),
+                    api_messages.KeyValuePair(
+                        key='tfc_command_attempt_queue_end_timestamp',
+                        value='1525071600000',
+                    ),
+                    api_messages.KeyValuePair(
+                        key='tfc_command_attempt_queue_start_timestamp',
+                        value='1525071600000',
+                    ),
+                ],
+            )
+        ),
+        mock.call(
+            command_task_api.CommandTask(
+                task_id='1001-3-0',
+                request_id='1001',
+                command_id='3',
+                command_line='command',
+                device_serials=['d3'],
+                run_index=0,
+                attempt_index=0,
+                plugin_data=[
+                    api_messages.KeyValuePair(
+                        key='ants_invocation_id', value=''
+                    ),
+                    api_messages.KeyValuePair(
+                        key='ants_work_unit_id', value=''
+                    ),
+                    api_messages.KeyValuePair(
+                        key='host_group', value='cluster'
+                    ),
+                    api_messages.KeyValuePair(key='hostname', value='hostname'),
+                    api_messages.KeyValuePair(key='lab_name', value='alab'),
+                    api_messages.KeyValuePair(
+                        key='tfc_command_attempt_queue_end_timestamp',
+                        value='1525071600000',
+                    ),
+                    api_messages.KeyValuePair(
+                        key='tfc_command_attempt_queue_start_timestamp',
+                        value='1525071600000',
+                    ),
+                ],
+            )
+        ),
+    ])
     ensure_consistency.assert_has_calls([
         mock.call(REQUEST_ID, '2', '%s-2-0' % REQUEST_ID),
-        mock.call(REQUEST_ID, '3', '%s-3-0' % REQUEST_ID)])
-    mock_touch.assert_has_calls([
-        mock.call(REQUEST_ID, '2'),
-        mock.call(REQUEST_ID, '3')])
+        mock.call(REQUEST_ID, '3', '%s-3-0' % REQUEST_ID),
+    ])
+    mock_touch.assert_has_calls(
+        [mock.call(REQUEST_ID, '2'), mock.call(REQUEST_ID, '3')]
+    )
     record_timing.assert_has_calls([
         mock.call(
             cluster_id='cluster',
             run_target='run_target1',
             create_timestamp=TIMESTAMP,
             command_action=metric.CommandAction.LEASE,
-            count=True),
+            count=True,
+        ),
         mock.call(
             cluster_id='cluster2',
             run_target='run_target3',
             create_timestamp=TIMESTAMP,
             command_action=metric.CommandAction.LEASE,
-            count=True)])
+            count=True,
+        ),
+    ])
 
   @mock.patch.object(command_manager, 'Touch')
   @mock.patch.object(
-      command_task_api.CommandTaskApi, '_EnsureCommandConsistency')
+      command_task_api.CommandTaskApi, '_EnsureCommandConsistency'
+  )
   def testLeaseHostTasks_withNumTasks(self, ensure_consistency, mock_touch):
     ensure_consistency.return_value = True
     mock_touch.return_value = mock.MagicMock(create_time=TIMESTAMP)
 
     self._AddCommand(
-        self.request.key.id(), '2', 'cmd', 'cluster', 'run_target1')
+        self.request.key.id(), '2', 'cmd', 'cluster', 'run_target1'
+    )
     self._AddCommand(
-        self.request.key.id(), '3', 'cmd', 'cluster', 'run_target1')
+        self.request.key.id(), '3', 'cmd', 'cluster', 'run_target1'
+    )
     self._AddCommand(
-        self.request.key.id(), '4', 'cmd', 'cluster', 'run_target1')
+        self.request.key.id(), '4', 'cmd', 'cluster', 'run_target1'
+    )
     request = {
         'hostname': 'hostname',
         'cluster': 'cluster',
@@ -638,7 +666,7 @@ class CommandTaskApiTest(api_test.ApiTest):
     ]
     create_command_attempt.assert_has_calls([
         mock.call(
-            [command_task_api.CommandTask(
+            command_task_api.CommandTask(
                 task_id='1001-2-0',
                 request_id='1001',
                 command_id='2',
@@ -646,7 +674,7 @@ class CommandTaskApiTest(api_test.ApiTest):
                 device_serials=['d1'],
                 run_index=0,
                 attempt_index=0,
-                plugin_data=plugin_data)])])
+                plugin_data=plugin_data))])
     ensure_consistency.assert_has_calls([
         mock.call(REQUEST_ID, '2', '%s-2-0' % REQUEST_ID)])
     mock_touch.assert_has_calls([

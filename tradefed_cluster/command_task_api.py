@@ -143,8 +143,15 @@ class CommandTaskApi(remote.Service):
             cluster)
 
     env_config.CONFIG.plugin.OnCommandTasksLease(leased_tasks)
-    self._CreateCommandAttempt(leased_tasks)
-    return CommandTaskList(tasks=leased_tasks)
+    tasks_with_attempts = []
+    for task in leased_tasks:
+      try:
+        self._CreateCommandAttempt(task)
+        tasks_with_attempts.append(task)
+      except Exception as e:  
+        logging.warning("Error creating attempts for task %s: %s",
+                        task.task_id, e)
+    return CommandTaskList(tasks=tasks_with_attempts)
 
   def _ApplyDeviceAffinityInfos(self, matcher):
     """Apply device affinity infos to a matcher.
@@ -186,39 +193,38 @@ class CommandTaskApi(remote.Service):
     return affinity_tag, target_affinity_tags
 
   @ndb.transactional()
-  def _CreateCommandAttempt(self, leased_tasks):
-    for task in leased_tasks:
-      attempt_id = _CreateAttemptId()
-      task.attempt_id = attempt_id
+  def _CreateCommandAttempt(self, task):
+    attempt_id = _CreateAttemptId()
+    task.attempt_id = attempt_id
 
-      plugin_data_ = api_messages.KeyValuePairMessagesToMap(task.plugin_data)
-      attempt_key = ndb.Key(
-          datastore_entities.Request, task.request_id,
-          datastore_entities.Command, task.command_id,
-          datastore_entities.CommandAttempt, attempt_id,
-          namespace=common.NAMESPACE)
-      attempt_entity = datastore_entities.CommandAttempt(
-          key=attempt_key,
-          attempt_id=attempt_id,
-          state=common.CommandState.UNKNOWN,
-          command_id=task.command_id,
-          last_event_time=Now(),
-          task_id=task.task_id,
-          run_index=task.run_index,
-          attempt_index=task.attempt_index,
-          hostname=plugin_data_.get(_HOSTNAME_KEY),
-          device_serial=task.device_serials[0],
-          device_serials=task.device_serials,
-          plugin_data=plugin_data_)
-      command_manager.AddToSyncCommandAttemptQueue(attempt_entity, 1)
-      attempt_entity.put()
+    plugin_data_ = api_messages.KeyValuePairMessagesToMap(task.plugin_data)
+    attempt_key = ndb.Key(
+        datastore_entities.Request, task.request_id,
+        datastore_entities.Command, task.command_id,
+        datastore_entities.CommandAttempt, attempt_id,
+        namespace=common.NAMESPACE)
+    attempt_entity = datastore_entities.CommandAttempt(
+        key=attempt_key,
+        attempt_id=attempt_id,
+        state=common.CommandState.UNKNOWN,
+        command_id=task.command_id,
+        last_event_time=Now(),
+        task_id=task.task_id,
+        run_index=task.run_index,
+        attempt_index=task.attempt_index,
+        hostname=plugin_data_.get(_HOSTNAME_KEY),
+        device_serial=task.device_serials[0],
+        device_serials=task.device_serials,
+        plugin_data=plugin_data_)
+    command_manager.AddToSyncCommandAttemptQueue(attempt_entity, 1)
+    attempt_entity.put()
 
-      stored_task = command_task_store.GetTask(task.task_id)
-      if stored_task:
-        stored_task.attempt_id = attempt_id
-        stored_task.put()
-      else:
-        logging.warning("No task found with id %s", task.task_id)
+    stored_task = command_task_store.GetTask(task.task_id)
+    if stored_task:
+      stored_task.attempt_id = attempt_id
+      stored_task.put()
+    else:
+      logging.warning("No task found with id %s", task.task_id)
 
   def _LeaseHostTasksForCluster(
       self, matcher, cluster, host, num_tasks=None):

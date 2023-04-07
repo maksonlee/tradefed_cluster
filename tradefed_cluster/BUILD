@@ -411,10 +411,17 @@ py_test(
     deps = [
         ":command_attempt_monitor_lib",
         ":command_event_test_util",
+        ":command_lib",
+        ":commander_lib",
+        ":common_lib",
+        ":datastore_entities_lib",
+        ":env_config_lib",
+        ":request_manager_lib",
         ":testbed_dependent_test_lib",
         third_party("hamcrest"),
         third_party("mock"),
         third_party("webtest"),
+        "//third_party/py/six",
         "//tradefed_cluster/util:ndb_shim_lib",
     ],
 )

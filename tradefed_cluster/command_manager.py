@@ -542,7 +542,9 @@ def _RescheduleOrDeleteTask(task_id,
     DeleteTask(task_id)
 
 
-def AddToSyncCommandAttemptQueue(attempt):
+def AddToSyncCommandAttemptQueue(
+    attempt, delay_minutes=MAX_COMMAND_EVENT_DELAY_MIN
+):
   """Add a command to the sync queue."""
   logging.info("Monitoring command attempt: %s", attempt.key)
   _, request_id, _, command_id, _, attempt_id = attempt.key.flat()
@@ -555,7 +557,8 @@ def AddToSyncCommandAttemptQueue(attempt):
   task_scheduler.AddTask(
       queue_name=COMMAND_ATTEMPT_SYNC_QUEUE,
       payload=payload,
-      eta=update_time + datetime.timedelta(minutes=MAX_COMMAND_EVENT_DELAY_MIN))
+      eta=update_time + datetime.timedelta(minutes=delay_minutes),
+  )
 
 
 @ndb.transactional()
@@ -576,8 +579,11 @@ def UpdateCommandAttempt(event):
   attempt_state_changed = False
   if not attempt_entity:
     logging.error(
-        "attempt cannot be found, request_id: %s, command_id: %s, attempt_id: %s",
-        event.request_id, event.command_id, event.attempt_id)
+        "attempt not found, request_id: %s, command_id: %s, attempt_id: %s",
+        event.request_id,
+        event.command_id,
+        event.attempt_id,
+    )
     return False
   elif (attempt_entity.last_event_time and
         event.time and

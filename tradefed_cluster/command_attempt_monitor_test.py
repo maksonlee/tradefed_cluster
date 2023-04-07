@@ -145,15 +145,39 @@ class CommandAttemptMonitorTest(testbed_dependent_test.TestbedDependentTest):
     mock_update.assert_not_called()
     sync.assert_has_calls([mock.call(attempt)])
 
+  @mock.patch.object(command_manager, 'EnsureLeasable', autospec=True)
   @mock.patch.object(
-      command_manager, 'AddToSyncCommandAttemptQueue', autospec=True)
+      command_manager, 'AddToSyncCommandAttemptQueue', autospec=True
+  )
   @mock.patch.object(commander, 'ProcessCommandEvent', autospec=True)
-  def testSyncCommandAttempt_noAttempt(self, mock_update, sync):
+  def testSyncCommandAttempt_noAttempt(
+      self, mock_update, sync, ensure_leasable
+  ):
     _, request_id, _, command_id = self.command.key.flat()
     command_attempt_monitor.SyncCommandAttempt(request_id, command_id,
                                                'attempt_id')
     mock_update.assert_not_called()
     sync.assert_not_called()
+    ensure_leasable.assert_called_once_with(self.command)
+
+  @mock.patch.object(command_manager, 'EnsureLeasable', autospec=True)
+  @mock.patch.object(
+      command_manager, 'AddToSyncCommandAttemptQueue', autospec=True
+  )
+  @mock.patch.object(commander, 'ProcessCommandEvent', autospec=True)
+  def testSyncCommandAttempt_noAttempt_hasExisting(
+      self, mock_update, sync, ensure_leasable
+  ):
+    _, request_id, _, command_id = self.command.key.flat()
+    command_event_test_util.CreateCommandAttempt(
+        self.command, 'attempt_id2', state=common.CommandState.UNKNOWN
+    )
+    command_attempt_monitor.SyncCommandAttempt(
+        request_id, command_id, 'attempt_id'
+    )
+    mock_update.assert_not_called()
+    sync.assert_not_called()
+    ensure_leasable.assert_not_called()
 
   @mock.patch.object(command_attempt_monitor, 'Now', autospec=True)
   @mock.patch.object(

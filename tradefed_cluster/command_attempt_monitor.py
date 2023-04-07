@@ -72,6 +72,23 @@ def SyncCommandAttempt(request_id, command_id, attempt_id):
     logging.warning(
         'No attempt found to sync. Request %s Command %s Attempt %s',
         request_id, command_id, attempt_id)
+
+    # Make sure the command is still leasable if there was no attempt created
+    attempts = command_manager.GetCommandAttempts(request_id, command_id)
+    # There may be attempts under other IDs due to retries
+    if not attempts:
+      logging.warning(
+          'Ensuring request %s command %s is leaseable as there are no'
+          ' attempts and %s was not found',
+          request_id,
+          command_id,
+          attempt_id,
+      )
+      command = command_manager.GetCommand(request_id, command_id)
+      try:
+        command_manager.EnsureLeasable(command)
+      except command_manager.CommandTaskNotFoundError:
+        logging.info('command %s %s has no tasks', request_id, command_id)
     return
 
   if attempt.state in common.FINAL_COMMAND_STATES:

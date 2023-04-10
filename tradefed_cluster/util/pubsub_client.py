@@ -19,6 +19,7 @@ import threading
 
 from googleapiclient import discovery
 from googleapiclient import errors
+from google3.pyglib import retry
 
 PUBSUB_API_SCOPES = ('https://www.googleapis.com/auth/pubsub')
 PUBSUB_API_NAME = 'pubsub'
@@ -64,6 +65,8 @@ class PubSubClient(object):
         raise
       logging.debug('Topic %s already exists', topic)
 
+  @retry.logged_retry_on_exception(
+      retry_value=errors.HttpError, retry_intervals=[10, 20])
   def PublishMessages(self, topic, messages):
     """Publish messages to supplied topic.
 

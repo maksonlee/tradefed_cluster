@@ -123,6 +123,7 @@ pytype_strict_library(
     ],
     srcs_version = "PY2AND3",
     deps = [
+        "//pyglib:retry",
         "//third_party/py/google/auth:__init__",
         third_party("googleapiclient"),
     ],

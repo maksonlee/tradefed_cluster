@@ -1087,12 +1087,6 @@ def Cancel(request_id, command_id, cancel_reason=None):
   Returns:
     command: a command entity, read only
   """
-  return _DoCancelCommand(request_id, command_id, cancel_reason)
-
-
-@ndb.transactional(xg=True)
-def _DoCancelCommand(request_id, command_id, cancel_reason):
-  """Do cancel a command."""
   command = GetCommand(request_id, command_id)
   if common.IsFinalCommandState(command.state):
     logging.info(
@@ -1101,6 +1095,13 @@ def _DoCancelCommand(request_id, command_id, cancel_reason):
     return command
   if command.state != common.CommandState.UNKNOWN:
     DeleteTasks(command)
+  return _DoCancelCommand(request_id, command_id, cancel_reason)
+
+
+@ndb.transactional(xg=True)
+def _DoCancelCommand(request_id, command_id, cancel_reason):
+  """Do cancel a command."""
+  command = GetCommand(request_id, command_id)
   command.state = common.CommandState.CANCELED
   command.cancel_reason = cancel_reason or common.CancelReason.UNKNOWN
   command.dirty = False

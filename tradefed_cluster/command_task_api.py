@@ -216,7 +216,7 @@ class CommandTaskApi(remote.Service):
         device_serial=task.device_serials[0],
         device_serials=task.device_serials,
         plugin_data=plugin_data_)
-    command_manager.AddToSyncCommandAttemptQueue(attempt_entity, 1)
+    command_manager.AddToSyncCommandAttemptQueue(attempt_entity, 3)
     attempt_entity.put()
 
     stored_task = command_task_store.GetTask(task.task_id)

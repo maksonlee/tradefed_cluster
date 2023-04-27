@@ -77,32 +77,38 @@ def _UpdateClusters(hosts):
     list of ClusterInfo, clusters to upsert.
   """
   logging.info('Updating clusters')
+
   cluster_to_hosts = collections.defaultdict(list)
+
   for host in hosts:
-    cluster_to_hosts[host.physical_cluster].append(host)
+    cluster = host.physical_cluster or common.UNKNOWN_CLUSTER_NAME
+    cluster_to_hosts[cluster].append(host)
+
   clusters_to_delete = []
   clusters_to_upsert = []
   query = datastore_entities.ClusterInfo.query()
   for cluster in query:
     if cluster.cluster not in cluster_to_hosts:
       clusters_to_delete.append(cluster.key)
-  ndb.delete_multi(clusters_to_delete)
-  logging.debug('Deleted clusters due to no hosts: %s', clusters_to_delete)
+
+  if clusters_to_delete:
+    ndb.delete_multi(clusters_to_delete)
+    logging.debug('Deleted clusters due to no hosts: %s', clusters_to_delete)
 
   query = datastore_entities.HostUpdateState.query()
   update_states_by_hostname = {
       update_state.hostname: update_state for update_state in query.fetch()}
 
   for cluster, hosts in six.iteritems(cluster_to_hosts):
-    cluster_id = cluster or common.UNKNOWN_CLUSTER_NAME
-    cluster_entity = datastore_entities.ClusterInfo(id=cluster_id)
+    logging.info('Updating cluster %s', cluster)
+    cluster_entity = datastore_entities.ClusterInfo(id=cluster)
     for host in hosts:
       if host.lab_name:
         cluster_entity.lab_name = host.lab_name
         break
     else:
       cluster_entity.lab_name = common.UNKNOWN_LAB_NAME
-    cluster_entity.cluster = cluster_id
+    cluster_entity.cluster = cluster
     cluster_entity.total_devices = 0
     cluster_entity.offline_devices = 0
     cluster_entity.available_devices = 0

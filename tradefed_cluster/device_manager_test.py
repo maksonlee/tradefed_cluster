@@ -979,6 +979,14 @@ class DeviceManagerTest(testbed_dependent_test.TestbedDependentTest):
     result = device_manager._TransformDeviceSerial(hostname, serial)
     self.assertEqual("", result)
 
+  def testTransformDeviceSerial_gceDeviceWithIpSuffix(self):
+    """Tests TransformDeviceSerial for Lab AVD."""
+    hostname = "test.mtv.corp"
+    serial = "gce-device-10.0.30.54-1-vsoc-2"
+    expected = "gce-device-10.0.30.54-1-vsoc-2"
+    result = device_manager._TransformDeviceSerial(hostname, serial)
+    self.assertEqual(expected, result)
+
   def testUpdateDevices(self):
     """Test _updateDevices. 1 device (w/ empty serial) should be ignored."""
     hostname = self.HOST_EVENT["hostname"]

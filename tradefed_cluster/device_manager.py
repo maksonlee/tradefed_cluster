@@ -21,6 +21,7 @@ import copy
 import datetime
 import json
 import logging
+import re
 import uuid
 
 import six
@@ -83,6 +84,12 @@ HOST_SYNC_ID_KEY = "host_sync_id"
 HOST_SYNC_INTERVAL = datetime.timedelta(minutes=5)
 HOST_SYNC_STALE_TIMEOUT = 3 * HOST_SYNC_INTERVAL
 ONE_MONTH = datetime.timedelta(days=30)
+
+# This regex matches strings that have the following format:
+# 1st match is ARM server hostname/ip
+# 2nd match is slot id (0-127)
+# 3rd match is a Linux username
+LAB_AVD_SERIAL_PATTERN = r"^gce-device-([\w.-]+)-([0-9]|[1-9][0-9]|1[01][0-9]|12[0-7])-([a-zA-Z][a-zA-Z0-9_-]{0,31})$"
 
 
 def IsHostEventValid(event):
@@ -396,6 +403,11 @@ def _TransformDeviceSerial(hostname, serial):
     emulator, TCP device, or IP address.
   """
   if serial and serial.startswith(NON_PHYSICAL_DEVICES_PREFIXES):
+    # Skip the transformation for AVD devices in the lab that match the pattern
+    # "gce-device-{avd_host}-{slot_id}-{slot_user}".
+    match = re.match(LAB_AVD_SERIAL_PATTERN, serial)
+    if match:
+      return serial
     return "%s:%s" % (hostname, serial)
   else:
     return serial

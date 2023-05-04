@@ -408,7 +408,10 @@ def _TransformDeviceSerial(hostname, serial):
     match = re.match(LAB_AVD_SERIAL_PATTERN, serial)
     if match:
       return serial
-    return "%s:%s" % (hostname, serial)
+    transformed_serial = "%s:%s" % (hostname, serial)
+    logging.debug("Device serial %s is transfromed into %s",
+                  serial, transformed_serial)
+    return transformed_serial
   else:
     return serial
 

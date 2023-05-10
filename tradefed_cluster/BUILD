@@ -58,6 +58,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":api_messages_lib",
         ":api_test_lib",
@@ -87,6 +88,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":affinity_manager_lib",
         ":testbed_dependent_test_lib",
@@ -155,6 +157,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":api_messages_lib",
         ":api_test_lib",
@@ -233,6 +236,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
@@ -268,6 +272,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":api_messages_lib",
         ":api_test_lib",
@@ -315,6 +320,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
@@ -348,6 +354,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":api_test_lib",
         ":datastore_entities_lib",
@@ -378,6 +385,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
@@ -408,6 +416,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":command_attempt_monitor_lib",
         ":command_event_test_util",
@@ -444,6 +453,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":command_error_type_config_lib",
         ":testbed_dependent_test_lib",
@@ -473,6 +483,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [":api_test_lib"],
 )
 
@@ -502,6 +513,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":command_event_handler_lib",
         ":command_event_test_util",
@@ -585,6 +597,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":api_messages_lib",
         ":command_event_test_util",
@@ -610,6 +623,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":command_lib",
         ":testbed_dependent_test_lib",
@@ -653,6 +667,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":affinity_manager_lib",
         ":api_test_lib",
@@ -711,6 +726,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
@@ -739,6 +755,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":command_task_store_lib",
         ":testbed_dependent_test_lib",
@@ -772,6 +789,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":command_event_test_util",
         ":commander_lib",
@@ -881,6 +899,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":config_syncer_gcs_to_ndb_lib",
         ":datastore_entities_lib",
@@ -916,6 +935,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
@@ -948,6 +968,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":common_lib",
         ":datastore_entities_lib",
@@ -976,6 +997,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":api_messages_lib",
         ":datastore_entities_lib",
@@ -1022,6 +1044,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":device_history_cleaner_lib",
         ":testbed_dependent_test_lib",
@@ -1057,6 +1080,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":datastore_test_util_lib",
         ":device_info_reporter_lib",
@@ -1094,6 +1118,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":datastore_test_util_lib",
         ":device_manager_lib",
@@ -1132,6 +1157,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":datastore_test_util_lib",
         ":device_monitor_lib",
@@ -1166,6 +1192,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [":api_test_lib"],
 )
 
@@ -1193,6 +1220,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
@@ -1222,6 +1250,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
@@ -1247,6 +1276,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":datastore_test_util_lib",
         ":device_blocker_lib",
@@ -1301,6 +1331,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":datastore_entities_lib",
         ":datastore_test_util_lib",
@@ -1319,6 +1350,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":common_lib",
         ":datastore_entities_lib",
@@ -1337,6 +1369,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":api_test_lib",
         ":common_lib",
@@ -1387,6 +1420,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":lab_resource_monitor_lib",
         ":testbed_dependent_test_lib",
@@ -1445,6 +1479,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":datastore_test_util_lib",
         ":note_manager_lib",
@@ -1475,6 +1510,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":datastore_test_util_lib",
         ":notification_handler_lib",
@@ -1506,6 +1542,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":datastore_test_util_lib",
         ":env_config_lib",
@@ -1546,6 +1583,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":api_test_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
@@ -1576,6 +1614,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [":api_test_lib"],
 )
 
@@ -1607,6 +1646,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":api_test_lib",
         "//tradefed_cluster/util:ndb_shim_lib",
@@ -1639,7 +1679,10 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
-    tags = ["requires-net:external"],
+    tags = [
+        "not_run:arm",
+        "requires-net:external",
+    ],
     deps = [
         ":datastore_test_util_lib",
         ":env_config_lib",
@@ -1676,6 +1719,7 @@ py_test(
         "request_sync_monitor_test.py",
     ],
     python_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":command_event_test_util",
         ":datastore_test_util_lib",
@@ -1708,6 +1752,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":api_test_lib",
         ":datastore_test_util_lib",
@@ -1747,6 +1792,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":server_lib",
         ":testbed_dependent_test_lib",

@@ -84,6 +84,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY2AND3",
+    tags = ["not_run:arm"],
     deps = [
         ":acl_service_lib",
         third_party("absl/testing:absltest"),
@@ -146,6 +147,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":task_scheduler_lib",
         "//pyglib:stringutil",

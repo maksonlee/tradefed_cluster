@@ -66,6 +66,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":email_sender_lib",
         third_party("mock"),
@@ -109,6 +110,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":ndb_shim_lib",
         ":ndb_util_lib",
@@ -136,6 +138,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":pubsub_client_lib",
         "//tradefed_cluster:testbed_dependent_test_lib",
@@ -222,6 +225,7 @@ py_test(
     ],
     python_version = "PY3",
     srcs_version = "PY3",
+    tags = ["not_run:arm"],
     deps = [
         ":datastore_emulator_lib",
         third_party("mock"),

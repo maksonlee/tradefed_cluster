@@ -37,59 +37,82 @@ class HarnessImageMetadataSyncerTest(parameterized.TestCase,
               'datastore_util.datetime')
   @mock.patch('tradefed_cluster.harness_image_metadata_syncer.requests')
   def testSyncHarnessImageMetadata_NoExistingEntity(
-      self, mock_requests, mock_util_datetime, mock_syncer_datetime, mock_auth):
+      self, mock_requests, mock_util_datetime, mock_syncer_datetime,
+      unused_mock_auth):
     """Test sync harness image metadata."""
     time_now = datetime.datetime(2020, 12, 24)
     time_created = datetime.datetime(2020, 12, 10)
-    time_created_ms = str(
-        int((time_created - datetime.datetime(1970, 1, 1)).total_seconds() *
-            1000))
+    time_created_txt = '2020-12-10T00:00:00.000000Z'
 
     mock_util_datetime.datetime.utcnow.return_value = time_now
     mock_syncer_datetime.datetime.utcnow.return_value = time_now
-    mock_syncer_datetime.datetime.utcfromtimestamp = (
-        datetime.datetime.utcfromtimestamp)
-    mock_requests.get().json.return_value = {
-        'manifest': {
-            'sha1': {
-                'tag': [
-                    '111111',
-                    'golden',
-                    'canary',
-                    'golden_tradefed_image_20201210_1200_RC00',
-                ],
-                'timeCreatedMs': time_created_ms,
+    mock_syncer_datetime.datetime.strptime = datetime.datetime.strptime
+    mock_requests.get().json.side_effect = [
+        {'versions': [
+            {'name': ('projects/dockerized-tradefed/locations/us/repositories/'
+                      'gcr.io/packages/tradefed/versions/sha256:sha1'),
+             'createTime': time_created_txt,
+             'relatedTags': [
+                 {'name': ('projects/dockerized-tradefed/locations/us/'
+                           'repositories/gcr.io/packages/tradefed/tags/111111')
+                 },
+                 {'name': ('projects/dockerized-tradefed/locations/us/'
+                           'repositories/gcr.io/packages/tradefed/tags/golden')
+                 },
+                 {'name': ('projects/dockerized-tradefed/locations/us/'
+                           'repositories/gcr.io/packages/tradefed/tags/canary')
+                 },
+                 {'name': ('projects/dockerized-tradefed/locations/us/'
+                           'repositories/gcr.io/packages/tradefed/tags/'
+                           'golden_tradefed_image_20201210_1200_RC00')
+                 },
+             ],
             },
-            'sha2': {
-                'tag': [
-                    '2222222',
-                    'golden_tradefed_image_20201210_0600_RC00',
-                ],
-                'timeCreatedMs': time_created_ms,
+            {'name': ('projects/dockerized-tradefed/locations/us/repositories/'
+                      'gcr.io/packages/tradefed/versions/sha256:sha2'),
+             'createTime': time_created_txt,
+             'relatedTags': [
+                 {'name': ('projects/dockerized-tradefed/locations/us/'
+                           'repositories/gcr.io/packages/tradefed/tags/2222222')
+                 },
+                 {'name': ('projects/dockerized-tradefed/locations/us/'
+                           'repositories/gcr.io/packages/tradefed/tags/'
+                           'golden_tradefed_image_20201210_0600_RC00')
+                 },
+             ],
             },
-            'sha3': {
-                'tag': [
-                    '3333333',
-                    'staging',
-                ],
-                'timeCreatedMs': time_created_ms,
+        ],
+         'nextPageToken': 'sometoken'},
+        {'versions': [
+            {'name': ('projects/dockerized-tradefed/locations/us/repositories/'
+                      'gcr.io/packages/tradefed/versions/sha256:sha3'),
+             'createTime': time_created_txt,
+             'relatedTags': [
+                 {'name': ('projects/dockerized-tradefed/locations/us/'
+                           'repositories/gcr.io/packages/tradefed/tags/3333333')
+                 },
+                 {'name': ('projects/dockerized-tradefed/locations/us/'
+                           'repositories/gcr.io/packages/tradefed/tags/staging')
+                 },
+             ],
             },
-        }
-    }
+        ],
+         'nextPageToken': ''},
+    ]
 
     harness_image_metadata_syncer.SyncHarnessImageMetadata()
 
     keys = [
         ndb.Key(datastore_entities.TestHarnessImageMetadata,
-                'gcr.io/dockerized-tradefed/tradefed:sha1'),
+                'gcr.io/dockerized-tradefed/tradefed:sha256:sha1'),
         ndb.Key(datastore_entities.TestHarnessImageMetadata,
-                'gcr.io/dockerized-tradefed/tradefed:sha2'),
+                'gcr.io/dockerized-tradefed/tradefed:sha256:sha2'),
         ndb.Key(datastore_entities.TestHarnessImageMetadata,
-                'gcr.io/dockerized-tradefed/tradefed:sha3'),
+                'gcr.io/dockerized-tradefed/tradefed:sha256:sha3'),
     ]
     entity_1, entity_2, entity_3 = ndb.get_multi(keys)
 
-    self.assertEqual('sha1', entity_1.digest)
+    self.assertEqual('sha256:sha1', entity_1.digest)
     self.assertEqual('111111', entity_1.test_harness_version)
     self.assertEqual(time_created, entity_1.create_time)
     self.assertEqual(time_now, entity_1.sync_time)
@@ -98,7 +121,7 @@ class HarnessImageMetadataSyncerTest(parameterized.TestCase,
     ], entity_1.current_tags)
     self.assertCountEqual(['golden'], entity_1.historical_tags)
 
-    self.assertEqual('sha2', entity_2.digest)
+    self.assertEqual('sha256:sha2', entity_2.digest)
     self.assertEqual('2222222', entity_2.test_harness_version)
     self.assertEqual(time_created, entity_2.create_time)
     self.assertEqual(time_now, entity_2.sync_time)
@@ -108,7 +131,7 @@ class HarnessImageMetadataSyncerTest(parameterized.TestCase,
     ], entity_2.current_tags)
     self.assertCountEqual(['golden'], entity_2.historical_tags)
 
-    self.assertEqual('sha3', entity_3.digest)
+    self.assertEqual('sha256:sha3', entity_3.digest)
     self.assertEqual('3333333', entity_3.test_harness_version)
     self.assertEqual(time_created, entity_3.create_time)
     self.assertEqual(time_now, entity_3.sync_time)
@@ -121,45 +144,68 @@ class HarnessImageMetadataSyncerTest(parameterized.TestCase,
               'datastore_util.datetime')
   @mock.patch('tradefed_cluster.harness_image_metadata_syncer.requests')
   def testSyncHarnessImageMetadata_OverwriteExistingEntities(
-      self, mock_requests, mock_util_datetime, mock_syncer_datetime, mock_auth):
+      self, mock_requests, mock_util_datetime, mock_syncer_datetime,
+      unused_mock_auth):
     """Test sync harness image metadata."""
     time_now = datetime.datetime(2020, 12, 24)
     time_created = datetime.datetime(2020, 12, 10)
-    time_created_ms = str(
-        int((time_created - datetime.datetime(1970, 1, 1)).total_seconds() *
-            1000))
+    time_created_txt = '2020-12-10T00:00:00.000000Z'
 
     mock_util_datetime.datetime.utcnow.return_value = time_now
     mock_syncer_datetime.datetime.utcnow.return_value = time_now
-    mock_syncer_datetime.datetime.utcfromtimestamp = (
-        datetime.datetime.utcfromtimestamp)
-    mock_requests.get().json.return_value = {
-        'manifest': {
-            'sha1': {
-                'tag': [
-                    '111111',
-                    'golden',
-                    'canary',
-                    'golden_tradefed_image_20201210_1200_RC00',
-                ],
-                'timeCreatedMs': time_created_ms,
+    mock_syncer_datetime.datetime.strptime = datetime.datetime.strptime
+    mock_requests.get().json.side_effect = [
+        {'versions': [
+            {'name': ('projects/dockerized-tradefed/locations/us/repositories/'
+                      'gcr.io/packages/tradefed/versions/sha256:sha1'),
+             'createTime': time_created_txt,
+             'relatedTags': [
+                 {'name': ('projects/dockerized-tradefed/locations/us/'
+                           'repositories/gcr.io/packages/tradefed/tags/111111')
+                 },
+                 {'name': ('projects/dockerized-tradefed/locations/us/'
+                           'repositories/gcr.io/packages/tradefed/tags/golden')
+                 },
+                 {'name': ('projects/dockerized-tradefed/locations/us/'
+                           'repositories/gcr.io/packages/tradefed/tags/canary')
+                 },
+                 {'name': ('projects/dockerized-tradefed/locations/us/'
+                           'repositories/gcr.io/packages/tradefed/tags/'
+                           'golden_tradefed_image_20201210_1200_RC00')
+                 },
+             ],
             },
-            'sha2': {
-                'tag': [
-                    '2222222',
-                    'golden_tradefed_image_20201210_0600_RC00',
-                ],
-                'timeCreatedMs': time_created_ms,
+            {'name': ('projects/dockerized-tradefed/locations/us/repositories/'
+                      'gcr.io/packages/tradefed/versions/sha256:sha2'),
+             'createTime': time_created_txt,
+             'relatedTags': [
+                 {'name': ('projects/dockerized-tradefed/locations/us/'
+                           'repositories/gcr.io/packages/tradefed/tags/2222222')
+                 },
+                 {'name': ('projects/dockerized-tradefed/locations/us/'
+                           'repositories/gcr.io/packages/tradefed/tags/'
+                           'golden_tradefed_image_20201210_0600_RC00')
+                 },
+             ],
             },
-            'sha3': {
-                'tag': [
-                    '3333333',
-                    'staging',
-                ],
-                'timeCreatedMs': time_created_ms,
+        ],
+         'nextPageToken': 'sometoken'},
+        {'versions': [
+            {'name': ('projects/dockerized-tradefed/locations/us/repositories/'
+                      'gcr.io/packages/tradefed/versions/sha256:sha3'),
+             'createTime': time_created_txt,
+             'relatedTags': [
+                 {'name': ('projects/dockerized-tradefed/locations/us/'
+                           'repositories/gcr.io/packages/tradefed/tags/3333333')
+                 },
+                 {'name': ('projects/dockerized-tradefed/locations/us/'
+                           'repositories/gcr.io/packages/tradefed/tags/staging')
+                 },
+             ],
             },
-        }
-    }
+        ],
+         'nextPageToken': ''},
+    ]
 
     existing_entities = [
         datastore_entities.TestHarnessImageMetadata(
@@ -192,15 +238,15 @@ class HarnessImageMetadataSyncerTest(parameterized.TestCase,
 
     keys = [
         ndb.Key(datastore_entities.TestHarnessImageMetadata,
-                'gcr.io/dockerized-tradefed/tradefed:sha1'),
+                'gcr.io/dockerized-tradefed/tradefed:sha256:sha1'),
         ndb.Key(datastore_entities.TestHarnessImageMetadata,
-                'gcr.io/dockerized-tradefed/tradefed:sha2'),
+                'gcr.io/dockerized-tradefed/tradefed:sha256:sha2'),
         ndb.Key(datastore_entities.TestHarnessImageMetadata,
-                'gcr.io/dockerized-tradefed/tradefed:sha3'),
+                'gcr.io/dockerized-tradefed/tradefed:sha256:sha3'),
     ]
     entity_1, entity_2, entity_3 = ndb.get_multi(keys)
 
-    self.assertEqual('sha1', entity_1.digest)
+    self.assertEqual('sha256:sha1', entity_1.digest)
     self.assertEqual('111111', entity_1.test_harness_version)
     self.assertEqual(time_created, entity_1.create_time)
     self.assertEqual(time_now, entity_1.sync_time)
@@ -209,7 +255,7 @@ class HarnessImageMetadataSyncerTest(parameterized.TestCase,
     ], entity_1.current_tags)
     self.assertCountEqual(['golden'], entity_1.historical_tags)
 
-    self.assertEqual('sha2', entity_2.digest)
+    self.assertEqual('sha256:sha2', entity_2.digest)
     self.assertEqual('2222222', entity_2.test_harness_version)
     self.assertEqual(time_created, entity_2.create_time)
     self.assertEqual(time_now, entity_2.sync_time)
@@ -219,7 +265,7 @@ class HarnessImageMetadataSyncerTest(parameterized.TestCase,
     ], entity_2.current_tags)
     self.assertCountEqual(['golden'], entity_2.historical_tags)
 
-    self.assertEqual('sha3', entity_3.digest)
+    self.assertEqual('sha256:sha3', entity_3.digest)
     self.assertEqual('3333333', entity_3.test_harness_version)
     self.assertEqual(time_created, entity_3.create_time)
     self.assertEqual(time_now, entity_3.sync_time)

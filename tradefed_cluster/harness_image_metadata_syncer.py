@@ -28,8 +28,13 @@ from tradefed_cluster.util import ndb_shim as ndb
 
 APP = flask.Flask(__name__)
 
-# The url to read image metadata from GCR.
-_LIST_TAGS_URL = 'https://gcr.io/v2/dockerized-tradefed/tradefed/tags/list'
+# The URL base to read image version metadata from GCP Artifact Registry
+_LIST_VERSION_URL_BASE = (
+    'https://artifactregistry.googleapis.com/v1/projects/dockerized-tradefed/'
+    'locations/us/repositories/gcr.io/packages/tradefed/versions'
+    '?view=FULL&page_size=100&page_token=')
+# Format to parse datetime
+_TIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
 # Authorization header template.
 _AUTHORIZATION_TMPL = 'Bearer {}'
 # Tradefed tag regex patterns
@@ -60,24 +65,35 @@ def SyncHarnessImageMetadata():
   logging.debug('"should_sync_harness_image" is enabled.')
 
   creds = auth.GetComputeEngineCredentials()
+  versions = []
+  page_token = ''
   try:
-    response = requests.get(
-        url=_LIST_TAGS_URL,
-        headers={'Authorization': _AUTHORIZATION_TMPL.format(creds.token)})
+    while True:
+      url = _LIST_VERSION_URL_BASE + page_token
+      response = requests.get(
+          url=url,
+          headers={'Authorization': _AUTHORIZATION_TMPL.format(creds.token)})
+      response_json = response.json()
+      batch_versions = response_json.get('versions', [])
+      logging.info('Fetched %d image versions with page token %s.',
+                   len(batch_versions), page_token)
+      versions.extend(batch_versions)
+      page_token = response_json.get('nextPageToken')
+      if not page_token:
+        break
   except requests.exceptions.HTTPError as http_error:
     logging.exception('Error in http request to get image manifest from GCR.')
     raise http_error
-  response_json = response.json()
-  manifest = response_json.get('manifest')
-  if not manifest:
-    raise KeyError(
-        'No valid image manifest is in the response: {}'.format(response_json))
 
   time_now = datetime.datetime.utcnow()
 
   entities_to_update = []
-  for digest, data in manifest.items():
-    current_tags = data.get('tag', [])
+  for version in versions:
+    digest = 'sha256:' + version.get('name', '').split('sha256:')[-1]
+    current_tags = []
+    for tag_obj in version.get('relatedTags', []):
+      tag = tag_obj.get('name', '').split('tags/')[-1]
+      current_tags.append(tag)
     analysis_result = _AnalyseTradefedDockerImageTags(current_tags)
     historical_tags = []
     if analysis_result['is_historical_golden']:
@@ -85,8 +101,8 @@ def SyncHarnessImageMetadata():
     key = ndb.Key(
         datastore_entities.TestHarnessImageMetadata,
         _IMAGE_METADATA_KEY_TMPL.format(_DEFAULT_TRADEFED_REPO, digest))
-    time_created = datetime.datetime.utcfromtimestamp(
-        int(data['timeCreatedMs']) / 1000)
+    time_created = datetime.datetime.strptime(
+        version.get('createTime'), _TIME_FORMAT)
     entity = datastore_entities.TestHarnessImageMetadata(
         key=key,
         repo_name=_DEFAULT_TRADEFED_REPO,

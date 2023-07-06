@@ -31,9 +31,6 @@ from tradefed_cluster import datastore_entities
 
 DEFAULT_COMMAND_ATTEMPT_HEARTBEAT = datetime.timedelta(hours=24)
 
-# Limit the maximum size of the query
-_TASK_LEASE_LIMIT = 1000
-
 
 @dataclasses.dataclass
 class CommandTaskArgs(object):
@@ -164,10 +161,7 @@ def GetLeasableTasks(cluster, run_targets):
           datastore_entities.CommandTask.cluster == cluster,
           datastore_entities.CommandTask.leasable == True,  
           namespace=common.NAMESPACE)
-      .order(-datastore_entities.CommandTask.priority)
-      .fetch(limit=_TASK_LEASE_LIMIT))
-
-  logging.info('Found %d leasable tasks on cluster %s', len(tasks), cluster)
+      .order(-datastore_entities.CommandTask.priority))
 
   # Because Datastore will always return the tasks from the above query in the
   # same order, this means that multiple hosts trying to lease tasks for the

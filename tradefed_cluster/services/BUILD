@@ -1,3 +1,4 @@
+load("//third_party/bazel_rules/rules_python/python:py_test.bzl", "py_test")
 load("//tradefed_cluster:adapter.bzl", "pytype_strict_library", "third_party")
 
 package(
